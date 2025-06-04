@@ -433,6 +433,79 @@ def get_recommendations():
         logger.error(f"Recommendations generation failed: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@api_bp.route('/documents/process-norshin', methods=['POST'])
+def process_documents_norshin():
+    """Process contract documents via Norshin.com API and index results"""
+    try:
+        data = request.get_json() or {}
+        limit = data.get('limit', 20)  # Process 20 contracts by default
+        
+        # Get contracts from PostgreSQL database that have resource links
+        contracts = Contract.query.filter(Contract.resource_links.isnot(None)).limit(limit).all()
+        
+        if not contracts:
+            return jsonify({'message': 'No contracts with resource links found', 'processed_count': 0})
+        
+        # Create indexing job
+        job = IndexingJob(job_type='norshin_documents', status='running')
+        db.session.add(job)
+        db.session.commit()
+        
+        processed_count = 0
+        errors_count = 0
+        doc_processor = DocumentProcessor()
+        
+        # Process each contract's documents
+        for contract in contracts:
+            try:
+                notice_id = contract.notice_id
+                resource_links = contract.resource_links
+                
+                if not resource_links or not isinstance(resource_links, list):
+                    logger.info(f"No valid resource links found for contract {notice_id}")
+                    continue
+                
+                logger.info(f"Processing {len(resource_links)} documents for contract {notice_id} via Norshin API")
+                
+                # Process documents via Norshin.com API
+                documents = doc_processor.process_contract_documents_via_norshin(resource_links, notice_id)
+                
+                # Index processed documents in vector database
+                for doc in documents:
+                    try:
+                        success = vector_db.index_document(doc, notice_id)
+                        if success:
+                            processed_count += 1
+                            logger.info(f"Successfully indexed Norshin-processed document for contract {notice_id}")
+                        else:
+                            errors_count += 1
+                    except Exception as e:
+                        logger.error(f"Error indexing Norshin-processed document for contract {notice_id}: {str(e)}")
+                        errors_count += 1
+                        
+            except Exception as e:
+                logger.error(f"Error processing documents for contract {notice_id}: {str(e)}")
+                errors_count += 1
+        
+        # Update job status
+        job.status = 'completed'
+        job.records_processed = processed_count
+        job.errors_count = errors_count
+        job.completed_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'job_id': job.id,
+            'processed_count': processed_count,
+            'errors_count': errors_count,
+            'processing_method': 'norshin_api'
+        })
+        
+    except Exception as e:
+        logger.error(f"Norshin document processing failed: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @api_bp.route('/jobs/<int:job_id>', methods=['GET'])
 def get_job_status(job_id):
     """Get status of an indexing job"""
