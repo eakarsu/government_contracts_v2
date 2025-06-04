@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Government Contract Indexer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i data-feather="bar-chart-2" class="me-2"></i>
+            Dashboard
+        </h1>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i data-feather="file-text" class="text-primary mb-2" style="width: 48px; height: 48px;"></i>
+                <h3 class="card-title">{{ contracts_count }}</h3>
+                <p class="card-text text-muted">Total Contracts</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i data-feather="database" class="text-success mb-2" style="width: 48px; height: 48px;"></i>
+                <h3 class="card-title">{{ vector_stats.get('contracts_count', 0) }}</h3>
+                <p class="card-text text-muted">Indexed Contracts</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i data-feather="file" class="text-info mb-2" style="width: 48px; height: 48px;"></i>
+                <h3 class="card-title">{{ vector_stats.get('documents_count', 0) }}</h3>
+                <p class="card-text text-muted">Indexed Documents</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i data-feather="search" class="text-warning mb-2" style="width: 48px; height: 48px;"></i>
+                <h3 class="card-title">{{ recent_searches|length }}</h3>
+                <p class="card-text text-muted">Recent Searches</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="zap" class="me-2"></i>
+                    Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-primary w-100" onclick="fetchContracts()">
+                            <i data-feather="download" class="me-2"></i>
+                            Fetch Contracts
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-success w-100" onclick="indexContracts()">
+                            <i data-feather="upload" class="me-2"></i>
+                            Index Contracts
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-info w-100" onclick="processDocuments()">
+                            <i data-feather="file-plus" class="me-2"></i>
+                            Process Documents
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('web.search') }}" class="btn btn-secondary w-100">
+                            <i data-feather="search" class="me-2"></i>
+                            Search Contracts
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Jobs and Searches -->
+<div class="row">
+    <!-- Recent Jobs -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="activity" class="me-2"></i>
+                    Recent Jobs
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_jobs %}
+                    <div class="list-group list-group-flush">
+                        {% for job in recent_jobs %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ job.job_type.replace('_', ' ').title() }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    {{ job.created_at.strftime('%Y-%m-%d %H:%M') if job.created_at }}
+                                </small>
+                            </div>
+                            <div>
+                                {% if job.status == 'completed' %}
+                                    <span class="badge bg-success">{{ job.status }}</span>
+                                {% elif job.status == 'failed' %}
+                                    <span class="badge bg-danger">{{ job.status }}</span>
+                                {% elif job.status == 'running' %}
+                                    <span class="badge bg-primary">{{ job.status }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ job.status }}</span>
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">{{ job.records_processed }} processed</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('web.jobs') }}" class="btn btn-outline-secondary btn-sm">
+                            View All Jobs
+                        </a>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No recent jobs found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Searches -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="search" class="me-2"></i>
+                    Recent Searches
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_searches %}
+                    <div class="list-group list-group-flush">
+                        {% for search in recent_searches[:5] %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <strong>{{ search.query_text[:50] }}{% if search.query_text|length > 50 %}...{% endif %}</strong>
+                                <small class="text-muted">{{ search.results_count }} results</small>
+                            </div>
+                            <small class="text-muted">
+                                {{ search.created_at.strftime('%Y-%m-%d %H:%M') if search.created_at }}
+                                {% if search.response_time %}
+                                    | {{ "%.3f"|format(search.response_time) }}s
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No recent searches found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Job Progress Modal -->
+<div class="modal fade" id="jobProgressModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Job Progress</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="job-progress-content">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Starting job...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let jobProgressModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    jobProgressModal = new bootstrap.Modal(document.getElementById('jobProgressModal'));
+    feather.replace();
+});
+
+async function fetchContracts() {
+    showJobProgress('Fetching contracts from SAM.gov...');
+    
+    try {
+        const response = await fetch('/api/contracts/fetch', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                limit: 100
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            updateJobProgress(`✅ Successfully fetched ${result.contracts_processed} contracts`, 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            updateJobProgress(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        updateJobProgress(`❌ Error: ${error.message}`, 'error');
+    }
+}
+
+async function indexContracts() {
+    showJobProgress('Indexing contracts in vector database...');
+    
+    try {
+        const response = await fetch('/api/contracts/index', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            updateJobProgress(`✅ Successfully indexed ${result.indexed_count} contracts`, 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            updateJobProgress(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        updateJobProgress(`❌ Error: ${error.message}`, 'error');
+    }
+}
+
+async function processDocuments() {
+    showJobProgress('Processing contract documents...');
+    
+    try {
+        const response = await fetch('/api/documents/process', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            updateJobProgress(`✅ Successfully processed ${result.processed_count} documents`, 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            updateJobProgress(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        updateJobProgress(`❌ Error: ${error.message}`, 'error');
+    }
+}
+
+function showJobProgress(message) {
+    document.getElementById('job-progress-content').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">${message}</p>
+        </div>
+    `;
+    jobProgressModal.show();
+}
+
+function updateJobProgress(message, type = 'info') {
+    const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : 'alert-info';
+    
+    document.getElementById('job-progress-content').innerHTML = `
+        <div class="alert ${alertClass}" role="alert">
+            ${message}
+        </div>
+    `;
+}
+</script>
+{% endblock %}

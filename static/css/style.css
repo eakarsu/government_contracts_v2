@@ -1,0 +1,317 @@
+/* Custom styles for the Government Contract Indexer */
+
+:root {
+    /* Use Bootstrap's CSS variables where possible */
+    --bs-body-bg: hsl(215 28% 17%);
+    --bs-body-color: hsl(210 40% 98%);
+    --custom-accent: hsl(210 100% 70%); /* Light blue accent */
+    --custom-success: hsl(120 60% 50%); /* Success green */
+    --custom-warning: hsl(45 100% 60%); /* Warning yellow */
+    --custom-danger: hsl(0 85% 60%); /* Danger red */
+}
+
+/* Body and layout improvements */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Navigation improvements */
+.navbar-brand {
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.nav-link {
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+    transform: translateY(-1px);
+}
+
+/* Card enhancements */
+.card {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+}
+
+/* Statistics cards */
+.card .card-body h3 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--custom-accent);
+}
+
+/* Button improvements */
+.btn {
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--custom-accent), hsl(210 100% 60%));
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, hsl(210 100% 65%), hsl(210 100% 55%));
+}
+
+/* Search form enhancements */
+.form-control, .form-select {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--custom-accent);
+    box-shadow: 0 0 0 0.2rem rgba(66, 153, 225, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Results styling */
+.list-group-item {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(4px);
+}
+
+/* Badge improvements */
+.badge {
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+    border-radius: 4px;
+}
+
+.badge.bg-success {
+    background: var(--custom-success) !important;
+}
+
+.badge.bg-warning {
+    background: var(--custom-warning) !important;
+    color: hsl(215 28% 17%) !important;
+}
+
+.badge.bg-danger {
+    background: var(--custom-danger) !important;
+}
+
+/* Tab improvements */
+.nav-tabs {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link:hover {
+    border-bottom-color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.nav-tabs .nav-link.active {
+    border-bottom-color: var(--custom-accent);
+    color: var(--custom-accent);
+    background: none;
+}
+
+/* Alert improvements */
+.alert {
+    border: none;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.alert-info {
+    background: rgba(66, 153, 225, 0.1);
+    border-left-color: var(--custom-accent);
+    color: hsl(210 40% 98%);
+}
+
+.alert-success {
+    background: rgba(72, 187, 120, 0.1);
+    border-left-color: var(--custom-success);
+    color: hsl(210 40% 98%);
+}
+
+.alert-warning {
+    background: rgba(236, 201, 75, 0.1);
+    border-left-color: var(--custom-warning);
+    color: hsl(210 40% 98%);
+}
+
+.alert-danger {
+    background: rgba(245, 101, 101, 0.1);
+    border-left-color: var(--custom-danger);
+    color: hsl(210 40% 98%);
+}
+
+/* Loading spinner improvements */
+.spinner-border {
+    color: var(--custom-accent);
+}
+
+/* Footer styling */
+footer {
+    margin-top: auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .card .card-body h3 {
+        font-size: 2rem;
+    }
+    
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .btn {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Animation utilities */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Search result improvements */
+.search-result-card {
+    border-left: 4px solid var(--custom-accent);
+}
+
+.search-result-card:hover {
+    border-left-color: var(--custom-success);
+}
+
+/* Job status indicators */
+.job-status-running {
+    color: var(--custom-accent);
+}
+
+.job-status-completed {
+    color: var(--custom-success);
+}
+
+.job-status-failed {
+    color: var(--custom-danger);
+}
+
+/* Contract metadata styling */
+.contract-metadata {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.contract-metadata .badge {
+    margin-right: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+/* AI analysis styling */
+.ai-analysis-card {
+    background: linear-gradient(135deg, rgba(66, 153, 225, 0.1), rgba(147, 197, 253, 0.05));
+    border: 2px solid rgba(66, 153, 225, 0.2);
+}
+
+.ai-analysis-card .card-header {
+    background: rgba(66, 153, 225, 0.1);
+    border-bottom: 1px solid rgba(66, 153, 225, 0.2);
+}
+
+/* Recommendation priority styling */
+.priority-high {
+    border-left: 4px solid var(--custom-danger);
+}
+
+.priority-medium {
+    border-left: 4px solid var(--custom-warning);
+}
+
+.priority-low {
+    border-left: 4px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Utility classes */
+.text-accent {
+    color: var(--custom-accent) !important;
+}
+
+.bg-accent {
+    background-color: var(--custom-accent) !important;
+}
+
+.border-accent {
+    border-color: var(--custom-accent) !important;
+}
+
+.shadow-custom {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
