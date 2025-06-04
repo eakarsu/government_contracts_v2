@@ -13,13 +13,82 @@ from utils.rate_limiter import RateLimiter
 logger = logging.getLogger(__name__)
 
 class DocumentProcessor:
-    """Service for downloading and extracting text from contract documents"""
+    """Service for downloading and processing contract documents via Norshin.com API"""
     
     def __init__(self):
         self.rate_limiter = RateLimiter(calls_per_second=5)  # Conservative rate limiting for downloads
         self.max_file_size = 10 * 1024 * 1024  # 10MB limit
         self.supported_types = {'.pdf', '.doc', '.docx', '.txt'}
+        self.norshin_api_url = "https://norshin.com/api/process-document"
     
+    def process_document_via_norshin_api(self, url: str, contract_notice_id: str, description: str = "") -> Optional[Dict]:
+        """Download document and process it via Norshin.com API
+        
+        Args:
+            url: Document URL to download and process
+            contract_notice_id: Associated contract notice ID
+            description: Description of the document
+            
+        Returns:
+            Dictionary with processed document data from Norshin API, or None if failed
+        """
+        
+        # Apply rate limiting
+        self.rate_limiter.wait_if_needed()
+        
+        try:
+            # Download the document first
+            logger.info(f"Downloading document from: {url}")
+            content = self._download_file(url)
+            if not content:
+                return None
+            
+            # Create temporary file for the document
+            file_extension = self._get_file_extension(url)
+            with tempfile.NamedTemporaryFile(suffix=file_extension, delete=False) as temp_file:
+                temp_file.write(content)
+                temp_file_path = temp_file.name
+            
+            try:
+                # Send document to Norshin.com API
+                logger.info(f"Processing document via Norshin API: {url}")
+                with open(temp_file_path, 'rb') as file:
+                    files = {'document': file}
+                    response = requests.post(
+                        self.norshin_api_url,
+                        files=files,
+                        timeout=30  # 30 second timeout for processing
+                    )
+                
+                if response.status_code == 200:
+                    # Parse the JSON response from Norshin API
+                    processed_data = response.json()
+                    
+                    # Add metadata about the source
+                    result = {
+                        'source_url': url,
+                        'contract_notice_id': contract_notice_id,
+                        'description': description,
+                        'file_extension': file_extension,
+                        'processed_data': processed_data,
+                        'processing_service': 'norshin_api'
+                    }
+                    
+                    logger.info(f"Successfully processed document: {url}")
+                    return result
+                else:
+                    logger.error(f"Norshin API error {response.status_code}: {response.text}")
+                    return None
+                    
+            finally:
+                # Clean up temporary file
+                if os.path.exists(temp_file_path):
+                    os.unlink(temp_file_path)
+                    
+        except Exception as e:
+            logger.error(f"Error processing document {url}: {str(e)}")
+            return None
+
     def download_and_extract_text(self, url: str, description: str = "") -> Optional[Dict]:
         """Download document from URL and extract text content
         
@@ -245,3 +314,27 @@ class DocumentProcessor:
             truncated = truncated[:last_space]
         
         return truncated + "..."
+    
+    def process_contract_documents_via_norshin(self, resource_links: List[str], contract_notice_id: str) -> List[Dict]:
+        """Process all documents for a contract via Norshin.com API
+        
+        Args:
+            resource_links: List of document URLs from contract
+            contract_notice_id: Associated contract notice ID
+            
+        Returns:
+            List of processed document results from Norshin API
+        """
+        results = []
+        
+        for url in resource_links:
+            if isinstance(url, str) and url.strip():
+                logger.info(f"Processing document {url} for contract {contract_notice_id}")
+                result = self.process_document_via_norshin_api(url, contract_notice_id)
+                if result:
+                    results.append(result)
+                else:
+                    logger.warning(f"Failed to process document: {url}")
+        
+        logger.info(f"Processed {len(results)} documents via Norshin API from {len(resource_links)} links")
+        return results
