@@ -12,9 +12,9 @@ class SAMGovAPI:
     """Service for interacting with SAM.gov API"""
     
     def __init__(self):
-        self.api_key = os.environ.get("SAM_GOV_API_KEY")
-        self.base_url = "https://api.sam.gov/opportunities/v2/search"
-        self.rate_limiter = RateLimiter(calls_per_second=10)  # SAM.gov rate limit
+        self.api_key = os.environ.get("SAM_GOV_API_KEY", "8fvkSRtpKdn0kX0VtfDQ0oGfCoMYNYKuDGhzMFo7")
+        self.base_url = "https://api.sam.gov/prod/opportunities/v2/search"
+        self.rate_limiter = RateLimiter(calls_per_second=1)  # Conservative rate limit
         
         if not self.api_key:
             logger.warning("SAM_GOV_API_KEY not found in environment variables")

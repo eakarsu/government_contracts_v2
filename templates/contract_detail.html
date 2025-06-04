@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}{{ contract.title }} - Government Contract Indexer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('web.index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('web.contracts') }}">Contracts</a></li>
+                <li class="breadcrumb-item active">{{ contract.notice_id }}</li>
+            </ol>
+        </nav>
+        
+        <h1 class="mb-4">{{ contract.title }}</h1>
+    </div>
+</div>
+
+<!-- Contract Details -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="file-text" class="me-2"></i>
+                    Contract Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Notice ID:</strong> {{ contract.notice_id }}
+                </div>
+                {% if contract.description %}
+                <div class="mb-3">
+                    <strong>Description:</strong>
+                    <p class="mt-2">{{ contract.description }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        {% if contract.agency %}
+                        <div class="mb-3">
+                            <strong>Agency:</strong> {{ contract.agency }}
+                        </div>
+                        {% endif %}
+                        {% if contract.office %}
+                        <div class="mb-3">
+                            <strong>Office:</strong> {{ contract.office }}
+                        </div>
+                        {% endif %}
+                        {% if contract.naics_code %}
+                        <div class="mb-3">
+                            <strong>NAICS Code:</strong> {{ contract.naics_code }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        {% if contract.classification_code %}
+                        <div class="mb-3">
+                            <strong>Classification:</strong> {{ contract.classification_code }}
+                        </div>
+                        {% endif %}
+                        {% if contract.set_aside_code %}
+                        <div class="mb-3">
+                            <strong>Set Aside:</strong> {{ contract.set_aside_code }}
+                        </div>
+                        {% endif %}
+                        {% if contract.place_of_performance %}
+                        <div class="mb-3">
+                            <strong>Location:</strong> {{ contract.place_of_performance }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resource Links -->
+        {% if contract.resource_links %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="link" class="me-2"></i>
+                    Documents & Resources
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for link in contract.resource_links %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <strong>{{ link.get('description', 'Document') }}</strong>
+                        {% if link.get('url') %}
+                        <br>
+                        <small class="text-muted">{{ link.url }}</small>
+                        {% endif %}
+                    </div>
+                    {% if link.get('url') %}
+                    <a href="{{ link.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i data-feather="external-link" class="me-1"></i>
+                        Open
+                    </a>
+                    {% endif %}
+                </div>
+                {% if not loop.last %}<hr>{% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Related Documents -->
+        {% if related_docs %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="file" class="me-2"></i>
+                    Related Documents
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for doc in related_docs %}
+                <div class="mb-3">
+                    <h6>{{ doc.metadata.get('document_description', 'Document') }}</h6>
+                    <p class="small text-muted">{{ doc.content[:200] }}...</p>
+                    <div class="d-flex gap-2">
+                        {% if doc.metadata.get('file_type') %}
+                        <span class="badge bg-secondary">{{ doc.metadata.file_type.upper() }}</span>
+                        {% endif %}
+                        {% if doc.metadata.get('text_length') %}
+                        <span class="badge bg-info">{{ doc.metadata.text_length }} chars</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if not loop.last %}<hr>{% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-md-4">
+        <!-- Key Dates -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="calendar" class="me-2"></i>
+                    Important Dates
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if contract.posted_date %}
+                <div class="mb-2">
+                    <strong>Posted:</strong><br>
+                    <span class="text-muted">{{ contract.posted_date.strftime('%B %d, %Y') }}</span>
+                </div>
+                {% endif %}
+                {% if contract.response_date %}
+                <div class="mb-2">
+                    <strong>Response Due:</strong><br>
+                    <span class="text-muted">{{ contract.response_date.strftime('%B %d, %Y') }}</span>
+                </div>
+                {% endif %}
+                {% if contract.award_date %}
+                <div class="mb-2">
+                    <strong>Award Date:</strong><br>
+                    <span class="text-muted">{{ contract.award_date.strftime('%B %d, %Y') }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Award Information -->
+        {% if contract.award_amount %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="dollar-sign" class="me-2"></i>
+                    Award Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <strong>Amount:</strong><br>
+                    <span class="text-success h5">{{ contract.award_amount }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="zap" class="me-2"></i>
+                    Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary w-100 mb-2" onclick="analyzeContract('{{ contract.notice_id }}')">
+                    <i data-feather="brain" class="me-2"></i>
+                    AI Analysis
+                </button>
+                <button class="btn btn-outline-secondary w-100 mb-2" onclick="copyContractId('{{ contract.notice_id }}')">
+                    <i data-feather="copy" class="me-2"></i>
+                    Copy Notice ID
+                </button>
+                <a href="{{ url_for('web.search') }}?query={{ contract.title[:50] }}" class="btn btn-outline-info w-100">
+                    <i data-feather="search" class="me-2"></i>
+                    Find Similar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Analysis Modal -->
+<div class="modal fade" id="analysisModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">AI Contract Analysis</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="analysis-content">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Analyzing...</span>
+                    </div>
+                    <p class="mt-2">Analyzing contract with AI...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let analysisModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    analysisModal = new bootstrap.Modal(document.getElementById('analysisModal'));
+    feather.replace();
+});
+
+async function analyzeContract(noticeId) {
+    analysisModal.show();
+    
+    try {
+        const response = await fetch(`/api/contracts/${noticeId}/analyze`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.analysis) {
+            displayAnalysis(data.analysis);
+        } else {
+            throw new Error(data.error || 'Analysis failed');
+        }
+    } catch (error) {
+        document.getElementById('analysis-content').innerHTML = `
+            <div class="alert alert-danger">
+                <strong>Analysis Failed:</strong> ${error.message}
+            </div>
+        `;
+    }
+}
+
+function displayAnalysis(analysis) {
+    let html = '';
+    
+    if (analysis.opportunity_assessment) {
+        html += `
+            <div class="mb-4">
+                <h6><i data-feather="target" class="me-2"></i>Opportunity Assessment</h6>
+                <p>${analysis.opportunity_assessment}</p>
+            </div>
+        `;
+    }
+    
+    if (analysis.recommendations && analysis.recommendations.length > 0) {
+        html += `
+            <div class="mb-4">
+                <h6><i data-feather="lightbulb" class="me-2"></i>Recommendations</h6>
+        `;
+        analysis.recommendations.forEach(rec => {
+            const priorityClass = rec.importance === 'high' ? 'danger' : rec.importance === 'medium' ? 'warning' : 'secondary';
+            html += `
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h6 class="card-title">${rec.action}</h6>
+                            <span class="badge bg-${priorityClass}">${rec.importance}</span>
+                        </div>
+                        <small class="text-muted">${rec.category}</small>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+    
+    if (analysis.success_factors && analysis.success_factors.length > 0) {
+        html += `
+            <div class="mb-4">
+                <h6><i data-feather="check-circle" class="me-2"></i>Success Factors</h6>
+                <ul class="list-unstyled">
+        `;
+        analysis.success_factors.forEach(factor => {
+            html += `<li class="mb-1"><i data-feather="check" class="me-2"></i>${factor}</li>`;
+        });
+        html += `</ul></div>`;
+    }
+    
+    if (analysis.red_flags && analysis.red_flags.length > 0) {
+        html += `
+            <div class="alert alert-warning">
+                <h6><i data-feather="alert-triangle" class="me-2"></i>Red Flags</h6>
+                <ul class="mb-0">
+        `;
+        analysis.red_flags.forEach(flag => {
+            html += `<li>${flag}</li>`;
+        });
+        html += `</ul></div>`;
+    }
+    
+    document.getElementById('analysis-content').innerHTML = html;
+    feather.replace();
+}
+
+function copyContractId(noticeId) {
+    navigator.clipboard.writeText(noticeId).then(function() {
+        // Show toast notification
+        const toast = document.createElement('div');
+        toast.className = 'toast show position-fixed top-0 end-0 m-3';
+        toast.innerHTML = `
+            <div class="toast-body">
+                Contract ID copied to clipboard!
+            </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    });
+}
+</script>
+{% endblock %}

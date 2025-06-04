@@ -10,17 +10,17 @@ class AIAnalyzer:
     """Service for AI-powered contract analysis using OpenRouter"""
     
     def __init__(self):
-        # OpenRouter is compatible with OpenAI client
+        # Using OpenAI API directly
         self.client = OpenAI(
-            api_key=os.environ.get("OPENROUTER_API_KEY", ""),
-            base_url=os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+            api_key=os.environ.get("OPENAI_API_KEY", "")
         )
         
-        # Default model - can be overridden via environment variable
-        self.model = os.environ.get("OPENROUTER_MODEL", "anthropic/claude-3-haiku")
+        # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
+        # do not change this unless explicitly requested by the user
+        self.model = os.environ.get("OPENAI_MODEL", "gpt-4o")
         
-        if not os.environ.get("OPENROUTER_API_KEY"):
-            logger.warning("OPENROUTER_API_KEY not found in environment variables")
+        if not os.environ.get("OPENAI_API_KEY"):
+            logger.warning("OPENAI_API_KEY not found in environment variables")
     
     def analyze_search_results(self, query: str, search_results: Dict) -> Dict:
         """Analyze search results and provide AI-powered recommendations

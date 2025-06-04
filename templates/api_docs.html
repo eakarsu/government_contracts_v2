@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}API Documentation - Government Contract Indexer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i data-feather="book" class="me-2"></i>
+            API Documentation
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Government Contract Indexer API</h5>
+            </div>
+            <div class="card-body">
+                <p>This API provides access to government contract data with AI-powered search and analysis capabilities.</p>
+                
+                <h6 class="mt-4">Base URL</h6>
+                <code>{{ request.url_root }}api</code>
+                
+                <h6 class="mt-4">Authentication</h6>
+                <p>Currently, no authentication is required for API access.</p>
+                
+                <h6 class="mt-4">Endpoints</h6>
+                
+                <div class="accordion" id="apiAccordion">
+                    <!-- Status Endpoint -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#status">
+                                <span class="badge bg-success me-2">GET</span> /status
+                            </button>
+                        </h2>
+                        <div id="status" class="accordion-collapse collapse show" data-bs-parent="#apiAccordion">
+                            <div class="accordion-body">
+                                <p>Get API status and basic statistics.</p>
+                                <h6>Response Example:</h6>
+                                <pre><code>{
+  "status": "healthy",
+  "timestamp": "2025-06-04T13:42:11Z",
+  "database_stats": {
+    "contracts_in_db": 150,
+    "contracts_indexed": 150,
+    "documents_indexed": 45
+  }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Fetch Contracts -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#fetch">
+                                <span class="badge bg-primary me-2">POST</span> /contracts/fetch
+                            </button>
+                        </h2>
+                        <div id="fetch" class="accordion-collapse collapse" data-bs-parent="#apiAccordion">
+                            <div class="accordion-body">
+                                <p>Fetch contracts from SAM.gov API and store in database.</p>
+                                <h6>Request Body:</h6>
+                                <pre><code>{
+  "start_date": "2025-01-01T00:00:00Z",
+  "end_date": "2025-06-04T00:00:00Z",
+  "limit": 100,
+  "offset": 0
+}</code></pre>
+                                <h6>Response Example:</h6>
+                                <pre><code>{
+  "success": true,
+  "job_id": 123,
+  "contracts_processed": 95,
+  "errors": 5,
+  "total_available": 1250
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Index Contracts -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#index">
+                                <span class="badge bg-primary me-2">POST</span> /contracts/index
+                            </button>
+                        </h2>
+                        <div id="index" class="accordion-collapse collapse" data-bs-parent="#apiAccordion">
+                            <div class="accordion-body">
+                                <p>Index contracts in vector database for semantic search.</p>
+                                <h6>Request Body:</h6>
+                                <pre><code>{
+  "limit": 100
+}</code></pre>
+                                <h6>Response Example:</h6>
+                                <pre><code>{
+  "success": true,
+  "job_id": 124,
+  "indexed_count": 95,
+  "errors_count": 0
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Contracts -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#search">
+                                <span class="badge bg-primary me-2">POST</span> /search
+                            </button>
+                        </h2>
+                        <div id="search" class="accordion-collapse collapse" data-bs-parent="#apiAccordion">
+                            <div class="accordion-body">
+                                <p>Search contracts and documents using vector similarity with AI analysis.</p>
+                                <h6>Request Body:</h6>
+                                <pre><code>{
+  "query": "cloud computing services",
+  "limit": 20,
+  "include_analysis": true
+}</code></pre>
+                                <h6>Response Example:</h6>
+                                <pre><code>{
+  "query": "cloud computing services",
+  "results": {
+    "contracts": [...],
+    "documents": [...],
+    "total_results": 15
+  },
+  "ai_analysis": {
+    "summary": "Found opportunities in cloud infrastructure...",
+    "key_opportunities": [...],
+    "recommendations": [...]
+  },
+  "response_time": 1.234
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Analyze Contract -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#analyze">
+                                <span class="badge bg-primary me-2">POST</span> /contracts/{notice_id}/analyze
+                            </button>
+                        </h2>
+                        <div id="analyze" class="accordion-collapse collapse" data-bs-parent="#apiAccordion">
+                            <div class="accordion-body">
+                                <p>Get AI-powered analysis of a specific contract.</p>
+                                <h6>Response Example:</h6>
+                                <pre><code>{
+  "contract_id": "EXAMPLE-2025-001",
+  "analysis": {
+    "opportunity_assessment": "high potential",
+    "key_requirements": [...],
+    "competition_level": "medium",
+    "recommendations": [...],
+    "success_factors": [...]
+  }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Get Recommendations -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#recommendations">
+                                <span class="badge bg-primary me-2">POST</span> /recommendations
+                            </button>
+                        </h2>
+                        <div id="recommendations" class="accordion-collapse collapse" data-bs-parent="#apiAccordion">
+                            <div class="accordion-body">
+                                <p>Get bidding recommendations based on search criteria.</p>
+                                <h6>Request Body:</h6>
+                                <pre><code>{
+  "naics_codes": ["541511", "541512"],
+  "agencies": ["Department of Defense"],
+  "keywords": ["software development", "cloud"]
+}</code></pre>
+                                <h6>Response Example:</h6>
+                                <pre><code>{
+  "criteria": {...},
+  "contracts_analyzed": 25,
+  "recommendations": {
+    "overall_strategy": "Focus on cloud migration projects...",
+    "priority_contracts": [...],
+    "capability_gaps": [...],
+    "partnership_opportunities": [...]
+  }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h6 class="mt-4">Error Responses</h6>
+                <p>All endpoints return standard HTTP status codes. Error responses include a JSON object with an "error" field:</p>
+                <pre><code>{
+  "error": "Description of the error"
+}</code></pre>
+                
+                <h6 class="mt-4">Rate Limiting</h6>
+                <p>The API implements rate limiting to ensure fair usage. Please respect the limits and implement appropriate retry logic in your applications.</p>
+                
+                <h6 class="mt-4">NAICS Codes</h6>
+                <p>Common NAICS codes for government contracting:</p>
+                <ul>
+                    <li><strong>541511</strong> - Custom Computer Programming Services</li>
+                    <li><strong>541512</strong> - Computer Systems Design Services</li>
+                    <li><strong>541513</strong> - Computer Facilities Management Services</li>
+                    <li><strong>541519</strong> - Other Computer Related Services</li>
+                    <li><strong>518210</strong> - Data Processing, Hosting, and Related Services</li>
+                    <li><strong>334111</strong> - Electronic Computer Manufacturing</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
