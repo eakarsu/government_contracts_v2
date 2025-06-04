@@ -12,7 +12,7 @@ class AIAnalyzer:
     def __init__(self):
         # Using OpenAI API directly
         self.client = OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY", "")
+            api_key=os.environ.get("OPENAI_API_KEY", "sk-proj-nUlBr-dZc39DjcQlsWcOYrGMYu9CJQUDDDlm5YFhIyupLV1rGdPe4VIHgxT3BlbkFJaFwFh7J69zg5zflM_Qm8A8dSP0MqWtOJLkW1ztDhwUcPVCpR1CwJsaIkA")
         )
         
         # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
@@ -57,7 +57,8 @@ class AIAnalyzer:
             )
             
             # Parse the response
-            analysis = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content or "{}"
+            analysis = json.loads(content)
             
             # Add metadata
             analysis['query'] = query
@@ -105,7 +106,8 @@ class AIAnalyzer:
                 temperature=0.3
             )
             
-            analysis = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content or "{}"
+            analysis = json.loads(content)
             analysis['contract_id'] = contract_data.get('notice_id')
             analysis['model_used'] = self.model
             
@@ -149,7 +151,7 @@ class AIAnalyzer:
                 temperature=0.4
             )
             
-            recommendations = json.loads(response.choices[0].message.content)
+            recommendations = json.loads(response.choices[0].message.content or "{}")
             recommendations['contracts_analyzed'] = len(contracts)
             recommendations['model_used'] = self.model
             
