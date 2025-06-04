@@ -61,7 +61,7 @@ class DocumentProcessor:
             try:
                 # Send document to Norshin.com API
                 logger.info(f"Processing document via Norshin API: {url}")
-                logger.info(f"Document size: {len(content)} bytes, extension: {file_extension}")
+                logger.info(f"Document size: {len(content)} bytes, extension: {file_extension} file: {temp_file_path}")
                 
                 with open(temp_file_path, 'rb') as file:
                     logger.info(f"Sending file to Norshin API with filename: {filename_to_use}")
@@ -347,25 +347,37 @@ class DocumentProcessor:
         return truncated + "..."
     
     def process_contract_documents_via_norshin(self, resource_links: List[str], contract_notice_id: str) -> List[Dict]:
-        """Process all documents for a contract via Norshin.com API
-        
-        Args:
-            resource_links: List of document URLs from contract
-            contract_notice_id: Associated contract notice ID
-            
-        Returns:
-            List of processed document results from Norshin API
-        """
+        """Process all documents for a contract via Norshin.com API"""
         results = []
         
+        # Enhanced filtering
         for url in resource_links:
-            if isinstance(url, str) and url.strip():
-                logger.info(f"Processing document {url} for contract {contract_notice_id}")
-                result = self.process_document_via_norshin_api(url, contract_notice_id)
-                if result:
-                    results.append(result)
-                else:
-                    logger.warning(f"Failed to process document: {url}")
+            # Filter out null/None/empty values
+            if not url or not isinstance(url, str) or not url.strip():
+                continue
+                
+            url = url.strip()
+            
+            # Filter out obviously invalid URLs
+            if (url.startswith('#') or 
+                url.startswith('javascript:') or 
+                url.startswith('mailto:') or
+                'example.com' in url.lower() or
+                url.lower() in ['null', 'undefined', 'none']):
+                logger.debug(f"Skipping invalid URL: {url}")
+                continue
+                
+            # Basic URL format check
+            if not (url.startswith('http://') or url.startswith('https://')):
+                logger.debug(f"Skipping non-HTTP URL: {url}")
+                continue
+            
+            logger.info(f"Processing document {url} for contract {contract_notice_id}")
+            result = self.process_document_via_norshin_api(url, contract_notice_id)
+            if result:
+                results.append(result)
+            else:
+                logger.warning(f"Failed to process document: {url}")
         
         logger.info(f"Processed {len(results)} documents via Norshin API from {len(resource_links)} links")
         return results
