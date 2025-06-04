@@ -255,6 +255,10 @@ async function indexContracts() {
     showJobProgress('Indexing contracts in vector database...');
     
     try {
+        // Add timeout for long-running indexing operations
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+        
         const response = await fetch('/api/contracts/index', {
             method: 'POST',
             headers: {
@@ -262,8 +266,11 @@ async function indexContracts() {
             },
             body: JSON.stringify({
                 limit: 100
-            })
+            }),
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
         const result = await response.json();
         
@@ -280,7 +287,11 @@ async function indexContracts() {
             updateJobProgress(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
         }
     } catch (error) {
-        updateJobProgress(`❌ Error: ${error.message}`, 'error');
+        if (error.name === 'AbortError') {
+            updateJobProgress(`⏱️ Indexing is taking longer than expected. Please check the Jobs page for progress.`, 'warning');
+        } else {
+            updateJobProgress(`❌ Error: ${error.message}`, 'error');
+        }
     }
 }
 
