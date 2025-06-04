@@ -129,6 +129,17 @@ class SAMGovAPI:
         """Extract and normalize contract details from SAM.gov response"""
         try:
             # Extract core fields with safe access
+            # Handle nested placeOfPerformance safely
+            place_performance = ''
+            if opportunity_data.get('placeOfPerformance'):
+                pop = opportunity_data['placeOfPerformance']
+                if isinstance(pop, dict):
+                    city = pop.get('city', {})
+                    if isinstance(city, dict):
+                        place_performance = city.get('name', '')
+                    else:
+                        place_performance = str(city) if city else ''
+            
             details = {
                 'notice_id': opportunity_data.get('noticeId', ''),
                 'title': opportunity_data.get('title', ''),
@@ -138,17 +149,22 @@ class SAMGovAPI:
                 'naics_code': opportunity_data.get('naicsCode', ''),
                 'classification_code': opportunity_data.get('classificationCode', ''),
                 'set_aside_code': opportunity_data.get('typeOfSetAsideDescription', ''),
-                'place_of_performance': opportunity_data.get('placeOfPerformance', {}).get('city', {}).get('name', ''),
+                'place_of_performance': place_performance,
                 'award_amount': opportunity_data.get('awardAmount', ''),
                 'resource_links': opportunity_data.get('resourceLinks', [])
             }
             
-            # Parse dates safely
+            # Parse dates safely with multiple formats
             posted_date_str = opportunity_data.get('postedDate')
             if posted_date_str:
-                try:
-                    details['posted_date'] = datetime.strptime(posted_date_str, "%m-%d-%Y")
-                except ValueError:
+                date_formats = ["%Y-%m-%d", "%m-%d-%Y", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%SZ"]
+                for fmt in date_formats:
+                    try:
+                        details['posted_date'] = datetime.strptime(posted_date_str, fmt)
+                        break
+                    except ValueError:
+                        continue
+                else:
                     logger.warning(f"Could not parse posted date: {posted_date_str}")
                     details['posted_date'] = None
             else:
@@ -156,14 +172,23 @@ class SAMGovAPI:
             
             response_date_str = opportunity_data.get('responseDeadLine')
             if response_date_str:
-                try:
-                    details['response_date'] = datetime.strptime(response_date_str, "%m-%d-%Y %H:%M:%S %Z")
-                except ValueError:
+                date_formats = [
+                    "%Y-%m-%dT%H:%M:%S%z",
+                    "%Y-%m-%dT%H:%M:%S-05:00",
+                    "%Y-%m-%dT%H:%M:%S-04:00",
+                    "%m-%d-%Y %H:%M:%S %Z",
+                    "%m-%d-%Y",
+                    "%Y-%m-%d"
+                ]
+                for fmt in date_formats:
                     try:
-                        details['response_date'] = datetime.strptime(response_date_str, "%m-%d-%Y")
+                        details['response_date'] = datetime.strptime(response_date_str, fmt)
+                        break
                     except ValueError:
-                        logger.warning(f"Could not parse response date: {response_date_str}")
-                        details['response_date'] = None
+                        continue
+                else:
+                    logger.warning(f"Could not parse response date: {response_date_str}")
+                    details['response_date'] = None
             else:
                 details['response_date'] = None
             
