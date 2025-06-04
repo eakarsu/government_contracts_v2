@@ -234,8 +234,12 @@ async function fetchContracts() {
         
         const result = await response.json();
         
-        if (result.success) {
-            updateJobProgress(`✅ Successfully fetched ${result.contracts_processed} contracts`, 'success');
+        if (response.ok) {
+            if (result.contracts_processed > 0) {
+                updateJobProgress(`✅ Successfully fetched ${result.contracts_processed} contracts`, 'success');
+            } else {
+                updateJobProgress(`ℹ️ ${result.message || 'No new contracts found'}`, 'info');
+            }
             setTimeout(() => {
                 location.reload();
             }, 2000);
@@ -263,8 +267,12 @@ async function indexContracts() {
         
         const result = await response.json();
         
-        if (result.success) {
-            updateJobProgress(`✅ Successfully indexed ${result.indexed_count} contracts`, 'success');
+        if (response.ok) {
+            if (result.indexed_count > 0) {
+                updateJobProgress(`✅ Successfully indexed ${result.indexed_count} contracts`, 'success');
+            } else {
+                updateJobProgress(`ℹ️ ${result.message || 'No contracts to index'}`, 'info');
+            }
             setTimeout(() => {
                 location.reload();
             }, 2000);
@@ -292,8 +300,12 @@ async function processDocuments() {
         
         const result = await response.json();
         
-        if (result.success) {
-            updateJobProgress(`✅ Successfully processed ${result.processed_count} documents`, 'success');
+        if (response.ok) {
+            if (result.processed_count > 0) {
+                updateJobProgress(`✅ Successfully processed ${result.processed_count} documents`, 'success');
+            } else {
+                updateJobProgress(`ℹ️ ${result.message || 'No documents to process'}`, 'info');
+            }
             setTimeout(() => {
                 location.reload();
             }, 2000);
