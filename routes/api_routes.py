@@ -186,30 +186,48 @@ def index_contracts():
         indexed_count = 0
         errors_count = 0
         
-        for contract in contracts:
-            try:
-                # Index contract in vector database
-                success = vector_db.index_contract(contract.to_dict())
-                
-                if success:
-                    contract.indexed_at = datetime.utcnow()
-                    indexed_count += 1
-                else:
-                    errors_count += 1
+        try:
+            for contract in contracts:
+                try:
+                    # Index contract in vector database with error handling
+                    contract_data = contract.to_dict()
+                    success = vector_db.index_contract(contract_data)
                     
-            except Exception as e:
-                logger.error(f"Error indexing contract {contract.notice_id}: {str(e)}")
-                errors_count += 1
-        
-        # Commit database changes
-        db.session.commit()
+                    if success:
+                        contract.indexed_at = datetime.utcnow()
+                        indexed_count += 1
+                        logger.info(f"Successfully indexed contract: {contract.notice_id}")
+                    else:
+                        errors_count += 1
+                        logger.warning(f"Failed to index contract: {contract.notice_id}")
+                        
+                    # Commit changes periodically to avoid large transactions
+                    if (indexed_count + errors_count) % 10 == 0:
+                        db.session.commit()
+                        
+                except Exception as e:
+                    logger.error(f"Error indexing contract {contract.notice_id}: {str(e)}")
+                    errors_count += 1
+                    # Rollback failed transaction
+                    db.session.rollback()
+            
+            # Final commit for remaining changes
+            db.session.commit()
+            
+        except Exception as e:
+            logger.error(f"Critical error during indexing: {str(e)}")
+            db.session.rollback()
         
         # Update job status
-        job.status = 'completed'
-        job.records_processed = indexed_count
-        job.errors_count = errors_count
-        job.completed_at = datetime.utcnow()
-        db.session.commit()
+        try:
+            job.status = 'completed'
+            job.records_processed = indexed_count
+            job.errors_count = errors_count
+            job.completed_at = datetime.utcnow()
+            db.session.commit()
+        except Exception as e:
+            logger.error(f"Error updating job status: {str(e)}")
+            db.session.rollback()
         
         return jsonify({
             'success': True,
