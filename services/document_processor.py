@@ -39,12 +39,21 @@ class DocumentProcessor:
         try:
             # Download the document first
             logger.info(f"Downloading document from: {url}")
-            content = self._download_file(url)
-            if not content:
+            download_result = self._download_file(url)
+            if not download_result:
                 return None
             
+            content, original_filename = download_result
+            
+            # Determine file extension from original filename or URL
+            if original_filename:
+                file_extension = '.' + original_filename.split('.')[-1].lower() if '.' in original_filename else '.unknown'
+                filename_to_use = original_filename
+            else:
+                file_extension = self._get_file_extension(url)
+                filename_to_use = f"document{file_extension}"
+            
             # Create temporary file for the document
-            file_extension = self._get_file_extension(url)
             with tempfile.NamedTemporaryFile(suffix=file_extension, delete=False) as temp_file:
                 temp_file.write(content)
                 temp_file_path = temp_file.name
@@ -55,12 +64,10 @@ class DocumentProcessor:
                 logger.info(f"Document size: {len(content)} bytes, extension: {file_extension}")
                 
                 with open(temp_file_path, 'rb') as file:
-                    # Extract filename from URL or use generic name
-                    filename = url.split('/')[-1] if '/' in url else f"document{file_extension}"
-                    logger.info(f"Sending file to Norshin API with filename: {filename}")
+                    logger.info(f"Sending file to Norshin API with filename: {filename_to_use}")
                     
                     # Match the exact format of your working curl command
-                    files = {'document': (filename, file)}
+                    files = {'document': (filename_to_use, file)}
                     
                     response = requests.post(
                         self.norshin_api_url,
@@ -129,9 +136,11 @@ class DocumentProcessor:
                 return None
             
             # Download file
-            content = self._download_file(url)
-            if not content:
+            download_result = self._download_file(url)
+            if not download_result:
                 return None
+            
+            content, original_filename_from_download = download_result  # Extract content from tuple
             
             # Extract text based on file type
             text_content = self._extract_text_by_type(content, file_extension)
