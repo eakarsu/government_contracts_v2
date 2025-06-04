@@ -226,9 +226,14 @@ def index_contracts():
 def process_documents():
     """Process and index contract documents"""
     try:
-        data = request.get_json() or {}
+        # Handle both JSON and form data, with fallback to empty dict
+        if request.is_json:
+            data = request.get_json() or {}
+        else:
+            data = request.form.to_dict() or {}
+            
         contract_id = data.get('contract_id')
-        limit = data.get('limit', 50)
+        limit = int(data.get('limit', 50))
         
         # Get contracts with resource links
         query = Contract.query.filter(Contract.resource_links.isnot(None))
