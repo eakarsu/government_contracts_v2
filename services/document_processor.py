@@ -52,13 +52,25 @@ class DocumentProcessor:
             try:
                 # Send document to Norshin.com API
                 logger.info(f"Processing document via Norshin API: {url}")
+                logger.info(f"Document size: {len(content)} bytes, extension: {file_extension}")
+                
                 with open(temp_file_path, 'rb') as file:
-                    files = {'document': file}
+                    # Extract filename from URL or use generic name
+                    filename = url.split('/')[-1] if '/' in url else f"document{file_extension}"
+                    logger.info(f"Sending file to Norshin API with filename: {filename}")
+                    
+                    # Match the exact format of your working curl command
+                    files = {'document': (filename, file)}
+                    
                     response = requests.post(
                         self.norshin_api_url,
                         files=files,
-                        timeout=30  # 30 second timeout for processing
+                        timeout=60  # Increased timeout for larger documents
                     )
+                
+                logger.info(f"Norshin API response status: {response.status_code}")
+                logger.info(f"Norshin API response headers: {dict(response.headers)}")
+                logger.info(f"Norshin API response text: {response.text[:500]}")
                 
                 if response.status_code == 200:
                     # Parse the JSON response from Norshin API
@@ -145,7 +157,7 @@ class DocumentProcessor:
                 'success': False
             }
     
-    def _download_file(self, url: str) -> Optional[bytes]:
+    def _download_file(self, url: str) -> Optional[tuple]:
         """Download file from URL with size and timeout limits"""
         try:
             headers = {
@@ -156,6 +168,15 @@ class DocumentProcessor:
             # Stream download to check size
             response = requests.get(url, headers=headers, stream=True, timeout=30)
             response.raise_for_status()
+            
+            # Extract filename from Content-Disposition header
+            filename = None
+            content_disposition = response.headers.get('content-disposition', '')
+            if 'filename=' in content_disposition:
+                import re
+                filename_match = re.search(r'filename[*]?=(?:["\']?)([^"\';\r\n]+)', content_disposition)
+                if filename_match:
+                    filename = filename_match.group(1).strip('"\'')
             
             # Check content length
             content_length = response.headers.get('content-length')
@@ -172,7 +193,8 @@ class DocumentProcessor:
                     return None
             
             logger.info(f"Successfully downloaded {len(content)} bytes from {url}")
-            return content
+            logger.info(f"Content-Disposition filename: {filename}")
+            return content, filename
             
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to download file {url}: {str(e)}")
