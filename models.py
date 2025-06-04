@@ -16,7 +16,7 @@ class Contract(db.Model):
     response_date = db.Column(db.DateTime)
     naics_code = db.Column(db.String(20))
     classification_code = db.Column(db.String(20))
-    set_aside_code = db.Column(db.String(50))
+    set_aside_code = db.Column(db.String(200))
     place_of_performance = db.Column(db.String(200))
     resource_links = db.Column(JSON)  # Store document links as JSON
     award_amount = db.Column(db.String(100))

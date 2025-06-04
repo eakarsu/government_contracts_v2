@@ -350,12 +350,34 @@ def search_contracts():
 def analyze_contract(notice_id):
     """Analyze a specific contract using AI"""
     try:
+        # First try to get from database
         contract = Contract.query.filter_by(notice_id=notice_id).first()
-        if not contract:
-            return jsonify({'error': 'Contract not found'}), 404
+        
+        if contract:
+            # Use database data
+            contract_data = contract.to_dict()
+        else:
+            # Search in vector database for contract data
+            search_results = vector_db.search_contracts(f"notice_id:{notice_id}", n_results=1)
+            
+            if not search_results or len(search_results) == 0:
+                return jsonify({'error': 'Contract not found'}), 404
+            
+            # Extract contract data from vector search result
+            contract_result = search_results[0]
+            contract_data = {
+                'notice_id': notice_id,
+                'title': contract_result.get('metadata', {}).get('title', ''),
+                'description': contract_result.get('content', ''),
+                'agency': contract_result.get('metadata', {}).get('agency', ''),
+                'naics_code': contract_result.get('metadata', {}).get('naics_code', ''),
+                'classification_code': contract_result.get('metadata', {}).get('classification_code', ''),
+                'posted_date': contract_result.get('metadata', {}).get('posted_date', ''),
+                'set_aside_code': contract_result.get('metadata', {}).get('set_aside_code', '')
+            }
         
         # Get AI analysis
-        analysis = ai_analyzer.analyze_contract(contract.to_dict())
+        analysis = ai_analyzer.analyze_contract(contract_data)
         
         return jsonify({
             'contract_id': notice_id,
