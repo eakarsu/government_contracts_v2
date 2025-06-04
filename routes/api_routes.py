@@ -164,8 +164,13 @@ def fetch_contracts():
 def index_contracts():
     """Index contracts in vector database"""
     try:
-        data = request.get_json() or {}
-        limit = data.get('limit', 100)
+        # Handle both JSON and form data, with fallback to empty dict
+        if request.is_json:
+            data = request.get_json() or {}
+        else:
+            data = request.form.to_dict() or {}
+        
+        limit = int(data.get('limit', 100))
         
         # Get contracts that haven't been indexed yet
         contracts = Contract.query.filter(Contract.indexed_at.is_(None)).limit(limit).all()
@@ -433,18 +438,26 @@ def get_recommendations():
         logger.error(f"Recommendations generation failed: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
+
 @api_bp.route('/documents/process-norshin', methods=['POST'])
 def process_documents_norshin():
     """Process contract documents via Norshin.com API and index results"""
     try:
         data = request.get_json() or {}
-        limit = data.get('limit', 20)  # Process 20 contracts by default
+        limit = data.get('limit', 5)  # Process 5 contracts by default for testing
         
         # Get contracts from PostgreSQL database that have resource links
-        contracts = Contract.query.filter(Contract.resource_links.isnot(None)).limit(limit).all()
+        contracts = Contract.query.filter(
+            db.and_(
+                Contract.resource_links.isnot(None),
+                db.text("CAST(resource_links AS TEXT) != 'null'"),
+                db.text("CAST(resource_links AS TEXT) != '[]'")
+            )
+        ).limit(limit).all()
         
         if not contracts:
-            return jsonify({'message': 'No contracts with resource links found', 'processed_count': 0})
+            return jsonify({'message': 'No contracts with document attachments found', 'processed_count': 0})
         
         # Create indexing job
         job = IndexingJob(job_type='norshin_documents', status='running')
@@ -461,8 +474,7 @@ def process_documents_norshin():
                 notice_id = contract.notice_id
                 resource_links = contract.resource_links
                 
-                if not resource_links or not isinstance(resource_links, list):
-                    logger.info(f"No valid resource links found for contract {notice_id}")
+                if not resource_links:
                     continue
                 
                 logger.info(f"Processing {len(resource_links)} documents for contract {notice_id} via Norshin API")
