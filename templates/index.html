@@ -255,7 +255,10 @@ async function indexContracts() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({
+                limit: 100
+            })
         });
         
         const result = await response.json();
@@ -281,7 +284,10 @@ async function processDocuments() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({
+                limit: 50
+            })
         });
         
         const result = await response.json();
