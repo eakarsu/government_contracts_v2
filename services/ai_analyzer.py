@@ -10,17 +10,26 @@ class AIAnalyzer:
     """Service for AI-powered contract analysis using OpenRouter"""
     
     def __init__(self):
-        # Using OpenAI API directly
-        self.client = OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY", "sk-proj-nUlBr-dZc39DjcQlsWcOYrGMYu9CJQUDDDlm5YFhIyupLV1rGdPe4VIHgxT3BlbkFJaFwFh7J69zg5zflM_Qm8A8dSP0MqWtOJLkW1ztDhwUcPVCpR1CwJsaIkA")
-        )
-        
-        # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-        # do not change this unless explicitly requested by the user
-        self.model = os.environ.get("OPENAI_MODEL", "gpt-4o")
-        
-        if not os.environ.get("OPENAI_API_KEY"):
-            logger.warning("OPENAI_API_KEY not found in environment variables")
+        # Using OpenRouter API for better model access
+        openrouter_key = os.environ.get("OPENROUTER_API_KEY")
+        if openrouter_key:
+            self.client = OpenAI(
+                api_key=openrouter_key,
+                base_url="https://openrouter.ai/api/v1"
+            )
+            self.model = "anthropic/claude-3.5-sonnet"
+            logger.info("Using OpenRouter API for AI analysis")
+        else:
+            # Fallback to OpenAI if OpenRouter key not available
+            openai_key = os.environ.get("OPENAI_API_KEY")
+            if openai_key:
+                self.client = OpenAI(api_key=openai_key)
+                self.model = "gpt-4o"
+                logger.info("Using OpenAI API for AI analysis")
+            else:
+                self.client = None
+                self.model = None
+                logger.warning("No AI API key found (OPENROUTER_API_KEY or OPENAI_API_KEY)")
     
     def analyze_search_results(self, query: str, search_results: Dict) -> Dict:
         """Analyze search results and provide AI-powered recommendations
@@ -33,6 +42,14 @@ class AIAnalyzer:
             Dictionary with analysis and recommendations
         """
         try:
+            # Check if AI client is available
+            if not self.client or not self.model:
+                return {
+                    'error': 'AI analysis unavailable - no API key configured',
+                    'success': False,
+                    'message': 'Please configure OPENROUTER_API_KEY or OPENAI_API_KEY environment variable'
+                }
+            
             # Prepare context from search results
             context = self._prepare_search_context(search_results)
             

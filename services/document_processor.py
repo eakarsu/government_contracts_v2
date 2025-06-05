@@ -150,20 +150,25 @@ class DocumentProcessor:
                 logger.error(f"Invalid URL: {url}")
                 return None
             
-            # Check file extension
-            file_extension = self._get_file_extension(url)
-            if file_extension not in self.supported_types:
-                logger.warning(f"Unsupported file type: {file_extension} for URL: {url}")
-                return None
-            
-            # Download file
+            # Download file first to get actual file type
             download_result = self._download_file(url)
             if not download_result:
                 return None
             
-            content, original_filename_from_download = download_result  # Extract content from tuple
+            content, original_filename_from_download = download_result
             
-            # Extract text based on file type
+            # Determine actual file extension from downloaded content
+            if original_filename_from_download and '.' in original_filename_from_download:
+                file_extension = '.' + original_filename_from_download.split('.')[-1].lower()
+            else:
+                file_extension = self._get_file_extension(url)
+            
+            # Check if file type is supported
+            if file_extension not in self.supported_types:
+                logger.warning(f"Unsupported file type: {file_extension} for file: {original_filename_from_download}")
+                return None
+            
+            # Extract text based on actual file type
             text_content = self._extract_text_by_type(content, file_extension)
             if not text_content:
                 logger.warning(f"No text extracted from document: {url}")
