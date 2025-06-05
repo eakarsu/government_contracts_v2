@@ -19,14 +19,7 @@ class DocumentProcessor:
         self.rate_limiter = RateLimiter(calls_per_second=5)  # Conservative rate limiting for downloads
         self.max_file_size = 10 * 1024 * 1024  # 10MB limit
         self.supported_types = {'.pdf', '.doc', '.docx', '.txt'}
-        # Try different possible API endpoints based on common patterns
-        self.norshin_endpoints = [
-            "https://norshin.com/api/process-document",
-            "https://norshin.com/api/document", 
-            "https://norshin.com/process",
-            "https://norshin.com/api/analyze",
-            "https://norshin.com/api/extract"
-        ]
+        self.norshin_api_url = "https://norshin.com/api/process-document"
     
     def process_document_via_norshin_api(self, url: str, contract_notice_id: str, description: str = "") -> Optional[Dict]:
         """Download document and process it via Norshin.com API
@@ -81,40 +74,27 @@ class DocumentProcessor:
                 with open(temp_file_path, 'rb') as file:
                     logger.info(f"Sending file to Norshin API with filename: {filename_to_use}")
                     
-                    # Try different field names and formats
-                    files = {'file': (filename_to_use, file)}
+                    # Use correct field name for Norshin API
+                    files = {'document': (filename_to_use, file, 'application/octet-stream')}
+                    
+                    # Check if API key is available
+                    api_key = os.environ.get('NORSHIN_API_KEY')
+                    if not api_key:
+                        logger.warning("NORSHIN_API_KEY not found, falling back to local text extraction")
+                        return self.download_and_extract_text(url, description)
                     
                     headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        'X-API-Key': api_key
                     }
                     
-                    logger.info(f"Request headers: {headers}")
-                    logger.info(f"Files payload: document=({filename_to_use}, <file_content>, application/octet-stream)")
+                    logger.info(f"Sending file to Norshin API: {filename_to_use}")
                     
-                    # Try different endpoints and formats
-                    for endpoint in self.norshin_endpoints:
-                        for field_name in ['file', 'document', 'upload']:
-                            try:
-                                files_payload = {field_name: (filename_to_use, file)}
-                                logger.info(f"Trying endpoint: {endpoint} with field: {field_name}")
-                                
-                                response = requests.post(
-                                    endpoint,
-                                    files=files_payload,
-                                    headers=headers,
-                                    timeout=30
-                                )
-                                
-                                logger.info(f"Response status: {response.status_code}")
-                                if response.status_code != 500:
-                                    break
-                                    
-                            except Exception as e:
-                                logger.debug(f"Failed {endpoint} with {field_name}: {e}")
-                                continue
-                                
-                        if response.status_code != 500:
-                            break
+                    response = requests.post(
+                        self.norshin_api_url,
+                        files=files,
+                        headers=headers,
+                        timeout=60
+                    )
                 
                 logger.info(f"Norshin API response status: {response.status_code}")
                 logger.info(f"Norshin API response headers: {dict(response.headers)}")
