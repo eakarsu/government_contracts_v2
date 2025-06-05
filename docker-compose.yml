@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: contract_postgres
+    environment:
+      POSTGRES_DB: contract_db
+      POSTGRES_USER: contract_user
+      POSTGRES_PASSWORD: contract_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U contract_user -d contract_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: contract_app
+    environment:
+      DATABASE_URL: postgresql://contract_user:contract_password@postgres:5432/contract_db
+      FLASK_ENV: production
+      FLASK_DEBUG: 0
+      SESSION_SECRET: your-secret-key-here
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      SAM_GOV_API_KEY: ${SAM_GOV_API_KEY}
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./chromadb_data:/app/chromadb_data
+      - ./test_documents:/app/test_documents
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
