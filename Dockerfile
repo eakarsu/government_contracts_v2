@@ -20,11 +20,24 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml ./
 
 # Install Python dependencies
-RUN pip install --no-cache-dir uv && \
-    uv pip install --system --no-cache -r uv.lock
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir chromadb>=1.0.12 \
+                              email-validator>=2.2.0 \
+                              flask-login>=0.6.3 \
+                              flask>=3.1.1 \
+                              flask-sqlalchemy>=3.1.1 \
+                              gunicorn>=23.0.0 \
+                              openai>=1.84.0 \
+                              psycopg2-binary>=2.9.10 \
+                              pypdf2>=3.0.1 \
+                              python-docx>=1.1.2 \
+                              requests>=2.32.3 \
+                              sqlalchemy>=2.0.41 \
+                              trafilatura>=2.0.0 \
+                              werkzeug>=3.1.3
 
 # Copy application code
 COPY . .

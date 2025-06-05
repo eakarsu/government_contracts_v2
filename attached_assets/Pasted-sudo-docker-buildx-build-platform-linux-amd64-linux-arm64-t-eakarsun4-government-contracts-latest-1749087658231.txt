@@ -1,0 +1,63 @@
+sudo docker buildx build --platform linux/amd64,linux/arm64 -t eakarsun4/government_contracts:latest --push .
+Password:
+[+] Building 37.6s (14/22)                                                                                   docker-container:trusting_lamport
+ => [internal] load build definition from Dockerfile                                                                                      0.0s
+ => => transferring dockerfile: 1.04kB                                                                                                    0.0s
+ => [linux/arm64 internal] load metadata for docker.io/library/python:3.11-slim                                                           1.0s
+ => [linux/amd64 internal] load metadata for docker.io/library/python:3.11-slim                                                           1.0s
+ => [auth] library/python:pull token for registry-1.docker.io                                                                             0.0s
+ => [internal] load .dockerignore                                                                                                         0.0s
+ => => transferring context: 2B                                                                                                           0.0s
+ => [linux/amd64 1/8] FROM docker.io/library/python:3.11-slim@sha256:7a3ed1226224bcc1fe5443262363d42f48cf832a540c1836ba8ccbeaadf8637c    11.0s
+ => => resolve docker.io/library/python:3.11-slim@sha256:7a3ed1226224bcc1fe5443262363d42f48cf832a540c1836ba8ccbeaadf8637c                 0.0s
+ => => sha256:befce167985323633ac1acd06bd4fc78cefb02f4215bf323c807c5c65edbd9f5 250B / 250B                                                0.1s
+ => => sha256:c229bae17638423fbdc6680d790085a4262c8ee672c4d380e5bff27411abae99 16.21MB / 16.21MB                                          0.4s
+ => => sha256:91e6593878cc4b0d4c9eccb12c18fd9f2b266d35bc2da149439d43831180748d 3.51MB / 3.51MB                                            0.2s
+ => => sha256:61320b01ae5e0798393ef25f2dc72faf43703e60ba089b07d7170acbabbf8f62 28.23MB / 28.23MB                                          1.3s
+ => => extracting sha256:61320b01ae5e0798393ef25f2dc72faf43703e60ba089b07d7170acbabbf8f62                                                 7.0s
+ => => extracting sha256:91e6593878cc4b0d4c9eccb12c18fd9f2b266d35bc2da149439d43831180748d                                                 0.6s
+ => => extracting sha256:c229bae17638423fbdc6680d790085a4262c8ee672c4d380e5bff27411abae99                                                 1.9s
+ => => extracting sha256:befce167985323633ac1acd06bd4fc78cefb02f4215bf323c807c5c65edbd9f5                                                 0.1s
+ => [internal] load build context                                                                                                        15.5s
+ => => transferring context: 634.28MB                                                                                                    15.4s
+ => [linux/arm64 1/8] FROM docker.io/library/python:3.11-slim@sha256:7a3ed1226224bcc1fe5443262363d42f48cf832a540c1836ba8ccbeaadf8637c    11.1s
+ => => resolve docker.io/library/python:3.11-slim@sha256:7a3ed1226224bcc1fe5443262363d42f48cf832a540c1836ba8ccbeaadf8637c                 0.0s
+ => => sha256:ed8f18310f179c44ab814c96f3edd5c55622659ecec9446cd9c3c248bb74bc8e 249B / 249B                                                0.2s
+ => => sha256:7840cd825272881c40e91120a55b4d26f7e5829aa530409b56fbc4831b2f944c 3.33MB / 3.33MB                                            0.4s
+ => => sha256:40a9c8db52542fcb593972a6a77ee59a33b0537fd77745d2d19603dfd56585af 16.14MB / 16.14MB                                          0.8s
+ => => sha256:b16f1b16678093d11ecfece1004207a40f9bc1b7d9d1d16a070c1db552038818 28.07MB / 28.07MB                                          0.9s
+ => => extracting sha256:b16f1b16678093d11ecfece1004207a40f9bc1b7d9d1d16a070c1db552038818                                                 7.2s
+ => => extracting sha256:7840cd825272881c40e91120a55b4d26f7e5829aa530409b56fbc4831b2f944c                                                 0.5s
+ => => extracting sha256:40a9c8db52542fcb593972a6a77ee59a33b0537fd77745d2d19603dfd56585af                                                 1.9s
+ => => extracting sha256:ed8f18310f179c44ab814c96f3edd5c55622659ecec9446cd9c3c248bb74bc8e                                                 0.1s
+ => [linux/amd64 2/8] WORKDIR /app                                                                                                        0.3s
+ => [linux/arm64 2/8] WORKDIR /app                                                                                                        0.2s
+ => [linux/arm64 3/8] RUN apt-get update && apt-get install -y     build-essential     curl     postgresql-client     libpq-dev     gcc  22.0s
+ => CANCELED [linux/amd64 3/8] RUN apt-get update && apt-get install -y     build-essential     curl     postgresql-client     libpq-de  25.0s
+ => [linux/arm64 4/8] COPY pyproject.toml uv.lock ./                                                                                      0.8s
+ => ERROR [linux/arm64 5/8] RUN pip install --no-cache-dir uv &&     uv pip install --system --no-cache -r uv.lock                        2.1s
+------
+ > [linux/arm64 5/8] RUN pip install --no-cache-dir uv &&     uv pip install --system --no-cache -r uv.lock:
+1.221 Collecting uv
+1.314   Downloading uv-0.7.11-py3-none-manylinux_2_28_aarch64.whl.metadata (11 kB)
+1.339 Downloading uv-0.7.11-py3-none-manylinux_2_28_aarch64.whl (16.6 MB)
+1.610    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.6/16.6 MB 85.8 MB/s eta 0:00:00
+1.641 Installing collected packages: uv
+1.836 Successfully installed uv-0.7.11
+1.836 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+1.940
+1.940 [notice] A new release of pip is available: 24.0 -> 25.1.1
+1.940 [notice] To update, run: pip install --upgrade pip
+2.000 error: Couldn't parse requirement in `uv.lock` at position 0
+2.000   Caused by: no such comparison operator "=", must be one of ~= == != <= >= < > ===
+2.000 version = 1
+2.000         ^^^
+------
+Dockerfile:26
+--------------------
+  25 |     # Install Python dependencies
+  26 | >>> RUN pip install --no-cache-dir uv && \
+  27 | >>>     uv pip install --system --no-cache -r uv.lock
+  28 |
+--------------------
+ERROR: failed to solve: process "/bin/sh -c pip install --no-cache-dir uv &&     uv pip install --system --no-cache -r uv.lock" did not complete successfully: exit code: 2
