@@ -28,8 +28,10 @@ class SAMGovAPI:
         # Apply rate limiting
         self.rate_limiter.wait_if_needed()
         
+        # Add API key to parameters instead of headers
+        params['api_key'] = self.api_key
+        
         headers = {
-            'X-Api-Key': self.api_key,
             'Accept': 'application/json',
             'User-Agent': 'ContractIndexer/1.0'
         }
