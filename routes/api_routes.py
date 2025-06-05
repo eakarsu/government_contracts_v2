@@ -59,7 +59,7 @@ def fetch_contracts():
     try:
         data = request.get_json() or {}
         
-        # Parse date parameters
+        # Parse date parameters or use intelligent defaults
         start_date = None
         end_date = None
         
@@ -67,6 +67,19 @@ def fetch_contracts():
             start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00'))
         if data.get('end_date'):
             end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
+        
+        # If no dates provided, automatically expand the search range based on existing contracts
+        if not start_date and not end_date:
+            # Get the oldest contract date we have
+            oldest_contract = Contract.query.order_by(Contract.posted_date.asc()).first()
+            if oldest_contract and oldest_contract.posted_date:
+                # Fetch older contracts by going back further
+                start_date = oldest_contract.posted_date - timedelta(days=30)
+                end_date = oldest_contract.posted_date - timedelta(days=1)
+            else:
+                # Default to expanding the range to 60 days ago
+                end_date = datetime.now()
+                start_date = end_date - timedelta(days=60)
         
         limit = min(data.get('limit', 100), 1000)  # Cap at 1000
         offset = data.get('offset', 0)
