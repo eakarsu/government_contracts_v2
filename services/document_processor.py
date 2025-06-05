@@ -19,7 +19,13 @@ class DocumentProcessor:
         self.rate_limiter = RateLimiter(calls_per_second=5)  # Conservative rate limiting for downloads
         self.max_file_size = 10 * 1024 * 1024  # 10MB limit
         self.supported_types = {'.pdf', '.doc', '.docx', '.txt'}
-        self.norshin_api_url = "https://norshin.com/api/process-document"
+        # Try different possible API endpoints
+        self.norshin_endpoints = [
+            "https://norshin.com/api/process-document",
+            "https://norshin.com/api/upload",
+            "https://norshin.com/upload",
+            "https://norshin.com/api/document/process"
+        ]
     
     def process_document_via_norshin_api(self, url: str, contract_notice_id: str, description: str = "") -> Optional[Dict]:
         """Download document and process it via Norshin.com API
@@ -74,13 +80,21 @@ class DocumentProcessor:
                 with open(temp_file_path, 'rb') as file:
                     logger.info(f"Sending file to Norshin API with filename: {filename_to_use}")
                     
-                    # Match the exact format of your working curl command
-                    files = {'document': (filename_to_use, file)}
+                    # Try different field names and formats
+                    files = {'file': (filename_to_use, file)}
+                    
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                    
+                    logger.info(f"Request headers: {headers}")
+                    logger.info(f"Files payload: document=({filename_to_use}, <file_content>, application/octet-stream)")
                     
                     response = requests.post(
                         self.norshin_api_url,
                         files=files,
-                        timeout=60  # Increased timeout for larger documents
+                        headers=headers,
+                        timeout=60
                     )
                 
                 logger.info(f"Norshin API response status: {response.status_code}")
