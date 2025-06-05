@@ -441,13 +441,171 @@ async function analyzeContract(noticeId) {
 }
 
 function showContractAnalysis(analysis) {
-    // For now, just alert with the summary
-    if (analysis.summary) {
-        alert(analysis.summary);
-    } else {
-        alert('Analysis completed. Check the console for details.');
-        console.log('Contract Analysis:', analysis);
+    console.log('Contract Analysis:', analysis);
+    
+    // Create a modal to display the analysis
+    const modalHtml = `
+        <div class="modal fade" id="analysisModal" tabindex="-1" aria-labelledby="analysisModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="analysisModalLabel">
+                            <i data-feather="cpu" class="me-2"></i>
+                            AI Contract Analysis
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        ${formatAnalysisResults(analysis)}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('analysisModal');
+    if (existingModal) {
+        existingModal.remove();
     }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('analysisModal'));
+    modal.show();
+    
+    // Replace feather icons
+    feather.replace();
+}
+
+function formatAnalysisResults(analysis) {
+    let html = '';
+    
+    // Opportunity Assessment
+    if (analysis.opportunity_assessment) {
+        const assessmentClass = analysis.opportunity_assessment === 'high' ? 'success' : 
+                               analysis.opportunity_assessment === 'medium' ? 'warning' : 'danger';
+        html += `
+            <div class="alert alert-${assessmentClass} mb-3">
+                <h6><i data-feather="target" class="me-2"></i>Opportunity Assessment</h6>
+                <p class="mb-0">This contract has <strong>${analysis.opportunity_assessment}</strong> potential for your business.</p>
+            </div>
+        `;
+    }
+    
+    // Competition & Complexity
+    html += '<div class="row mb-3">';
+    if (analysis.competition_level) {
+        const compClass = analysis.competition_level === 'high' ? 'danger' : 
+                         analysis.competition_level === 'medium' ? 'warning' : 'success';
+        html += `
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h6><i data-feather="users" class="me-2"></i>Competition Level</h6>
+                        <span class="badge bg-${compClass} fs-6">${analysis.competition_level.toUpperCase()}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    if (analysis.bid_complexity) {
+        const complexClass = analysis.bid_complexity === 'high' ? 'danger' : 
+                            analysis.bid_complexity === 'medium' ? 'warning' : 'success';
+        html += `
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h6><i data-feather="settings" class="me-2"></i>Bid Complexity</h6>
+                        <span class="badge bg-${complexClass} fs-6">${analysis.bid_complexity.toUpperCase()}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    html += '</div>';
+    
+    // Estimated Effort
+    if (analysis.estimated_effort) {
+        html += `
+            <div class="alert alert-info mb-3">
+                <h6><i data-feather="clock" class="me-2"></i>Estimated Effort</h6>
+                <p class="mb-0">${analysis.estimated_effort}</p>
+            </div>
+        `;
+    }
+    
+    // Key Requirements
+    if (analysis.key_requirements && analysis.key_requirements.length > 0) {
+        html += `
+            <div class="mb-4">
+                <h6><i data-feather="check-square" class="me-2"></i>Key Requirements</h6>
+                <ul class="list-group list-group-flush">
+        `;
+        analysis.key_requirements.forEach(req => {
+            html += `<li class="list-group-item"><i data-feather="chevron-right" class="me-2"></i>${req}</li>`;
+        });
+        html += `</ul></div>`;
+    }
+    
+    // Recommendations
+    if (analysis.recommendations && analysis.recommendations.length > 0) {
+        html += `
+            <div class="mb-4">
+                <h6><i data-feather="lightbulb" class="me-2"></i>Recommendations</h6>
+        `;
+        analysis.recommendations.forEach(rec => {
+            const priorityClass = rec.importance === 'high' ? 'danger' : 
+                                 rec.importance === 'medium' ? 'warning' : 'secondary';
+            html += `
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <span class="fw-bold">${rec.category.charAt(0).toUpperCase() + rec.category.slice(1)}</span>
+                            <span class="badge bg-${priorityClass}">${rec.importance}</span>
+                        </div>
+                        <p class="card-text mt-2 mb-0">${rec.action}</p>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+    
+    // Red Flags
+    if (analysis.red_flags && analysis.red_flags.length > 0) {
+        html += `
+            <div class="mb-4">
+                <h6><i data-feather="alert-triangle" class="me-2"></i>Red Flags</h6>
+                <div class="alert alert-warning">
+                    <ul class="mb-0">
+        `;
+        analysis.red_flags.forEach(flag => {
+            html += `<li>${flag}</li>`;
+        });
+        html += `</ul></div></div>`;
+    }
+    
+    // Success Factors
+    if (analysis.success_factors && analysis.success_factors.length > 0) {
+        html += `
+            <div class="mb-4">
+                <h6><i data-feather="star" class="me-2"></i>Success Factors</h6>
+                <ul class="list-group list-group-flush">
+        `;
+        analysis.success_factors.forEach(factor => {
+            html += `<li class="list-group-item"><i data-feather="check" class="me-2"></i>${factor}</li>`;
+        });
+        html += `</ul></div>`;
+    }
+    
+    return html;
 }
 
 function showSection(id) {
