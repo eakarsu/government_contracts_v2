@@ -19,12 +19,13 @@ class DocumentProcessor:
         self.rate_limiter = RateLimiter(calls_per_second=5)  # Conservative rate limiting for downloads
         self.max_file_size = 10 * 1024 * 1024  # 10MB limit
         self.supported_types = {'.pdf', '.doc', '.docx', '.txt'}
-        # Try different possible API endpoints
+        # Try different possible API endpoints based on common patterns
         self.norshin_endpoints = [
             "https://norshin.com/api/process-document",
-            "https://norshin.com/api/upload",
-            "https://norshin.com/upload",
-            "https://norshin.com/api/document/process"
+            "https://norshin.com/api/document", 
+            "https://norshin.com/process",
+            "https://norshin.com/api/analyze",
+            "https://norshin.com/api/extract"
         ]
     
     def process_document_via_norshin_api(self, url: str, contract_notice_id: str, description: str = "") -> Optional[Dict]:
@@ -90,12 +91,30 @@ class DocumentProcessor:
                     logger.info(f"Request headers: {headers}")
                     logger.info(f"Files payload: document=({filename_to_use}, <file_content>, application/octet-stream)")
                     
-                    response = requests.post(
-                        self.norshin_api_url,
-                        files=files,
-                        headers=headers,
-                        timeout=60
-                    )
+                    # Try different endpoints and formats
+                    for endpoint in self.norshin_endpoints:
+                        for field_name in ['file', 'document', 'upload']:
+                            try:
+                                files_payload = {field_name: (filename_to_use, file)}
+                                logger.info(f"Trying endpoint: {endpoint} with field: {field_name}")
+                                
+                                response = requests.post(
+                                    endpoint,
+                                    files=files_payload,
+                                    headers=headers,
+                                    timeout=30
+                                )
+                                
+                                logger.info(f"Response status: {response.status_code}")
+                                if response.status_code != 500:
+                                    break
+                                    
+                            except Exception as e:
+                                logger.debug(f"Failed {endpoint} with {field_name}: {e}")
+                                continue
+                                
+                        if response.status_code != 500:
+                            break
                 
                 logger.info(f"Norshin API response status: {response.status_code}")
                 logger.info(f"Norshin API response headers: {dict(response.headers)}")
