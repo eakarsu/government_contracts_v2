@@ -105,6 +105,14 @@ class AIAnalyzer:
             Dictionary with contract analysis
         """
         try:
+            # Check if AI client is available
+            if not self.client or not self.model:
+                return {
+                    'error': 'AI analysis unavailable - no API key configured',
+                    'success': False,
+                    'message': 'Please configure OPENROUTER_API_KEY or OPENAI_API_KEY environment variable'
+                }
+            
             prompt = self._create_contract_analysis_prompt(contract_data)
             
             response = self.client.chat.completions.create(
@@ -150,6 +158,14 @@ class AIAnalyzer:
             Dictionary with bidding strategy recommendations
         """
         try:
+            # Check if AI client is available
+            if not self.client or not self.model:
+                return {
+                    'error': 'AI analysis unavailable - no API key configured',
+                    'success': False,
+                    'message': 'Please configure OPENROUTER_API_KEY or OPENAI_API_KEY environment variable'
+                }
+            
             prompt = self._create_bid_recommendations_prompt(contracts)
             
             response = self.client.chat.completions.create(
