@@ -26,7 +26,7 @@ services:
       DATABASE_URL: postgresql://contract_user:contract_password@postgres:5432/contract_db
       FLASK_ENV: production
       FLASK_DEBUG: 0
-      SESSION_SECRET: your-secret-key-here
+      SESSION_SECRET: "6faf880536c4aa0b91fce7c5516d5713a98eb4826f947222785c47f0865a0471"
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       SAM_GOV_API_KEY: ${SAM_GOV_API_KEY}
     ports:
