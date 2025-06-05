@@ -12,12 +12,22 @@ class SAMGovAPI:
     """Service for interacting with SAM.gov API"""
     
     def __init__(self):
-        self.api_key = os.environ.get("SAM_GOV_API_KEY", "8fvkSRtpKdn0kX0VtfDQ0oGfCoMYNYKuDGhzMFo7")
+        raw_api_key = os.environ.get("SAM_GOV_API_KEY", "8fvkSRtpKdn0kX0VtfDQ0oGfCoMYNYKuDGhzMFo7")
+        
+        # Clean up API key format if it contains extra formatting
+        if 'API_KEY=' in raw_api_key:
+            # Extract the actual key from API_KEY="key_value" format
+            self.api_key = raw_api_key.split('API_KEY=')[1].strip('"')
+        else:
+            self.api_key = raw_api_key
+            
         self.base_url = "https://api.sam.gov/prod/opportunities/v2/search"
         self.rate_limiter = RateLimiter(calls_per_second=1)  # Conservative rate limit
         
         if not self.api_key:
             logger.warning("SAM_GOV_API_KEY not found in environment variables")
+        
+        logger.info(f"SAM.gov API initialized with key: {self.api_key[:10]}...")
     
     def _make_request(self, params: Dict) -> Optional[Dict]:
         """Make authenticated request to SAM.gov API with rate limiting"""
