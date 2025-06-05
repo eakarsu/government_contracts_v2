@@ -8,6 +8,8 @@ import mimetypes
 import io
 import PyPDF2
 import docx
+import pdfplumber
+import openpyxl
 from utils.rate_limiter import RateLimiter
 
 logger = logging.getLogger(__name__)
