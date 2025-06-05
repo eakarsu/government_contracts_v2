@@ -58,6 +58,14 @@ class DocumentProcessor:
                 temp_file.write(content)
                 temp_file_path = temp_file.name
             
+            # Save a copy for examination with meaningful name
+            import os
+            saved_filename = f"test_documents/{filename_to_use}"
+            os.makedirs("test_documents", exist_ok=True)
+            with open(saved_filename, 'wb') as saved_file:
+                saved_file.write(content)
+            logger.info(f"Saved test document: {saved_filename}")
+            
             try:
                 # Send document to Norshin.com API
                 logger.info(f"Processing document via Norshin API: {url}")
