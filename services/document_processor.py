@@ -77,22 +77,11 @@ class DocumentProcessor:
                     # Use correct field name for Norshin API
                     files = {'document': (filename_to_use, file, 'application/octet-stream')}
                     
-                    # Use OpenRouter API key for Norshin API
-                    api_key = os.environ.get('OPENROUTER_API_KEY')
-                    if not api_key:
-                        logger.warning("OPENROUTER_API_KEY not found, falling back to local text extraction")
-                        return self.download_and_extract_text(url, description)
-                    
-                    headers = {
-                        'X-Api-Key': api_key
-                    }
-                    
                     logger.info(f"Sending file to Norshin API: {filename_to_use}")
                     
                     response = requests.post(
                         self.norshin_api_url,
                         files=files,
-                        headers=headers,
                         timeout=60
                     )
                 
