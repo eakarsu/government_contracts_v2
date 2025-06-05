@@ -77,7 +77,6 @@ class SAMGovAPI:
         end_date_str = end_date.strftime("%m/%d/%Y")
         
         params = {
-            'api_key': self.api_key,
             'postedFrom': start_date_str,
             'postedTo': end_date_str,
             'limit': min(limit, 1000),  # SAM.gov max limit is 1000
