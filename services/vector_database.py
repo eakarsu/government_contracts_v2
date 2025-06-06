@@ -23,10 +23,8 @@ class VectorDatabase:
             # Initialize ChromaDB client with persistent storage
             persist_directory = os.environ.get("CHROMADB_PATH", "./chromadb_data")
             
+            # Use persistent client for data retention
             self.client = chromadb.PersistentClient(path=persist_directory)
-            
-            # Use in-memory client for now to avoid embedding issues
-            self.client = chromadb.Client()
             
             self.contracts_collection = self.client.get_or_create_collection(
                 name="government_contracts",

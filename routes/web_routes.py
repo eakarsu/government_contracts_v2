@@ -15,8 +15,11 @@ vector_db = VectorDatabase()
 def index():
     """Main dashboard page"""
     try:
-        # Get basic statistics
+        # Get basic statistics from database
         contracts_count = Contract.query.count()
+        indexed_contracts_count = Contract.query.filter(Contract.indexed_at.isnot(None)).count()
+        
+        # Get vector database stats
         vector_stats = vector_db.get_collection_stats()
         
         # Get recent indexing jobs
@@ -25,8 +28,17 @@ def index():
         # Get recent searches
         recent_searches = SearchQuery.query.order_by(SearchQuery.created_at.desc()).limit(10).all()
         
+        # Create combined stats
+        dashboard_stats = {
+            'total_contracts': contracts_count,
+            'indexed_contracts': indexed_contracts_count,
+            'indexed_documents': vector_stats.get('documents_count', 0),
+            'recent_searches_count': SearchQuery.query.count()
+        }
+        
         return render_template('index.html',
                              contracts_count=contracts_count,
+                             dashboard_stats=dashboard_stats,
                              vector_stats=vector_stats,
                              recent_jobs=recent_jobs,
                              recent_searches=recent_searches)

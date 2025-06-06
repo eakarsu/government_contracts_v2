@@ -28,7 +28,7 @@
         <div class="card">
             <div class="card-body text-center">
                 <i data-feather="database" class="text-success mb-2" style="width: 48px; height: 48px;"></i>
-                <h3 class="card-title">{{ vector_stats.get('contracts_count', 0) }}</h3>
+                <h3 class="card-title">{{ dashboard_stats.indexed_contracts }}</h3>
                 <p class="card-text text-muted">Indexed Contracts</p>
             </div>
         </div>
@@ -38,7 +38,7 @@
         <div class="card">
             <div class="card-body text-center">
                 <i data-feather="file" class="text-info mb-2" style="width: 48px; height: 48px;"></i>
-                <h3 class="card-title">{{ vector_stats.get('documents_count', 0) }}</h3>
+                <h3 class="card-title">{{ dashboard_stats.indexed_documents }}</h3>
                 <p class="card-text text-muted">Indexed Documents</p>
             </div>
         </div>
@@ -48,7 +48,7 @@
         <div class="card">
             <div class="card-body text-center">
                 <i data-feather="search" class="text-warning mb-2" style="width: 48px; height: 48px;"></i>
-                <h3 class="card-title">{{ recent_searches|length }}</h3>
+                <h3 class="card-title">{{ dashboard_stats.recent_searches_count }}</h3>
                 <p class="card-text text-muted">Recent Searches</p>
             </div>
         </div>
