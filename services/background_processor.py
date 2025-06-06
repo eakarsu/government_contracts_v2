@@ -93,15 +93,50 @@ class BackgroundDocumentProcessor:
                 logger.error(f"Failed to download document: {response.status_code}")
                 return None
             
-            # Determine filename and content type
-            filename = document['document_url'].split('/')[-1]
-            if '?' in filename:
-                filename = filename.split('?')[0]
+            # Determine filename and content type from response headers
+            content_disposition = response.headers.get('content-disposition', '')
+            if 'filename=' in content_disposition:
+                filename = content_disposition.split('filename=')[1].strip('"')
+            else:
+                # Fallback to URL-based filename
+                filename = document['document_url'].split('/')[-1]
+                if '?' in filename:
+                    filename = filename.split('?')[0]
+                
+                # If still no extension, try to determine from content type
+                if '.' not in filename:
+                    content_type = response.headers.get('content-type', '')
+                    if 'pdf' in content_type:
+                        filename += '.pdf'
+                    elif 'word' in content_type or 'docx' in content_type:
+                        filename += '.docx'
+                    elif 'excel' in content_type or 'xlsx' in content_type:
+                        filename += '.xlsx'
+                    else:
+                        filename += '.pdf'  # Default to PDF
             
             # Create temporary file
             with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as temp_file:
                 temp_file.write(response.content)
                 temp_file_path = temp_file.name
+            
+            # Save document locally with proper filename
+            saved_file_path = None
+            try:
+                # Create processed_documents directory if it doesn't exist
+                os.makedirs('processed_documents', exist_ok=True)
+                
+                # Save with contract notice ID and original filename
+                safe_filename = f"{document['contract_notice_id']}_{filename}"
+                saved_file_path = os.path.join('processed_documents', safe_filename)
+                
+                with open(saved_file_path, 'wb') as saved_file:
+                    saved_file.write(response.content)
+                
+                logger.info(f"Saved document locally: {saved_file_path}")
+                
+            except Exception as e:
+                logger.warning(f"Failed to save document locally: {e}")
             
             try:
                 # Send to Norshin API
@@ -138,9 +173,15 @@ class BackgroundDocumentProcessor:
                     
                     # Index document in vector database
                     self.vector_db.index_document(
-                        document_id=f"{document['contract_notice_id']}_doc",
-                        content=str(processed_data),
-                        metadata=result
+                        document_data={
+                            'success': True,
+                            'text_content': str(processed_data),
+                            'url': document['document_url'],
+                            'description': document.get('description', ''),
+                            'file_type': filename.split('.')[-1] if '.' in filename else 'unknown',
+                            'text_length': len(str(processed_data))
+                        },
+                        contract_notice_id=document['contract_notice_id']
                     )
                     
                     return result
