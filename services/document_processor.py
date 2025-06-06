@@ -21,7 +21,8 @@ class DocumentProcessor:
         self.rate_limiter = RateLimiter(calls_per_second=5)  # Conservative rate limiting for downloads
         self.max_file_size = 10 * 1024 * 1024  # 10MB limit
         self.supported_types = {'.pdf', '.doc', '.docx', '.txt'}
-        self.norshin_api_url = "https://norshin.com/api/process-document"
+        self.norshin_api_url = os.environ.get("NORSHIN_API_URL", "https://norshin.com/api/process-document")
+        self.norshin_api_key = os.environ.get("NORSHIN_API_KEY")
     
     def process_document_via_norshin_api(self, url: str, contract_notice_id: str, description: str = "") -> Optional[Dict]:
         """Download document and process it via Norshin.com API
@@ -73,9 +74,14 @@ class DocumentProcessor:
                     
                     logger.info(f"Sending file to Norshin API: {filename_to_use}")
                     
+                    headers = {}
+                    if self.norshin_api_key:
+                        headers['Authorization'] = f'Bearer {self.norshin_api_key}'
+                    
                     response = requests.post(
                         self.norshin_api_url,
                         files=files,
+                        headers=headers,
                         timeout=60
                     )
                 
