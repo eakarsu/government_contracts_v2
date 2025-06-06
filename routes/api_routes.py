@@ -721,6 +721,28 @@ def stop_queue():
         }), 500
 
 
+@api_bp.route('/documents/queue/process-parallel', methods=['POST'])
+def process_parallel():
+    """Process all queued documents in parallel via Norshin API"""
+    try:
+        from services.parallel_processor import ParallelDocumentProcessor
+        
+        processor = ParallelDocumentProcessor(max_workers=5)
+        result = processor.process_all_queued_documents()
+        
+        return jsonify({
+            'success': True,
+            **result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in parallel processing: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @api_bp.route('/documents/notifications', methods=['GET'])
 def get_notifications():
     """Get processing notifications from processed_queue_documents folder"""
