@@ -6,6 +6,7 @@ import tempfile
 from urllib.parse import urlparse
 import mimetypes
 import io
+import json
 import PyPDF2
 import docx
 import pdfplumber
@@ -78,36 +79,45 @@ class DocumentProcessor:
                     if self.norshin_api_key:
                         headers['Authorization'] = f'Bearer {self.norshin_api_key}'
                     
-                    response = requests.post(
-                        self.norshin_api_url,
-                        files=files,
-                        headers=headers,
-                        timeout=60
-                    )
+                    try:
+                        response = requests.post(
+                            self.norshin_api_url,
+                            files=files,
+                            headers=headers,
+                            timeout=10  # Short timeout for fallback
+                        )
+                    except (requests.Timeout, requests.ConnectionError) as e:
+                        logger.warning(f"Norshin API timeout/connection error: {e}, falling back to local processing")
+                        # Fallback to local text extraction
+                        return self.download_and_extract_text(url, description)
                 
                 logger.info(f"Norshin API response status: {response.status_code}")
                 logger.info(f"Norshin API response headers: {dict(response.headers)}")
                 logger.info(f"Norshin API response text: {response.text[:500]}")
                 
                 if response.status_code == 200:
-                    # Parse the JSON response from Norshin API
-                    processed_data = response.json()
-                    
-                    # Add metadata about the source
-                    result = {
-                        'source_url': url,
-                        'contract_notice_id': contract_notice_id,
-                        'description': description,
-                        'file_extension': file_extension,
-                        'processed_data': processed_data,
-                        'processing_service': 'norshin_api'
-                    }
-                    
-                    logger.info(f"Successfully processed document: {url}")
-                    return result
+                    try:
+                        # Parse the JSON response from Norshin API
+                        processed_data = response.json()
+                        
+                        # Add metadata about the source
+                        result = {
+                            'source_url': url,
+                            'contract_notice_id': contract_notice_id,
+                            'description': description,
+                            'file_extension': file_extension,
+                            'processed_data': processed_data,
+                            'processing_service': 'norshin_api'
+                        }
+                        
+                        logger.info(f"Successfully processed document: {url}")
+                        return result
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Norshin API returned invalid JSON: {e}, falling back to local processing")
+                        return self.download_and_extract_text(url, description)
                 else:
-                    logger.error(f"Norshin API error {response.status_code}: {response.text}")
-                    return None
+                    logger.error(f"Norshin API error {response.status_code}: {response.text}, falling back to local processing")
+                    return self.download_and_extract_text(url, description)
                     
             finally:
                 # Clean up temporary file
