@@ -295,28 +295,18 @@ async function indexContracts() {
     }
 }
 
-async function processDocuments() {
-    showJobProgress('Processing contract documents...');
+async function queueDocuments() {
+    showJobProgress('Queuing documents for background processing...');
     
     try {
-        const response = await fetch('/api/documents/process', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                limit: 50
-            })
+        const response = await fetch('/api/documents/queue', {
+            method: 'POST'
         });
         
         const result = await response.json();
         
         if (response.ok) {
-            if (result.processed_count > 0) {
-                updateJobProgress(`✅ Successfully processed ${result.processed_count} documents`, 'success');
-            } else {
-                updateJobProgress(`ℹ️ ${result.message || 'No documents to process'}`, 'info');
-            }
+            updateJobProgress(`✅ Queued ${result.queued_count} documents for processing`, 'success');
             setTimeout(() => {
                 location.reload();
             }, 2000);
