@@ -5,6 +5,8 @@ import requests
 import json
 import os
 import tempfile
+import hashlib
+from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional
 from models import db, Contract, DocumentProcessingQueue
@@ -23,6 +25,10 @@ class BackgroundDocumentProcessor:
         self.is_processing = False
         self.processing_thread = None
         self.queue_enabled = True  # Allow queue to be paused/resumed
+        
+        # Create queue_documents directory
+        self.queue_documents_dir = Path("queue_documents")
+        self.queue_documents_dir.mkdir(exist_ok=True)
         
         # Resume processing any pending items from database on startup
         try:
@@ -43,18 +49,26 @@ class BackgroundDocumentProcessor:
                 logger.info(f"Document already queued: {document_url}")
                 return existing.to_dict()
             
+            # Download document first to queue_documents folder
+            local_file_path = self._download_document_to_queue(document_url, contract_notice_id)
+            
             # Create new queue entry
             queue_item = DocumentProcessingQueue(
                 contract_notice_id=contract_notice_id,
                 document_url=document_url,
                 description=description,
+                local_file_path=local_file_path,
+                filename=Path(local_file_path).name if local_file_path else None,
                 status='queued'
             )
             
             db.session.add(queue_item)
             db.session.commit()
             
-            logger.info(f"Queued document for contract {contract_notice_id}: {document_url}")
+            if local_file_path:
+                logger.info(f"Downloaded and queued document for contract {contract_notice_id}: {Path(local_file_path).name}")
+            else:
+                logger.warning(f"Failed to download document, queued for retry: {document_url}")
             
             # Start processing thread if not already running and queue is enabled
             if not self.is_processing and self.queue_enabled:
@@ -66,6 +80,56 @@ class BackgroundDocumentProcessor:
             logger.error(f"Error queuing document: {e}")
             db.session.rollback()
             return None
+    
+    def _download_document_to_queue(self, document_url: str, contract_notice_id: str) -> Optional[str]:
+        """Download document and save to queue_documents folder before processing"""
+        try:
+            # Create filename with contract ID and URL hash for uniqueness
+            url_hash = hashlib.md5(document_url.encode()).hexdigest()[:8]
+            
+            # Get file extension from URL
+            file_extension = self._get_file_extension(document_url)
+            filename = f"{contract_notice_id}_{url_hash}{file_extension}"
+            file_path = self.queue_documents_dir / filename
+            
+            # Check if file already exists
+            if file_path.exists():
+                logger.info(f"Document already downloaded: {filename}")
+                return str(file_path)
+            
+            # Download the document
+            logger.info(f"Downloading document: {document_url}")
+            response = requests.get(document_url, timeout=30, stream=True)
+            response.raise_for_status()
+            
+            # Save to queue_documents folder
+            with open(file_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            
+            file_size = file_path.stat().st_size
+            logger.info(f"Downloaded document: {filename} ({file_size} bytes)")
+            
+            return str(file_path)
+            
+        except Exception as e:
+            logger.error(f"Error downloading document {document_url}: {e}")
+            return None
+    
+    def _get_file_extension(self, url: str) -> str:
+        """Extract file extension from URL"""
+        try:
+            # Remove query parameters and get extension
+            clean_url = url.split('?')[0]
+            extension = Path(clean_url).suffix
+            
+            # Default to .pdf if no extension found
+            if not extension:
+                extension = '.pdf'
+                
+            return extension.lower()
+        except:
+            return '.pdf'
     
     def start_processing(self):
         """Start the background processing thread"""
@@ -175,62 +239,50 @@ class BackgroundDocumentProcessor:
         logger.info("Background document processing completed")
     
     def _process_single_document(self, document: Dict) -> Optional[Dict]:
-        """Process a single document via Norshin API"""
+        """Process a single document via Norshin API using pre-downloaded file"""
         try:
-            # Download the document
-            response = requests.get(document['document_url'], timeout=30)
-            if response.status_code != 200:
-                logger.error(f"Failed to download document: {response.status_code}")
-                return None
+            contract_notice_id = document['contract_notice_id']
+            local_file_path = document.get('local_file_path')
+            filename = document.get('filename', f"document_{contract_notice_id}.pdf")
             
-            # Determine filename and content type from response headers
-            content_disposition = response.headers.get('content-disposition', '')
-            if 'filename=' in content_disposition:
-                filename = content_disposition.split('filename=')[1].strip('"')
-            else:
-                # Fallback to URL-based filename
-                filename = document['document_url'].split('/')[-1]
-                if '?' in filename:
-                    filename = filename.split('?')[0]
+            logger.info(f"Processing document: {filename}")
+            
+            # Check if local file exists, if not try to download
+            if not local_file_path or not os.path.exists(local_file_path):
+                logger.warning(f"Local file not found, attempting to download: {document['document_url']}")
+                local_file_path = self._download_document_to_queue(document['document_url'], contract_notice_id)
                 
-                # If still no extension, try to determine from content type
-                if '.' not in filename:
-                    content_type = response.headers.get('content-type', '')
-                    if 'pdf' in content_type:
-                        filename += '.pdf'
-                    elif 'word' in content_type or 'docx' in content_type:
-                        filename += '.docx'
-                    elif 'excel' in content_type or 'xlsx' in content_type:
-                        filename += '.xlsx'
-                    else:
-                        filename += '.pdf'  # Default to PDF
+                if not local_file_path:
+                    logger.error(f"Failed to download document: {document['document_url']}")
+                    return None
+                
+                # Update filename from downloaded file
+                filename = Path(local_file_path).name
             
-            # Create temporary file
-            with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as temp_file:
-                temp_file.write(response.content)
-                temp_file_path = temp_file.name
+            # Read the file from queue_documents folder
+            with open(local_file_path, 'rb') as file:
+                file_content = file.read()
             
-            # Save document locally with proper filename
+            logger.info(f"Using pre-downloaded document: {filename} ({len(file_content)} bytes)")
+            
+            # Save document to processed_documents folder
             saved_file_path = None
             try:
-                # Create processed_documents directory if it doesn't exist
                 os.makedirs('processed_documents', exist_ok=True)
-                
-                # Save with contract notice ID and original filename
-                safe_filename = f"{document['contract_notice_id']}_{filename}"
+                safe_filename = f"{contract_notice_id}_{filename}"
                 saved_file_path = os.path.join('processed_documents', safe_filename)
                 
                 with open(saved_file_path, 'wb') as saved_file:
-                    saved_file.write(response.content)
+                    saved_file.write(file_content)
                 
-                logger.info(f"Saved document locally: {saved_file_path}")
+                logger.info(f"Saved document to processed_documents: {safe_filename}")
                 
             except Exception as e:
-                logger.warning(f"Failed to save document locally: {e}")
+                logger.warning(f"Failed to save document to processed_documents: {e}")
             
             try:
-                # Send to Norshin API
-                with open(temp_file_path, 'rb') as file:
+                # Send to Norshin API using the pre-downloaded file
+                with open(local_file_path, 'rb') as file:
                     files = {'document': (filename, file, 'application/octet-stream')}
                     
                     headers = {}

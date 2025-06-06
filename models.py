@@ -224,6 +224,7 @@ class DocumentProcessingQueue(db.Model):
     document_url = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text)
     filename = db.Column(db.String(500))
+    local_file_path = db.Column(db.String(500))  # Path to downloaded file in queue_documents
     status = db.Column(db.String(20), default='queued')  # queued, processing, completed, failed
     priority = db.Column(db.Integer, default=0)
     
