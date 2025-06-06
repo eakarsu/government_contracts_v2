@@ -719,3 +719,82 @@ def stop_queue():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@api_bp.route('/documents/notifications', methods=['GET'])
+def get_notifications():
+    """Get processing notifications from processed_queue_documents folder"""
+    try:
+        import os
+        import json
+        from pathlib import Path
+        
+        processed_dir = Path("processed_queue_documents")
+        if not processed_dir.exists():
+            return jsonify({
+                'success': True,
+                'notifications': [],
+                'total_processed': 0
+            })
+        
+        # Find all notification files
+        notification_files = list(processed_dir.glob("*.notification.json"))
+        notifications = []
+        
+        for notification_file in sorted(notification_files, key=lambda x: x.stat().st_mtime, reverse=True):
+            try:
+                with open(notification_file, 'r') as f:
+                    notification_data = json.load(f)
+                    notifications.append(notification_data)
+            except Exception as e:
+                logger.warning(f"Error reading notification file {notification_file}: {e}")
+        
+        return jsonify({
+            'success': True,
+            'notifications': notifications,
+            'total_processed': len(notifications)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting notifications: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_bp.route('/documents/processed', methods=['GET'])
+def get_processed_documents():
+    """Get list of processed documents in processed_queue_documents folder"""
+    try:
+        import os
+        from pathlib import Path
+        
+        processed_dir = Path("processed_queue_documents")
+        if not processed_dir.exists():
+            return jsonify({
+                'success': True,
+                'processed_documents': [],
+                'total_files': 0
+            })
+        
+        # Get all files except notification files
+        document_files = [f for f in processed_dir.iterdir() 
+                         if f.is_file() and not f.name.endswith('.notification.json')]
+        
+        processed_documents = []
+        for doc_file in sorted(document_files, key=lambda x: x.stat().st_mtime, reverse=True):
+            file_info = {
+                'filename': doc_file.name,
+                'file_size': doc_file.stat().st_size,
+                'processed_at': doc_file.stat().st_mtime,
+                'file_path': str(doc_file)
+            }
+            processed_documents.append(file_info)
+        
+        return jsonify({
+            'success': True,
+            'processed_documents': processed_documents,
+            'total_files': len(processed_documents)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting processed documents: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500

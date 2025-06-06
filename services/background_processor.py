@@ -26,9 +26,11 @@ class BackgroundDocumentProcessor:
         self.processing_thread = None
         self.queue_enabled = True  # Allow queue to be paused/resumed
         
-        # Create queue_documents directory
+        # Create queue_documents and processed directories
         self.queue_documents_dir = Path("queue_documents")
         self.queue_documents_dir.mkdir(exist_ok=True)
+        self.processed_queue_documents_dir = Path("processed_queue_documents")
+        self.processed_queue_documents_dir.mkdir(exist_ok=True)
         
         # Resume processing any pending items from database on startup
         try:
@@ -216,6 +218,51 @@ class BackgroundDocumentProcessor:
             
         except Exception as e:
             logger.warning(f"Failed to create metadata file: {e}")
+    
+    def _move_document_to_processed(self, local_file_path: str, processed_data: dict = None) -> str:
+        """Move document from queue_documents to processed_queue_documents folder"""
+        try:
+            import json
+            from datetime import datetime
+            import shutil
+            
+            source_path = Path(local_file_path)
+            if not source_path.exists():
+                logger.warning(f"Source file not found: {local_file_path}")
+                return None
+            
+            # Create destination path
+            dest_path = self.processed_queue_documents_dir / source_path.name
+            
+            # Move the file
+            shutil.move(str(source_path), str(dest_path))
+            
+            # Create processing notification file
+            notification_data = {
+                "original_file": str(source_path),
+                "processed_file": str(dest_path),
+                "processed_timestamp": datetime.utcnow().isoformat(),
+                "processing_status": "completed",
+                "norshin_data_available": processed_data is not None,
+                "file_size": dest_path.stat().st_size
+            }
+            
+            if processed_data:
+                notification_data["norshin_response"] = processed_data
+            
+            # Save notification file
+            notification_path = dest_path.with_suffix('.notification.json')
+            with open(notification_path, 'w') as f:
+                json.dump(notification_data, f, indent=2)
+            
+            logger.info(f"Moved document to processed folder: {dest_path.name}")
+            logger.info(f"Created notification file: {notification_path.name}")
+            
+            return str(dest_path)
+            
+        except Exception as e:
+            logger.error(f"Error moving document to processed folder: {e}")
+            return None
     
     def _get_file_extension(self, url: str) -> str:
         """Extract file extension from URL (legacy method)"""
@@ -405,13 +452,17 @@ class BackgroundDocumentProcessor:
                 if norshin_response.status_code == 200:
                     processed_data = norshin_response.json()
                     
+                    # Move document to processed_queue_documents folder with notification
+                    processed_file_path = self._move_document_to_processed(local_file_path, processed_data)
+                    
                     # Index in vector database
                     result = {
                         'source_url': document['document_url'],
                         'contract_notice_id': document['contract_notice_id'],
                         'description': document['description'],
                         'processed_data': processed_data,
-                        'processing_service': 'norshin_api'
+                        'processing_service': 'norshin_api',
+                        'processed_file_path': processed_file_path
                     }
                     
                     # Index document in vector database
