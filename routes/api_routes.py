@@ -638,6 +638,9 @@ def queue_documents_for_processing():
 def get_queue_status():
     """Get current document processing queue status"""
     try:
+        # Import background processor locally to avoid circular import
+        from services.background_processor import background_processor
+        
         status = background_processor.get_queue_status()
         return jsonify({
             'success': True,

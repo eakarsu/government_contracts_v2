@@ -213,3 +213,55 @@ class AITemplate(db.Model):
     
     def __repr__(self):
         return f'<AITemplate {self.name}>'
+
+
+class DocumentProcessingQueue(db.Model):
+    """Model for persistent document processing queue"""
+    __tablename__ = 'document_processing_queue'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    contract_notice_id = db.Column(db.String(100), nullable=False, index=True)
+    document_url = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text)
+    filename = db.Column(db.String(500))
+    status = db.Column(db.String(20), default='queued')  # queued, processing, completed, failed
+    priority = db.Column(db.Integer, default=0)
+    
+    # Processing tracking
+    queued_at = db.Column(db.DateTime, default=datetime.utcnow)
+    started_at = db.Column(db.DateTime)
+    completed_at = db.Column(db.DateTime)
+    failed_at = db.Column(db.DateTime)
+    
+    # Results
+    processed_data = db.Column(db.Text)  # JSON string of Norshin response
+    saved_file_path = db.Column(db.String(500))
+    error_message = db.Column(db.Text)
+    retry_count = db.Column(db.Integer, default=0)
+    max_retries = db.Column(db.Integer, default=3)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<DocumentProcessingQueue {self.contract_notice_id}: {self.status}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'contract_notice_id': self.contract_notice_id,
+            'document_url': self.document_url,
+            'description': self.description,
+            'filename': self.filename,
+            'status': self.status,
+            'priority': self.priority,
+            'queued_at': self.queued_at.isoformat() if self.queued_at else None,
+            'started_at': self.started_at.isoformat() if self.started_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'failed_at': self.failed_at.isoformat() if self.failed_at else None,
+            'saved_file_path': self.saved_file_path,
+            'retry_count': self.retry_count,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }

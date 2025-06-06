@@ -7,7 +7,7 @@ import os
 import tempfile
 from datetime import datetime
 from typing import Dict, List, Optional
-from models import db, Contract
+from models import db, Contract, DocumentProcessingQueue
 from services.vector_database import VectorDatabase
 
 logger = logging.getLogger(__name__)
@@ -31,22 +31,40 @@ class BackgroundDocumentProcessor:
     
     def queue_document(self, contract_notice_id: str, document_url: str, description: str = None):
         """Queue a document for background processing"""
-        document_info = {
-            'contract_notice_id': contract_notice_id,
-            'document_url': document_url,
-            'description': description,
-            'queued_at': datetime.utcnow().isoformat(),
-            'status': 'queued'
-        }
-        
-        self.processing_queue.append(document_info)
-        logger.info(f"Queued document for processing: {document_url}")
-        
-        # Start processing thread if not already running
-        if not self.is_processing:
-            self.start_processing()
-        
-        return document_info
+        try:
+            # Check if document is already queued
+            existing = DocumentProcessingQueue.query.filter_by(
+                contract_notice_id=contract_notice_id,
+                document_url=document_url
+            ).first()
+            
+            if existing and existing.status not in ['failed', 'completed']:
+                logger.info(f"Document already queued: {document_url}")
+                return existing.to_dict()
+            
+            # Create new queue entry
+            queue_item = DocumentProcessingQueue(
+                contract_notice_id=contract_notice_id,
+                document_url=document_url,
+                description=description,
+                status='queued'
+            )
+            
+            db.session.add(queue_item)
+            db.session.commit()
+            
+            logger.info(f"Queued document for contract {contract_notice_id}: {document_url}")
+            
+            # Start processing thread if not already running
+            if not self.is_processing:
+                self.start_processing()
+            
+            return queue_item.to_dict()
+            
+        except Exception as e:
+            logger.error(f"Error queuing document: {e}")
+            db.session.rollback()
+            return None
     
     def start_processing(self):
         """Start the background processing thread"""
