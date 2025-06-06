@@ -219,22 +219,32 @@ class SAMGovAPI:
             logger.error(f"Error extracting contract details: {str(e)}")
             return {}
     
-    def get_available_document_links(self, resource_links: List[Dict]) -> List[Dict]:
+    def get_available_document_links(self, resource_links) -> List[Dict]:
         """Extract downloadable document links from resource links"""
         document_links = []
         
+        if not resource_links:
+            return document_links
+            
+        # Handle both list of strings and list of dicts
         for link in resource_links:
-            if isinstance(link, dict):
-                url = link.get('url', '')
-                description = link.get('description', '')
-                
-                # Filter for document types we can process
-                if any(ext in url.lower() for ext in ['.pdf', '.doc', '.docx', '.txt']):
-                    document_links.append({
-                        'url': url,
-                        'description': description,
-                        'type': self._get_document_type(url)
-                    })
+            url = ""
+            description = ""
+            
+            if isinstance(link, str):
+                url = link
+                description = "Document"
+            elif isinstance(link, dict):
+                url = link.get('url', link.get('href', ''))
+                description = link.get('description', link.get('title', 'Document'))
+            
+            if url:
+                # All SAM.gov document URLs are processable
+                document_links.append({
+                    'url': url,
+                    'description': description,
+                    'type': self._get_document_type(url)
+                })
         
         return document_links
     
