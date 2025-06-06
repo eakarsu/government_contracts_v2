@@ -697,3 +697,25 @@ def resume_queue():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@api_bp.route('/documents/queue/stop', methods=['POST'])
+def stop_queue():
+    """Stop the document processing queue completely"""
+    try:
+        # Import background processor locally to avoid circular import
+        from services.background_processor import background_processor
+        
+        result = background_processor.stop_processing()
+        
+        return jsonify({
+            'success': True,
+            **result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error stopping queue: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

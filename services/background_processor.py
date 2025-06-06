@@ -105,11 +105,42 @@ class BackgroundDocumentProcessor:
         return {"status": "resumed", "message": message}
     
     def stop_processing(self):
-        """Stop the current processing thread"""
-        self.is_processing = False
-        if self.processing_thread and self.processing_thread.is_alive():
-            self.processing_thread.join(timeout=5)
-        logger.info("Document processing stopped")
+        """Stop the current processing thread and reset any processing documents"""
+        try:
+            # Stop the processing thread
+            self.is_processing = False
+            self.queue_enabled = False
+            
+            if self.processing_thread and self.processing_thread.is_alive():
+                self.processing_thread.join(timeout=5)
+            
+            # Reset any documents that were in "processing" state back to "queued"
+            processing_docs = DocumentProcessingQueue.query.filter_by(status='processing').all()
+            reset_count = 0
+            
+            for doc in processing_docs:
+                doc.status = 'queued'
+                doc.started_at = None
+                reset_count += 1
+            
+            if reset_count > 0:
+                db.session.commit()
+            
+            message = f"Document processing stopped. Reset {reset_count} processing documents to queued status."
+            logger.info(message)
+            
+            return {
+                "status": "stopped", 
+                "message": message,
+                "reset_documents": reset_count
+            }
+            
+        except Exception as e:
+            logger.error(f"Error stopping processing: {e}")
+            return {
+                "status": "error",
+                "message": f"Error stopping processing: {str(e)}"
+            }
     
     def _process_queue(self):
         """Process documents in the queue"""
