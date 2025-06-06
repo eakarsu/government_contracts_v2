@@ -136,8 +136,12 @@ class BackgroundDocumentProcessor:
                         'processing_service': 'norshin_api'
                     }
                     
-                    # Add to vector database
-                    self.vector_db.add_document(result)
+                    # Index document in vector database
+                    self.vector_db.index_document(
+                        document_id=f"{document['contract_notice_id']}_doc",
+                        content=str(processed_data),
+                        metadata=result
+                    )
                     
                     return result
                 else:

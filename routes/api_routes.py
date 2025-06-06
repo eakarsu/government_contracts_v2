@@ -586,3 +586,63 @@ def get_job_status(job_id):
     except Exception as e:
         logger.error(f"Job status retrieval failed: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/documents/queue', methods=['POST'])
+def queue_documents_for_processing():
+    """Queue contract documents for background processing via Norshin API"""
+    try:
+        # Get contracts with documents that haven't been processed
+        contracts = Contract.query.filter(
+            Contract.resource_links.isnot(None)
+        ).limit(10).all()
+        
+        if not contracts:
+            return jsonify({
+                'success': True,
+                'message': 'No documents to queue for processing',
+                'queued_count': 0
+            })
+        
+        queued_count = 0
+        for contract in contracts:
+            if contract.resource_links:
+                for link in contract.resource_links:
+                    if isinstance(link, dict) and 'url' in link:
+                        # Queue document for background processing
+                        background_processor.queue_document(
+                            contract_notice_id=contract.notice_id,
+                            document_url=link['url'],
+                            description=link.get('description', contract.title)
+                        )
+                        queued_count += 1
+        
+        return jsonify({
+            'success': True,
+            'message': f'Queued {queued_count} documents for background processing',
+            'queued_count': queued_count,
+            'queue_status': background_processor.get_queue_status()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error queuing documents: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@api_bp.route('/documents/queue/status', methods=['GET'])
+def get_queue_status():
+    """Get current document processing queue status"""
+    try:
+        status = background_processor.get_queue_status()
+        return jsonify({
+            'success': True,
+            'queue_status': status
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting queue status: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
