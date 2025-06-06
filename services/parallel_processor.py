@@ -85,8 +85,11 @@ class ParallelDocumentProcessor:
         try:
             # Update status to processing
             with app.app_context():
-                doc.status = 'processing'
-                doc.started_at = datetime.utcnow()
+                from sqlalchemy import text
+                db.session.execute(
+                    text("UPDATE document_processing_queue SET status = 'processing', started_at = :started_at WHERE id = :doc_id"),
+                    {"started_at": datetime.utcnow(), "doc_id": doc.id}
+                )
                 db.session.commit()
             
             # Check if file exists
@@ -114,14 +117,21 @@ class ParallelDocumentProcessor:
                 if response.status_code == 200:
                     # Success
                     result_data = response.json()
-                    doc.status = 'completed'
-                    doc.completed_at = datetime.utcnow()
-                    doc.processed_data = json.dumps(result_data)
                     
                     # Move file to processed folder
                     processed_path = self._move_to_processed_folder(file_path, result_data)
-                    doc.saved_file_path = processed_path
                     
+                    # Update database with SQL to ensure proper commit
+                    from sqlalchemy import text
+                    db.session.execute(
+                        text("UPDATE document_processing_queue SET status = 'completed', completed_at = :completed_at, processed_data = :processed_data, saved_file_path = :saved_file_path WHERE id = :doc_id"),
+                        {
+                            "completed_at": datetime.utcnow(),
+                            "processed_data": json.dumps(result_data),
+                            "saved_file_path": processed_path,
+                            "doc_id": doc.id
+                        }
+                    )
                     db.session.commit()
                     
                     return {
