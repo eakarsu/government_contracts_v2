@@ -439,12 +439,12 @@ class BackgroundDocumentProcessor:
                     
                     logger.info(f"Sending to Norshin API: {filename}")
                     
-                    # Use longer timeout for background processing
+                    # Use reasonable timeout for background processing
                     norshin_response = requests.post(
                         self.norshin_api_url,
                         files=files,
                         headers=headers,
-                        timeout=600  # 10 minutes for background processing
+                        timeout=180  # 3 minutes timeout
                     )
                 
                 logger.info(f"Norshin API response status: {norshin_response.status_code}")
