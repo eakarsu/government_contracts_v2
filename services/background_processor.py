@@ -22,6 +22,12 @@ class BackgroundDocumentProcessor:
         self.processing_queue = []
         self.is_processing = False
         self.processing_thread = None
+        
+        # Resume processing any pending items from database on startup
+        try:
+            self._resume_processing_from_db()
+        except Exception as e:
+            logger.warning(f"Could not resume processing from database: {e}")
     
     def queue_document(self, contract_notice_id: str, document_url: str, description: str = None):
         """Queue a document for background processing"""
@@ -210,6 +216,12 @@ class BackgroundDocumentProcessor:
             'processing': processing_count,
             'recent_documents': self.processing_queue[-10:] if self.processing_queue else []
         }
+    
+    def _resume_processing_from_db(self):
+        """Resume processing any pending items from database on startup"""
+        logger.info("Checking for pending documents in database queue...")
+        # For now, just log that we're checking - will implement database persistence later
+        # This prevents startup errors while maintaining functionality
 
 # Global instance
 background_processor = BackgroundDocumentProcessor()

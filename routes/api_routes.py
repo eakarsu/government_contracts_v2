@@ -5,7 +5,7 @@ from services.sam_gov_api import SAMGovAPI
 from services.document_processor import DocumentProcessor
 from services.vector_database import VectorDatabase
 from services.ai_analyzer import AIAnalyzer
-from services.background_processor import background_processor
+# Import will be done inside functions to avoid circular import
 from models import Contract, IndexingJob, SearchQuery, db
 import time
 
@@ -602,6 +602,9 @@ def queue_documents_for_processing():
                 'message': 'No documents to queue for processing',
                 'queued_count': 0
             })
+        
+        # Import background processor locally to avoid circular import
+        from services.background_processor import background_processor
         
         queued_count = 0
         for contract in contracts:
