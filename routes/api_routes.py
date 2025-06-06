@@ -606,13 +606,14 @@ def queue_documents_for_processing():
         queued_count = 0
         for contract in contracts:
             if contract.resource_links:
-                for link in contract.resource_links:
-                    if isinstance(link, dict) and 'url' in link:
+                # Parse resource_links JSON array
+                if isinstance(contract.resource_links, list):
+                    for link_url in contract.resource_links:
                         # Queue document for background processing
                         background_processor.queue_document(
                             contract_notice_id=contract.notice_id,
-                            document_url=link['url'],
-                            description=link.get('description', contract.title)
+                            document_url=link_url,
+                            description=contract.title
                         )
                         queued_count += 1
         
