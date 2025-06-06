@@ -113,6 +113,11 @@ def api_docs():
     """API documentation page"""
     return render_template('api_docs.html')
 
+@web_bp.route('/notifications')
+def notifications():
+    """Document processing notifications page"""
+    return render_template('notifications.html')
+
 @web_bp.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
