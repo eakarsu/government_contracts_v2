@@ -266,16 +266,8 @@ def process_documents():
         contract_id = data.get('contract_id')
         limit = int(data.get('limit', 50))
         
-        # Get contracts with valid resource links (not null, not empty array, not empty string)
-        query = Contract.query.filter(
-            db.and_(
-                Contract.resource_links.isnot(None),
-                db.text("CAST(resource_links AS TEXT) != 'null'"),
-                db.text("CAST(resource_links AS TEXT) != '[]'"),
-                db.text("CAST(resource_links AS TEXT) != ''"),
-                db.text("LENGTH(CAST(resource_links AS TEXT)) > 2")  # More than just '[]'
-            )
-        )
+        # Get contracts with valid resource links
+        query = Contract.query.filter(Contract.resource_links.isnot(None))
         if contract_id:
             query = query.filter_by(notice_id=contract_id)
         
