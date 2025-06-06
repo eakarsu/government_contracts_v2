@@ -307,13 +307,14 @@ def process_documents():
                 # Process documents
                 for doc_link in document_links[:3]:  # Limit to 3 docs per contract
                     try:
-                        # Download and extract text
-                        doc_result = document_processor.download_and_extract_text(
+                        # Process document via Norshin API
+                        doc_result = document_processor.process_document_via_norshin_api(
                             doc_link['url'], 
+                            contract.notice_id,
                             doc_link.get('description', '')
                         )
                         
-                        if doc_result and doc_result.get('success'):
+                        if doc_result and doc_result.get('processed_data'):
                             # Index document in vector database
                             vector_db.index_document(doc_result, contract.notice_id)
                             processed_count += 1
