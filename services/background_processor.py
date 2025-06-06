@@ -22,6 +22,7 @@ class BackgroundDocumentProcessor:
         self.processing_queue = []
         self.is_processing = False
         self.processing_thread = None
+        self.queue_enabled = True  # Allow queue to be paused/resumed
         
         # Resume processing any pending items from database on startup
         try:
@@ -55,8 +56,8 @@ class BackgroundDocumentProcessor:
             
             logger.info(f"Queued document for contract {contract_notice_id}: {document_url}")
             
-            # Start processing thread if not already running
-            if not self.is_processing:
+            # Start processing thread if not already running and queue is enabled
+            if not self.is_processing and self.queue_enabled:
                 self.start_processing()
             
             return queue_item.to_dict()
@@ -68,6 +69,10 @@ class BackgroundDocumentProcessor:
     
     def start_processing(self):
         """Start the background processing thread"""
+        if not self.queue_enabled:
+            logger.info("Queue is paused, not starting processing")
+            return
+            
         if self.processing_thread and self.processing_thread.is_alive():
             return
         
@@ -75,6 +80,36 @@ class BackgroundDocumentProcessor:
         self.processing_thread = threading.Thread(target=self._process_queue, daemon=True)
         self.processing_thread.start()
         logger.info("Started background document processing thread")
+    
+    def pause_queue(self):
+        """Pause the document processing queue"""
+        self.queue_enabled = False
+        self.is_processing = False
+        logger.info("Document processing queue paused")
+        return {"status": "paused", "message": "Queue processing has been paused"}
+    
+    def resume_queue(self):
+        """Resume the document processing queue"""
+        self.queue_enabled = True
+        
+        # Check if there are queued documents to process
+        pending_count = DocumentProcessingQueue.query.filter_by(status='queued').count()
+        
+        if pending_count > 0 and not self.is_processing:
+            self.start_processing()
+            message = f"Queue resumed and processing {pending_count} pending documents"
+        else:
+            message = "Queue resumed - no pending documents"
+        
+        logger.info(message)
+        return {"status": "resumed", "message": message}
+    
+    def stop_processing(self):
+        """Stop the current processing thread"""
+        self.is_processing = False
+        if self.processing_thread and self.processing_thread.is_alive():
+            self.processing_thread.join(timeout=5)
+        logger.info("Document processing stopped")
     
     def _process_queue(self):
         """Process documents in the queue"""

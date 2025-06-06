@@ -653,3 +653,47 @@ def get_queue_status():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@api_bp.route('/documents/queue/pause', methods=['POST'])
+def pause_queue():
+    """Pause the document processing queue"""
+    try:
+        # Import background processor locally to avoid circular import
+        from services.background_processor import background_processor
+        
+        result = background_processor.pause_queue()
+        
+        return jsonify({
+            'success': True,
+            **result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error pausing queue: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/documents/queue/resume', methods=['POST'])
+def resume_queue():
+    """Resume the document processing queue"""
+    try:
+        # Import background processor locally to avoid circular import
+        from services.background_processor import background_processor
+        
+        result = background_processor.resume_queue()
+        
+        return jsonify({
+            'success': True,
+            **result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error resuming queue: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
