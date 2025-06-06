@@ -189,7 +189,13 @@ def index_contracts():
         contracts = Contract.query.filter(Contract.indexed_at.is_(None)).limit(limit).all()
         
         if not contracts:
-            return jsonify({'message': 'No contracts to index', 'indexed_count': 0})
+            # Check total indexed contracts
+            total_indexed = Contract.query.filter(Contract.indexed_at.isnot(None)).count()
+            return jsonify({
+                'message': f'All contracts already indexed. Total: {total_indexed}', 
+                'indexed_count': 0,
+                'total_indexed': total_indexed
+            })
         
         # Create indexing job
         job = IndexingJob(job_type='contracts_indexing', status='running')
