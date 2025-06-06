@@ -53,6 +53,16 @@
             </div>
         </div>
     </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i data-feather="bell" class="text-secondary mb-2" style="width: 48px; height: 48px;"></i>
+                <h3 class="card-title" id="processed-count">0</h3>
+                <p class="card-text text-muted">Processed Documents</p>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Quick Actions -->
@@ -97,8 +107,65 @@
     </div>
 </div>
 
-<!-- Recent Jobs and Searches -->
+<!-- Recent Jobs and Notifications -->
 <div class="row">
+    <!-- Document Processing Status -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i data-feather="bell" class="me-2"></i>
+                    Processing Status
+                </h5>
+                <div>
+                    <span class="badge" id="queue-status-badge">Loading...</span>
+                    <button class="btn btn-sm btn-outline-primary ms-2" onclick="refreshNotifications()">
+                        <i data-feather="refresh-cw" class="me-1"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-4 text-center">
+                        <div class="text-primary">
+                            <i data-feather="clock" class="mb-1"></i>
+                            <h6 class="mb-0" id="pending-queue-count">0</h6>
+                            <small class="text-muted">Pending</small>
+                        </div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div class="text-warning">
+                            <i data-feather="loader" class="mb-1"></i>
+                            <h6 class="mb-0" id="processing-queue-count">0</h6>
+                            <small class="text-muted">Processing</small>
+                        </div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div class="text-success">
+                            <i data-feather="check-circle" class="mb-1"></i>
+                            <h6 class="mb-0" id="completed-queue-count">0</h6>
+                            <small class="text-muted">Completed</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="recent-notifications">
+                    <div class="text-center text-muted">
+                        <i data-feather="hourglass" class="mb-2"></i>
+                        <p class="mb-0">Loading recent notifications...</p>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('web.notifications') }}" class="btn btn-outline-secondary btn-sm">
+                        <i data-feather="eye" class="me-1"></i>
+                        View All Notifications
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Recent Jobs -->
     <div class="col-md-6">
         <div class="card">
@@ -216,6 +283,12 @@ let jobProgressModal;
 document.addEventListener('DOMContentLoaded', function() {
     jobProgressModal = new bootstrap.Modal(document.getElementById('jobProgressModal'));
     feather.replace();
+    
+    // Load initial notification data
+    refreshNotifications();
+    
+    // Auto-refresh notifications every 30 seconds
+    setInterval(refreshNotifications, 30000);
 });
 
 async function fetchContracts() {
@@ -338,6 +411,95 @@ function updateJobProgress(message, type = 'info') {
             ${message}
         </div>
     `;
+}
+
+// Notification system functions
+async function refreshNotifications() {
+    try {
+        // Fetch queue status
+        const queueResponse = await fetch('/api/documents/queue/status');
+        const queueData = await queueResponse.json();
+        
+        if (queueData.success) {
+            updateQueueStatus(queueData);
+        }
+        
+        // Fetch notifications
+        const notificationResponse = await fetch('/api/documents/notifications');
+        const notificationData = await notificationResponse.json();
+        
+        if (notificationData.success) {
+            updateProcessedCount(notificationData.total_processed);
+            displayRecentNotifications(notificationData.notifications);
+        }
+        
+    } catch (error) {
+        console.error('Error refreshing notifications:', error);
+    }
+}
+
+function updateQueueStatus(data) {
+    // Update queue status badge
+    const statusBadge = document.getElementById('queue-status-badge');
+    if (data.is_processing) {
+        statusBadge.className = 'badge bg-success';
+        statusBadge.textContent = 'Active';
+    } else {
+        statusBadge.className = 'badge bg-secondary';
+        statusBadge.textContent = 'Stopped';
+    }
+    
+    // Update queue counts
+    document.getElementById('pending-queue-count').textContent = data.pending_count || 0;
+    document.getElementById('processing-queue-count').textContent = data.processing_count || 0;
+    document.getElementById('completed-queue-count').textContent = data.completed_count || 0;
+}
+
+function updateProcessedCount(count) {
+    document.getElementById('processed-count').textContent = count;
+}
+
+function displayRecentNotifications(notifications) {
+    const container = document.getElementById('recent-notifications');
+    
+    if (notifications.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted">
+                <i data-feather="inbox" class="mb-2"></i>
+                <p class="mb-0">No notifications yet</p>
+            </div>
+        `;
+        feather.replace();
+        return;
+    }
+    
+    // Show only the 3 most recent notifications
+    const recentNotifications = notifications.slice(0, 3);
+    
+    container.innerHTML = recentNotifications.map(notification => {
+        const fileName = notification.original_file ? 
+            notification.original_file.split('/').pop() : 'Unknown File';
+        const timestamp = new Date(notification.processed_timestamp).toLocaleString();
+        
+        return `
+            <div class="border-bottom pb-2 mb-2">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1 small">${fileName}</h6>
+                        <small class="text-muted">${timestamp}</small>
+                    </div>
+                    <div>
+                        <span class="badge bg-success">
+                            <i data-feather="check" class="me-1"></i>
+                            Completed
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    feather.replace();
 }
 </script>
 {% endblock %}
