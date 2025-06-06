@@ -77,19 +77,17 @@ class DocumentProcessor:
                     
                     headers = {}
                     if self.norshin_api_key:
-                        headers['Authorization'] = f'Bearer {self.norshin_api_key}'
+                        headers['X-API-Key'] = self.norshin_api_key
                     
-                    try:
-                        response = requests.post(
-                            self.norshin_api_url,
-                            files=files,
-                            headers=headers,
-                            timeout=10  # Short timeout for fallback
-                        )
-                    except (requests.Timeout, requests.ConnectionError) as e:
-                        logger.warning(f"Norshin API timeout/connection error: {e}, falling back to local processing")
-                        # Fallback to local text extraction
-                        return self.download_and_extract_text(url, description)
+                    logger.info(f"Sending to Norshin API: {self.norshin_api_url}")
+                    logger.info(f"Headers: {headers}")
+                    
+                    response = requests.post(
+                        self.norshin_api_url,
+                        files=files,
+                        headers=headers,
+                        timeout=120
+                    )
                 
                 logger.info(f"Norshin API response status: {response.status_code}")
                 logger.info(f"Norshin API response headers: {dict(response.headers)}")
@@ -113,11 +111,12 @@ class DocumentProcessor:
                         logger.info(f"Successfully processed document: {url}")
                         return result
                     except json.JSONDecodeError as e:
-                        logger.error(f"Norshin API returned invalid JSON: {e}, falling back to local processing")
-                        return self.download_and_extract_text(url, description)
+                        logger.error(f"Norshin API returned invalid JSON: {e}")
+                        logger.error(f"Response content: {response.text}")
+                        return None
                 else:
-                    logger.error(f"Norshin API error {response.status_code}: {response.text}, falling back to local processing")
-                    return self.download_and_extract_text(url, description)
+                    logger.error(f"Norshin API error {response.status_code}: {response.text}")
+                    return None
                     
             finally:
                 # Clean up temporary file
