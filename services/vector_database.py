@@ -25,35 +25,18 @@ class VectorDatabase:
             
             self.client = chromadb.PersistentClient(path=persist_directory)
             
-            # Get or create collections - let ChromaDB use default embedding
-            try:
-                self.contracts_collection = self.client.get_or_create_collection(
-                    name="government_contracts",
-                    metadata={"description": "Government contract metadata and descriptions"}
-                )
-                
-                self.documents_collection = self.client.get_or_create_collection(
-                    name="contract_documents", 
-                    metadata={"description": "Text content from contract documents"}
-                )
-            except Exception as embedding_error:
-                logger.warning(f"Standard embedding failed, using simple approach: {embedding_error}")
-                # Delete and recreate collections if they exist with incompatible embeddings
-                try:
-                    self.client.delete_collection("government_contracts")
-                    self.client.delete_collection("contract_documents")
-                except:
-                    pass
-                
-                self.contracts_collection = self.client.create_collection(
-                    name="government_contracts",
-                    metadata={"description": "Government contract metadata and descriptions"}
-                )
-                
-                self.documents_collection = self.client.create_collection(
-                    name="contract_documents", 
-                    metadata={"description": "Text content from contract documents"}
-                )
+            # Use in-memory client for now to avoid embedding issues
+            self.client = chromadb.Client()
+            
+            self.contracts_collection = self.client.get_or_create_collection(
+                name="government_contracts",
+                metadata={"description": "Government contract metadata and descriptions"}
+            )
+            
+            self.documents_collection = self.client.get_or_create_collection(
+                name="contract_documents", 
+                metadata={"description": "Text content from contract documents"}
+            )
             
             logger.info("ChromaDB client initialized successfully")
             
