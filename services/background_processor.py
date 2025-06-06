@@ -87,8 +87,22 @@ class BackgroundDocumentProcessor:
             # Create filename with contract ID and URL hash for uniqueness
             url_hash = hashlib.md5(document_url.encode()).hexdigest()[:8]
             
-            # Get file extension from URL
-            file_extension = self._get_file_extension(document_url)
+            # Download the document first to determine actual file type
+            logger.info(f"Downloading document: {document_url}")
+            response = requests.get(document_url, timeout=30, stream=True)
+            response.raise_for_status()
+            
+            # Determine actual file extension from content-type and content
+            content_type = response.headers.get('content-type', '').lower()
+            content_disposition = response.headers.get('content-disposition', '')
+            
+            # Read content to determine file type
+            content = b''
+            for chunk in response.iter_content(chunk_size=8192):
+                content += chunk
+            
+            # Determine correct file extension based on content and headers
+            file_extension = self._determine_file_extension(content, content_type, content_disposition, document_url)
             filename = f"{contract_notice_id}_{url_hash}{file_extension}"
             file_path = self.queue_documents_dir / filename
             
@@ -97,18 +111,15 @@ class BackgroundDocumentProcessor:
                 logger.info(f"Document already downloaded: {filename}")
                 return str(file_path)
             
-            # Download the document
-            logger.info(f"Downloading document: {document_url}")
-            response = requests.get(document_url, timeout=30, stream=True)
-            response.raise_for_status()
-            
             # Save to queue_documents folder
             with open(file_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+                f.write(content)
             
             file_size = file_path.stat().st_size
             logger.info(f"Downloaded document: {filename} ({file_size} bytes)")
+            
+            # Create JSON metadata file
+            self._create_document_metadata(file_path, document_url, response.headers, content_type, file_size)
             
             return str(file_path)
             
@@ -116,8 +127,98 @@ class BackgroundDocumentProcessor:
             logger.error(f"Error downloading document {document_url}: {e}")
             return None
     
+    def _determine_file_extension(self, content: bytes, content_type: str, content_disposition: str, url: str) -> str:
+        """Determine correct file extension based on content analysis and headers"""
+        try:
+            # PRIORITY 1: Check content-disposition header for filename (most reliable)
+            if 'filename=' in content_disposition:
+                filename = content_disposition.split('filename=')[1].strip('"\'')
+                extension = Path(filename).suffix
+                if extension:
+                    logger.info(f"File extension from content-disposition: {extension}")
+                    return extension.lower()
+            
+            # PRIORITY 2: Check magic numbers/file signatures
+            if content.startswith(b'%PDF'):
+                return '.pdf'
+            elif content.startswith(b'PK\x03\x04'):
+                # Check if it's an Office document by looking deeper into content
+                if b'word/' in content[:2000]:
+                    return '.docx'
+                elif b'xl/' in content[:2000]:
+                    return '.xlsx'
+                elif b'ppt/' in content[:2000]:
+                    return '.pptx'
+                else:
+                    return '.zip'
+            elif content.startswith(b'\xd0\xcf\x11\xe0'):
+                # Microsoft Office legacy format
+                if 'word' in content_type:
+                    return '.doc'
+                elif 'excel' in content_type or 'sheet' in content_type:
+                    return '.xls'
+                else:
+                    return '.doc'
+            
+            # PRIORITY 3: Check content-type header
+            if 'pdf' in content_type:
+                return '.pdf'
+            elif 'word' in content_type or 'officedocument.wordprocessingml' in content_type:
+                return '.docx'
+            elif 'excel' in content_type or 'officedocument.spreadsheetml' in content_type:
+                return '.xlsx'
+            elif 'powerpoint' in content_type or 'officedocument.presentationml' in content_type:
+                return '.pptx'
+            elif 'text/plain' in content_type:
+                return '.txt'
+            
+            # PRIORITY 4: Fallback to URL-based extension
+            clean_url = url.split('?')[0]
+            extension = Path(clean_url).suffix
+            if extension:
+                return extension.lower()
+            
+            # Default fallback
+            return '.pdf'
+            
+        except Exception as e:
+            logger.warning(f"Error determining file extension: {e}")
+            return '.pdf'
+    
+    def _create_document_metadata(self, file_path: Path, document_url: str, headers: dict, content_type: str, file_size: int):
+        """Create JSON metadata file for downloaded document"""
+        try:
+            import json
+            from datetime import datetime
+            
+            metadata = {
+                "document_url": document_url,
+                "file_path": str(file_path),
+                "filename": file_path.name,
+                "file_size": file_size,
+                "content_type": content_type,
+                "download_timestamp": datetime.utcnow().isoformat(),
+                "headers": {
+                    "content-type": headers.get('content-type'),
+                    "content-disposition": headers.get('content-disposition'),
+                    "content-length": headers.get('content-length'),
+                    "last-modified": headers.get('last-modified'),
+                    "etag": headers.get('etag')
+                }
+            }
+            
+            # Create metadata file with same name but .json extension
+            metadata_path = file_path.with_suffix('.json')
+            with open(metadata_path, 'w') as f:
+                json.dump(metadata, f, indent=2)
+            
+            logger.info(f"Created metadata file: {metadata_path.name}")
+            
+        except Exception as e:
+            logger.warning(f"Failed to create metadata file: {e}")
+    
     def _get_file_extension(self, url: str) -> str:
-        """Extract file extension from URL"""
+        """Extract file extension from URL (legacy method)"""
         try:
             # Remove query parameters and get extension
             clean_url = url.split('?')[0]
