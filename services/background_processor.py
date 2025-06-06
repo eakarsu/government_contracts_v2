@@ -332,9 +332,8 @@ class BackgroundDocumentProcessor:
                     return None
                     
             finally:
-                # Clean up temporary file
-                if os.path.exists(temp_file_path):
-                    os.unlink(temp_file_path)
+                # No temporary files to clean up since we use pre-downloaded files
+                pass
                     
         except Exception as e:
             logger.error(f"Error processing document via Norshin API: {e}")
