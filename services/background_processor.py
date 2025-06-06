@@ -435,7 +435,7 @@ class BackgroundDocumentProcessor:
                     
                     headers = {}
                     if self.norshin_api_key:
-                        headers['X-API-Key'] = self.norshin_api_key
+                        headers['Authorization'] = f'Bearer {self.norshin_api_key}'
                     
                     logger.info(f"Sending to Norshin API: {filename}")
                     
