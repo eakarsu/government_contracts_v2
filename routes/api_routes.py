@@ -5,6 +5,7 @@ from services.sam_gov_api import SAMGovAPI
 from services.document_processor import DocumentProcessor
 from services.vector_database import VectorDatabase
 from services.ai_analyzer import AIAnalyzer
+from services.background_processor import background_processor
 from models import Contract, IndexingJob, SearchQuery, db
 import time
 
