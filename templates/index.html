@@ -335,6 +335,40 @@ async function updateDashboardCounters() {
     }
 }
 
+async function checkStuckDocuments() {
+    try {
+        const response = await fetch('/api/admin/documents/stuck');
+        const data = await response.json();
+        
+        if (data.success && data.stuck_documents.length > 0) {
+            let message = `Found ${data.count} slow-running documents:\n\n`;
+            data.stuck_documents.forEach(doc => {
+                message += `• ${doc.filename} (${doc.processing_time_minutes} min)\n`;
+            });
+            message += '\nWould you like to reset these documents to retry processing?';
+            
+            if (confirm(message)) {
+                const resetResponse = await fetch('/api/admin/documents/reset-all-stuck', {
+                    method: 'POST'
+                });
+                const resetData = await resetResponse.json();
+                
+                if (resetData.success) {
+                    alert(`Successfully reset ${resetData.reset_count} documents. They will be reprocessed.`);
+                    updateDashboardCounters();
+                } else {
+                    alert('Error resetting documents: ' + resetData.error);
+                }
+            }
+        } else {
+            alert('No slow-running documents found. All processing jobs are running normally.');
+        }
+    } catch (error) {
+        console.error('Error checking stuck documents:', error);
+        alert('Error checking slow documents. Please try again.');
+    }
+}
+
 async function fetchContracts() {
     showJobProgress('Fetching contracts from SAM.gov...');
     
