@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 class ParallelDocumentProcessor:
     """Process multiple documents in parallel via Norshin API"""
     
-    def __init__(self, max_workers=5):
+    def __init__(self, max_workers=1):
         self.norshin_api_key = os.environ.get('NORSHIN_API_KEY')
         self.norshin_api_url = os.environ.get('NORSHIN_API_URL')
-        self.max_workers = max_workers
+        self.max_workers = min(max_workers, 2)  # Limit to max 2 concurrent for API stability
         self.results = []
         
         if not self.norshin_api_key or not self.norshin_api_url:

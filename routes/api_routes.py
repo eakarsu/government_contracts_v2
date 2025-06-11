@@ -752,11 +752,11 @@ def stop_queue():
 
 @api_bp.route('/documents/queue/process-parallel', methods=['POST'])
 def process_parallel():
-    """Process all queued documents in parallel via Norshin API"""
+    """Process all queued documents sequentially via Norshin API (one by one)"""
     try:
-        from services.parallel_processor import ParallelDocumentProcessor
+        from services.sequential_processor import SequentialDocumentProcessor
         
-        processor = ParallelDocumentProcessor(max_workers=5)
+        processor = SequentialDocumentProcessor(delay_between_requests=5)
         result = processor.process_all_queued_documents()
         
         return jsonify({
@@ -765,7 +765,7 @@ def process_parallel():
         })
         
     except Exception as e:
-        logger.error(f"Error in parallel processing: {e}")
+        logger.error(f"Error in sequential processing: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
