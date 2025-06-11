@@ -33,13 +33,24 @@ class ParallelDocumentProcessor:
         from main import app
         
         with app.app_context():
-            # Get all queued documents
+            # Get all queued documents and sort by file size (smaller first)
             queued_docs = DocumentProcessingQueue.query.filter_by(status='queued').all()
             
             if not queued_docs:
                 return {"success": True, "message": "No documents in queue", "processed": 0}
             
-            logger.info(f"Starting parallel processing of {len(queued_docs)} documents")
+            # Sort documents by file size to process smaller ones first
+            docs_with_size = []
+            for doc in queued_docs:
+                if doc.local_file_path and Path(doc.local_file_path).exists():
+                    file_size = Path(doc.local_file_path).stat().st_size
+                    docs_with_size.append((doc, file_size))
+            
+            # Sort by size (smallest first) for faster completion of smaller files
+            docs_with_size.sort(key=lambda x: x[1])
+            queued_docs = [doc for doc, _ in docs_with_size]
+            
+            logger.info(f"Starting parallel processing of {len(queued_docs)} documents (prioritizing smaller files)")
             
             # Process documents in parallel
             results = []
@@ -105,11 +116,20 @@ class ParallelDocumentProcessor:
                 
                 logger.info(f"Sending {file_path.name} to Norshin API...")
                 
+                # Get file size to adjust timeout
+                file_size_mb = file_path.stat().st_size / (1024 * 1024)
+                
+                # Dynamic timeout based on file size: 5 minutes base + 2 minutes per 10MB
+                timeout = 300 + int(file_size_mb / 10) * 120
+                timeout = min(timeout, 1800)  # Max 30 minutes
+                
+                logger.info(f"Processing {file_path.name} ({file_size_mb:.1f}MB) with {timeout}s timeout...")
+                
                 response = requests.post(
                     self.norshin_api_url,
                     files=files,
                     headers=headers,
-                    timeout=180  # 3 minutes
+                    timeout=timeout
                 )
             
             # Handle response

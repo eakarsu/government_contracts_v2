@@ -31,8 +31,10 @@ db.init_app(app)
 # Import routes after app creation to avoid circular imports
 from routes.api_routes import api_bp
 from routes.web_routes import web_bp
+from routes.admin_routes import admin_bp
 
 app.register_blueprint(api_bp, url_prefix='/api')
+app.register_blueprint(admin_bp)
 app.register_blueprint(web_bp)
 
 with app.app_context():
