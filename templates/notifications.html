@@ -175,13 +175,15 @@
                 const response = await fetch('/api/documents/queue/status');
                 const data = await response.json();
                 
-                if (data.success) {
-                    document.getElementById('queue-status').textContent = data.is_processing ? 'Running' : 'Stopped';
-                    document.getElementById('pending-count').textContent = data.pending_count || 0;
-                    document.getElementById('processing-count').textContent = data.processing_count || 0;
-                    displayQueueDetails(data);
+                if (data.success && data.queue_status) {
+                    const status = data.queue_status;
+                    document.getElementById('queue-status').textContent = status.is_processing ? 'Running' : 'Stopped';
+                    document.getElementById('pending-count').textContent = status.queued || 0;
+                    document.getElementById('processing-count').textContent = status.processing || 0;
+                    document.getElementById('total-processed').textContent = status.completed || 0;
+                    displayQueueDetails(status);
                 } else {
-                    showError('Failed to load queue status: ' + data.error);
+                    showError('Failed to load queue status: ' + (data.error || 'Unknown error'));
                 }
             } catch (error) {
                 showError('Error loading queue status: ' + error.message);
@@ -356,13 +358,13 @@
             setTimeout(() => alert.remove(), 5000);
         }
 
-        // Auto-refresh functionality
+        // Auto-refresh functionality for 5x faster processing updates
         function startAutoRefresh() {
             setInterval(() => {
+                refreshQueueStatus(); // Priority: real-time counters
                 refreshNotifications();
                 refreshProcessedDocuments();
-                refreshQueueStatus();
-            }, 10000); // Refresh every 10 seconds
+            }, 3000); // Refresh every 3 seconds for 5x faster updates
         }
 
         // Initialize page
