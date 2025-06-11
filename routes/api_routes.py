@@ -591,6 +591,29 @@ def get_job_status(job_id):
 def queue_documents_for_processing():
     """Queue contract documents for background processing via Norshin API"""
     try:
+        # Reset all existing queue items to start fresh
+        from models import DocumentProcessingQueue
+        import shutil
+        
+        logger.info("Resetting document processing queue...")
+        DocumentProcessingQueue.query.delete()
+        db.session.commit()
+        
+        # Also clear downloaded files to start completely fresh
+        queue_docs_dir = Path("queue_documents")
+        if queue_docs_dir.exists():
+            shutil.rmtree(queue_docs_dir)
+            queue_docs_dir.mkdir(exist_ok=True)
+            logger.info("Cleared queue_documents folder")
+        
+        processed_docs_dir = Path("processed_queue_documents") 
+        if processed_docs_dir.exists():
+            shutil.rmtree(processed_docs_dir)
+            processed_docs_dir.mkdir(exist_ok=True)
+            logger.info("Cleared processed_queue_documents folder")
+            
+        logger.info("Document processing queue and files cleared completely")
+        
         # Get contracts with documents that haven't been processed
         contracts = Contract.query.filter(
             Contract.resource_links.isnot(None)
