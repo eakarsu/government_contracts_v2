@@ -774,18 +774,23 @@ def process_parallel():
 
 @api_bp.route('/documents/notifications', methods=['GET'])
 def get_notifications():
-    """Get processing notifications from processed_queue_documents folder"""
+    """Get processing notifications with consistent database counts"""
     try:
+        from models import DocumentProcessingQueue
+        from sqlalchemy import func
         import os
         import json
         from pathlib import Path
+        
+        # Get consistent count from database
+        completed_count = DocumentProcessingQueue.query.filter_by(status='completed').count()
         
         processed_dir = Path("processed_queue_documents")
         if not processed_dir.exists():
             return jsonify({
                 'success': True,
                 'notifications': [],
-                'total_processed': 0
+                'total_processed': completed_count
             })
         
         # Find all notification files
@@ -803,7 +808,7 @@ def get_notifications():
         return jsonify({
             'success': True,
             'notifications': notifications,
-            'total_processed': len(notifications)
+            'total_processed': completed_count
         })
         
     except Exception as e:

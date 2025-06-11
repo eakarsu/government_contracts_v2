@@ -151,7 +151,7 @@
                 
                 <div id="recent-notifications">
                     <div class="text-center text-muted">
-                        <i data-feather="hourglass" class="mb-2"></i>
+                        <i data-feather="clock" class="mb-2"></i>
                         <p class="mb-0">Loading recent notifications...</p>
                     </div>
                 </div>
@@ -294,8 +294,42 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof LiveProcessingMonitor !== 'undefined') {
         window.liveMonitor = new LiveProcessingMonitor();
         window.liveMonitor.start();
+        
+        // Immediately update counters on page load
+        updateDashboardCounters();
     }
+    
+    // Manual function to update dashboard counters
+    window.updateDashboardCounters = updateDashboardCounters;
 });
+
+async function updateDashboardCounters() {
+    try {
+        const response = await fetch('/api/documents/queue/status');
+        const data = await response.json();
+        
+        if (data.success && data.queue_status) {
+            const status = data.queue_status;
+            
+            // Update main dashboard counters
+            const pendingElement = document.getElementById('pending-queue-count');
+            const processingElement = document.getElementById('processing-queue-count');
+            const completedElement = document.getElementById('completed-queue-count');
+            const statusBadge = document.getElementById('queue-status-badge');
+
+            if (pendingElement) pendingElement.textContent = status.queued || 0;
+            if (processingElement) processingElement.textContent = status.processing || 0;
+            if (completedElement) completedElement.textContent = status.completed || 0;
+            
+            if (statusBadge) {
+                statusBadge.textContent = status.is_processing ? 'Running' : 'Stopped';
+                statusBadge.className = status.is_processing ? 'badge bg-success' : 'badge bg-secondary';
+            }
+        }
+    } catch (error) {
+        console.error('Failed to update dashboard counters:', error);
+    }
+}
 
 async function fetchContracts() {
     showJobProgress('Fetching contracts from SAM.gov...');

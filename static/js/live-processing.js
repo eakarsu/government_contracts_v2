@@ -36,18 +36,37 @@ class LiveProcessingMonitor {
     }
 
     updateCounters(status) {
-        const queuedElement = document.getElementById('queued-count');
-        const processingElement = document.getElementById('processing-count');
-        const completedElement = document.getElementById('completed-count');
+        // Dashboard main page counters
+        const pendingElement = document.getElementById('pending-queue-count');
+        const processingElement = document.getElementById('processing-queue-count');
+        const completedElement = document.getElementById('completed-queue-count');
 
-        if (queuedElement) queuedElement.textContent = status.queued || 0;
+        if (pendingElement) pendingElement.textContent = status.queued || 0;
         if (processingElement) processingElement.textContent = status.processing || 0;
         if (completedElement) completedElement.textContent = status.completed || 0;
+
+        // Notifications page counters (if present)
+        const queuedElement = document.getElementById('queued-count');
+        const processingNotifElement = document.getElementById('processing-count');
+        const completedNotifElement = document.getElementById('completed-count');
+        const totalProcessedElement = document.getElementById('total-processed');
+
+        if (queuedElement) queuedElement.textContent = status.queued || 0;
+        if (processingNotifElement) processingNotifElement.textContent = status.processing || 0;
+        if (completedNotifElement) completedNotifElement.textContent = status.completed || 0;
+        if (totalProcessedElement) totalProcessedElement.textContent = status.completed || 0;
 
         // Update status badges
         this.updateStatusBadge('queued-badge', status.queued);
         this.updateStatusBadge('processing-badge', status.processing);
         this.updateStatusBadge('completed-badge', status.completed);
+        
+        // Update queue status badge
+        const queueStatusBadge = document.getElementById('queue-status-badge');
+        if (queueStatusBadge) {
+            queueStatusBadge.textContent = status.is_processing ? 'Running' : 'Stopped';
+            queueStatusBadge.className = status.is_processing ? 'badge bg-success' : 'badge bg-secondary';
+        }
     }
 
     updateStatusBadge(elementId, count) {
