@@ -636,15 +636,44 @@ def queue_documents_for_processing():
 
 @api_bp.route('/documents/queue/status', methods=['GET'])
 def get_queue_status():
-    """Get current document processing queue status"""
+    """Get current document processing queue status from database"""
     try:
-        # Import background processor locally to avoid circular import
-        from services.background_processor import background_processor
+        from models import DocumentProcessingQueue
+        from sqlalchemy import func
         
-        status = background_processor.get_queue_status()
+        # Get real-time counts from database
+        status_counts = db.session.query(
+            DocumentProcessingQueue.status,
+            func.count(DocumentProcessingQueue.id).label('count')
+        ).group_by(DocumentProcessingQueue.status).all()
+        
+        # Convert to dictionary
+        counts = {status: count for status, count in status_counts}
+        
+        # Get recent completed documents
+        recent_docs = DocumentProcessingQueue.query.filter_by(
+            status='completed'
+        ).order_by(DocumentProcessingQueue.completed_at.desc()).limit(5).all()
+        
+        queue_status = {
+            'queued': counts.get('queued', 0),
+            'processing': counts.get('processing', 0),
+            'completed': counts.get('completed', 0),
+            'failed': counts.get('failed', 0),
+            'total': sum(counts.values()),
+            'is_processing': counts.get('processing', 0) > 0,
+            'recent_documents': [
+                {
+                    'filename': doc.filename,
+                    'completed_at': doc.completed_at.isoformat() if doc.completed_at else None,
+                    'contract_notice_id': doc.contract_notice_id
+                } for doc in recent_docs
+            ]
+        }
+        
         return jsonify({
             'success': True,
-            'queue_status': status
+            'queue_status': queue_status
         })
         
     except Exception as e:
