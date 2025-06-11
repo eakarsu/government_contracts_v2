@@ -1,0 +1,15 @@
+{
+  "document_url": "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/2c53b441f2c74a02967ca1dd438a3989/download",
+  "file_path": "queue_documents/f832d128d988416686d431723e33c1c6_47304a8b.pdf",
+  "filename": "f832d128d988416686d431723e33c1c6_47304a8b.pdf",
+  "file_size": 6386786,
+  "content_type": "application/octet-stream",
+  "download_timestamp": "2025-06-11T23:56:28.544206",
+  "headers": {
+    "content-type": "application/octet-stream",
+    "content-disposition": "attachment; filename=Sol_140A0725Q0009.pdf",
+    "content-length": "6386786",
+    "last-modified": "Wed, 04 Jun 2025 16:46:34 GMT",
+    "etag": "\"0ff50cc82a895273a1fdc589df95333c\""
+  }
+}

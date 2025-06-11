@@ -593,6 +593,7 @@ def queue_documents_for_processing():
     try:
         # Reset all existing queue items to start fresh
         from models import DocumentProcessingQueue
+        from pathlib import Path
         import shutil
         
         logger.info("Resetting document processing queue...")
@@ -643,11 +644,27 @@ def queue_documents_for_processing():
                         )
                         queued_count += 1
         
+        # Get fresh queue status after clearing and queueing
+        from sqlalchemy import func
+        fresh_status_counts = db.session.query(
+            DocumentProcessingQueue.status,
+            func.count(DocumentProcessingQueue.id).label('count')
+        ).group_by(DocumentProcessingQueue.status).all()
+        
+        fresh_counts = {status: count for status, count in fresh_status_counts}
+        
         return jsonify({
             'success': True,
-            'message': f'Queued {queued_count} documents for background processing',
+            'message': f'Queue reset complete! Queued {queued_count} fresh documents for processing',
             'queued_count': queued_count,
-            'queue_status': background_processor.get_queue_status()
+            'queue_status': {
+                'queued': fresh_counts.get('queued', 0),
+                'processing': fresh_counts.get('processing', 0),
+                'completed': fresh_counts.get('completed', 0),
+                'failed': fresh_counts.get('failed', 0),
+                'total': sum(fresh_counts.values()),
+                'is_processing': fresh_counts.get('processing', 0) > 0
+            }
         })
         
     except Exception as e:

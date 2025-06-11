@@ -1,0 +1,15 @@
+{
+  "document_url": "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/2dfe52f700ae40c6866fb968a51263d1/download",
+  "file_path": "queue_documents/f3351061735c4c20a724e138f4f6c9d2_45760209.pdf",
+  "filename": "f3351061735c4c20a724e138f4f6c9d2_45760209.pdf",
+  "file_size": 123784,
+  "content_type": "application/octet-stream",
+  "download_timestamp": "2025-06-11T23:56:38.804986",
+  "headers": {
+    "content-type": "application/octet-stream",
+    "content-disposition": "attachment; filename=VAAR+852.219-75+1.pdf",
+    "content-length": "123784",
+    "last-modified": "Tue, 20 May 2025 13:28:55 GMT",
+    "etag": "\"6d425bea0253f4b87b7b4665440fa713\""
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "document_url": "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/630255be369a49d0a48b910fe8cf696d/download",
+  "file_path": "queue_documents/f40b0681174840d293346ab2230c5100_6f4f23dc.docx",
+  "filename": "f40b0681174840d293346ab2230c5100_6f4f23dc.docx",
+  "file_size": 64935,
+  "content_type": "application/octet-stream",
+  "download_timestamp": "2025-06-11T23:56:36.518190",
+  "headers": {
+    "content-type": "application/octet-stream",
+    "content-disposition": "attachment; filename=PWS-EMXG.docx",
+    "content-length": "64935",
+    "last-modified": "Wed, 04 Jun 2025 11:37:37 GMT",
+    "etag": "\"d40e85d86f3142f8ca2cd737f16454e7\""
+  }
+}

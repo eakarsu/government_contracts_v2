@@ -1,0 +1,15 @@
+{
+  "document_url": "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/9442fc1c41bd4bcea0a9c700f088be00/download",
+  "file_path": "queue_documents/f7d591d227b74a9bacf8867054a51f19_f50fbeed.pdf",
+  "filename": "f7d591d227b74a9bacf8867054a51f19_f50fbeed.pdf",
+  "file_size": 907541,
+  "content_type": "application/octet-stream",
+  "download_timestamp": "2025-06-11T23:56:29.354935",
+  "headers": {
+    "content-type": "application/octet-stream",
+    "content-disposition": "attachment; filename=A04_SAGA_PMIS_320994A_Project_Maps.pdf",
+    "content-length": "907541",
+    "last-modified": "Wed, 04 Jun 2025 14:10:45 GMT",
+    "etag": "\"356f0b34827614b11fdbb0b62b507b32\""
+  }
+}

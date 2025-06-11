@@ -1,0 +1,15 @@
+{
+  "document_url": "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/35af975762cb48f4b38c96d37c516469/download",
+  "file_path": "queue_documents/f79aaaaa135a49a082a335e9eb795d81_b323738e.pdf",
+  "filename": "f79aaaaa135a49a082a335e9eb795d81_b323738e.pdf",
+  "file_size": 716504,
+  "content_type": "application/octet-stream",
+  "download_timestamp": "2025-06-11T23:56:33.380292",
+  "headers": {
+    "content-type": "application/octet-stream",
+    "content-disposition": "attachment; filename=S02+RFQ+36C26025Q0522.pdf",
+    "content-length": "716504",
+    "last-modified": "Wed, 04 Jun 2025 13:20:42 GMT",
+    "etag": "\"7b8859f4bce85eba1597998818398591\""
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "document_url": "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/1177a3be42604b648ba5ce6bf23f2471/download",
+  "file_path": "queue_documents/f3fc93ddcb6b40a88118f6418adf7e04_97f4f088.pdf",
+  "filename": "f3fc93ddcb6b40a88118f6418adf7e04_97f4f088.pdf",
+  "file_size": 1891601,
+  "content_type": "application/octet-stream",
+  "download_timestamp": "2025-06-11T23:56:38.047535",
+  "headers": {
+    "content-type": "application/octet-stream",
+    "content-disposition": "attachment; filename=SF+1449+-+N6328525QS093.pdf",
+    "content-length": "1891601",
+    "last-modified": "Wed, 04 Jun 2025 16:41:35 GMT",
+    "etag": "\"5c8300e213e89f8c22036a17fa9338af\""
+  }
+}

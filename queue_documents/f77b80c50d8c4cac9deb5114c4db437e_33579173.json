@@ -1,0 +1,15 @@
+{
+  "document_url": "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/bb209e7783294bcf9c78ae0d4c78a78e/download",
+  "file_path": "queue_documents/f77b80c50d8c4cac9deb5114c4db437e_33579173.pdf",
+  "filename": "f77b80c50d8c4cac9deb5114c4db437e_33579173.pdf",
+  "file_size": 212775,
+  "content_type": "application/octet-stream",
+  "download_timestamp": "2025-06-11T23:56:34.157815",
+  "headers": {
+    "content-type": "application/octet-stream",
+    "content-disposition": "attachment; filename=REDACTED+SOLE+SOURCE+N231955131W123+CS.pdf",
+    "content-length": "212775",
+    "last-modified": "Wed, 04 Jun 2025 10:06:22 GMT",
+    "etag": "\"dfaa6c7876c8dc5b2bb9b488df71d113\""
+  }
+}

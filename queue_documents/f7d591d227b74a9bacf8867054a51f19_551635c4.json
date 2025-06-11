@@ -1,0 +1,15 @@
+{
+  "document_url": "https://sam.gov/api/prod/opps/v3/opportunities/resources/files/d348e9ba34444938913d28677efbc88d/download",
+  "file_path": "queue_documents/f7d591d227b74a9bacf8867054a51f19_551635c4.pdf",
+  "filename": "f7d591d227b74a9bacf8867054a51f19_551635c4.pdf",
+  "file_size": 5103520,
+  "content_type": "application/octet-stream",
+  "download_timestamp": "2025-06-11T23:56:30.339446",
+  "headers": {
+    "content-type": "application/octet-stream",
+    "content-disposition": "attachment; filename=B08_Attachment_3_-_Wage_Determination_2015-4025.pdf",
+    "content-length": "5103520",
+    "last-modified": "Wed, 04 Jun 2025 14:10:48 GMT",
+    "etag": "\"4e04be524560a5e4c32e76acf16118d4\""
+  }
+}
