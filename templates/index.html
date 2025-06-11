@@ -305,6 +305,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Manual function to update dashboard counters
     window.updateDashboardCounters = updateDashboardCounters;
+    
+    // Make checkStuckDocuments globally available
+    window.checkStuckDocuments = checkStuckDocuments;
 });
 
 async function updateDashboardCounters() {
