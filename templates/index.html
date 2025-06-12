@@ -373,9 +373,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add global error handlers for debugging
     window.addEventListener('unhandledrejection', function(event) {
-        console.error('Unhandled promise rejection:', event.reason);
+        console.error('=== UNHANDLED PROMISE REJECTION ===');
+        console.error('Event:', event);
+        console.error('Reason:', event.reason);
+        console.error('Reason type:', typeof event.reason);
+        console.error('Reason stringified:', JSON.stringify(event.reason));
         console.error('Promise:', event.promise);
         console.error('Stack:', event.reason?.stack);
+        if (event.reason && event.reason.message) {
+            console.error('Error message:', event.reason.message);
+        }
+        console.error('=== END REJECTION INFO ===');
         event.preventDefault(); // Prevent default popup
     });
     
@@ -802,14 +810,22 @@ async function processTestDocuments() {
             console.log('Success response received');
             showAlert('success', `${data.message} (${data.submitted_count} documents)`);
             console.log('Calling updateDashboardCounters');
-            updateDashboardCounters(); // Update status
-            console.log('updateDashboardCounters completed');
+            try {
+                await updateDashboardCounters(); // Update status
+                console.log('updateDashboardCounters completed successfully');
+            } catch (counterError) {
+                console.error('Error in updateDashboardCounters:', counterError);
+                console.error('Counter error stack:', counterError.stack);
+            }
         } else {
             console.error('API returned error:', data.error);
             showAlert('danger', `Failed to process test documents: ${data.error}`);
         }
     } catch (error) {
         console.error('Caught error in processTestDocuments:', error);
+        console.error('Error stack:', error.stack);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
         console.error('Error stack:', error.stack);
         showAlert('danger', `Error processing test documents: ${error.message}`);
     }
