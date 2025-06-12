@@ -605,6 +605,84 @@ def process_documents_norshin():
         logger.error(f"Norshin document processing failed: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@api_bp.route('/documents/index-completed', methods=['POST'])
+def index_completed_documents():
+    """Index all completed processed documents in vector database"""
+    try:
+        from models import DocumentProcessingQueue
+        import json
+        
+        # Get all completed documents that haven't been indexed yet
+        completed_docs = DocumentProcessingQueue.query.filter_by(status='completed').all()
+        
+        if not completed_docs:
+            return jsonify({
+                'success': True,
+                'message': 'No completed documents to index',
+                'indexed_count': 0
+            })
+        
+        # Create indexing job
+        job = IndexingJob(job_type='documents', status='running')
+        db.session.add(job)
+        db.session.commit()
+        
+        indexed_count = 0
+        errors_count = 0
+        
+        for doc in completed_docs:
+            try:
+                # Parse processed data if available
+                processed_data = {}
+                if doc.processed_data:
+                    try:
+                        processed_data = json.loads(doc.processed_data)
+                    except:
+                        processed_data = {'raw_data': doc.processed_data}
+                
+                # Index document in vector database
+                document_data = {
+                    'success': True,
+                    'text_content': str(processed_data),
+                    'url': doc.document_url,
+                    'description': doc.description or '',
+                    'file_type': doc.filename.split('.')[-1] if doc.filename and '.' in doc.filename else 'unknown',
+                    'text_length': len(str(processed_data)),
+                    'processed_at': doc.completed_at.isoformat() if doc.completed_at else None
+                }
+                
+                success = vector_db.index_document(document_data, doc.contract_notice_id)
+                
+                if success:
+                    indexed_count += 1
+                    logger.info(f"Successfully indexed document: {doc.filename}")
+                else:
+                    errors_count += 1
+                    logger.warning(f"Failed to index document: {doc.filename}")
+                    
+            except Exception as e:
+                logger.error(f"Error indexing document {doc.filename}: {str(e)}")
+                errors_count += 1
+        
+        # Update job status
+        job.status = 'completed'
+        job.records_processed = indexed_count
+        job.errors_count = errors_count
+        job.completed_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'job_id': job.id,
+            'indexed_count': indexed_count,
+            'errors_count': errors_count,
+            'total_documents': len(completed_docs)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error indexing completed documents: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @api_bp.route('/jobs/<int:job_id>', methods=['GET'])
 def get_job_status(job_id):
     """Get status of an indexing job"""
