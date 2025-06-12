@@ -401,10 +401,7 @@ class BackgroundDocumentProcessor:
                     future = executor.submit(self._process_document_with_context, document, queued_doc.id)
                     future_to_doc[future] = queued_doc
                 
-                # Collect results from all futures
-                completed_docs = []
-                failed_docs = []
-                
+                # Process futures with immediate status updates
                 for future in concurrent.futures.as_completed(future_to_doc):
                     queued_doc = future_to_doc[future]
                     
@@ -412,17 +409,49 @@ class BackgroundDocumentProcessor:
                         result = future.result()
                         logger.info(f"Future completed for doc {queued_doc.id}: {bool(result)}")
                         
-                        if result:
-                            completed_docs.append((queued_doc.id, result))
-                        else:
-                            failed_docs.append(queued_doc.id)
+                        # Immediately update database status in main thread
+                        with app.app_context():
+                            doc = DocumentProcessingQueue.query.get(queued_doc.id)
+                            if doc:
+                                if result:
+                                    doc.status = 'completed'
+                                    doc.completed_at = datetime.utcnow()
+                                    doc.processed_data = json.dumps(result) if result else None
+                                    logger.info(f"Status updated: doc {doc.id} completed")
+                                else:
+                                    doc.retry_count += 1
+                                    doc.failed_at = datetime.utcnow()
+                                    doc.error_message = "Failed to process with Norshin API"
+                                    
+                                    if doc.retry_count < doc.max_retries:
+                                        doc.status = 'queued'
+                                        logger.info(f"Status updated: doc {doc.id} queued for retry")
+                                    else:
+                                        doc.status = 'failed'
+                                        logger.error(f"Status updated: doc {doc.id} permanently failed")
+                                
+                                db.session.commit()
                             
                     except Exception as e:
-                        logger.error(f"Error in concurrent processing for doc {queued_doc.id}: {e}")
-                        failed_docs.append(queued_doc.id)
-                
-                # Update all document statuses in a single transaction
-                self._batch_update_statuses(completed_docs, failed_docs)
+                        logger.error(f"Error processing doc {queued_doc.id}: {e}")
+                        
+                        # Update failed status
+                        try:
+                            with app.app_context():
+                                doc = DocumentProcessingQueue.query.get(queued_doc.id)
+                                if doc:
+                                    doc.retry_count += 1
+                                    doc.failed_at = datetime.utcnow()
+                                    doc.error_message = str(e)
+                                    
+                                    if doc.retry_count < doc.max_retries:
+                                        doc.status = 'queued'
+                                    else:
+                                        doc.status = 'failed'
+                                    
+                                    db.session.commit()
+                        except Exception as db_error:
+                            logger.error(f"Failed to update error status: {db_error}")
         
         self.is_processing = False
         logger.info("Concurrent document queue processing completed")
