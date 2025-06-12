@@ -6,6 +6,7 @@ from services.document_processor import DocumentProcessor
 from services.vector_database import VectorDatabase
 from services.ai_analyzer import AIAnalyzer
 from services.direct_processor import start_direct_processing
+from services.processed_document_indexer import processed_indexer
 # Import will be done inside functions to avoid circular import
 from models import Contract, IndexingJob, SearchQuery, db
 import time
@@ -365,6 +366,25 @@ def process_documents_direct():
         
     except Exception as e:
         logger.error(f"Direct document processing failed: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/documents/queue/index-processed', methods=['POST'])
+def index_processed_documents():
+    """Index all processed documents into vector database for search"""
+    try:
+        logger.info("Starting indexing of processed documents")
+        
+        # Index all processed documents
+        result = processed_indexer.index_all_processed_documents()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Processed documents indexed successfully',
+            'stats': result
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to index processed documents: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/search', methods=['POST'])

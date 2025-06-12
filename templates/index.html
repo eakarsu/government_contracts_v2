@@ -101,6 +101,12 @@
                             Process with AI
                         </button>
                     </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-success w-100" onclick="indexProcessedDocuments()">
+                            <i data-feather="database" class="me-2"></i>
+                            Index for Search
+                        </button>
+                    </div>
                 </div>
                 <div class="row">
                     <div class="col-md-3 mb-2">
@@ -482,7 +488,7 @@ async function queueDocuments() {
 }
 
 async function processDocuments() {
-    showJobProgress('Starting direct processing with OpenRouter AI...');
+    showJobProgress('Starting AI analysis with Norshin...');
     
     try {
         const response = await fetch('/api/documents/queue/process-direct', {
@@ -492,7 +498,32 @@ async function processDocuments() {
         const result = await response.json();
         
         if (response.ok) {
-            updateJobProgress(`✅ Processing started! Documents are being analyzed with OpenRouter AI`, 'success');
+            updateJobProgress(`✅ Processing started! Documents are being analyzed with AI`, 'success');
+            setTimeout(() => {
+                updateDashboardCounters();
+                hideJobProgress();
+            }, 2000);
+        } else {
+            updateJobProgress(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        updateJobProgress(`❌ Error: ${error.message}`, 'error');
+    }
+}
+
+async function indexProcessedDocuments() {
+    showJobProgress('Indexing processed documents for search...');
+    
+    try {
+        const response = await fetch('/api/documents/queue/index-processed', {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            const stats = result.stats;
+            updateJobProgress(`✅ Indexed ${stats.indexed} documents! ${stats.errors} errors from ${stats.total_files} files`, 'success');
             setTimeout(() => {
                 updateDashboardCounters();
                 hideJobProgress();
