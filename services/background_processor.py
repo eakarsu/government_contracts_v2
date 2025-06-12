@@ -355,28 +355,38 @@ class BackgroundDocumentProcessor:
             }
     
     def _process_queue(self):
-        """Process documents in the queue from database"""
+        """Process documents concurrently in batches"""
+        import concurrent.futures
         from app import app
         
         with app.app_context():
-            while self.is_processing and self.queue_enabled:
-                queued_doc = None
-                try:
-                    # Get next queued document from database
-                    queued_doc = DocumentProcessingQueue.query.filter_by(status='queued').first()
-                    
-                    if not queued_doc:
-                        logger.info("No more documents in queue, stopping processing")
+            # Get all queued documents at once
+            queued_docs = DocumentProcessingQueue.query.filter_by(status='queued').all()
+            
+            if not queued_docs:
+                logger.info("No documents in queue to process")
+                self.is_processing = False
+                return
+            
+            logger.info(f"Starting concurrent processing of {len(queued_docs)} documents")
+            
+            # Mark all documents as processing immediately
+            for doc in queued_docs:
+                doc.status = 'processing'
+                doc.started_at = datetime.utcnow()
+            db.session.commit()
+            
+            # Process documents concurrently with ThreadPoolExecutor
+            max_workers = min(len(queued_docs), 5)  # Process up to 5 documents simultaneously
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Create futures for all documents
+                future_to_doc = {}
+                
+                for queued_doc in queued_docs:
+                    if not self.is_processing or not self.queue_enabled:
                         break
-                    
-                    # Update status to processing
-                    queued_doc.status = 'processing'
-                    queued_doc.started_at = datetime.utcnow()
-                    db.session.commit()
-                    
-                    logger.info(f"Processing document: {queued_doc.document_url}")
-                    
-                    # Convert to document dict for processing
+                        
                     document = {
                         'contract_notice_id': queued_doc.contract_notice_id,
                         'document_url': queued_doc.document_url,
@@ -385,42 +395,58 @@ class BackgroundDocumentProcessor:
                         'description': queued_doc.description
                     }
                     
-                    # Process with Norshin API
-                    result = self._process_single_document(document)
-                    
-                    if result:
-                        queued_doc.status = 'completed'
-                        queued_doc.completed_at = datetime.utcnow()
-                        queued_doc.processed_data = json.dumps(result) if result else None
-                        logger.info(f"Successfully processed: {queued_doc.document_url}")
-                    else:
-                        queued_doc.status = 'failed'
-                        queued_doc.failed_at = datetime.utcnow()
-                        queued_doc.retry_count += 1
-                        queued_doc.error_message = "Failed to process with Norshin API"
-                        logger.error(f"Failed to process: {queued_doc.document_url}")
-                    
-                    db.session.commit()
-                    
-                except Exception as e:
-                    logger.error(f"Error processing document: {e}")
-                    try:
-                        if queued_doc:
-                            queued_doc.status = 'failed'
-                            queued_doc.failed_at = datetime.utcnow()
-                            queued_doc.retry_count += 1
-                            queued_doc.error_message = str(e)
-                            db.session.commit()
-                    except Exception as commit_error:
-                        logger.error(f"Error updating failed document status: {commit_error}")
-                        db.session.rollback()
+                    future = executor.submit(self._process_document_with_context, document, queued_doc.id)
+                    future_to_doc[future] = queued_doc
                 
-                # 20 second delay between documents to prevent API overload
-                if self.is_processing and self.queue_enabled:
-                    time.sleep(20)
-            
-            self.is_processing = False
-            logger.info("Background document processing completed")
+                # Process completed futures as they finish
+                for future in concurrent.futures.as_completed(future_to_doc):
+                    queued_doc = future_to_doc[future]
+                    
+                    try:
+                        result = future.result()
+                        
+                        # Update database in main thread context
+                        with app.app_context():
+                            doc = DocumentProcessingQueue.query.get(queued_doc.id)
+                            if doc and result:
+                                doc.status = 'completed'
+                                doc.completed_at = datetime.utcnow()
+                                doc.processed_data = json.dumps(result) if result else None
+                                logger.info(f"Successfully processed: {doc.document_url}")
+                            elif doc:
+                                doc.status = 'failed'
+                                doc.failed_at = datetime.utcnow()
+                                doc.retry_count += 1
+                                doc.error_message = "Failed to process with Norshin API"
+                                logger.error(f"Failed to process: {doc.document_url}")
+                            
+                            db.session.commit()
+                            
+                    except Exception as e:
+                        logger.error(f"Error in concurrent processing: {e}")
+                        
+                        # Update failed status in database
+                        try:
+                            with app.app_context():
+                                doc = DocumentProcessingQueue.query.get(queued_doc.id)
+                                if doc:
+                                    doc.status = 'failed'
+                                    doc.failed_at = datetime.utcnow()
+                                    doc.retry_count += 1
+                                    doc.error_message = str(e)
+                                    db.session.commit()
+                        except Exception as commit_error:
+                            logger.error(f"Error updating failed document status: {commit_error}")
+        
+        self.is_processing = False
+        logger.info("Concurrent document queue processing completed")
+    
+    def _process_document_with_context(self, document, doc_id):
+        """Process a single document with proper Flask context"""
+        from app import app
+        
+        with app.app_context():
+            return self._process_single_document(document)
     
     def _process_single_document(self, document: Dict) -> Optional[Dict]:
         """Process a single document via Norshin API using pre-downloaded file"""
