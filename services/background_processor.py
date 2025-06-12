@@ -436,17 +436,24 @@ class BackgroundDocumentProcessor:
                     except Exception as e:
                         logger.error(f"Error in concurrent processing for doc {queued_doc.id}: {e}")
                         
-                        # Update failed status in database
+                        # Update failed status in database with retry logic
                         try:
                             with app.app_context():
                                 doc = DocumentProcessingQueue.query.get(queued_doc.id)
                                 if doc:
-                                    doc.status = 'failed'
-                                    doc.failed_at = datetime.utcnow()
                                     doc.retry_count += 1
+                                    doc.failed_at = datetime.utcnow()
                                     doc.error_message = str(e)
+                                    
+                                    # Check if we should retry or mark as permanently failed
+                                    if doc.retry_count < doc.max_retries:
+                                        doc.status = 'queued'  # Retry
+                                        logger.info(f"Queuing doc {doc.id} for retry {doc.retry_count}/{doc.max_retries}")
+                                    else:
+                                        doc.status = 'failed'  # Permanently failed
+                                        logger.error(f"Doc {doc.id} permanently failed after {doc.retry_count} attempts")
+                                    
                                     db.session.commit()
-                                    logger.info(f"Marked doc {doc.id} as failed due to exception")
                         except Exception as commit_error:
                             logger.error(f"Error updating failed document status: {commit_error}")
                             db.session.rollback()

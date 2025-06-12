@@ -185,3 +185,55 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Retry failed documents function
+function retryFailedDocuments() {
+    fetch('/api/documents/retry-failed', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.retried_count > 0) {
+                showNotification(`Retrying ${data.retried_count} failed documents`, 'info');
+                // Refresh the status display
+                if (window.liveMonitor) {
+                    window.liveMonitor.refreshStatus();
+                }
+            } else {
+                showNotification('No failed documents to retry', 'info');
+            }
+        } else {
+            showNotification('Error retrying failed documents', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Failed to retry documents', 'error');
+    });
+}
+
+// Show notification helper
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible`;
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Add to top of page
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(notification, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}

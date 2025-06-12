@@ -605,6 +605,52 @@ def process_documents_norshin():
         logger.error(f"Norshin document processing failed: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@api_bp.route('/documents/retry-failed', methods=['POST'])
+def retry_failed_documents():
+    """Retry processing of failed documents that haven't exceeded max retries"""
+    try:
+        from models import DocumentProcessingQueue
+        from services.background_processor import background_processor
+        
+        # Get failed documents that can still be retried
+        failed_docs = DocumentProcessingQueue.query.filter(
+            DocumentProcessingQueue.status == 'failed',
+            DocumentProcessingQueue.retry_count < DocumentProcessingQueue.max_retries
+        ).all()
+        
+        if not failed_docs:
+            return jsonify({
+                'success': True,
+                'message': 'No failed documents available for retry',
+                'retried_count': 0
+            })
+        
+        retried_count = 0
+        for doc in failed_docs:
+            # Reset document status for retry
+            doc.status = 'queued'
+            doc.retry_count += 1
+            doc.failed_at = None
+            doc.error_message = None
+            logger.info(f"Retrying document: {doc.filename} (attempt {doc.retry_count}/{doc.max_retries})")
+            retried_count += 1
+        
+        db.session.commit()
+        
+        # Start processing the retried documents
+        if retried_count > 0:
+            background_processor.start_processing()
+        
+        return jsonify({
+            'success': True,
+            'retried_count': retried_count,
+            'message': f'Retrying {retried_count} failed documents'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error retrying failed documents: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @api_bp.route('/documents/index-completed', methods=['POST'])
 def index_completed_documents():
     """Index all completed processed documents in vector database"""
