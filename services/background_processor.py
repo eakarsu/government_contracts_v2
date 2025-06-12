@@ -404,26 +404,37 @@ class BackgroundDocumentProcessor:
                     
                     try:
                         result = future.result()
+                        logger.info(f"Future completed for doc {queued_doc.id}: {bool(result)}")
                         
-                        # Update database in main thread context
+                        # Update database in main thread context with better error handling
                         with app.app_context():
-                            doc = DocumentProcessingQueue.query.get(queued_doc.id)
-                            if doc and result:
-                                doc.status = 'completed'
-                                doc.completed_at = datetime.utcnow()
-                                doc.processed_data = json.dumps(result) if result else None
-                                logger.info(f"Successfully processed: {doc.document_url}")
-                            elif doc:
-                                doc.status = 'failed'
-                                doc.failed_at = datetime.utcnow()
-                                doc.retry_count += 1
-                                doc.error_message = "Failed to process with Norshin API"
-                                logger.error(f"Failed to process: {doc.document_url}")
-                            
-                            db.session.commit()
+                            try:
+                                doc = DocumentProcessingQueue.query.get(queued_doc.id)
+                                if not doc:
+                                    logger.error(f"Document {queued_doc.id} not found in database")
+                                    continue
+                                
+                                if result:
+                                    doc.status = 'completed'
+                                    doc.completed_at = datetime.utcnow()
+                                    doc.processed_data = json.dumps(result) if result else None
+                                    logger.info(f"Marking as completed: {doc.document_url}")
+                                else:
+                                    doc.status = 'failed'
+                                    doc.failed_at = datetime.utcnow()
+                                    doc.retry_count += 1
+                                    doc.error_message = "Failed to process with Norshin API"
+                                    logger.error(f"Marking as failed: {doc.document_url}")
+                                
+                                db.session.commit()
+                                logger.info(f"Database updated successfully for doc {doc.id}")
+                                
+                            except Exception as db_error:
+                                logger.error(f"Database update error for doc {queued_doc.id}: {db_error}")
+                                db.session.rollback()
                             
                     except Exception as e:
-                        logger.error(f"Error in concurrent processing: {e}")
+                        logger.error(f"Error in concurrent processing for doc {queued_doc.id}: {e}")
                         
                         # Update failed status in database
                         try:
@@ -435,8 +446,10 @@ class BackgroundDocumentProcessor:
                                     doc.retry_count += 1
                                     doc.error_message = str(e)
                                     db.session.commit()
+                                    logger.info(f"Marked doc {doc.id} as failed due to exception")
                         except Exception as commit_error:
                             logger.error(f"Error updating failed document status: {commit_error}")
+                            db.session.rollback()
         
         self.is_processing = False
         logger.info("Concurrent document queue processing completed")
