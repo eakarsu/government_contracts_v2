@@ -340,11 +340,11 @@ document.addEventListener('DOMContentLoaded', function() {
     jobProgressModal = new bootstrap.Modal(document.getElementById('jobProgressModal'));
     feather.replace();
     
-    // Load initial notification data
-    refreshNotifications();
+    // Load initial dashboard data
+    updateDashboardCounters();
     
-    // Auto-refresh notifications every 30 seconds
-    setInterval(refreshNotifications, 30000);
+    // Auto-refresh dashboard every 30 seconds
+    setInterval(updateDashboardCounters, 30000);
     
     // Initialize live processing monitor for 5x faster updates
     if (typeof LiveProcessingMonitor !== 'undefined') {
