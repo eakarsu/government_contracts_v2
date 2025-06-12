@@ -96,9 +96,9 @@
                         </button>
                     </div>
                     <div class="col-md-3 mb-2">
-                        <button class="btn btn-warning w-100" onclick="processDocuments()">
-                            <i data-feather="play" class="me-2"></i>
-                            Process with AI
+                        <button class="btn btn-outline-secondary w-100" onclick="checkStuckDocuments()">
+                            <i data-feather="alert-circle" class="me-2"></i>
+                            Check Status
                         </button>
                     </div>
                     <div class="col-md-3 mb-2">
@@ -487,29 +487,7 @@ async function queueDocuments() {
     }
 }
 
-async function processDocuments() {
-    showJobProgress('Starting AI analysis with Norshin...');
-    
-    try {
-        const response = await fetch('/api/documents/queue/process-direct', {
-            method: 'POST'
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            updateJobProgress(`✅ Processing started! Documents are being analyzed with AI`, 'success');
-            setTimeout(() => {
-                updateDashboardCounters();
-                hideJobProgress();
-            }, 2000);
-        } else {
-            updateJobProgress(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-        }
-    } catch (error) {
-        updateJobProgress(`❌ Error: ${error.message}`, 'error');
-    }
-}
+
 
 async function indexProcessedDocuments() {
     showJobProgress('Indexing processed documents for search...');
