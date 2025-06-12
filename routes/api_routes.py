@@ -1105,10 +1105,18 @@ def queue_test_documents():
 
 @api_bp.route('/documents/queue/test-process', methods=['POST'])
 def process_test_async():
-    """Process test documents with cost monitoring"""
+    """Process test documents with cost monitoring and counter reset"""
     try:
         import asyncio
         from services.async_processor import async_processor
+        from models import DocumentProcessingQueue
+        
+        # Reset completed documents first for clean testing
+        completed_docs = DocumentProcessingQueue.query.filter_by(status='completed').all()
+        for doc in completed_docs:
+            db.session.delete(doc)
+        db.session.commit()
+        logger.info(f"Reset {len(completed_docs)} completed documents for clean test")
         
         # Check queue size before processing
         test_docs = DocumentProcessingQueue.query.filter_by(status='queued').all()
@@ -1118,6 +1126,13 @@ def process_test_async():
                 'success': False,
                 'error': f'Too many documents queued ({len(test_docs)}). Test mode limited to 7 documents max.',
                 'queued_count': len(test_docs)
+            }), 400
+        
+        if len(test_docs) == 0:
+            return jsonify({
+                'success': False,
+                'error': 'No documents queued for processing. Click "Queue Test Docs" first.',
+                'queued_count': 0
             }), 400
         
         logger.info(f"Starting test mode processing of {len(test_docs)} documents")
@@ -1130,9 +1145,10 @@ def process_test_async():
         
         return jsonify({
             'success': True,
-            'message': f'Test mode: Processed {len(test_docs)} small documents',
+            'message': f'Test mode: Processed {len(test_docs)} small documents with reset counters',
             'processed_count': len(test_docs),
-            'processing_method': 'async_concurrent_test'
+            'processing_method': 'async_concurrent_test',
+            'counters_reset': True
         })
         
     except Exception as e:
