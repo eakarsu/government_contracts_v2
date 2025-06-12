@@ -356,67 +356,71 @@ class BackgroundDocumentProcessor:
     
     def _process_queue(self):
         """Process documents in the queue from database"""
-        while self.is_processing and self.queue_enabled:
-            try:
-                # Get next queued document from database
-                queued_doc = DocumentProcessingQueue.query.filter_by(status='queued').first()
-                
-                if not queued_doc:
-                    logger.info("No more documents in queue, stopping processing")
-                    break
-                
-                # Update status to processing
-                queued_doc.status = 'processing'
-                queued_doc.started_at = datetime.utcnow()
-                db.session.commit()
-                
-                logger.info(f"Processing document: {queued_doc.document_url}")
-                
-                # Convert to document dict for processing
-                document = {
-                    'contract_notice_id': queued_doc.contract_notice_id,
-                    'document_url': queued_doc.document_url,
-                    'local_file_path': queued_doc.local_file_path,
-                    'filename': queued_doc.filename,
-                    'description': queued_doc.description
-                }
-                
-                # Process with Norshin API
-                result = self._process_single_document(document)
-                
-                if result:
-                    queued_doc.status = 'completed'
-                    queued_doc.completed_at = datetime.utcnow()
-                    queued_doc.processed_data = json.dumps(result) if result else None
-                    logger.info(f"Successfully processed: {queued_doc.document_url}")
-                else:
-                    queued_doc.status = 'failed'
-                    queued_doc.failed_at = datetime.utcnow()
-                    queued_doc.retry_count += 1
-                    queued_doc.error_message = "Failed to process with Norshin API"
-                    logger.error(f"Failed to process: {queued_doc.document_url}")
-                
-                db.session.commit()
-                
-            except Exception as e:
-                logger.error(f"Error processing document: {e}")
+        from app import app
+        
+        with app.app_context():
+            while self.is_processing and self.queue_enabled:
+                queued_doc = None
                 try:
-                    if 'queued_doc' in locals() and queued_doc:
+                    # Get next queued document from database
+                    queued_doc = DocumentProcessingQueue.query.filter_by(status='queued').first()
+                    
+                    if not queued_doc:
+                        logger.info("No more documents in queue, stopping processing")
+                        break
+                    
+                    # Update status to processing
+                    queued_doc.status = 'processing'
+                    queued_doc.started_at = datetime.utcnow()
+                    db.session.commit()
+                    
+                    logger.info(f"Processing document: {queued_doc.document_url}")
+                    
+                    # Convert to document dict for processing
+                    document = {
+                        'contract_notice_id': queued_doc.contract_notice_id,
+                        'document_url': queued_doc.document_url,
+                        'local_file_path': queued_doc.local_file_path,
+                        'filename': queued_doc.filename,
+                        'description': queued_doc.description
+                    }
+                    
+                    # Process with Norshin API
+                    result = self._process_single_document(document)
+                    
+                    if result:
+                        queued_doc.status = 'completed'
+                        queued_doc.completed_at = datetime.utcnow()
+                        queued_doc.processed_data = json.dumps(result) if result else None
+                        logger.info(f"Successfully processed: {queued_doc.document_url}")
+                    else:
                         queued_doc.status = 'failed'
                         queued_doc.failed_at = datetime.utcnow()
                         queued_doc.retry_count += 1
-                        queued_doc.error_message = str(e)
-                        db.session.commit()
-                except Exception as commit_error:
-                    logger.error(f"Error updating failed document status: {commit_error}")
-                    db.session.rollback()
+                        queued_doc.error_message = "Failed to process with Norshin API"
+                        logger.error(f"Failed to process: {queued_doc.document_url}")
+                    
+                    db.session.commit()
+                    
+                except Exception as e:
+                    logger.error(f"Error processing document: {e}")
+                    try:
+                        if queued_doc:
+                            queued_doc.status = 'failed'
+                            queued_doc.failed_at = datetime.utcnow()
+                            queued_doc.retry_count += 1
+                            queued_doc.error_message = str(e)
+                            db.session.commit()
+                    except Exception as commit_error:
+                        logger.error(f"Error updating failed document status: {commit_error}")
+                        db.session.rollback()
+                
+                # 20 second delay between documents to prevent API overload
+                if self.is_processing and self.queue_enabled:
+                    time.sleep(20)
             
-            # 20 second delay between documents to prevent API overload
-            if self.is_processing and self.queue_enabled:
-                time.sleep(20)
-        
-        self.is_processing = False
-        logger.info("Background document processing completed")
+            self.is_processing = False
+            logger.info("Background document processing completed")
     
     def _process_single_document(self, document: Dict) -> Optional[Dict]:
         """Process a single document via Norshin API using pre-downloaded file"""

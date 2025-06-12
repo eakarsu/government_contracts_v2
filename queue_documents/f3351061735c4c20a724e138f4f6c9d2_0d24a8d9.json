@@ -4,12 +4,12 @@
   "filename": "f3351061735c4c20a724e138f4f6c9d2_0d24a8d9.pdf",
   "file_size": 133489,
   "content_type": "application/octet-stream",
-  "download_timestamp": "2025-06-12T02:57:42.396781",
+  "download_timestamp": "2025-06-12T09:57:19.699640",
   "headers": {
-    "content-type": "application/octet-stream",
-    "content-disposition": "attachment; filename=SOW+UD+medical+air+compressors.pdf",
-    "content-length": "133489",
-    "last-modified": "Tue, 20 May 2025 13:28:55 GMT",
-    "etag": "\"3bed3bc52b63e624cf9b078e649b2598\""
+    "content-type": null,
+    "content-disposition": null,
+    "content-length": null,
+    "last-modified": null,
+    "etag": null
   }
 }

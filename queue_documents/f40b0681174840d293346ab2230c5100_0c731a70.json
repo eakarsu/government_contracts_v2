@@ -4,12 +4,12 @@
   "filename": "f40b0681174840d293346ab2230c5100_0c731a70.docx",
   "file_size": 21544,
   "content_type": "application/octet-stream",
-  "download_timestamp": "2025-06-12T02:57:38.697674",
+  "download_timestamp": "2025-06-12T09:57:15.885109",
   "headers": {
-    "content-type": "application/octet-stream",
-    "content-disposition": "attachment; filename=SOURCES+SOUGHT+%28EMXG%29.docx",
-    "content-length": "21544",
-    "last-modified": "Wed, 04 Jun 2025 11:42:02 GMT",
-    "etag": "\"9e3e946ab279c4814dc4eeaa0cc9d39f\""
+    "content-type": null,
+    "content-disposition": null,
+    "content-length": null,
+    "last-modified": null,
+    "etag": null
   }
 }

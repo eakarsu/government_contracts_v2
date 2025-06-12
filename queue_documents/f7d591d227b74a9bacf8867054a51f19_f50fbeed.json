@@ -4,12 +4,12 @@
   "filename": "f7d591d227b74a9bacf8867054a51f19_f50fbeed.pdf",
   "file_size": 907541,
   "content_type": "application/octet-stream",
-  "download_timestamp": "2025-06-12T02:57:31.455587",
+  "download_timestamp": "2025-06-12T09:57:07.994409",
   "headers": {
-    "content-type": "application/octet-stream",
-    "content-disposition": "attachment; filename=A04_SAGA_PMIS_320994A_Project_Maps.pdf",
-    "content-length": "907541",
-    "last-modified": "Wed, 04 Jun 2025 14:10:45 GMT",
-    "etag": "\"356f0b34827614b11fdbb0b62b507b32\""
+    "content-type": null,
+    "content-disposition": null,
+    "content-length": null,
+    "last-modified": null,
+    "etag": null
   }
 }

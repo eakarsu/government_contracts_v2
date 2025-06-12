@@ -4,12 +4,12 @@
   "filename": "f77b80c50d8c4cac9deb5114c4db437e_2a2d6a41.pdf",
   "file_size": 344604,
   "content_type": "application/octet-stream",
-  "download_timestamp": "2025-06-12T02:57:36.792482",
+  "download_timestamp": "2025-06-12T09:57:13.554870",
   "headers": {
-    "content-type": "application/octet-stream",
-    "content-disposition": "attachment; filename=Combined_Synopsis_Solicitation_.pdf",
-    "content-length": "344604",
-    "last-modified": "Wed, 04 Jun 2025 10:01:56 GMT",
-    "etag": "\"6fe4f04ad3567916e230ac32f787de3c\""
+    "content-type": null,
+    "content-disposition": null,
+    "content-length": null,
+    "last-modified": null,
+    "etag": null
   }
 }

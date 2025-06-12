@@ -4,12 +4,12 @@
   "filename": "f7d591d227b74a9bacf8867054a51f19_551635c4.pdf",
   "file_size": 5103520,
   "content_type": "application/octet-stream",
-  "download_timestamp": "2025-06-12T02:57:32.385249",
+  "download_timestamp": "2025-06-12T09:57:08.976128",
   "headers": {
-    "content-type": "application/octet-stream",
-    "content-disposition": "attachment; filename=B08_Attachment_3_-_Wage_Determination_2015-4025.pdf",
-    "content-length": "5103520",
-    "last-modified": "Wed, 04 Jun 2025 14:10:48 GMT",
-    "etag": "\"4e04be524560a5e4c32e76acf16118d4\""
+    "content-type": null,
+    "content-disposition": null,
+    "content-length": null,
+    "last-modified": null,
+    "etag": null
   }
 }

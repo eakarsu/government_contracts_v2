@@ -4,12 +4,12 @@
   "filename": "f3351061735c4c20a724e138f4f6c9d2_baf68d62.pdf",
   "file_size": 158070,
   "content_type": "application/octet-stream",
-  "download_timestamp": "2025-06-12T02:57:41.688467",
+  "download_timestamp": "2025-06-12T09:57:18.978727",
   "headers": {
-    "content-type": "application/octet-stream",
-    "content-disposition": "attachment; filename=36C24425B0012+0001+6.4.2025.pdf",
-    "content-length": "158070",
-    "last-modified": "Wed, 04 Jun 2025 14:41:51 GMT",
-    "etag": "\"997dfc928d540ab0f535c21c6eac4c37\""
+    "content-type": null,
+    "content-disposition": null,
+    "content-length": null,
+    "last-modified": null,
+    "etag": null
   }
 }

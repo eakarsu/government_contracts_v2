@@ -4,12 +4,12 @@
   "filename": "f7d591d227b74a9bacf8867054a51f19_ff7dbd11.pdf",
   "file_size": 733230,
   "content_type": "application/octet-stream",
-  "download_timestamp": "2025-06-12T02:57:33.891041",
+  "download_timestamp": "2025-06-12T09:57:10.579727",
   "headers": {
-    "content-type": "application/octet-stream",
-    "content-disposition": "attachment; filename=Sol_140P4325Q0048.pdf",
-    "content-length": "733230",
-    "last-modified": "Wed, 04 Jun 2025 14:10:49 GMT",
-    "etag": "\"78fb4255783c7373f79a3bae855ffedb\""
+    "content-type": null,
+    "content-disposition": null,
+    "content-length": null,
+    "last-modified": null,
+    "etag": null
   }
 }

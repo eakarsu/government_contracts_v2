@@ -4,12 +4,12 @@
   "filename": "f79aaaaa135a49a082a335e9eb795d81_b323738e.pdf",
   "file_size": 716504,
   "content_type": "application/octet-stream",
-  "download_timestamp": "2025-06-12T02:57:35.321011",
+  "download_timestamp": "2025-06-12T09:57:11.878772",
   "headers": {
-    "content-type": "application/octet-stream",
-    "content-disposition": "attachment; filename=S02+RFQ+36C26025Q0522.pdf",
-    "content-length": "716504",
-    "last-modified": "Wed, 04 Jun 2025 13:20:42 GMT",
-    "etag": "\"7b8859f4bce85eba1597998818398591\""
+    "content-type": null,
+    "content-disposition": null,
+    "content-length": null,
+    "last-modified": null,
+    "etag": null
   }
 }

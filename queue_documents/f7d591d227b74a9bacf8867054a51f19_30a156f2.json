@@ -4,12 +4,12 @@
   "filename": "f7d591d227b74a9bacf8867054a51f19_30a156f2.pdf",
   "file_size": 155144,
   "content_type": "application/octet-stream",
-  "download_timestamp": "2025-06-12T02:57:33.131625",
+  "download_timestamp": "2025-06-12T09:57:09.778474",
   "headers": {
-    "content-type": "application/octet-stream",
-    "content-disposition": "attachment; filename=A04_SAGA_PMIS_320994A_SOW.pdf",
-    "content-length": "155144",
-    "last-modified": "Wed, 04 Jun 2025 14:10:46 GMT",
-    "etag": "\"2e3d1da9ed9189bdcda72517a4e61bcc\""
+    "content-type": null,
+    "content-disposition": null,
+    "content-length": null,
+    "last-modified": null,
+    "etag": null
   }
 }

@@ -4,12 +4,12 @@
   "filename": "f3351061735c4c20a724e138f4f6c9d2_45760209.pdf",
   "file_size": 123784,
   "content_type": "application/octet-stream",
-  "download_timestamp": "2025-06-12T02:57:40.218736",
+  "download_timestamp": "2025-06-12T09:57:17.404460",
   "headers": {
-    "content-type": "application/octet-stream",
-    "content-disposition": "attachment; filename=VAAR+852.219-75+1.pdf",
-    "content-length": "123784",
-    "last-modified": "Tue, 20 May 2025 13:28:55 GMT",
-    "etag": "\"6d425bea0253f4b87b7b4665440fa713\""
+    "content-type": null,
+    "content-disposition": null,
+    "content-length": null,
+    "last-modified": null,
+    "etag": null
   }
 }
