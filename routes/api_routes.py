@@ -1138,8 +1138,6 @@ def queue_test_documents():
 def process_test_async():
     """Process test documents with cost monitoring and counter reset"""
     try:
-        import asyncio
-        from services.async_processor import async_processor
         from models import DocumentProcessingQueue
         
         # Reset completed documents first for clean testing
@@ -1168,18 +1166,33 @@ def process_test_async():
         
         logger.info(f"Starting test mode processing of {len(test_docs)} documents")
         
-        # Run async processing
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(async_processor.process_all_queued_documents())
-        loop.close()
+        # Start async processing in a separate thread to avoid blocking
+        import threading
+        import asyncio
+        from services.async_processor import async_processor
+        
+        def process_in_background():
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(async_processor.process_all_queued_documents())
+                loop.close()
+                logger.info("Test mode async processing completed successfully")
+            except Exception as e:
+                logger.error(f"Background processing error: {e}")
+        
+        # Start processing thread
+        processing_thread = threading.Thread(target=process_in_background)
+        processing_thread.daemon = True
+        processing_thread.start()
         
         return jsonify({
             'success': True,
-            'message': f'Test mode: Processed {len(test_docs)} small documents with reset counters',
-            'processed_count': len(test_docs),
+            'message': f'Test mode: Started processing {len(test_docs)} documents concurrently',
+            'submitted_count': len(test_docs),
             'processing_method': 'async_concurrent_test',
-            'counters_reset': True
+            'counters_reset': True,
+            'status': 'processing_started'
         })
         
     except Exception as e:
