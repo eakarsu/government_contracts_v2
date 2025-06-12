@@ -72,7 +72,7 @@ class BackgroundDocumentProcessor:
                 logger.warning(f"Failed to download document, queued for retry: {document_url}")
             
             # Start processing thread if not already running and queue is enabled
-            if not self.is_processing and self.queue_enabled:
+            if auto_process and not self.is_processing and self.queue_enabled:
                 self.start_processing()
             
             return queue_item.to_dict()

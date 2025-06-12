@@ -1082,11 +1082,12 @@ def queue_test_documents():
             # Copy the test PDF
             shutil.copy2(test_pdf_path, queue_file_path)
             
-            # Queue the document for processing
+            # Queue the document for processing (without auto-processing)
             background_processor.queue_document(
                 f"TEST{i:03d}",  # TEST001, TEST002, etc.
                 str(queue_file_path),
-                f"Test Document {i} (2 pages) - Cost-controlled testing"
+                f"Test Document {i} (2 pages) - Cost-controlled testing",
+                auto_process=False  # Only queue, don't start processing
             )
             queued_count += 1
             logger.info(f"Queued test document {i}: {queue_filename}")
