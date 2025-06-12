@@ -67,71 +67,32 @@ class DirectDocumentProcessor:
             logger.error(f"Error reading DOCX {file_path}: {e}")
         return text
     
-    def analyze_document_with_openrouter(self, text_content, filename):
-        """Analyze document content using OpenRouter API"""
+    def process_document_with_norshin(self, file_path):
+        """Process document using Norshin API with correct format"""
         
-        prompt = f"""
-Analyze this government contract document and extract key information in JSON format:
-
-Document: {filename}
-
-Content:
-{text_content[:8000]}  # Limit to first 8000 characters
-
-Please extract and return the following information in valid JSON format:
-{{
-    "title": "Document title or main subject",
-    "document_type": "Type of document (RFP, RFQ, Notice, etc.)",
-    "agency": "Government agency name",
-    "contract_number": "Contract or solicitation number if available",
-    "due_date": "Response deadline date if mentioned",
-    "description": "Brief description of requirements",
-    "key_requirements": ["List of main requirements"],
-    "estimated_value": "Contract value if mentioned",
-    "naics_codes": ["Relevant NAICS codes if mentioned"],
-    "set_aside": "Set-aside type if applicable",
-    "location": "Place of performance if mentioned",
-    "contact_info": "Contact information if available",
-    "summary": "2-3 sentence summary of the opportunity"
-}}
-
-Return only valid JSON, no additional text.
-"""
-
         try:
-            response = requests.post(
-                self.openrouter_url,
-                headers={
-                    "Authorization": f"Bearer {self.openrouter_api_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "anthropic/claude-3.5-sonnet",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 2000
-                },
-                timeout=120
-            )
+            logger.info(f"Sending {file_path.name} to Norshin API...")
+            
+            # Open file and send to Norshin with correct parameter name
+            with open(file_path, 'rb') as f:
+                files = {'document': f}
+                
+                response = requests.post(
+                    "https://norshin.com/api/process-document",
+                    files=files,
+                    timeout=300  # 5 minutes timeout
+                )
             
             if response.status_code == 200:
                 result = response.json()
-                content = result['choices'][0]['message']['content']
-                
-                # Try to parse as JSON
-                try:
-                    return json.loads(content)
-                except json.JSONDecodeError:
-                    # If not valid JSON, wrap in a structure
-                    return {
-                        "analysis": content,
-                        "raw_response": True
-                    }
+                logger.info(f"Norshin API success for {file_path.name}")
+                return result
             else:
-                logger.error(f"OpenRouter API error: {response.status_code} - {response.text}")
-                return {"error": f"API error: {response.status_code}"}
+                logger.error(f"Norshin API error {response.status_code}: {response.text}")
+                return {"error": f"Norshin API error: {response.status_code}"}
                 
         except Exception as e:
-            logger.error(f"Error calling OpenRouter API: {e}")
+            logger.error(f"Error calling Norshin API: {e}")
             return {"error": str(e)}
     
     def process_single_document(self, doc):
@@ -149,25 +110,21 @@ Return only valid JSON, no additional text.
                 if not file_path.exists():
                     raise Exception(f"File not found: {file_path}")
                 
-                logger.info(f"Processing {doc.filename} directly with OpenRouter...")
+                logger.info(f"Processing {doc.filename} with Norshin API...")
                 
-                # Extract text from document
-                text_content = self.extract_text_from_file(file_path)
-                
-                if not text_content.strip():
-                    raise Exception("No text content extracted from document")
-                
-                # Analyze with OpenRouter
-                analysis_result = self.analyze_document_with_openrouter(text_content, doc.filename)
+                # Process document with Norshin API
+                analysis_result = self.process_document_with_norshin(file_path)
                 
                 # Save processed data
                 processed_data = {
                     "filename": doc.filename,
                     "contract_notice_id": doc.contract_notice_id,
-                    "text_content": text_content[:2000],  # First 2000 chars for reference
-                    "analysis": analysis_result,
+                    "norshin_analysis": analysis_result,
                     "processed_at": datetime.utcnow().isoformat(),
-                    "processor": "direct_openrouter"
+                    "processor": "norshin_api",
+                    "success": analysis_result.get("success", False),
+                    "total_pages": analysis_result.get("totalPages", 0),
+                    "processing_method": analysis_result.get("processingMethod", "unknown")
                 }
                 
                 # Save to processed_queue_documents
