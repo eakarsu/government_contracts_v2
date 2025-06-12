@@ -727,7 +727,7 @@ async function processTestDocuments() {
         const data = await response.json();
         
         if (data.success) {
-            showAlert('success', `${data.message} (${data.processed_count} documents)`);
+            showAlert('success', `${data.message} (${data.submitted_count} documents)`);
             refreshNotifications(); // Update status
         } else {
             showAlert('danger', `Failed to process test documents: ${data.error}`);
