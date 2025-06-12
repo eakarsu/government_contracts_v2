@@ -364,17 +364,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function updateDashboardCounters() {
     try {
+        console.log('updateDashboardCounters: Starting');
         const response = await fetch('/api/documents/queue/status');
+        console.log('updateDashboardCounters: Response received', response.status);
+        
         const data = await response.json();
+        console.log('updateDashboardCounters: Data parsed', data);
         
         if (data.success && data.queue_status) {
             const status = data.queue_status;
+            console.log('updateDashboardCounters: Status data', status);
             
             // Update main dashboard counters
             const pendingElement = document.getElementById('pending-queue-count');
             const processingElement = document.getElementById('processing-queue-count');
             const completedElement = document.getElementById('completed-queue-count');
             const statusBadge = document.getElementById('queue-status-badge');
+
+            console.log('updateDashboardCounters: Found elements', {
+                pending: !!pendingElement,
+                processing: !!processingElement,
+                completed: !!completedElement,
+                statusBadge: !!statusBadge
+            });
 
             if (pendingElement) pendingElement.textContent = status.queued || 0;
             if (processingElement) processingElement.textContent = status.processing || 0;
@@ -387,6 +399,7 @@ async function updateDashboardCounters() {
         }
     } catch (error) {
         console.error('Failed to update dashboard counters:', error);
+        console.error('updateDashboardCounters error stack:', error.stack);
     }
 }
 
@@ -718,21 +731,40 @@ async function queueTestDocuments() {
 
 async function processTestDocuments() {
     try {
+        console.log('Starting processTestDocuments function');
         showAlert('info', 'Processing test documents with cost monitoring...');
         
+        console.log('Making fetch request to /api/documents/queue/test-process');
         const response = await fetch('/api/documents/queue/test-process', {
             method: 'POST'
         });
         
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        if (!response.ok) {
+            console.error('Response not OK:', response.status, response.statusText);
+            showAlert('danger', `HTTP Error: ${response.status} ${response.statusText}`);
+            return;
+        }
+        
+        console.log('Parsing JSON response');
         const data = await response.json();
+        console.log('Parsed data:', data);
         
         if (data.success) {
+            console.log('Success response received');
             showAlert('success', `${data.message} (${data.submitted_count} documents)`);
+            console.log('Calling updateDashboardCounters');
             updateDashboardCounters(); // Update status
+            console.log('updateDashboardCounters completed');
         } else {
+            console.error('API returned error:', data.error);
             showAlert('danger', `Failed to process test documents: ${data.error}`);
         }
     } catch (error) {
+        console.error('Caught error in processTestDocuments:', error);
+        console.error('Error stack:', error.stack);
         showAlert('danger', `Error processing test documents: ${error.message}`);
     }
 }
