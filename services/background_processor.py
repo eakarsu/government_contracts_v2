@@ -355,11 +355,14 @@ class BackgroundDocumentProcessor:
             }
     
     def _process_queue(self):
-        """Process documents concurrently in batches"""
+        """Process documents concurrently in batches with automatic retry"""
         import concurrent.futures
         from app import app
         
         with app.app_context():
+            # Auto-retry failed documents that haven't exceeded max retries
+            self._auto_retry_failed_documents()
+            
             # Get all queued documents at once
             queued_docs = DocumentProcessingQueue.query.filter_by(status='queued').all()
             
@@ -460,6 +463,28 @@ class BackgroundDocumentProcessor:
         
         self.is_processing = False
         logger.info("Concurrent document queue processing completed")
+    
+    def _auto_retry_failed_documents(self):
+        """Automatically retry failed documents that haven't exceeded max retries"""
+        try:
+            failed_docs = DocumentProcessingQueue.query.filter(
+                DocumentProcessingQueue.status == 'failed',
+                DocumentProcessingQueue.retry_count < DocumentProcessingQueue.max_retries,
+                DocumentProcessingQueue.failed_at < datetime.utcnow() - timedelta(minutes=5)  # Wait 5 minutes before retry
+            ).all()
+            
+            if failed_docs:
+                logger.info(f"Auto-retrying {len(failed_docs)} failed documents")
+                for doc in failed_docs:
+                    doc.status = 'queued'
+                    doc.failed_at = None
+                    doc.error_message = f"Auto-retry {doc.retry_count + 1}/{doc.max_retries}"
+                    logger.info(f"Auto-retrying: {doc.filename}")
+                
+                db.session.commit()
+                
+        except Exception as e:
+            logger.error(f"Error in auto-retry mechanism: {e}")
     
     def _process_document_with_context(self, document, doc_id):
         """Process a single document with proper Flask context"""
