@@ -101,6 +101,20 @@
                             Check Status
                         </button>
                     </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-danger w-100" onclick="stopProcessing()">
+                            <i data-feather="stop-circle" class="me-2"></i>
+                            Stop Processing
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-success w-100" onclick="resumeProcessing()">
+                            <i data-feather="play-circle" class="me-2"></i>
+                            Resume Processing
+                        </button>
+                    </div>
                     <div class="col-md-3 mb-2">
                         <a href="{{ url_for('web.search') }}" class="btn btn-secondary w-100">
                             <i data-feather="search" class="me-2"></i>
@@ -467,6 +481,54 @@ async function queueDocuments() {
         
         if (response.ok) {
             updateJobProgress(`✅ Queue reset! Downloaded ${result.queued_count} fresh documents`, 'success');
+            setTimeout(() => {
+                updateDashboardCounters();
+                hideJobProgress();
+            }, 2000);
+        } else {
+            updateJobProgress(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        updateJobProgress(`❌ Error: ${error.message}`, 'error');
+    }
+}
+
+async function stopProcessing() {
+    showJobProgress('Stopping document processing...');
+    
+    try {
+        const response = await fetch('/api/documents/queue/stop', {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            updateJobProgress(`✅ ${result.message}`, 'success');
+            setTimeout(() => {
+                updateDashboardCounters();
+                hideJobProgress();
+            }, 2000);
+        } else {
+            updateJobProgress(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        updateJobProgress(`❌ Error: ${error.message}`, 'error');
+    }
+}
+
+async function resumeProcessing() {
+    showJobProgress('Resuming document processing...');
+    
+    try {
+        const response = await fetch('/api/documents/queue/resume', {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            updateJobProgress(`✅ ${result.message}`, 'success');
             setTimeout(() => {
                 updateDashboardCounters();
                 hideJobProgress();
