@@ -42,9 +42,9 @@ def test_norshin_api():
         
         print(f"File size: {len(file_content)} bytes")
         
-        # Prepare request
+        # Prepare request - try different parameter name
         files = {
-            'file': (test_file.name, file_content, 'application/octet-stream')
+            'document': (test_file.name, file_content, 'application/octet-stream')
         }
         
         headers = {

@@ -1,0 +1,61 @@
+{
+  "success": true,
+  "totalPages": 3,
+  "totalBatches": 1,
+  "retriedPages": [],
+  "results": [
+    {
+      "page": 1,
+      "data": {
+        "page_number": 1,
+        "title": "Combined Synopsis/Solicitation Notice",
+        "subject": "Medical Physics Support",
+        "section_general_information": "GENERAL INFORMATION",
+        "contracting_office_zip_code": "98661",
+        "solicitation_number": "36C26025Q0522",
+        "response_date_time_zone": "06-18-2025 1PM MOUNTAIN TIME, DENVER, USA",
+        "archive": "30 DAYS AFTER THE RESPONSE DATE",
+        "recovery_act_funds": "N",
+        "set_aside": "SDVOSBC",
+        "product_service_code": "H166",
+        "naics_code": "561320",
+        "contracting_office_address": "Network Contracting Office 20\nATTN: V4CONT\n1601 E. Fourth Plain Blvd\nBldg.17, Suite B428\nVancouver WA 98661",
+        "point_of_contact": "Contracting Officer\nNazanin Kreiner\nnazanin.kreiner@va.gov",
+        "section_place_of_performance": "PLACE OF PERFORMANCE",
+        "address": "Department of Veteran Affairs",
+        "footer": "Combined Synopsis/Solicitation Notice",
+        "page_footer": "Page 1 of 3"
+      }
+    },
+    {
+      "page": 2,
+      "data": {
+        "page_number": 2,
+        "title": "Combined Synopsis/Solicitation Notice",
+        "facility": "Boise VA Medical Center",
+        "address": "500 West Fort Street\nBoise ID",
+        "postal_code": "83702",
+        "country": "USA",
+        "section_additional_information": "ADDITIONAL INFORMATION",
+        "agency_url": "",
+        "url_description": "",
+        "agency_contact_email_address": "",
+        "email_description": "nazanin.kreiner@va.gov",
+        "footer": "Combined Synopsis/Solicitation Notice",
+        "page_footer": "Page 2 of 3"
+      }
+    },
+    {
+      "page": 3,
+      "data": {
+        "page_number": 3,
+        "title": "Combined Synopsis/Solicitation Notice",
+        "section_description": "DESCRIPTION",
+        "description": "See Attachment\n\nSee attached document: S02 RFQ 36C26025Q0522.",
+        "footer": "Combined Synopsis/Solicitation Notice",
+        "page_footer": "Page 3 of 3"
+      }
+    }
+  ],
+  "processingMethod": "detailed_batch_analysis"
+}
