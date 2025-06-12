@@ -1,0 +1,20 @@
+{
+  "original_file": "queue_documents/f79aaaaa135a49a082a335e9eb795d81_bcaa82f4.docx",
+  "processed_file": "processed_queue_documents/f79aaaaa135a49a082a335e9eb795d81_bcaa82f4.docx",
+  "processed_timestamp": "2025-06-12T13:13:59.146606",
+  "processing_status": "completed",
+  "norshin_data_available": true,
+  "file_size": 14351,
+  "norshin_response": {
+    "success": true,
+    "totalPages": 3,
+    "totalBatches": 1,
+    "retriedPages": [
+      1,
+      2,
+      3
+    ],
+    "results": [],
+    "processingMethod": "detailed_batch_analysis"
+  }
+}

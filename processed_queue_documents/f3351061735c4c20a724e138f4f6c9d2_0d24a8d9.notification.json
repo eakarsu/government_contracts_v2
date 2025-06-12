@@ -1,0 +1,20 @@
+{
+  "original_file": "queue_documents/f3351061735c4c20a724e138f4f6c9d2_0d24a8d9.pdf",
+  "processed_file": "processed_queue_documents/f3351061735c4c20a724e138f4f6c9d2_0d24a8d9.pdf",
+  "processed_timestamp": "2025-06-12T13:13:58.623353",
+  "processing_status": "completed",
+  "norshin_data_available": true,
+  "file_size": 133489,
+  "norshin_response": {
+    "success": true,
+    "totalPages": 3,
+    "totalBatches": 1,
+    "retriedPages": [
+      1,
+      2,
+      3
+    ],
+    "results": [],
+    "processingMethod": "detailed_batch_analysis"
+  }
+}
