@@ -336,9 +336,55 @@
 <script>
 let jobProgressModal;
 
+// Alert function for user notifications
+function showAlert(type, message) {
+    console.log(`Alert: ${type} - ${message}`);
+    
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Find container or create one
+    let container = document.querySelector('.alert-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'alert-container position-fixed top-0 end-0 p-3';
+        container.style.zIndex = '9999';
+        document.body.appendChild(container);
+    }
+    
+    container.appendChild(alertDiv);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     jobProgressModal = new bootstrap.Modal(document.getElementById('jobProgressModal'));
     feather.replace();
+    
+    // Add global error handlers for debugging
+    window.addEventListener('unhandledrejection', function(event) {
+        console.error('Unhandled promise rejection:', event.reason);
+        console.error('Promise:', event.promise);
+        console.error('Stack:', event.reason?.stack);
+        event.preventDefault(); // Prevent default popup
+    });
+    
+    window.addEventListener('error', function(event) {
+        console.error('Global error:', event.error);
+        console.error('Message:', event.message);
+        console.error('Filename:', event.filename);
+        console.error('Line:', event.lineno);
+    });
     
     // Load initial dashboard data
     updateDashboardCounters();
