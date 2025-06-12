@@ -48,21 +48,29 @@ class AsyncDocumentProcessor:
             
             logger.info(f"Submitted all {len(tasks)} documents to Norshin API simultaneously")
             
-            # Wait for all to complete
+            # Wait for all to complete - database updates happen in real-time
             results = await asyncio.gather(*tasks, return_exceptions=True)
             
-            # Update database with results
-            await self._update_results(queued_docs, results)
-            
-            logger.info("All documents processed concurrently")
+            logger.info("All documents processed concurrently with real-time database updates")
     
     async def _process_document_async(self, doc: DocumentProcessingQueue) -> Optional[Dict]:
-        """Process single document asynchronously"""
+        """Process single document asynchronously and update database immediately"""
+        from app import app
+        
         async with self.semaphore:
             try:
                 # Read local file
                 if not doc.local_file_path or not os.path.exists(doc.local_file_path):
                     logger.error(f"Local file not found: {doc.local_file_path}")
+                    # Update database immediately on failure
+                    with app.app_context():
+                        db_doc = DocumentProcessingQueue.query.get(doc.id)
+                        if db_doc:
+                            db_doc.status = 'failed'
+                            db_doc.failed_at = datetime.utcnow()
+                            db_doc.error_message = f"Local file not found: {doc.local_file_path}"
+                            db_doc.retry_count += 1
+                            db.session.commit()
                     return None
                 
                 with open(doc.local_file_path, 'rb') as file:
@@ -84,6 +92,18 @@ class AsyncDocumentProcessor:
                     
                     timeout = aiohttp.ClientTimeout(total=3600)  # 1 hour timeout
                     
+                    if not self.norshin_api_url:
+                        logger.error("Norshin API URL not configured")
+                        with app.app_context():
+                            db_doc = DocumentProcessingQueue.query.get(doc.id)
+                            if db_doc:
+                                db_doc.status = 'failed'
+                                db_doc.failed_at = datetime.utcnow()
+                                db_doc.error_message = "Norshin API URL not configured"
+                                db_doc.retry_count += 1
+                                db.session.commit()
+                        return None
+                    
                     async with session.post(
                         self.norshin_api_url,
                         data=data,
@@ -94,57 +114,55 @@ class AsyncDocumentProcessor:
                         if response.status == 200:
                             result = await response.json()
                             logger.info(f"Document {doc.id} processed successfully by Norshin")
+                            
+                            # Update database immediately on success
+                            with app.app_context():
+                                db_doc = DocumentProcessingQueue.query.get(doc.id)
+                                if db_doc:
+                                    db_doc.status = 'completed'
+                                    db_doc.completed_at = datetime.utcnow()
+                                    db_doc.processed_data = json.dumps(result)
+                                    db.session.commit()
+                                    
+                                    # Index in vector database
+                                    try:
+                                        self._index_document(db_doc, result)
+                                    except Exception as e:
+                                        logger.warning(f"Failed to index document {doc.id}: {e}")
+                            
                             return result
                         else:
                             error_text = await response.text()
                             logger.error(f"Document {doc.id} failed: {response.status} - {error_text}")
+                            
+                            # Update database immediately on failure
+                            with app.app_context():
+                                db_doc = DocumentProcessingQueue.query.get(doc.id)
+                                if db_doc:
+                                    db_doc.status = 'failed'
+                                    db_doc.failed_at = datetime.utcnow()
+                                    db_doc.error_message = f"Norshin API error: {response.status} - {error_text}"
+                                    db_doc.retry_count += 1
+                                    db.session.commit()
+                            
                             return None
                             
             except Exception as e:
                 logger.error(f"Error processing document {doc.id}: {e}")
+                
+                # Update database immediately on exception
+                with app.app_context():
+                    db_doc = DocumentProcessingQueue.query.get(doc.id)
+                    if db_doc:
+                        db_doc.status = 'failed'
+                        db_doc.failed_at = datetime.utcnow()
+                        db_doc.error_message = str(e)
+                        db_doc.retry_count += 1
+                        db.session.commit()
+                
                 return None
     
-    async def _update_results(self, docs: List[DocumentProcessingQueue], results: List):
-        """Update database with processing results"""
-        from app import app
-        
-        # Update each document in the database
-        for doc, result in zip(docs, results):
-            try:
-                with app.app_context():
-                    # Reload the document from database in this context
-                    db_doc = DocumentProcessingQueue.query.get(doc.id)
-                    if not db_doc:
-                        logger.error(f"Document {doc.id} not found in database")
-                        continue
-                    
-                    if isinstance(result, Exception):
-                        db_doc.status = 'failed'
-                        db_doc.failed_at = datetime.utcnow()
-                        db_doc.error_message = str(result)
-                        db_doc.retry_count += 1
-                        logger.info(f"Marked document {doc.id} as failed: {result}")
-                    elif result:
-                        db_doc.status = 'completed'
-                        db_doc.completed_at = datetime.utcnow()
-                        db_doc.processed_data = json.dumps(result)
-                        
-                        # Index in vector database
-                        self._index_document(db_doc, result)
-                        logger.info(f"Marked document {doc.id} as completed")
-                    else:
-                        db_doc.status = 'failed'
-                        db_doc.failed_at = datetime.utcnow()
-                        db_doc.error_message = "No result from Norshin API"
-                        db_doc.retry_count += 1
-                        logger.info(f"Marked document {doc.id} as failed: No result")
-                    
-                    db.session.commit()
-                    
-            except Exception as e:
-                logger.error(f"Error updating document {doc.id}: {e}")
-        
-        logger.info("Database updated with all processing results")
+
     
     def _index_document(self, doc: DocumentProcessingQueue, processed_data: Dict):
         """Index processed document in vector database"""
