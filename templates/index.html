@@ -707,7 +707,7 @@ async function queueTestDocuments() {
         
         if (data.success) {
             showAlert('success', `${data.message} (${data.queued_count} documents)`);
-            refreshNotifications(); // Update status
+            updateDashboardCounters(); // Update status
         } else {
             showAlert('danger', `Failed to queue test documents: ${data.error}`);
         }
@@ -728,7 +728,7 @@ async function processTestDocuments() {
         
         if (data.success) {
             showAlert('success', `${data.message} (${data.submitted_count} documents)`);
-            refreshNotifications(); // Update status
+            updateDashboardCounters(); // Update status
         } else {
             showAlert('danger', `Failed to process test documents: ${data.error}`);
         }
