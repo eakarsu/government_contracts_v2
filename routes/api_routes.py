@@ -1140,12 +1140,20 @@ def process_test_async():
     try:
         from models import DocumentProcessingQueue
         
-        # Reset completed documents first for clean testing
-        completed_docs = DocumentProcessingQueue.query.filter_by(status='completed').all()
-        for doc in completed_docs:
-            db.session.delete(doc)
+        # Reset all non-queued documents for clean testing
+        non_queued_docs = DocumentProcessingQueue.query.filter(
+            DocumentProcessingQueue.status.in_(['completed', 'processing', 'failed'])
+        ).all()
+        for doc in non_queued_docs:
+            if doc.status == 'processing':
+                # Reset stuck processing documents to queued
+                doc.status = 'queued'
+                doc.started_at = None
+            else:
+                # Delete completed/failed documents
+                db.session.delete(doc)
         db.session.commit()
-        logger.info(f"Reset {len(completed_docs)} completed documents for clean test")
+        logger.info(f"Reset {len(non_queued_docs)} non-queued documents for clean test")
         
         # Check queue size before processing
         test_docs = DocumentProcessingQueue.query.filter_by(status='queued').all()
