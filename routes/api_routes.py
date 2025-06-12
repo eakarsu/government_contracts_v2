@@ -1007,53 +1007,54 @@ def queue_test_documents():
         queue_docs_dir.mkdir(exist_ok=True)
         
         def get_document_page_count(url):
-            """Download and check page count of document - relaxed for testing"""
+            """STRICT size validation - actually download and verify page count"""
             try:
-                response = requests.head(url, timeout=10)
-                content_length = response.headers.get('content-length')
-                
-                # Accept files under 1MB for testing
-                if content_length and int(content_length) > 1000000:
+                # Download the entire document to check real page count
+                doc_response = requests.get(url, timeout=30)
+                if doc_response.status_code != 200:
                     return float('inf')
                 
-                # For testing, accept most common document types
-                if any(ext in url.lower() for ext in ['.docx', '.txt', '.doc']):
-                    return 2  # Assume small for testing
+                content_length = len(doc_response.content)
                 
-                # Check PDF page count only for smaller files
+                # Absolute size limits - reject anything over 30KB
+                if content_length > 30000:
+                    logger.info(f"Rejected document: {content_length} bytes (over 30KB limit)")
+                    return float('inf')
+                
                 if '.pdf' in url.lower():
-                    if content_length and int(content_length) < 300000:  # Under 300KB
-                        return 3  # Assume small PDF for testing
-                    else:
-                        try:
-                            doc_response = requests.get(url, timeout=15, stream=True)
-                            if doc_response.status_code == 200:
-                                # Read first 100KB to check if it's readable
-                                content = b''
-                                for chunk in doc_response.iter_content(chunk_size=8192):
-                                    content += chunk
-                                    if len(content) > 100000:
-                                        break
-                                
-                                pdf_file = BytesIO(content)
-                                try:
-                                    pdf_reader = PyPDF2.PdfReader(pdf_file)
-                                    page_count = len(pdf_reader.pages)
-                                    return min(page_count, 5)  # Cap at 5 for testing
-                                except:
-                                    return 4  # Assume readable PDF for testing
-                        except:
+                    try:
+                        pdf_file = BytesIO(doc_response.content)
+                        pdf_reader = PyPDF2.PdfReader(pdf_file)
+                        page_count = len(pdf_reader.pages)
+                        
+                        # ABSOLUTE MAXIMUM: 2 pages
+                        if page_count <= 2:
+                            logger.info(f"Accepted PDF: {page_count} pages, {content_length} bytes")
+                            return page_count
+                        else:
+                            logger.info(f"Rejected PDF: {page_count} pages (over 2 page limit)")
                             return float('inf')
+                    except Exception as e:
+                        logger.warning(f"Could not read PDF: {e}")
+                        return float('inf')
                 
-                # Accept unknown small files for testing
-                if not content_length or int(content_length) < 100000:
-                    return 3  # Assume small for testing
+                # DOCX files - extremely strict
+                elif any(ext in url.lower() for ext in ['.docx', '.doc']):
+                    if content_length < 15000:  # Under 15KB only
+                        logger.info(f"Accepted DOCX: {content_length} bytes")
+                        return 1  # Assume 1 page max
+                    else:
+                        logger.info(f"Rejected DOCX: {content_length} bytes (over 15KB limit)")
+                        return float('inf')
                 
-                return float('inf')
+                # Reject all other file types
+                else:
+                    logger.info(f"Rejected unknown file type: {url}")
+                    return float('inf')
                 
             except Exception as e:
-                logger.warning(f"Could not check document size: {e}")
-                return 3  # Default to small for testing
+                logger.warning(f"Error checking document {url}: {e}")
+                return float('inf')
         
         # Get contracts with documents
         contracts = Contract.query.filter(
