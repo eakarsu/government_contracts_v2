@@ -1056,80 +1056,50 @@ def queue_test_documents():
                 logger.warning(f"Error checking document {url}: {e}")
                 return float('inf')
         
-        # Get contracts with documents
-        contracts = Contract.query.filter(
-            Contract.resource_links.isnot(None)
-        ).limit(5).all()
+        # Create 5 test documents using uploaded PDF
+        from services.background_processor import background_processor
         
-        if not contracts:
+        # Check if test PDF exists in attached_assets
+        test_pdf_path = Path("attached_assets/f3351061735c4c20a724e138f4f6c9d2_baf68d62_1749740606359.pdf")
+        
+        if not test_pdf_path.exists():
             return jsonify({
-                'success': True,
-                'message': 'No contracts available for testing',
+                'success': False,
+                'error': 'Test PDF not found. Please upload a test document first.',
                 'queued_count': 0
             })
         
-        from services.background_processor import background_processor
-        
+        # Create 5 test documents from the uploaded PDF
         queued_count = 0
-        max_test_docs = 7
-        max_pages = 5
+        target_docs = 5
         
-        for contract in contracts:
-            if queued_count >= max_test_docs:
-                break
-                
-            if contract.resource_links:
-                try:
-                    if isinstance(contract.resource_links, str):
-                        resource_links = json.loads(contract.resource_links)
-                    else:
-                        resource_links = contract.resource_links
-                    
-                    # Handle both list and dict formats
-                    if isinstance(resource_links, dict):
-                        resource_links = [resource_links]
-                    
-                    for link in resource_links:
-                        if queued_count >= max_test_docs:
-                            break
-                        
-                        # Handle different link formats
-                        if isinstance(link, dict):
-                            url = link.get('url', '')
-                            description = link.get('description', '')
-                        elif isinstance(link, str):
-                            url = link
-                            description = 'Document'
-                        else:
-                            continue
-                        
-                        # Check document size/page count
-                        page_count = get_document_page_count(url)
-                        
-                        if page_count <= max_pages:
-                            background_processor.queue_document(
-                                contract.notice_id,
-                                url,
-                                f"TEST MODE ({page_count}p): {description}"
-                            )
-                            queued_count += 1
-                            logger.info(f"Queued test document {queued_count}: {description[:50]} ({page_count} pages)")
-                            
-                except Exception as e:
-                    logger.error(f"Error processing contract {contract.notice_id}: {e}")
-                    continue
+        # Copy the test PDF to queue_documents for each test document
+        for i in range(1, target_docs + 1):
+            # Create unique filename for each copy
+            queue_filename = f"test_doc_{i}.pdf"
+            queue_file_path = queue_docs_dir / queue_filename
+            
+            # Copy the test PDF
+            shutil.copy2(test_pdf_path, queue_file_path)
+            
+            # Queue the document for processing
+            background_processor.queue_document(
+                f"TEST{i:03d}",  # TEST001, TEST002, etc.
+                str(queue_file_path),
+                f"Test Document {i} (2 pages) - Cost-controlled testing"
+            )
+            queued_count += 1
+            logger.info(f"Queued test document {i}: {queue_filename}")
         
         return jsonify({
             'success': True,
-            'message': f'Test mode: Queued {queued_count} small documents (≤{max_pages} pages each)',
+            'message': f'Successfully queued {queued_count} test documents',
             'queued_count': queued_count,
-            'max_documents': max_test_docs,
-            'max_pages': max_pages,
-            'mode': 'test'
+            'test_mode': True
         })
         
     except Exception as e:
-        logger.error(f"Test mode queueing failed: {e}")
+        logger.error(f"Error queueing test documents: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
