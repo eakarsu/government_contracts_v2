@@ -108,32 +108,43 @@ class AsyncDocumentProcessor:
         """Update database with processing results"""
         from app import app
         
-        with app.app_context():
-            for doc, result in zip(docs, results):
-                try:
+        # Update each document in the database
+        for doc, result in zip(docs, results):
+            try:
+                with app.app_context():
+                    # Reload the document from database in this context
+                    db_doc = DocumentProcessingQueue.query.get(doc.id)
+                    if not db_doc:
+                        logger.error(f"Document {doc.id} not found in database")
+                        continue
+                    
                     if isinstance(result, Exception):
-                        doc.status = 'failed'
-                        doc.failed_at = datetime.utcnow()
-                        doc.error_message = str(result)
-                        doc.retry_count += 1
+                        db_doc.status = 'failed'
+                        db_doc.failed_at = datetime.utcnow()
+                        db_doc.error_message = str(result)
+                        db_doc.retry_count += 1
+                        logger.info(f"Marked document {doc.id} as failed: {result}")
                     elif result:
-                        doc.status = 'completed'
-                        doc.completed_at = datetime.utcnow()
-                        doc.processed_data = json.dumps(result)
+                        db_doc.status = 'completed'
+                        db_doc.completed_at = datetime.utcnow()
+                        db_doc.processed_data = json.dumps(result)
                         
                         # Index in vector database
-                        self._index_document(doc, result)
+                        self._index_document(db_doc, result)
+                        logger.info(f"Marked document {doc.id} as completed")
                     else:
-                        doc.status = 'failed'
-                        doc.failed_at = datetime.utcnow()
-                        doc.error_message = "No result from Norshin API"
-                        doc.retry_count += 1
-                        
-                except Exception as e:
-                    logger.error(f"Error updating document {doc.id}: {e}")
-            
-            db.session.commit()
-            logger.info("Database updated with all processing results")
+                        db_doc.status = 'failed'
+                        db_doc.failed_at = datetime.utcnow()
+                        db_doc.error_message = "No result from Norshin API"
+                        db_doc.retry_count += 1
+                        logger.info(f"Marked document {doc.id} as failed: No result")
+                    
+                    db.session.commit()
+                    
+            except Exception as e:
+                logger.error(f"Error updating document {doc.id}: {e}")
+        
+        logger.info("Database updated with all processing results")
     
     def _index_document(self, doc: DocumentProcessingQueue, processed_data: Dict):
         """Index processed document in vector database"""

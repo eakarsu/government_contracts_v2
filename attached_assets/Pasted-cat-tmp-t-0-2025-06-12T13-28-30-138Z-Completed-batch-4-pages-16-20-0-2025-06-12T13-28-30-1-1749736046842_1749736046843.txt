@@ -1,0 +1,209 @@
+cat /tmp/t
+[0] [2025-06-12T13:28:30.138Z]  Completed batch 4: pages 16-20
+[0] [2025-06-12T13:28:30.138Z]  Batch processing complete: 5 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:28:30.138Z]  We have executed makeAIRequestBatchAsync
+[0] [2025-06-12T13:28:30.139Z]  Original results: 18 pages
+[0] [2025-06-12T13:28:30.139Z]  Removing page 7: Empty content
+[0] [2025-06-12T13:28:30.139Z]  Removing page 9: Empty content
+[0] [2025-06-12T13:28:30.139Z]  Filtered results: 16 pages
+[0] [2025-06-12T13:28:30.139Z]  We have found clean pages  16 and failed pages 2
+[0] [2025-06-12T13:28:30.139Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-12T13:28:30.139Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-12T13:28:30.139Z]  Starting batch 1: pages 1-1
+[0] [2025-06-12T13:28:30.680Z] ERROR:  Error processing batch 4 (pages 16-20): aborted
+[0] [2025-06-12T13:28:30.680Z]  Retrying batch 4 in 3 seconds... (attempt 1/2)
+[0] [2025-06-12T13:28:33.680Z]  Starting batch 4: pages 16-20 (retry 1)
+[0] [2025-06-12T13:28:34.662Z]  Completed batch 2: pages 6-7
+[0] [2025-06-12T13:28:35.168Z]  Completed batch 5: pages 21-23
+[0] [2025-06-12T13:28:37.651Z]  Completed batch 1: pages 1-5
+[0] [2025-06-12T13:28:37.651Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:28:37.651Z]  We have executed makeAIRequestBatchAsync
+[0] [2025-06-12T13:28:37.651Z]  Original results: 5 pages
+[0] [2025-06-12T13:28:37.651Z]  Filtered results: 5 pages
+[0] [2025-06-12T13:28:37.651Z]  We have found clean pages  5 and failed pages 0
+[0] [2025-06-12T13:28:37.651Z]  After processing failed pages 0
+[0] [2025-06-12T13:28:37.651Z]  Original results: 5 pages
+[0] [2025-06-12T13:28:37.651Z]  Filtered results: 5 pages
+[0] [2025-06-12T13:28:37.652Z]  Processed 5 pages with AI in one request...
+[0] [2025-06-12T13:28:41.002Z]  Completed batch 12: pages 56-60
+[0] [2025-06-12T13:28:50.517Z]  Completed batch 1: pages 1-1
+[0] [2025-06-12T13:28:50.517Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:28:50.517Z]  After processing failed pages 1
+[0] [2025-06-12T13:28:50.517Z]  Original results: 46 pages
+[0] [2025-06-12T13:28:50.517Z]  Filtered results: 46 pages
+[0] [2025-06-12T13:28:50.518Z]  Processed 60 pages with AI in one request...
+[0] [2025-06-12T13:28:54.058Z] ERROR:  Error processing batch 6 (pages 26-30): aborted
+[0] [2025-06-12T13:28:54.058Z]  Retrying batch 6 in 3 seconds... (attempt 1/2)
+[0] [2025-06-12T13:28:54.961Z]  Completed batch 5: pages 21-25
+[0] [2025-06-12T13:28:56.205Z]  Completed batch 1: pages 1-3
+[0] [2025-06-12T13:28:56.206Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:28:56.206Z]  We have executed makeAIRequestBatchAsync
+[0] [2025-06-12T13:28:56.206Z]  Original results: 3 pages
+[0] [2025-06-12T13:28:56.206Z]  Filtered results: 3 pages
+[0] [2025-06-12T13:28:56.206Z]  We have found clean pages  3 and failed pages 0
+[0] [2025-06-12T13:28:56.206Z]  After processing failed pages 0
+[0] [2025-06-12T13:28:56.206Z]  Original results: 3 pages
+[0] [2025-06-12T13:28:56.206Z]  Filtered results: 3 pages
+[0] [2025-06-12T13:28:56.206Z]  Processed 3 pages with AI in one request...
+[0] [2025-06-12T13:28:57.059Z]  Starting batch 6: pages 26-30 (retry 1)
+[0] [2025-06-12T13:28:57.953Z]  Completed batch 2: pages 6-10
+[0] [2025-06-12T13:29:04.579Z]  Completed batch 11: pages 51-55
+[0] [2025-06-12T13:29:05.860Z]  Completed batch 6: pages 26-30
+[0] [2025-06-12T13:29:10.958Z]  Completed batch 7: pages 31-35
+[0] [2025-06-12T13:29:11.125Z]  Completed batch 12: pages 56-60
+[0] [2025-06-12T13:29:12.433Z]  Completed batch 1: pages 1-5
+[0] [2025-06-12T13:29:12.433Z]  Batch processing complete: 2 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:29:12.434Z]  We have executed makeAIRequestBatchAsync
+[0] [2025-06-12T13:29:12.434Z]  Original results: 7 pages
+[0] [2025-06-12T13:29:12.434Z]  Filtered results: 7 pages
+[0] [2025-06-12T13:29:12.434Z]  We have found clean pages  7 and failed pages 0
+[0] [2025-06-12T13:29:12.434Z]  After processing failed pages 0
+[0] [2025-06-12T13:29:12.434Z]  Original results: 7 pages
+[0] [2025-06-12T13:29:12.434Z]  Filtered results: 7 pages
+[0] [2025-06-12T13:29:12.434Z]  Processed 7 pages with AI in one request...
+[0] [2025-06-12T13:29:19.494Z]  Completed batch 1: pages 1-1
+[0] [2025-06-12T13:29:19.494Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:29:19.494Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-12T13:29:19.494Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-12T13:29:19.494Z]  Starting batch 1: pages 1-1
+[0] [2025-06-12T13:29:20.358Z]  Completed batch 3: pages 11-15
+[0] [2025-06-12T13:29:24.048Z]  Completed batch 1: pages 1-5
+[0] [2025-06-12T13:29:26.445Z]  Completed batch 15: pages 71-74
+[0] [2025-06-12T13:29:29.231Z]  Completed batch 1: pages 1-5
+[0] [2025-06-12T13:29:32.593Z]  Completed batch 10: pages 46-50
+[0] [2025-06-12T13:29:33.444Z]  Completed batch 6: pages 26-30
+[0] [2025-06-12T13:29:34.837Z]  Completed batch 1: pages 1-5
+[0] [2025-06-12T13:29:35.712Z]  Completed batch 11: pages 51-55
+[0] [2025-06-12T13:29:36.482Z]  Completed batch 2: pages 6-10
+[0] [2025-06-12T13:29:36.760Z]  Completed batch 8: pages 36-40
+[0] [2025-06-12T13:29:40.359Z] ERROR:  Error processing batch 10 (pages 46-50): aborted
+[0] [2025-06-12T13:29:40.359Z]  Retrying batch 10 in 3 seconds... (attempt 1/2)
+[0] [2025-06-12T13:29:41.867Z]  Completed batch 11: pages 51-55
+[0] [2025-06-12T13:29:42.804Z]  Completed batch 14: pages 66-70
+[0] [2025-06-12T13:29:43.358Z]  Starting batch 10: pages 46-50 (retry 1)
+[0] [2025-06-12T13:29:43.468Z]  Completed batch 4: pages 16-20
+[0] [2025-06-12T13:29:44.053Z]  Completed batch 13: pages 61-65
+[0] [2025-06-12T13:29:45.759Z]  Completed batch 5: pages 21-25
+[0] [2025-06-12T13:29:46.884Z]  Completed batch 8: pages 36-40
+[0] [2025-06-12T13:29:49.254Z]  Completed batch 1: pages 1-5
+[0] [2025-06-12T13:29:50.703Z]  Completed batch 3: pages 11-15
+[0] [2025-06-12T13:29:51.661Z]  Completed batch 1: pages 1-5
+[0] [2025-06-12T13:29:53.473Z]  Completed batch 2: pages 6-10
+[0] [2025-06-12T13:29:53.474Z]  Batch processing complete: 2 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:29:53.474Z]  We have executed makeAIRequestBatchAsync
+[0] [2025-06-12T13:29:53.474Z]  Original results: 10 pages
+[0] [2025-06-12T13:29:53.474Z]  Filtered results: 10 pages
+[0] [2025-06-12T13:29:53.474Z]  We have found clean pages  10 and failed pages 0
+[0] [2025-06-12T13:29:53.474Z]  After processing failed pages 0
+[0] [2025-06-12T13:29:53.474Z]  Original results: 10 pages
+[0] [2025-06-12T13:29:53.474Z]  Filtered results: 10 pages
+[0] [2025-06-12T13:29:53.474Z]  Processed 10 pages with AI in one request...
+[0] [2025-06-12T13:29:54.516Z] ERROR:  Error processing batch 1 (pages 1-5): aborted
+[0] [2025-06-12T13:29:54.516Z]  Retrying batch 1 in 3 seconds... (attempt 1/2)
+[0] [2025-06-12T13:29:55.104Z]  Completed batch 7: pages 31-35
+[0] [2025-06-12T13:29:57.516Z]  Starting batch 1: pages 1-5 (retry 1)
+[0] [2025-06-12T13:29:57.923Z]  Completed batch 7: pages 31-35
+[0] [2025-06-12T13:29:58.291Z]  Completed batch 3: pages 11-15
+[0] [2025-06-12T13:29:58.995Z]  Completed batch 4: pages 16-20
+[0] [2025-06-12T13:30:00.797Z]  Completed batch 3: pages 11-15
+[0] [2025-06-12T13:30:01.485Z]  Completed batch 8: pages 36-40
+[0] [2025-06-12T13:30:05.163Z]  Completed batch 6: pages 26-30
+[0] [2025-06-12T13:30:07.729Z]  Completed batch 4: pages 16-20
+[0] [2025-06-12T13:30:09.955Z]  Completed batch 7: pages 31-35
+[0] [2025-06-12T13:30:12.615Z]  Completed batch 2: pages 6-10
+[0] [2025-06-12T13:30:16.669Z]  Completed batch 1: pages 1-1
+[0] [2025-06-12T13:30:16.669Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:30:16.669Z]  After processing failed pages 2
+[0] [2025-06-12T13:30:16.669Z]  Original results: 18 pages
+[0] [2025-06-12T13:30:16.670Z]  Filtered results: 18 pages
+[0] [2025-06-12T13:30:16.670Z]  Processed 23 pages with AI in one request...
+[0] [2025-06-12T13:30:25.869Z]  Completed batch 9: pages 41-45
+[0] [2025-06-12T13:30:35.518Z]  Completed batch 10: pages 46-50
+[0] [2025-06-12T13:30:56.465Z]  Completed batch 5: pages 21-25
+[0] [2025-06-12T13:31:01.760Z]  Completed batch 6: pages 26-30 (retry 1 successful)
+[0] [2025-06-12T13:31:05.504Z]  Completed batch 3: pages 11-15
+[0] [2025-06-12T13:31:10.031Z]  Completed batch 2: pages 6-10
+[0] [2025-06-12T13:31:12.665Z]  Completed batch 1: pages 1-5 (retry 1 successful)
+[0] [2025-06-12T13:31:12.665Z]  Batch processing complete: 12 successful, 0 failed, 1 required retries
+[0] [2025-06-12T13:31:12.665Z]  We have executed makeAIRequestBatchAsync
+[0] [2025-06-12T13:31:12.666Z]  Original results: 55 pages
+[0] [2025-06-12T13:31:12.666Z]  Removing page 53: Empty content
+[0] [2025-06-12T13:31:12.666Z]  Filtered results: 54 pages
+[0] [2025-06-12T13:31:12.666Z]  We have found clean pages  54 and failed pages 1
+[0] [2025-06-12T13:31:12.666Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-12T13:31:12.666Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-12T13:31:12.666Z]  Starting batch 1: pages 1-1
+[0] [2025-06-12T13:31:14.299Z]  Completed batch 1: pages 1-1
+[0] [2025-06-12T13:31:14.299Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:31:14.299Z]  After processing failed pages 1
+[0] [2025-06-12T13:31:14.299Z]  Original results: 54 pages
+[0] [2025-06-12T13:31:14.299Z]  Filtered results: 54 pages
+[0] [2025-06-12T13:31:14.300Z]  Processed 60 pages with AI in one request...
+[0] [2025-06-12T13:31:15.079Z]  Completed batch 2: pages 6-10
+[0] [2025-06-12T13:31:15.168Z]  Completed batch 9: pages 41-45
+[0] [2025-06-12T13:31:15.168Z]  Batch processing complete: 12 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:31:15.168Z]  We have executed makeAIRequestBatchAsync
+[0] [2025-06-12T13:31:15.170Z]  Original results: 60 pages
+[0] [2025-06-12T13:31:15.171Z]  Filtered results: 60 pages
+[0] [2025-06-12T13:31:15.171Z]  We have found clean pages  60 and failed pages 0
+[0] [2025-06-12T13:31:15.171Z]  After processing failed pages 0
+[0] [2025-06-12T13:31:15.171Z]  Original results: 60 pages
+[0] [2025-06-12T13:31:15.171Z]  Filtered results: 60 pages
+[0] [2025-06-12T13:31:15.172Z]  Processed 60 pages with AI in one request...
+[0] [2025-06-12T13:31:26.020Z]  Completed batch 12: pages 56-60
+[0] [2025-06-12T13:31:27.210Z]  Completed batch 4: pages 16-20
+[0] [2025-06-12T13:31:27.210Z]  Batch processing complete: 8 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:31:27.210Z]  We have executed makeAIRequestBatchAsync
+[0] [2025-06-12T13:31:27.212Z]  Original results: 40 pages
+[0] [2025-06-12T13:31:27.212Z]  Filtered results: 40 pages
+[0] [2025-06-12T13:31:27.212Z]  We have found clean pages  40 and failed pages 0
+[0] [2025-06-12T13:31:27.212Z]  After processing failed pages 0
+[0] [2025-06-12T13:31:27.212Z]  Original results: 40 pages
+[0] [2025-06-12T13:31:27.212Z]  Filtered results: 40 pages
+[0] [2025-06-12T13:31:27.214Z]  Processed 40 pages with AI in one request...
+[0] [2025-06-12T13:32:00.969Z]  Completed batch 10: pages 46-50 (retry 1 successful)
+[0] [2025-06-12T13:32:08.111Z]  Completed batch 9: pages 41-45
+[0] [2025-06-12T13:32:10.237Z]  Completed batch 1: pages 1-5
+[0] [2025-06-12T13:32:27.275Z]  Completed batch 8: pages 36-40
+[0] [2025-06-12T13:32:34.000Z]  Completed batch 5: pages 21-25
+[0] [2025-06-12T13:32:34.000Z]  Batch processing complete: 15 successful, 0 failed, 2 required retries
+[0] [2025-06-12T13:32:34.000Z]  We have executed makeAIRequestBatchAsync
+[0] [2025-06-12T13:32:34.001Z]  Original results: 74 pages
+[0] [2025-06-12T13:32:34.003Z]  Filtered results: 74 pages
+[0] [2025-06-12T13:32:34.003Z]  We have found clean pages  74 and failed pages 0
+[0] [2025-06-12T13:32:34.003Z]  After processing failed pages 0
+[0] [2025-06-12T13:32:34.003Z]  Original results: 74 pages
+[0] [2025-06-12T13:32:34.003Z]  Filtered results: 74 pages
+[0] [2025-06-12T13:32:34.003Z]  Processed 74 pages with AI in one request...
+[0] [2025-06-12T13:32:48.656Z]  Completed batch 2: pages 6-10
+[0] [2025-06-12T13:32:48.656Z]  Batch processing complete: 3 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:32:48.656Z]  We have executed makeAIRequestBatchAsync
+[0] [2025-06-12T13:32:48.656Z]  Original results: 11 pages
+[0] [2025-06-12T13:32:48.656Z]  Filtered results: 11 pages
+[0] [2025-06-12T13:32:48.656Z]  We have found clean pages  11 and failed pages 0
+[0] [2025-06-12T13:32:48.656Z]  After processing failed pages 0
+[0] [2025-06-12T13:32:48.657Z]  Original results: 11 pages
+[0] [2025-06-12T13:32:48.657Z]  Filtered results: 11 pages
+[0] [2025-06-12T13:32:48.657Z]  Processed 11 pages with AI in one request...
+[0] [2025-06-12T13:33:18.951Z]  Completed batch 4: pages 16-20 (retry 1 successful)
+[0] [2025-06-12T13:33:18.951Z]  Batch processing complete: 5 successful, 0 failed, 1 required retries
+[0] [2025-06-12T13:33:18.951Z]  We have executed makeAIRequestBatchAsync
+[0] [2025-06-12T13:33:18.952Z]  Original results: 23 pages
+[0] [2025-06-12T13:33:18.952Z]  Removing page 7: Empty content
+[0] [2025-06-12T13:33:18.952Z]  Removing page 9: Empty content
+[0] [2025-06-12T13:33:18.952Z]  Filtered results: 21 pages
+[0] [2025-06-12T13:33:18.952Z]  We have found clean pages  21 and failed pages 2
+[0] [2025-06-12T13:33:18.953Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-12T13:33:18.953Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-12T13:33:18.953Z]  Starting batch 1: pages 1-1
+[0] [2025-06-12T13:33:47.342Z]  Completed batch 1: pages 1-1
+[0] [2025-06-12T13:33:47.342Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:33:47.342Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-12T13:33:47.342Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-12T13:33:47.342Z]  Starting batch 1: pages 1-1
+[0] [2025-06-12T13:34:12.239Z]  Completed batch 1: pages 1-1
+[0] [2025-06-12T13:34:12.239Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-12T13:34:12.239Z]  After processing failed pages 2
+[0] [2025-06-12T13:34:12.239Z]  Original results: 23 pages
+[0] [2025-06-12T13:34:12.239Z]  Filtered results: 23 pages
+[0] [2025-06-12T13:34:12.240Z]  Processed 23 pages with AI in one request...
