@@ -1,0 +1,22 @@
+{
+  "filename": "f77b80c50d8c4cac9deb5114c4db437e_33579173.pdf",
+  "contract_notice_id": "f77b80c50d8c4cac9deb5114c4db437e",
+  "norshin_analysis": {
+    "success": true,
+    "totalPages": 4,
+    "totalBatches": 1,
+    "retriedPages": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "results": [],
+    "processingMethod": "detailed_batch_analysis"
+  },
+  "processed_at": "2025-06-12T03:10:07.292406",
+  "processor": "norshin_api",
+  "success": true,
+  "total_pages": 4,
+  "processing_method": "detailed_batch_analysis"
+}

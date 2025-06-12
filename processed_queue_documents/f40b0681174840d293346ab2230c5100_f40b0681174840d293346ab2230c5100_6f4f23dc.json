@@ -1,0 +1,35 @@
+{
+  "filename": "f40b0681174840d293346ab2230c5100_6f4f23dc.docx",
+  "contract_notice_id": "f40b0681174840d293346ab2230c5100",
+  "norshin_analysis": {
+    "success": true,
+    "totalPages": 17,
+    "totalBatches": 4,
+    "retriedPages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17
+    ],
+    "results": [],
+    "processingMethod": "detailed_batch_analysis"
+  },
+  "processed_at": "2025-06-12T03:11:09.124174",
+  "processor": "norshin_api",
+  "success": true,
+  "total_pages": 17,
+  "processing_method": "detailed_batch_analysis"
+}

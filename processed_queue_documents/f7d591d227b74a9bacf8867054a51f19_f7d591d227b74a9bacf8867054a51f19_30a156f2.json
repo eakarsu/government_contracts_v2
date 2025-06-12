@@ -1,0 +1,246 @@
+{
+  "filename": "f7d591d227b74a9bacf8867054a51f19_30a156f2.pdf",
+  "contract_notice_id": "f7d591d227b74a9bacf8867054a51f19",
+  "norshin_analysis": {
+    "success": true,
+    "totalPages": 7,
+    "totalBatches": 2,
+    "retriedPages": [],
+    "results": [
+      {
+        "page": 1,
+        "data": {
+          "page_number": 1,
+          "header": "United Stated Department of the Interior\nNational Park Service\nSaint-Gaudens National Historical Park\nCornish, NH 03745",
+          "title": "Statement of Work",
+          "project_identification": {
+            "PMIS_Number": "320994A",
+            "Project_Title": "Mitigate Hazard Trees at Saint-Gaudens NHP",
+            "Project_Location": "Saint-Gaudens National Historical Park, Cornish, NH"
+          },
+          "points_of_contact": {
+            "Contracting_Officer": "",
+            "Contracting_Officer_Representative": "Stephen Walasewicz, Saint-Gaudens NHS"
+          },
+          "part_1": "TASKS",
+          "tasks": [
+            {
+              "A": "In accordance with the terms and conditions of the contract, contractor shall perform the work as described herein. All services performed under this contract shall be performed in accordance with applicable codes and accepted industry standards."
+            },
+            {
+              "B": "The Contractor shall furnish all equipment and sufficient personnel to complete all tree work described in the attached Project Maps. The work to be completed will take place on the main campus of Saint-Gaudens National Historical Park (SAGA), as well at the Blow-Me-Down Farm (BMDF,) located approximately 1 mile North on NH Route 12A. The work on the main campus will include pruning the Birch Allee, consisting of a mixture 40 Birch trees, ranging in size from 7\u201d to 17\u201d DBH. The historic, and one-time national champion, Thornless Honey Locust (67\u201d DBH) will be pruned, its current cabling and lighting protection system will be inspected, as well as repaired and adjusted as necessary. Additional cables will be installed to compensate for more recent growth. An additional 38 trees will either be removed or pruned."
+            },
+            {
+              "C": "The work at the BMDF will consist of the removal of 10 dead, damaged or declining trees, these trees ranging in size from 16\u201d-34\u201d DBH. A Black Oak (43\u201d DBH) and Willow (38\u201d DBH) will be pruned to remove all dead wood and broken branches. Two specimen trees, a Black Locust (67\u201d DBH) as well as a Northern Catalpa (38\u201d DBH) will be pruned of all dead and broken limbs and branches, as well as installing bracing rods and cable systems."
+            }
+          ],
+          "measurements_specifications": [
+            "Birch trees: 7\u201d to 17\u201d DBH",
+            "Thornless Honey Locust: 67\u201d DBH",
+            "38 additional trees to be removed or pruned",
+            "BMDF: 10 trees, 16\u201d-34\u201d DBH",
+            "Black Oak: 43\u201d DBH",
+            "Willow: 38\u201d DBH",
+            "Black Locust: 67\u201d DBH",
+            "Northern Catalpa: 38\u201d DBH"
+          ],
+          "additional_requirements": [
+            {
+              "D": "Stump removal will be required for 3 oaks removed at BMDF. The stumps are to be ground to 3\u201d below grade, grindings removed and filled with topsoil. A tall fescue grass blend will then be applied."
+            }
+          ]
+        }
+      },
+      {
+        "page": 2,
+        "data": {
+          "page_number": 2,
+          "part_2": "GENERAL PROVISIONS",
+          "sections": [
+            {
+              "2.01": "QUALITY ASSURANCE",
+              "2.01.1": "PROFESSIONAL QUALIFICATIONS",
+              "details": [
+                "A. All work shall be under the direction and general supervision of an Arborist(s) certified by The International Society of Arboriculture (ISA) or equivalent state certification. The Arborist shall be the primary contact with the Government\u2019s Contracting Officer\u2019s Representative (COR) and shall be responsible for controlling the quality of work and inspecting all completed work to ensure that contract performance requirements are met.",
+                "B. An experienced Crew Supervisor shall be present at all times while work is being performed.",
+                "C. All work around power lines shall be performed by Certified Line Clearance Tree Trimmers in accordance with OSHA 229 CF 1910.269, 1910.331 and ANSI Z133.1-1994.",
+                "D. All tree workers shall have thorough related training and on the job experience and shall be familiar with the technical aspects and hazards of tree maintenance work and equipment used in such operations. All tree workers shall abide by any code of ethics or professional conduct established by the Tree Care Industry Association and the International Society of Arboriculture."
+              ]
+            },
+            {
+              "2.01.2": "EQUIPMENT REQUIREMENTS",
+              "details": [
+                "A. Equipment must meet all federal OSHA, state and local safety requirements and must be properly licensed. This includes equipment such as bucket trucks, aerial lifts, chipper trucks, wood trucks, stump grinders, etc. which may be needed to correctly perform tree care operations in accordance with the specifications stated herein."
+              ]
+            },
+            {
+              "2.02": "SCHEDULING AND COORDINATION",
+              "details": [
+                "A. Following the Notice to Proceed, all work shall be completed within 60 calendar days. Work shall be performed during the hours of 7:00 a.m. and 3:30 p.m., Monday through Friday, Federal holidays excluded, unless authorized in writing by the COR."
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "page": 3,
+        "data": {
+          "page_number": 3,
+          "sections": [
+            {
+              "2.02": "SCHEDULING AND COORDINATION (continued)",
+              "details": [
+                "B. Once the contractor begins work on a specific effort (ie. tree removal) they are expected to be on the job site each work day until that effort is complete.",
+                "C. Work shall be scheduled and arranged so as not to interfere with normal activities of the park. Advanced notice will be given to the contractor if a conflict is expected. Any plant debris, personnel or equipment that would interfere with an activity or event shall be removed prior to the activity. If, at any time, the Contracting Officer (CO) determines that the work is unsatisfactory or is being conducted in an unsafe manner, the contractor will be notified and shall immediately cease all work activities."
+              ]
+            },
+            {
+              "2.03": "SAFETY",
+              "details": [
+                "A. Nearly all trees are located within developed areas containing high densities of pedestrians, vehicles, utilities, and structures so safety is of the utmost importance.",
+                "B. All operations shall be conducted in accordance with ANSI Z133.1-2000 Safety Requirements for Pruning, Trimming, Repairing, Maintaining and Removing Trees and Cutting Brush and all Federal OSHA, state and local safety requirements."
+              ]
+            },
+            {
+              "2.03.1": "CONTRACTOR RESPONSIBILITIES",
+              "details": [
+                "A. The Contractor shall provide a safe and healthful workplace for all employees while at Saint-Gaudens NHS.",
+                "B. The Contractor shall provide a level of public safety, proportionate with exposure, while working at Saint-Gaudens NHS.",
+                "C. The Contractor shall comply in rectifying all unsafe or unhealthy conditions called to his/her attention by the CO or COR.",
+                "D. The Contractor shall allow for formal and informal, announced and Unannounced, safety inspections at the worksite."
+              ]
+            },
+            {
+              "203.2": "SAINT-GAUDENS NHS SAFETY REGULATIONS",
+              "details": [
+                "A. All tools and equipment used on any project at Saint-Gaudens NHS must meet all OSHA regulations.",
+                "B. There will be no smoking in or around any building at Saint-Gaudens NHS.",
+                "C. Smoking will be permitted only in designated areas.",
+                "D. Saint-Gaudens NHS is a drug and alcohol free workplace.",
+                "E. Local emergency phone numbers will be posted by the Contractor at the worksite.",
+                "F. Directions to the nearest hospital will be posted by the Contractor at the worksite.",
+                "G. The Contractor must provide a first aid kit at the worksite.",
+                "H. The Contractor must provide an adequate number of fire extinguishers at the worksite.",
+                "I. No public street shall be used for a staging area for any purpose.",
+                "J. Hard hats and safety gear must be worn as applicable to the type of work being performed."
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "page": 4,
+        "data": {
+          "page_number": 4,
+          "sections": [
+            {
+              "2.04": "WARNING SIGNS AND BARRICADES",
+              "details": [
+                "A. All roadways and pathways shall remain open to the public unless approved by the CO. The public ways shall not be encumbered or any unusual traffic situations be created by reason of operations under this contract without approval of the CO.",
+                "B. The Contractor shall provide, erect and maintain all necessary signs, barricades, traffic cones, warning and danger signals and signs, and provide a sufficient number of watchmen and flagmen to insure the safe flow of traffic, protection of the work area, and the safety of the public."
+              ]
+            },
+            {
+              "2.05": "WORK AREA",
+              "details": [
+                "Contractor shall confine his/her work, the storage of materials and equipment, the parking of vehicles, and all other operations in connection with this contract to the specified hours of 7:00 a.m. to 3:30 p.m. The Contractor shall not permit heavy equipment or vehicles or the stock piling of heavy materials off hard surface roads without the expressed permission of the CO. Limited activity may take place, within the root protection area, with the expressed permission of the CO only in areas determined to be safe from excessive damage. The root protection area is defined as an area equal to a radius of 1.5 feet for each inch of diameter at breast height (DBH) (i.e. a 10 inch DBH tree will have a root protection area equal to 15 feet from the main trunk in all directions). Any damage resulting from such operations shall be repaired to original condition or to the satisfaction of the CO, at no additional cost to the Government."
+              ]
+            },
+            {
+              "2.06": "RESPONSIBILITY REGARDING EXISTING STRUCTURES, UTILITIES, EXISTING PLANT MATERIAL AND OTHER LANDSCAPE FEATURES",
+              "details": [
+                "A. The Contractor will be held responsible for any damages to, and for maintenance and protection of existing structures and utilities.",
+                "B. The Contractor shall preserve and protect all existing vegetation such as trees, shrubs, and grass areas (on or adjacent to trees being removed) which do not reasonably interfere with work. The Contractor shall be responsible for all unauthorized cutting or damage to trees and shrubs, including damage due to careless operation of equipment, stockpiling of materials or tracking of grass and other surfaced areas by equipment. Such damaged areas or materials shall be restored, repaired or replaced by the Contractor, as directed by the CO, at no additional cost to the Government."
+              ]
+            },
+            {
+              "CLEANUP AND RESTORATION": "",
+              "details": [
+                "A. The Contractor will be required to furnish all labor, materials, and equipment for cleanup and restoration of all disturbed areas or features, which have been damaged during the course of this contract."
+              ]
+            },
+            {
+              "2.07": "AIR AND WATER POLLUTION CONTROL",
+              "details": [
+                "A. The Contractor shall take all necessary measures to prevent air and water pollution by any material and/or equipment used during the contract effort. The Contractor shall keep the site clean and free of trash and debris. All debris shall be disposed of, off site, at the end of each day unless otherwise directed by the CO."
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "page": 5,
+        "data": {
+          "page_number": 5,
+          "sections": [
+            {
+              "ART 3": "EXECUTION",
+              "3.01": "TREE REMOVAL/FELLING",
+              "details": [
+                "A. Trees shall be felled only when there is an adequate felling area at least equal in radius to the height of the tree.",
+                "B. Trees that cannot be felled due to proximity of the roadways, buildings, structures, utilities, and/or lack of an adequate felling area shall be topped and/or sectioned.",
+                "C. The contractor is responsible for taking all precautions to ensure that the tree will fall where desired. If a tree cannot be felled safely in one piece, the tree shall be sectioned."
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "page": 6,
+        "data": {
+          "page_number": 6,
+          "text_transcription": "topped and/or sectioned.\n\nD. The contractor shall take all reasonable precautions to avoid damaging surrounding vegetation or lawn areas and prevent gouging and erosion of soils as a result of tree removal operations.\n\nE. Heavy Equipment: turf and tree root zones will be protected from damage including soil compaction with the use of surface barriers, such as Alturnamats, or an equivalent brand.\n\nF. The contractor shall, on the same day the tree is removed, chip all materials and remove all remaining wood and debris from the park and dispose of legally off site, unless approved otherwise by the COR. Removal from the park and disposal is the responsibility of the contractor.\n\n3.02 STUMPS:\n\nA. All stumps shall be cut to a height not to exceed 2\u201d from grade unless directed otherwise by the COR.\n\nB. The identified stumps to be ground shall be ground to a minimum of 3\u201d below grade unless directed otherwise by the COR. The remaining holes are to be filled in with topsoil and a tall fescue seed mix applied.\n\n3.03 TREE PRUNING\n\nA. The work to be performed under this section shall include pruning trees in accordance with the American National Standard for Arboricultural Operations Pruning, Repairing, Maintaining and Removing Trees and Cutting Brush \u2013 Safety Requirements \u2013 ANSI Z133.1-2000.\n\nB. Pruning shall consist of the removal of dead, dying, diseased, interfering, objectionable weakly attached, low vigor branches one inch in diameter and greater not taking more than 25% of live foliage. Dead wood greater than 2 feet in length shall be removed regardless of diameter.\n\nC. Climbing hooks shall not be worn for tree pruning.\n\n3.04 CABLING:\n\nA. New cable installation shall conform to ANSI A300 guidelines.",
+          "section_titles": [
+            "3.02 STUMPS",
+            "3.03 TREE PRUNING",
+            "3.04 CABLING"
+          ],
+          "measurements_specifications": [
+            "All stumps shall be cut to a height not to exceed 2\u201d from grade unless directed otherwise by the COR.",
+            "Stumps to be ground shall be ground to a minimum of 3\u201d below grade unless directed otherwise by the COR.",
+            "Pruning: removal of branches one inch in diameter and greater, not taking more than 25% of live foliage.",
+            "Dead wood greater than 2 feet in length shall be removed regardless of diameter."
+          ],
+          "numerical_data": [
+            "2 inches (stump height)",
+            "3 inches (stump grinding depth)",
+            "1 inch (branch diameter for pruning)",
+            "25% (maximum live foliage removal)",
+            "2 feet (dead wood length for removal)"
+          ],
+          "specifications": [
+            "Pruning in accordance with ANSI Z133.1-2000.",
+            "Cable installation to conform to ANSI A300 guidelines."
+          ],
+          "key_details": [
+            "Contractor must avoid damaging surrounding vegetation or lawn areas.",
+            "Turf and tree root zones to be protected from damage using surface barriers.",
+            "All debris to be removed from park and disposed of legally off site.",
+            "Climbing hooks not to be worn for tree pruning."
+          ]
+        }
+      },
+      {
+        "page": 7,
+        "data": {
+          "page_number": 7,
+          "text_transcription": "PART 4: INSPECTION/ACCEPTACE\n\n4.01 INSPECTION\n\nA. The National Park Service reserves the right to conduct any testing or inspection it may deem advisable prior to acceptance and payment to assure that all work conforms to the specifications herein.",
+          "section_titles": [
+            "PART 4: INSPECTION/ACCEPTACE",
+            "4.01 INSPECTION"
+          ],
+          "key_details": [
+            "National Park Service reserves the right to conduct any testing or inspection prior to acceptance and payment.",
+            "All work must conform to the specifications."
+          ]
+        }
+      }
+    ],
+    "processingMethod": "detailed_batch_analysis"
+  },
+  "processed_at": "2025-06-12T03:07:07.564114",
+  "processor": "norshin_api",
+  "success": true,
+  "total_pages": 7,
+  "processing_method": "detailed_batch_analysis"
+}
