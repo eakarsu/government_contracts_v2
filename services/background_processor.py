@@ -379,52 +379,52 @@ class BackgroundDocumentProcessor:
                 doc.started_at = datetime.utcnow()
             db.session.commit()
             
-            # Process documents concurrently with ThreadPoolExecutor
-            max_workers = min(5, len(queued_docs))  # Limit concurrent processing
+            # Process documents concurrently with proper thread pool
+            max_workers = min(10, len(queued_docs))  # Increase workers for true concurrency
             logger.info(f"Processing {len(queued_docs)} documents concurrently with {max_workers} workers")
             
-            # Create document processing tasks
-            documents_to_process = []
-            for queued_doc in queued_docs:
-                document = {
-                    'id': queued_doc.id,
-                    'contract_notice_id': queued_doc.contract_notice_id,
-                    'document_url': queued_doc.document_url,
-                    'local_file_path': queued_doc.local_file_path,
-                    'filename': queued_doc.filename,
-                    'description': queued_doc.description
-                }
-                documents_to_process.append(document)
-            
-            # Process documents concurrently
+            # Submit all documents to Norshin API simultaneously
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                # Submit all tasks
-                future_to_doc = {}
-                for document in documents_to_process:
+                # Submit all tasks immediately without waiting
+                futures = []
+                for queued_doc in queued_docs:
                     if not self.is_processing or not self.queue_enabled:
                         break
-                    future = executor.submit(self._process_single_document_with_db_update, document)
-                    future_to_doc[future] = document
+                    
+                    document = {
+                        'id': queued_doc.id,
+                        'contract_notice_id': queued_doc.contract_notice_id,
+                        'document_url': queued_doc.document_url,
+                        'local_file_path': queued_doc.local_file_path,
+                        'filename': queued_doc.filename,
+                        'description': queued_doc.description
+                    }
+                    
+                    # Submit task to thread pool - all execute simultaneously
+                    future = executor.submit(self._process_single_document, document)
+                    futures.append((future, queued_doc.id))
+                    logger.info(f"Submitted document {queued_doc.id} to Norshin API")
                 
-                # Collect results as they complete
+                logger.info(f"All {len(futures)} documents submitted to Norshin API concurrently")
+                
+                # Collect results as they complete in background
                 completed_docs = []
                 failed_docs = []
                 
-                for future in concurrent.futures.as_completed(future_to_doc):
-                    document = future_to_doc[future]
+                for future, doc_id in futures:
                     try:
-                        result = future.result()
+                        result = future.result()  # This will wait for completion
                         if result:
-                            completed_docs.append((document['id'], result))
-                            logger.info(f"Document {document['id']} completed successfully")
+                            completed_docs.append((doc_id, result))
+                            logger.info(f"Document {doc_id} completed successfully")
                         else:
-                            failed_docs.append(document['id'])
-                            logger.error(f"Document {document['id']} failed processing")
+                            failed_docs.append(doc_id)
+                            logger.error(f"Document {doc_id} failed processing")
                     except Exception as e:
-                        failed_docs.append(document['id'])
-                        logger.error(f"Document {document['id']} raised exception: {e}")
+                        failed_docs.append(doc_id)
+                        logger.error(f"Document {doc_id} raised exception: {e}")
                 
-                # Update all document statuses in main thread with proper Flask app context
+                # Update all document statuses in main thread
                 self._batch_update_document_statuses(completed_docs, failed_docs)
         
         self.is_processing = False

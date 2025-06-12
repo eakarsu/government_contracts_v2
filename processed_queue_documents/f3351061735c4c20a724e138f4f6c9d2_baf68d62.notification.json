@@ -1,0 +1,68 @@
+{
+  "original_file": "queue_documents/f3351061735c4c20a724e138f4f6c9d2_baf68d62.pdf",
+  "processed_file": "processed_queue_documents/f3351061735c4c20a724e138f4f6c9d2_baf68d62.pdf",
+  "processed_timestamp": "2025-06-12T13:25:25.433201",
+  "processing_status": "completed",
+  "norshin_data_available": true,
+  "file_size": 158070,
+  "norshin_response": {
+    "success": true,
+    "totalPages": 2,
+    "totalBatches": 1,
+    "retriedPages": [],
+    "results": [
+      {
+        "page": 1,
+        "data": {
+          "page_number": 1,
+          "form_title": "AMENDMENT OF SOLICITATION/MODIFICATION OF CONTRACT",
+          "BPA_NO": "",
+          "1_CONTRACT_ID_CODE": "",
+          "PAGE": "1",
+          "OF_PAGES": "2",
+          "2_AMENDMENT_MODIFICATION_NUMBER": "0001",
+          "3_EFFECTIVE_DATE": "",
+          "4_REQUISITION_PURCHASE_REQ_NUMBER": "",
+          "5_PROJECT_NUMBER": "646-23-405",
+          "6_ISSUED_BY": "Department of Veterans Affairs\nNetwork Contracting Office 4",
+          "CODE_ISSUED_BY": "00244",
+          "7_ADMINISTERED_BY": "Department of Veterans Affairs\nNetwork Contracting Office 4",
+          "CODE_ADMINISTERED_BY": "00244",
+          "8_NAME_AND_ADDRESS_OF_CONTRACTOR": "To all Offerors/Bidders",
+          "9A_AMENDMENT_OF_SOLICITATION_NUMBER": "36C24425B0012",
+          "9B_DATED": "SEE ITEM 11",
+          "10A_MODIFICATION_OF_CONTRACT_ORDER_NUMBER": "",
+          "10B_DATED": "SEE ITEM 13",
+          "11_SECTION_TITLE": "11. THIS ITEM ONLY APPLIES TO AMENDMENTS OF SOLICITATIONS",
+          "11_TEXT": "X The above numbered solicitation is amended as set forth in Item 14. The hour and date specified for receipt of Offers X is extended. is not extended. Offers must acknowledge receipt of this amendment prior to the hour and date specified in the solicitation or as amended, by one of the following methods: (a) By completing Items 8 and 15, and returning ________ copies of the amendment; (b) By acknowledging receipt of this amendment on each copy of the offer submitted; or (c) By separate letter or electronic communication which includes a reference to the solicitation and amendment numbers. FAILURE OF YOUR ACKNOWLEDGMENT TO BE RECEIVED AT THE PLACE DESIGNATED FOR THE RECEIPT OF OFFERS PRIOR TO THE HOUR AND DATE SPECIFIED MAY RESULT IN REJECTION OF YOUR OFFER. If by virtue of this amendment you desire to change an offer already submitted, such change may be made by letter or electronic communication, provided each letter or electronic communication makes reference to the solicitation and this amendment, and is received prior to the opening hour and date specified. --- HOUR & DATE for Receipt of offers is EXTENDED to: 06-26-2025 2:00 PM EDT",
+          "12_ACCOUNTING_AND_APPROPRIATION_DATA": "",
+          "13_SECTION_TITLE": "13. THIS ITEM APPLIES ONLY TO MODIFICATIONS OF CONTRACTS/ORDERS, IT MODIFIES THE CONTRACT/ORDER NO. AS DESCRIBED IN ITEM 14.",
+          "13_CHECK_ONE": "A. THIS CHANGE ORDER IS ISSUED PURSUANT TO: (Specify authority) THE CHANGES SET FORTH IN ITEM 14 ARE MADE IN THE CONTRACT ORDER NO. IN ITEM 10A.",
+          "13B_ABOVE_NUMBERED_CONTRACT_ORDER_IS_MODIFIED": "",
+          "13C_SUPPLEMENTAL_AGREEMENT": "",
+          "13D_OTHER": "",
+          "E_IMPORTANT": "Contractor is not, X is required to sign this document and return 1 ________ copies to the issuing office.",
+          "14_DESCRIPTION_OF_AMENDMENT_MODIFICATION": "The purpose of this amendment is the following:\n1. Announce an addition site visit on 6/12/2025 at 1:00 PM Meet up location is Pittsburgh VA Medical Center University Drive 1st floor main lobby atrium.\n\n2. Announce an extension to the bid due date from 6/23/2025 to 06/26/2025 2:00 PM\n\n3. Announce a change from a virtual bid opening to an IN PERSON ONLY bid opening on 6/26/2025 at 2:00 PM. The location of the bid opening is Pittsburgh VA 1010 Delafield Rd Pittsburgh PA 15215 Building 71 Learning Exchange. All Bid Documents must be dropped in the bid box by 2:00 PM. Doors to the public Bid opening will be shut and locked at 2:00 PM 6/26/2025",
+          "15A_NAME_AND_TITLE_OF_SIGNER": "",
+          "15B_CONTRACTOR_OFFEROR_SIGNATURE": "",
+          "15C_DATE_SIGNED": "",
+          "16A_NAME_AND_TITLE_OF_CONTRACTING_OFFICER": "",
+          "16B_UNITED_STATES_OF_AMERICA_SIGNATURE": "",
+          "16C_DATE_SIGNED": "",
+          "STANDARD_FORM": "STANDARD FORM 30 (REV.11/2016)",
+          "PRESCRIBED_BY": "Prescribed by GSA - FAR (48 CFR) 53.243",
+          "PREVIOUS_EDITION_NOT_USABLE": "PREVIOUS EDITION NOT USABLE"
+        }
+      },
+      {
+        "page": 2,
+        "data": {
+          "page_number": 2,
+          "text": "End of Document",
+          "footer": "Page 2 of 2"
+        }
+      }
+    ],
+    "processingMethod": "detailed_batch_analysis"
+  }
+}

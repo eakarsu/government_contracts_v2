@@ -1,0 +1,574 @@
+{
+  "original_file": "queue_documents/ee53404bf12245a8b5d5a5c6a0961daa_39a77c18.docx",
+  "processed_file": "processed_queue_documents/ee53404bf12245a8b5d5a5c6a0961daa_39a77c18.docx",
+  "processed_timestamp": "2025-06-12T13:24:52.986343",
+  "processing_status": "completed",
+  "norshin_data_available": true,
+  "file_size": 37261,
+  "norshin_response": {
+    "success": true,
+    "totalPages": 26,
+    "totalBatches": 6,
+    "retriedPages": [],
+    "results": [
+      {
+        "page": 1,
+        "data": {
+          "page_number": 1,
+          "text_transcription": "52.212-3 Offeror Representations and Certifications\u2014Commercial Products and Commercial Services.\nAs prescribed in 12.301(b)(2), insert the following provision:\nOfferor Representations and Certifications\u2014Commercial Products and Commercial Services (May 2024)\nThe Offeror shall complete only paragraph (b) of this provision if the Offeror has completed the annual representations and certification electronically in the System for Award Management (SAM) accessed through https://www.sam.gov. If the Offeror has not completed the annual representations and certifications electronically, the Offeror shall complete only paragraphs (c) through (v) of this provision.\n(a) Definitions. As used in this provision\u2014\nCovered telecommunications equipment or services has the meaning provided in the clause 52.204-25, Prohibition on Contracting for Certain Telecommunications and Video Surveillance Services or Equipment.\nEconomically disadvantaged women-owned small business (EDWOSB) concern means a small business concern that is at least 51 percent directly and unconditionally owned by, and the management and daily business operations of which are controlled by, one or more women who are citizens of the United States and who are economically disadvantaged in accordance with 13 CFR part 127, and the concern is certified by SBA or an approved third-party certifier in accordance with 13 CFR 127.300. It automatically qualifies as a women-owned small business eligible under the WOSB Program.\nForced or indentured child labor means all work or service\u2014\n(1) Exacted from any person under the age of 18 under the menace of any penalty for its nonperformance and for which the worker does not offer himself voluntarily; or\n(2) Performed by any person under the age of 18 pursuant to a contract the enforcement of which can be accomplished by process or penalties.\nHighest-level owner means the entity that owns or controls an immediate owner of the offeror, or that owns or controls one or more entities that control an immediate owner of the offeror. No entity owns or exercises control of the highest level owner.",
+          "section_titles": [
+            "52.212-3 Offeror Representations and Certifications\u2014Commercial Products and Commercial Services.",
+            "Definitions"
+          ],
+          "specifications": [],
+          "measurements": [],
+          "numerical_data": [
+            "51 percent",
+            "18",
+            "127",
+            "127.300"
+          ],
+          "contract_elements": [
+            "12.301(b)(2)",
+            "52.204-25",
+            "13 CFR part 127",
+            "13 CFR 127.300",
+            "System for Award Management (SAM)",
+            "https://www.sam.gov"
+          ],
+          "key_details": [
+            "Offeror completes only paragraph (b) if annual representations are in SAM",
+            "If not in SAM, complete paragraphs (c) through (v)",
+            "Definitions for covered telecommunications equipment, EDWOSB, forced or indentured child labor, highest-level owner"
+          ]
+        }
+      },
+      {
+        "page": 2,
+        "data": {
+          "page_number": 2,
+          "text_transcription": "Immediate owner means an entity, other than the offeror, that has direct control of the offeror. Indicators of control include, but are not limited to, one or more of the following: ownership or interlocking management, identity of interests among family members, shared facilities and equipment, and the common use of employees.\nInverted domestic corporation, means a foreign incorporated entity that meets the definition of an inverted domestic corporation under 6 U.S.C. 395(b), applied in accordance with the rules and definitions of 6 U.S.C. 395(c).\nManufactured end product means any end product in product and service codes (PSCs) 1000-9999, except\u2014\n(1) PSC 5510, Lumber and Related Basic Wood Materials;\n(2) Product or Service Group (PSG) 87, Agricultural Supplies;\n(3) PSG 88, Live Animals;\n(4) PSG 89, Subsistence;\n(5) PSC 9410, Crude Grades of Plant Materials;\n(6) PSC 9430, Miscellaneous Crude Animal Products, Inedible;\n(7) PSC 9440, Miscellaneous Crude Agricultural and Forestry Products;\n(8) PSC 9610, Ores;\n(9) PSC 9620, Minerals, Natural and Synthetic; and\n(10) PSC 9630, Additive Metal Materials.\nPlace of manufacture means the place where an end product is assembled out of components, or otherwise made or processed from raw materials into the finished product that is to be provided to the Government. If a product is disassembled and reassembled, the place of reassembly is not the place of manufacture.\nPredecessor means an entity that is replaced by a successor and includes any predecessors of the predecessor.\nReasonable inquiry has the meaning provided in the clause 52.204-25, Prohibition on Contracting for Certain Telecommunications and Video Surveillance Services or Equipment.",
+          "section_titles": [],
+          "specifications": [
+            "Product and service codes (PSCs) 1000-9999",
+            "PSC 5510, Lumber and Related Basic Wood Materials",
+            "PSG 87, Agricultural Supplies",
+            "PSG 88, Live Animals",
+            "PSG 89, Subsistence",
+            "PSC 9410, Crude Grades of Plant Materials",
+            "PSC 9430, Miscellaneous Crude Animal Products, Inedible",
+            "PSC 9440, Miscellaneous Crude Agricultural and Forestry Products",
+            "PSC 9610, Ores",
+            "PSC 9620, Minerals, Natural and Synthetic",
+            "PSC 9630, Additive Metal Materials"
+          ],
+          "measurements": [],
+          "numerical_data": [
+            "1000-9999",
+            "5510",
+            "87",
+            "88",
+            "89",
+            "9410",
+            "9430",
+            "9440",
+            "9610",
+            "9620",
+            "9630",
+            "6 U.S.C. 395(b)",
+            "6 U.S.C. 395(c)"
+          ],
+          "contract_elements": [
+            "52.204-25"
+          ],
+          "key_details": [
+            "Definitions for immediate owner, inverted domestic corporation, manufactured end product, place of manufacture, predecessor, reasonable inquiry"
+          ]
+        }
+      },
+      {
+        "page": 3,
+        "data": {
+          "page_number": 3,
+          "text_transcription": "Restricted business operations means business operations in Sudan that include power production activities, mineral extraction activities, oil-related activities, or the production of military equipment, as those terms are defined in the Sudan Accountability and Divestment Act of 2007 (Pub. L. 110-174). Restricted business operations do not include business operations that the person (as that term is defined in Section 2 of the Sudan Accountability and Divestment Act of 2007) conducting the business can demonstrate\u2014\n(1) Are conducted under contract directly and exclusively with the regional government of southern Sudan;\n(2) Are conducted pursuant to specific authorization from the Office of Foreign Assets Control in the Department of the Treasury, or are expressly exempted under Federal law from the requirement to be conducted under such authorization;\n(3) Consist of providing goods or services to marginalized populations of Sudan;\n(4) Consist of providing goods or services to an internationally recognized peacekeeping force or humanitarian organization;\n(5) Consist of providing goods or services that are used only to promote health or education; or\n(6) Have been voluntarily suspended.\"Sensitive technology\"\u2014\nSensitive technology\u2014\n(1) Means hardware, software, telecommunications equipment, or any other technology that is to be used specifically\u2014\n(i) To restrict the free flow of unbiased information in Iran; or\n(ii) To disrupt, monitor, or otherwise restrict speech of the people of Iran; and\n(2) Does not include information or informational materials the export of which the President does not have the authority to regulate or prohibit pursuant to section 203(b)(3)of the International Emergency Economic Powers Act (50 U.S.C. 1702(b)(3)).\nService-disabled veteran-owned small business (SDVOSB) concern means a small business concern\u2014",
+          "section_titles": [
+            "Restricted business operations",
+            "Sensitive technology",
+            "Service-disabled veteran-owned small business (SDVOSB) concern"
+          ],
+          "specifications": [],
+          "measurements": [],
+          "numerical_data": [
+            "110-174",
+            "Section 2",
+            "2007",
+            "203(b)(3)",
+            "50 U.S.C. 1702(b)(3)"
+          ],
+          "contract_elements": [
+            "Sudan Accountability and Divestment Act of 2007",
+            "Office of Foreign Assets Control",
+            "Department of the Treasury",
+            "International Emergency Economic Powers Act"
+          ],
+          "key_details": [
+            "Defines restricted business operations in Sudan",
+            "Lists exceptions to restricted business operations",
+            "Defines sensitive technology related to Iran",
+            "Begins definition of SDVOSB concern"
+          ]
+        }
+      },
+      {
+        "page": 4,
+        "data": {
+          "page_number": 4,
+          "text_transcription": "(1)\n(i) Not less than 51 percent of which is owned and controlled by one or more service-disabled veterans or, in the case of any publicly owned business, not less than 51 percent of the stock of which is owned by one or more service-disabled veterans; and\n(ii) The management and daily business operations of which are controlled by one or more service-disabled veterans or, in the case of a service-disabled veteran with permanent and severe disability, the spouse or permanent caregiver of such veteran; or\n(2) A small business concern eligible under the SDVOSB Program in accordance with 13 CFR part 128 (see subpart 19.14).\n(3) Service-disabled veteran, as used in this definition, means a veteran as defined in 38 U.S.C. 101(2), with a disability that is service connected, as defined in 38 U.S.C. 101(16), and who is registered in the Beneficiary Identification and Records Locator Subsystem, or successor system that is maintained by the Department of Veterans Affairs\u2019 Veterans Benefits Administration, as a service-disabled veteran.\nService-disabled veteran-owned small business (SDVOSB) concern eligible under the SDVOSB Program means an SDVOSB concern that\u2014\n(1) Effective January 1, 2024, is designated in the System for Award Management (SAM) as certified by the Small Business Administration (SBA) in accordance with 13 CFR 128.300; or\n(2) Has represented that it is an SDVOSB concern in SAM and submitted a complete application for certification to SBA on or before December 31, 2023.\nService-disabled veteran-owned small business (SDVOSB) Program means a program that authorizes contracting officers to limit competition, including award on a sole-source basis, to SDVOSB concerns eligible under the SDVOSB Program.\nSmall business concern\u2014\n(1) Means a concern, including its affiliates, that is independently owned and operated, not dominant in its field of operation, and qualified as a small business under the criteria in 13 CFR part 121 and size standards in this solicitation.",
+          "section_titles": [
+            "Service-disabled veteran-owned small business (SDVOSB) concern (continued)",
+            "Service-disabled veteran-owned small business (SDVOSB) concern eligible under the SDVOSB Program",
+            "Service-disabled veteran-owned small business (SDVOSB) Program",
+            "Small business concern"
+          ],
+          "specifications": [],
+          "measurements": [],
+          "numerical_data": [
+            "51 percent",
+            "13 CFR part 128",
+            "19.14",
+            "38 U.S.C. 101(2)",
+            "38 U.S.C. 101(16)",
+            "January 1, 2024",
+            "13 CFR 128.300",
+            "December 31, 2023",
+            "13 CFR part 121"
+          ],
+          "contract_elements": [
+            "System for Award Management (SAM)",
+            "Small Business Administration (SBA)",
+            "Department of Veterans Affairs\u2019 Veterans Benefits Administration"
+          ],
+          "key_details": [
+            "SDVOSB must be at least 51% owned and controlled by service-disabled veterans",
+            "Defines SDVOSB eligibility and certification requirements",
+            "Defines small business concern criteria"
+          ]
+        }
+      },
+      {
+        "page": 5,
+        "data": {
+          "page_number": 5,
+          "text_transcription": "(2) Affiliates, as used in this definition, means business concerns, one of whom directly or indirectly controls or has the power to control the others, or a third party or parties control or have the power to control the others. In determining whether affiliation exists, consideration is given to all appropriate factors including common ownership, common management, and contractual relationships. SBA determines affiliation based on the factors set forth at 13 CFR 121.103.\nSmall disadvantaged business concern, consistent with 13 CFR 124.1001, means a small business concern under the size standard applicable to the acquisition, that\u2014\n(1) Is at least 51 percent unconditionally and directly owned (as defined at 13 CFR 124.105) by\u2014\n(i) One or more socially disadvantaged (as defined at13 CFR 124.103) and economically disadvantaged (as defined at 13 CFR 124.104) individuals who are citizens of the United States; and\n(ii) Each individual claiming economic disadvantage has a net worth not exceeding the threshold at 13 CFR 124.104(c)(2) after taking into account the applicable exclusions set forth at 13 CFR124.104(c)(2); and\n(2) The management and daily business operations of which are controlled (as defined at 13.CFR 124.106) by individuals, who meet the criteria in paragraphs (1)(i) and (ii) of this definition.\nSubsidiary means an entity in which more than 50 percent of the entity is owned\u2014\n(1) Directly by a parent corporation; or\n(2) Through another subsidiary of a parent corporation\nSuccessor means an entity that has replaced a predecessor by acquiring the assets and carrying out the affairs of the predecessor under a new name (often through acquisition or merger). The term \"successor\" does not include new offices/divisions of the same company or a company that only changes its name. The extent of the responsibility of the successor for the liabilities of the predecessor may vary, depending on State law and specific circumstances.\nVeteran-owned small business concern means a small business concern\u2014",
+          "section_titles": [
+            "Affiliates",
+            "Small disadvantaged business concern",
+            "Subsidiary",
+            "Successor",
+            "Veteran-owned small business concern"
+          ],
+          "specifications": [],
+          "measurements": [],
+          "numerical_data": [
+            "13 CFR 121.103",
+            "13 CFR 124.1001",
+            "51 percent",
+            "13 CFR 124.105",
+            "13 CFR 124.103",
+            "13 CFR 124.104",
+            "13 CFR 124.104(c)(2)",
+            "13 CFR 124.106",
+            "50 percent"
+          ],
+          "contract_elements": [],
+          "key_details": [
+            "Defines affiliates and affiliation determination by SBA",
+            "Defines small disadvantaged business concern ownership and control requirements",
+            "Defines subsidiary and successor entities",
+            "Begins definition of veteran-owned small business concern"
+          ]
+        }
+      },
+      {
+        "page": 6,
+        "data": {
+          "page_number": 1,
+          "text_transcription": "(1) Not less than 51 percent of which is owned and controlled by one or more veterans (as defined at 38 U.S.C. 101(2)) or, in the case of any publicly owned business, not less than 51 percent of the stock of which is owned by one or more veterans; and\n\n(2) The management and daily business operations of which are controlled by one or more veterans.\n\nWomen-owned business concern means a concern which is at least 51 percent owned by one or more women; or in the case of any publicly owned business, at least 51 percent of its stock is owned by one or more women; and whose management and daily business operations are controlled by one or more women\n\nWomen-owned small business concern means a small business concern\u2014\n\n(1) That is at least 51 percent owned by one or more women; or, in the case of any publicly owned business, at least51 percent of the stock of which is owned by one or more women; and\n\n(2) Whose management and daily business operations are controlled by one or more women.\n\nWomen-owned small business (WOSB) concern eligible under the WOSB Program (in accordance with 13 CFR part 127), means a small business concern that is at least 51 percent directly and unconditionally owned by, and the management and daily business operations of which are controlled by, one or more women who are citizens of the United States, and the concern is certified by SBA or an approved third-party certifier in accordance with 13 CFR 127.300.\n\n(b)\n\n(1) Annual Representations and Certifications. Any changes provided by the Offeror in paragraph (b)(2) of this provision do not automatically change the representations and certifications in SAM.\n\n(2) The offeror has completed the annual representations and certifications electronically in SAM accessed through http://www.sam.gov. After reviewing SAM information, the Offeror verifies by submission of this offer that the representations and certifications currently posted electronically at FAR 52.212-3, Offeror Representations and Certifications-Commercial Products and Commercial Services, have been entered or updated in the last 12 months, are current, accurate, complete, and applicable to"
+        }
+      },
+      {
+        "page": 7,
+        "data": {
+          "page_number": 2,
+          "text_transcription": "this solicitation (including the business size standard(s) applicable to the NAICS code(s) referenced for this solicitation), at the time this offer is submitted and are incorporated in this offer by reference (see FAR 4.1201), except for paragraphs __.\n\n[Offeror to identify the applicable paragraphs at (c) through (v) of this provision that the offeror has completed for the purposes of this solicitation only, if any.\n\nThese amended representation(s) and/or certification(s) are also incorporated in this offer and are current, accurate, and complete as of the date of this offer.\n\nAny changes provided by the offeror are applicable to this solicitation only, and do not result in an update to the representations and certifications posted electronically on SAM.]\n\n(c) Offerors must complete the following representations when the resulting contract is for supplies to be delivered or services to be performed in the United States or its outlying areas, or when the contracting officer has applied part 19 in accordance with 19.000(b)(1)(ii). Check all that apply.\n\n(1) Small business concern. The offeror represents as part of its offer that\u2014\n(i) It \u2610 is, \u2610 is not a small business concern; or\n(ii) It \u2610 is, \u2610 is not a small business joint venture that complies with the requirements of 13 CFR 121.103(h) and 13 CFR 125.8(a) and (b).\n[ The offeror shall enter the name and unique entity identifier of each party to the joint venture: __________.]\n\n(2) Veteran-owned small business concern. [Complete only if the offeror represented itself as a small business concern in paragraph (c)(1) of this provision.] The offeror represents as part of its offer that it \u2610 is, \u2610 is not a veteran-owned small business concern.\n\n(3) SDVOSB concern. [Complete only if the offeror represented itself as a veteran-owned small business concern in paragraph (c)(2) of this provision.] The offeror represents that it \u2610 is, \u2610 is not an SDVOSB concern.\n\n(4) SDVOSB concern joint venture eligible under the SDVOSB Program. The offeror represents that it \u2610 is, \u2610 is not an SDVOSB joint venture eligible under the SDVOSB Program that complies with the requirements of 13 CFR 128.402. [Complete only if the offeror represented itself as an SDVOSB concern in paragraph (c)(3) of this provision.]"
+        }
+      },
+      {
+        "page": 8,
+        "data": {
+          "page_number": 3,
+          "text_transcription": "[The offeror shall enter the name and unique entity identifier of each party to the joint venture: __________.]\n\n(5) Small disadvantaged business concern. [Complete only if the offeror represented itself as a small business concern in paragraph (c)(1) of this provision.] The offeror represents that it \u2610 is, \u2610 is not a small disadvantaged business concern as defined in 13 CFR 124.1001.\n\n(6) Women-owned small business concern. [Complete only if the offeror represented itself as a small business concern in paragraph (c)(1) of this provision.] The offeror represents that it \u2610 is, \u2610 is not a women-owned small business concern.\n\n(7) WOSB joint venture eligible under the WOSB Program. The offeror represents that it \u2610 is, \u2610 is not a joint venture that complies with the requirements of 13 CFR 127.506(a) through (c).\n[ The offeror shall enter the name and unique entity identifier of each party to the joint venture: __________.]\n\n(8) Economically disadvantaged women-owned small business (EDWOSB) joint venture. The offeror represents that it \u2610 is, \u2610 is not a joint venture that complies with the requirements of 13 CFR 127.506(a) through (c).\n[The offeror shall enter the name and unique entity identifier of each party to the joint venture: __________.]\n\nNote to paragraphs (c)(9) and (10): Complete paragraphs (c)(9) and (10) only if this solicitation is expected to exceed the simplified acquisition threshold.\n\n(9) Women-owned business concern (other than small business concern). [Complete only if the offeror is a women-owned business concern and did not represent itself as a small business concern in paragraph (c)(1) of this provision.] The offeror represents that it \u2610 is a women-owned business concern.\n\n(10) Tie bid priority for labor surplus area concerns. If this is an invitation for bid, small business offerors may identify the labor surplus areas in which costs to be incurred on account of manufacturing or production (by offeror or first-tier subcontractors) amount to more than 50 percent of the contract price:____________________\n\n(11) HUBZone small business concern. [Complete only if the offeror represented itself as a small business concern in paragraph (c)(1) of this provision.] The offeror represents, as part of its offer, that-"
+        }
+      },
+      {
+        "page": 9,
+        "data": {
+          "page_number": 4,
+          "text_transcription": "(i) It \u2610 is, \u2610 is not a HUBZone small business concern listed, on the date of this representation, as having been certified by SBA as a HUBZone small business concern in the Dynamic Small Business Search and SAM, and will attempt to maintain an employment rate of HUBZone residents of 35 percent of its employees during performance of a HUBZone contract (see 13 CFR 126.200(e)(1)); and\n\n(ii) It \u2610 is, \u2610 is not a HUBZone joint venture that complies with the requirements of 13 CFR 126.616(a) through (c). [The offeror shall enter the name and unique entity identifier of each party to the joint venture: _____.] Each HUBZone small business concern participating in the HUBZone joint venture shall provide representation of its HUBZone status.\n\n(d) Representations required to implement provisions of Executive Order11246-\n\n(1) Previous contracts and compliance. The offeror represents that-\n\n(i) It \u2610 has, \u2610 has not participated in a previous contract or subcontract subject to the Equal Opportunity clause of this solicitation; and\n\n(ii) It \u2610 has, \u2610 has not filed all required compliance reports.\n\n(2) Affirmative Action Compliance. The offeror represents that-\n\n(i) It \u2610 has developed and has on file, \u2610 has not developed and does not have on file, at each establishment, affirmative action programs required by rules and regulations of the Secretary of Labor (41 CFR parts 60-1 and 60-2), or\n\n(ii) It \u2610 has not previously had contracts subject to the written affirmative action programs requirement of the rules and regulations of the Secretary of Labor.\n\n(e) Certification Regarding Payments to Influence Federal Transactions (31 http://uscode.house.gov/ U.S.C. 1352). (Applies only if the contract is expected to exceed $150,000.) By submission of its offer, the offeror certifies to the best of its knowledge and belief that no Federal appropriated funds have been paid or will be paid to any person for influencing or attempting to influence an officer or employee of any agency, a Member of Congress, an officer or employee of Congress or an employee of a Member of Congress on his or her behalf in connection with the award of any resultant contract. If any registrants under the Lobbying Disclosure"
+        }
+      },
+      {
+        "page": 10,
+        "data": {
+          "page_number": 5,
+          "text_transcription": "Act of 1995 have made a lobbying contact on behalf of the offeror with respect to this contract, the offeror shall complete and submit, with its offer, OMB Standard Form LLL, Disclosure of Lobbying Activities, to provide the name of the registrants. The offeror need not report regularly employed officers or employees of the offeror to whom payments of reasonable compensation were made.\n\n(f) Buy American Certificate. (Applies only if the clause at Federal Acquisition Regulation (FAR) 52.225-1, Buy American-Supplies, is included in this solicitation.)\n\n(1)\n\n(i) The Offeror certifies that each end product, except those listed in paragraph (f)(2) of this provision, is a domestic end product and that each domestic end product listed in paragraph (f)(3) of this provision contains a critical component.\n\n(ii) The Offeror shall list as foreign end products those end products manufactured in the United States that do not qualify as domestic end products. For those foreign end products that do not consist wholly or predominantly of iron or steel or a combination of both, the Offeror shall also indicate whether these foreign end products exceed 55 percent domestic content, except for those that are COTS items. If the percentage of the domestic content is unknown, select \u201cno\u201d.\n\n(iii) The Offeror shall separately list the line item numbers of domestic end products that contain a critical component (see FAR 25.105).\n\n(iv) The terms \u201ccommercially available off-the-shelf (COTS) item,\u201d \u201ccritical component,\u201d \u201cdomestic end product,\u201d \u201cend product,\u201d \"foreign end product,\" and \"United States\" are defined in the clause of this solicitation entitled \"Buy American-Supplies.\"\n\n(2) Foreign End Products:\n\nLine Item No. | Country of Origin | Exceeds 55% domestic content (yes/no)\n__________ | __________ | __________"
+        }
+      },
+      {
+        "page": 11,
+        "data": {
+          "page_number": 1,
+          "text_transcription": "Line Item No. | Country of Origin | Exceeds 55% domestic content (yes/no)\n\n[List as necessary]\n(3) Domestic end products containing a critical component:\nLine Item No. ___\n[List as necessary]\n(4) The Government will evaluate offers in accordance with the policies and procedures of FAR part 25.\n(g)\n(1) Buy American-Free Trade Agreements-Israeli Trade Act Certificate. (Applies only if the clause at FAR 52.225-3, Buy American-Free Trade Agreements-Israeli Trade Act, is included in this solicitation.)\n(i)\n(A) The Offeror certifies that each end product, except those listed in paragraph (g)(1)(ii) or (iii) of this provision, is a domestic end product and that each domestic end product listed in paragraph (g)(1)(iv) of this provision contains a critical component.\n(B) The terms \"Bahraini, Moroccan, Omani, Panamanian, or Peruvian end product,\" \"commercially available off-the-shelf (COTS) item,\" \"critical component,\" \"domestic end product,\" \"end product,\" \"foreign end product,\" \"Free Trade Agreement country,\" \"Free Trade Agreement country end product,\" \"Israeli end product,\" and \"United States\" are defined in the clause of this solicitation entitled \"Buy American-Free Trade Agreements-Israeli Trade Act.\"\n(ii) The Offeror certifies that the following supplies are Free Trade Agreement country end products (other than Bahraini, Moroccan, Omani, Panamanian, or Peruvian end products) or Israeli end products as defined in",
+          "section_titles": [
+            "Buy American-Free Trade Agreements-Israeli Trade Act Certificate"
+          ],
+          "references": [
+            "FAR part 25",
+            "FAR 52.225-3"
+          ],
+          "contract_elements": [
+            {
+              "element": "Line Item No.",
+              "description": "Domestic end products containing a critical component"
+            }
+          ],
+          "measurements_specifications": [],
+          "numerical_data": [
+            "55%"
+          ],
+          "key_details": [
+            "Offeror certification regarding domestic end products and critical components",
+            "Definitions for various end product terms"
+          ]
+        }
+      },
+      {
+        "page": 12,
+        "data": {
+          "page_number": 2,
+          "text_transcription": "the clause of this solicitation entitled \"Buy American-Free Trade Agreements-Israeli Trade Act.\"\nFree Trade Agreement Country End Products (Other than Bahraini, Moroccan, Omani, Panamanian, or Peruvian End Products) or Israeli End Products:\nLine Item No. | Country of Origin\n[List as necessary]\n(iii) The Offeror shall list those supplies that are foreign end products (other than those listed in paragraph (g)(1)(ii) of this provision) as defined in the clause of this solicitation entitled \"Buy American-Free Trade Agreements-Israeli Trade Act.\" The Offeror shall list as other foreign end products those end products manufactured in the United States that do not qualify as domestic end products. For those foreign end products that do not consist wholly or predominantly of iron or steel or a combination of both, the Offeror shall also indicate whether these foreign end products exceed 55 percent domestic content, except for those that are COTS items. If the percentage of the domestic content is unknown, select \u201cno\u201d.\nOther Foreign End Products:\nLine Item No. | Country of Origin | Exceeds 55% domestic content (yes/no)",
+          "section_titles": [
+            "Free Trade Agreement Country End Products (Other than Bahraini, Moroccan, Omani, Panamanian, or Peruvian End Products) or Israeli End Products",
+            "Other Foreign End Products"
+          ],
+          "references": [],
+          "contract_elements": [
+            {
+              "element": "Line Item No.",
+              "description": "Foreign end products listing"
+            }
+          ],
+          "measurements_specifications": [],
+          "numerical_data": [
+            "55%"
+          ],
+          "key_details": [
+            "Offeror must list foreign end products and indicate domestic content percentage"
+          ]
+        }
+      },
+      {
+        "page": 13,
+        "data": {
+          "page_number": 3,
+          "text_transcription": "Line Item No. | Country of Origin | Exceeds 55% domestic content (yes/no)\n[List as necessary]\n(iv) The Offeror shall list the line item numbers of domestic end products that contain a critical component (see FAR 25.105).\nLine Item No. ___\n[List as necessary]\n(v) The Government will evaluate offers in accordance with the policies and procedures of FAR part 25.\n(2) Buy American-Free Trade Agreements-Israeli Trade Act Certificate, Alternate II. If Alternate II to the clause at FAR 52.225-3 is included in this solicitation, substitute the following paragraph (g)(1)(ii) for paragraph (g)(1)(ii) of the basic provision:\n(g)(1)(ii) The offeror certifies that the following supplies are Israeli end products as defined in the clause of this solicitation entitled \u201cBuy American\u2014Free Trade Agreements\u2014Israeli Trade Act\u201d:\nIsraeli End Products:\nLine Item No.",
+          "section_titles": [
+            "Buy American-Free Trade Agreements-Israeli Trade Act Certificate, Alternate II",
+            "Israeli End Products"
+          ],
+          "references": [
+            "FAR 25.105",
+            "FAR part 25",
+            "FAR 52.225-3"
+          ],
+          "contract_elements": [
+            {
+              "element": "Line Item No.",
+              "description": "Domestic end products with critical component"
+            }
+          ],
+          "measurements_specifications": [],
+          "numerical_data": [
+            "55%"
+          ],
+          "key_details": [
+            "Alternate II certification for Israeli end products"
+          ]
+        }
+      },
+      {
+        "page": 14,
+        "data": {
+          "page_number": 4,
+          "text_transcription": "[List as necessary]\n(3) Buy American-Free Trade Agreements-Israeli Trade Act Certificate, Alternate III. If Alternate III to the clause at 52.225-3 is included in this solicitation, substitute the following paragraphs (g)(1)(i)(B) and (g)(1)(ii) for paragraphs (g)(1)(i)(B) and (g)(1)(ii) of the basic provision:\n(g)(1)(i)(B) The terms \u201cKorean end product\u201d, \u201ccommercially available off-the-shelf (COTS) item,\u201d \u201ccritical component,\u201d \u201cdomestic end product,\u201d \u201cend product,\u201d \u201cforeign end product,\u201d \u201cFree Trade Agreement country,\u201d \u201cFree Trade Agreement country end product,\u201d \u201cIsraeli end product,\u201d and \u201cUnited States\u201d are defined in the clause of this solicitation entitled \u201cBuy American\u2014Free Trade Agreements\u2014Israeli Trade Act.\u201d\n(g)(1)(ii) The Offeror certifies that the following supplies are Korean end products or Israeli end products as defined in the clause of this solicitation entitled \u201cBuy American\u2014Free Trade Agreements\u2014Israeli Trade Act\u201d:\nKorean End Products or Israeli End Products:\nLine Item No. | Country of Origin\n[List as necessary]\n(4) Trade Agreements Certificate. (Applies only if the clause at FAR 52.225-5, Trade Agreements, is included in this solicitation.)\n(i) The offeror certifies that each end product, except those listed in paragraph (g)(4)(ii) of this provision, is a U.S.-made or designated country end product, as defined in the clause of this solicitation entitled \"Trade Agreements.\"",
+          "section_titles": [
+            "Buy American-Free Trade Agreements-Israeli Trade Act Certificate, Alternate III",
+            "Korean End Products or Israeli End Products",
+            "Trade Agreements Certificate"
+          ],
+          "references": [
+            "52.225-3",
+            "FAR 52.225-5"
+          ],
+          "contract_elements": [
+            {
+              "element": "Line Item No.",
+              "description": "Korean or Israeli end products"
+            }
+          ],
+          "measurements_specifications": [],
+          "numerical_data": [],
+          "key_details": [
+            "Alternate III certification for Korean and Israeli end products",
+            "Trade Agreements Certificate for U.S.-made or designated country end products"
+          ]
+        }
+      },
+      {
+        "page": 15,
+        "data": {
+          "page_number": 5,
+          "text_transcription": "(ii) The offeror shall list as other end products those end products that are not U.S.-made or designated country end products.\nOther End Products:\nLine Item No. | Country of Origin\n[List as necessary]\n(iii) The Government will evaluate offers in accordance with the policies and procedures of FAR part 25. For line items covered by the WTO GPA, the Government will evaluate offers of U.S.-made or designated country end products without regard to the restrictions of the Buy American statute. The Government will consider for award only offers of U.S.-made or designated country end products unless the Contracting Officer determines that there are no offers for such products or that the offers for such products are insufficient to fulfill the requirements of the solicitation.\n(h) Certification Regarding Responsibility Matters (Executive Order 12689). (Applies only if the contract value is expected to exceed the simplified acquisition threshold.) The offeror certifies, to the best of its knowledge and belief, that the offeror and/or any of its principals\u2013\n(1) \u2610 Are, \u2610 are not presently debarred, suspended, proposed for debarment, or declared ineligible for the award of contracts by any Federal agency;\n(2) \u2610 Have, \u2610 have not, within a three-year period preceding this offer, been convicted of or had a civil judgment rendered against them for: commission of fraud or a criminal offense in connection with obtaining, attempting to obtain, or performing a Federal, state or local government contract or subcontract; violation of Federal or state antitrust statutes relating to the submission of offers; or commission of embezzlement, theft,",
+          "section_titles": [
+            "Other End Products",
+            "Certification Regarding Responsibility Matters (Executive Order 12689)"
+          ],
+          "references": [
+            "FAR part 25",
+            "Executive Order 12689"
+          ],
+          "contract_elements": [
+            {
+              "element": "Line Item No.",
+              "description": "Other end products"
+            }
+          ],
+          "measurements_specifications": [],
+          "numerical_data": [
+            "three-year period"
+          ],
+          "key_details": [
+            "Evaluation procedures for WTO GPA items",
+            "Certification regarding debarment, suspension, and criminal offenses"
+          ]
+        }
+      },
+      {
+        "page": 16,
+        "data": {
+          "page_number": 1,
+          "text_transcription": "forgery, bribery, falsification or destruction of records, making false statements, tax evasion, violating Federal criminal tax laws, or receiving stolen property;\n\n(3) \u2610 Are, \u2610 are not presently indicted for, or otherwise criminally or civilly charged by a Government entity with, commission of any of these offenses enumerated in paragraph (h)(2) of this clause; and\n\n(4) \u2610 Have, \u2610 have not, within a three-year period preceding this offer, been notified of any delinquent Federal taxes in an amount that exceeds the threshold at 9.104-5(a)(2) for which the liability remains unsatisfied.\n\n(i) Taxes are considered delinquent if both of the following criteria apply:\n\n(A) The tax liability is finally determined. The liability is finally determined if it has been assessed. A liability is not finally determined if there is a pending administrative or judicial challenge. In the case of a judicial challenge to the liability, the liability is not finally determined until all judicial appeal rights have been exhausted.\n\n(B) The taxpayer is delinquent in making payment. A taxpayer is delinquent if the taxpayer has failed to pay the tax liability when full payment was due and required. A taxpayer is not delinquent in cases where enforced collection action is precluded.\n\n(ii) Examples.\n\n(A) The taxpayer has received a statutory notice of deficiency, under I.R.C. \u00a76212, which entitles the taxpayer to seek Tax Court review of a proposed tax deficiency. This is not a delinquent tax because it is not a final tax liability. Should the taxpayer seek Tax Court review, this will not be a final tax liability until the taxpayer has exercised all judicial appeal rights.\n\n(B) The IRS has filed a notice of Federal tax lien with respect to an assessed tax liability, and the taxpayer has been issued a notice under I.R.C. \u00a76320 entitling the taxpayer to request a hearing with the IRS Office of Appeals contesting the lien filing, and to further appeal to the Tax Court if the IRS determines to sustain the lien filing. In the course of the hearing, the taxpayer is entitled to contest the underlying tax liability because the taxpayer has had no prior opportunity to contest the liability. This is not a delinquent tax because it is not a final tax liability. Should the taxpayer seek"
+        }
+      },
+      {
+        "page": 17,
+        "data": {
+          "page_number": 2,
+          "text_transcription": "tax court review, this will not be a final tax liability until the taxpayer has exercised all judicial appeal rights.\n\n(C) The taxpayer has entered into an installment agreement pursuant to I.R.C. \u00a76159. The taxpayer is making timely payments and is in full compliance with the agreement terms. The taxpayer is not delinquent because the taxpayer is not currently required to make full payment.\n\n(D) The taxpayer has filed for bankruptcy protection. The taxpayer is not delinquent because enforced collection action is stayed under 11 U.S.C. \u00a7362 (the Bankruptcy Code).\n\n(i) Certification Regarding Knowledge of Child Labor for Listed End Products (Executive Order 13126). [The Contracting Officer must list in paragraph (i)(1) any end products being acquired under this solicitation that are included in the List of Products Requiring Contractor Certification as to Forced or Indentured Child Labor, unless excluded at 22.1503(b).]\n\n(1) Listed end products.\n\nListed End Product | Listed Countries of Origin\n--------------------|-------------------------\n____________________|________________________\n____________________|________________________\n\n(2) Certification. [If the Contracting Officer has identified end products and countries of origin in paragraph (i)(1) of this provision, then the offeror must certify to either (i)(2)(i) or (i)(2)(ii) by checking the appropriate block.]\n\n\u2610 (i) The offeror will not supply any end product listed in paragraph (i)(1) of this provision that was mined, produced, or manufactured in the corresponding country as listed for that product.\n\n\u2610 (ii) The offeror may supply an end product listed in paragraph (i)(1) of this provision that was mined, produced, or manufactured in the corresponding country as listed for that product. The offeror certifies that it has made a good faith effort to determine whether forced or indentured"
+        }
+      },
+      {
+        "page": 18,
+        "data": {
+          "page_number": 3,
+          "text_transcription": "child labor was used to mine, produce, or manufacture any such end product furnished under this contract. On the basis of those efforts, the offeror certifies that it is not aware of any such use of child labor.\n\n(j) Place of manufacture. (Does not apply unless the solicitation is predominantly for the acquisition of manufactured end products.) For statistical purposes only, the offeror shall indicate whether the place of manufacture of the end products it expects to provide in response to this solicitation is predominantly-\n\n(1) \u2610 In the United States (Check this box if the total anticipated price of offered end products manufactured in the United States exceeds the total anticipated price of offered end products manufactured outside the United States); or\n\n(2) \u2610 Outside the United States.\n\n(k) Certificates regarding exemptions from the application of the Service Contract Labor Standards (Certification by the offeror as to its compliance with respect to the contract also constitutes its certification as to compliance by its subcontractor if it subcontracts out the exempt services.) [The contracting officer is to check a box to indicate if paragraph (k)(1) or (k)(2) applies.]\n\n\u2610 (1) Maintenance, calibration, or repair of certain equipment as described in FAR 22.1003-4(c)(1). The offeror \u2610 does \u2610 does not certify that-\n\n(i) The items of equipment to be serviced under this contract are used regularly for other than Governmental purposes and are sold or traded by the offeror (or subcontractor in the case of an exempt subcontract) in substantial quantities to the general public in the course of normal business operations;\n\n(ii) The services will be furnished at prices which are, or are based on, established catalog or market prices (see FAR 22.1003-4(c)(2)(ii)) for the maintenance, calibration, or repair of such equipment; and\n\n(iii) The compensation (wage and fringe benefits) plan for all service employees performing work under the contract will be the same as that used for these employees and equivalent employees servicing the same equipment of commercial customers."
+        }
+      },
+      {
+        "page": 19,
+        "data": {
+          "page_number": 4,
+          "text_transcription": "\u2610 (2) Certain services as described in FAR 22.1003-4(d)(1).\nThe offeror \u2610 does \u2610 does not certify that-\n\n(i) The services under the contract are offered and sold regularly to non-Governmental customers, and are provided by the offeror (or subcontractor in the case of an exempt subcontract) to the general public in substantial quantities in the course of normal business operations;\n\n(ii) The contract services will be furnished at prices that are, or are based on, established catalog or market prices (see FAR 22.1003-4(d)(2)(iii));\n\n(iii) Each service employee who will perform the services under the contract will spend only a small portion of his or her time (a monthly average of less than 20 percent of the available hours on an annualized basis, or less than 20 percent of available hours during the contract period if the contract period is less than a month) servicing the Government contract; and\n\n(iv) The compensation (wage and fringe benefits) plan for all service employees performing work under the contract is the same as that used for these employees and equivalent employees servicing commercial customers.\n\n(3) If paragraph (k)(1) or (k)(2) of this clause applies-\n\n(i) If the offeror does not certify to the conditions in paragraph (k)(1) or (k)(2) and the Contracting Officer did not attach a Service Contract Labor Standards wage determination to the solicitation, the offeror shall notify the Contracting Officer as soon as possible; and\n\n(ii) The Contracting Officer may not make an award to the offeror if the offeror fails to execute the certification in paragraph (k)(1) or (k)(2) of this clause or to contact the Contracting Officer as required in paragraph (k)(3)(i) of this clause.\n\n(l) Taxpayer Identification Number (TIN) (26 U.S.C. 6109, 31 U.S.C. 7701). (Not applicable if the offeror is required to provide this information to the SAM to be eligible for award.)\n\n(1) All offerors must submit the information required in paragraphs (l)(3) through (l)(5) of this provision to comply with debt collection requirements of 31 U.S.C. 7701(c) and 3325(d), reporting requirements of 26 U.S.C. 6041, 6041A, and 6050M, and implementing regulations issued by the Internal Revenue Service (IRS)."
+        }
+      },
+      {
+        "page": 20,
+        "data": {
+          "page_number": 5,
+          "text_transcription": "(2) The TIN may be used by the Government to collect and report on any delinquent amounts arising out of the offeror\u2019s relationship with the Government (31 U.S.C. 7701(c)(3)). If the resulting contract is subject to the payment reporting requirements described in FAR 4.904, the TIN provided hereunder may be matched with IRS records to verify the accuracy of the offeror\u2019s TIN.\n\n(3) Taxpayer Identification Number (TIN).\n\n\u2610TIN: ____________________________.\n\n\u2610TIN has been applied for.\n\n\u2610TIN is not required because:\n\n\u2610Offeror is a nonresident alien, foreign corporation, or foreign partnership that does not have income effectively connected with the conduct of a trade or business in the United States and does not have an office or place of business or a fiscal paying agent in the United States;\n\n\u2610Offeror is an agency or instrumentality of a foreign government;\n\n\u2610Offeror is an agency or instrumentality of the Federal Government.\n\n(4) Type of organization.\n\n\u2610Sole proprietorship;\n\u2610Partnership;\n\u2610Corporate entity (not tax-exempt);\n\u2610Corporate entity (tax-exempt);\n\u2610Government entity (Federal, State, or local);\n\u2610Foreign government;\n\u2610International organization per 26 CFR1.6049-4;\n\u2610Other ____________________________.\n\n(5) Common parent.\n\n\u2610Offeror is not owned or controlled by a common parent;\n\u2610Name and TIN of common parent:\nName ____________________________."
+        }
+      },
+      {
+        "page": 21,
+        "data": {
+          "page_number": 1,
+          "text_transcription": "TIN _______________________________.\n(m) Restricted business operations in Sudan. By submission of its offer, the offeror certifies that the offeror does not conduct any restricted business operations in Sudan.\n(n) Prohibition on Contracting with Inverted Domestic Corporations.\n(1) Government agencies are not permitted to use appropriated (or otherwise made available) funds for contracts with either an inverted domestic corporation, or a subsidiary of an inverted domestic corporation, unless the exception at 9.108-2(b) applies or the requirement is waived in accordance with the procedures at 9.108-4.\n(2) Representation. The Offeror represents that\u2013\n(i) It \u2610 is, \u2610 is not an inverted domestic corporation; and\n(ii) It \u2610 is, \u2610 is not a subsidiary of an inverted domestic corporation.\n(o) Prohibition on contracting with entities engaging in certain activities or transactions relating to Iran.\n(1) The offeror shall e-mail questions concerning sensitive technology to the Department of State at CISADA106@state.gov.\n(2) Representation and Certifications. Unless a waiver is granted or an exception applies as provided in paragraph (o)(3) of this provision, by submission of its offer, the offeror\u2013\n(i) Represents, to the best of its knowledge and belief, that the offeror does not export any sensitive technology to the government of Iran or any entities or individuals owned or controlled by, or acting on behalf or at the direction of, the government of Iran;\n(ii) Certifies that the offeror, or any person owned or controlled by the offeror, does not engage in any activities for which sanctions may be imposed under section 5 of the Iran Sanctions Act; and\n(iii) Certifies that the offeror, and any person owned or controlled by the offeror, does not knowingly engage in any transaction that exceeds the threshold at FAR 25.703-2(a)(2) with Iran\u2019s Revolutionary Guard Corps or any of its officials, agents, or affiliates, the property and interests in",
+          "section_titles": [
+            "Restricted business operations in Sudan",
+            "Prohibition on Contracting with Inverted Domestic Corporations",
+            "Prohibition on contracting with entities engaging in certain activities or transactions relating to Iran"
+          ],
+          "emails": [
+            "CISADA106@state.gov"
+          ],
+          "references": [
+            "9.108-2(b)",
+            "9.108-4",
+            "FAR 25.703-2(a)(2)"
+          ],
+          "checkboxes": [
+            "It \u2610 is, \u2610 is not an inverted domestic corporation",
+            "It \u2610 is, \u2610 is not a subsidiary of an inverted domestic corporation"
+          ],
+          "certifications": [
+            "offeror does not conduct any restricted business operations in Sudan",
+            "offeror does not export any sensitive technology to the government of Iran",
+            "offeror does not engage in activities for which sanctions may be imposed under section 5 of the Iran Sanctions Act",
+            "offeror does not knowingly engage in transactions with Iran\u2019s Revolutionary Guard Corps exceeding threshold"
+          ],
+          "page_links": [
+            "9.108-2(b)",
+            "9.108-4",
+            "FAR 25.703-2(a)(2)"
+          ]
+        }
+      },
+      {
+        "page": 22,
+        "data": {
+          "page_number": 2,
+          "text_transcription": "property of which are blocked pursuant to the International Emergency Economic Powers Act (et seq.) (see OFAC\u2019s Specially Designated Nationals and Blocked Persons List at https://www.treasury.gov/resource-center/sanctions/SDN-List/Pages/default.aspx).\n(3) The representation and certification requirements of paragraph (o)(2) of this provision do not apply if\u2013\n(i) This solicitation includes a trade agreements certification (e.g., 52.212-3(g) or a comparable agency provision); and\n(ii) The offeror has certified that all the offered products to be supplied are designated country end products.\n(p) Ownership or Control of Offeror. (Applies in all solicitations when there is a requirement to be registered in SAM or a requirement to have a unique entity identifier in the solicitation).\n(1) The Offeror represents that it \u2610 has or \u2610 does not have an immediate owner. If the Offeror has more than one immediate owner (such as a joint venture), then the Offeror shall respond to paragraph (2) and if applicable, paragraph (3) of this provision for each participant in the joint venture.\n(2) If the Offeror indicates \"has\" in paragraph (p)(1) of this provision, enter the following information:\nImmediate owner CAGE code: _________________.\nImmediate owner legal name: _____________________.\n(Do not use a \"doing business as\" name)\nIs the immediate owner owned or controlled by another entity: \u2610 Yes or \u2610 No.\n(3) If the Offeror indicates \"yes\" in paragraph (p)(2) of this provision, indicating that the immediate owner is owned or controlled by another entity, then enter the following information:\nHighest-level owner CAGE code: _________________.\nHighest-level owner legal name: _________________.\n(Do not use a \"doing business as\" name)",
+          "section_titles": [
+            "Ownership or Control of Offeror"
+          ],
+          "links": [
+            "https://www.treasury.gov/resource-center/sanctions/SDN-List/Pages/default.aspx",
+            "52.212-3(g)"
+          ],
+          "checkboxes": [
+            "it \u2610 has or \u2610 does not have an immediate owner",
+            "Is the immediate owner owned or controlled by another entity: \u2610 Yes or \u2610 No"
+          ],
+          "fields": [
+            "Immediate owner CAGE code",
+            "Immediate owner legal name",
+            "Highest-level owner CAGE code",
+            "Highest-level owner legal name"
+          ]
+        }
+      },
+      {
+        "page": 23,
+        "data": {
+          "page_number": 3,
+          "text_transcription": "(q) Representation by Corporations Regarding Delinquent Tax Liability or a Felony Conviction under any Federal Law.\n(1) As required by sections 744 and 745 of Division E of the Consolidated and Further Continuing Appropriations Act, 2015 (Pub. L. 113-235), and similar provisions, if contained in subsequent appropriations acts, The Government will not enter into a contract with any corporation that\u2013\n(i) Has any unpaid Federal tax liability that has been assessed, for which all judicial and administrative remedies have been exhausted or have lapsed, and that is not being paid in a timely manner pursuant to an agreement with the authority responsible for collecting the tax liability, where the awarding agency is aware of the unpaid tax liability, unless an agency has considered suspension or debarment of the corporation and made a determination that suspension or debarment is not necessary to protect the interests of the Government; or\n(ii) Was convicted of a felony criminal violation under any Federal law within the preceding 24 months, where the awarding agency is aware of the conviction, unless an agency has considered suspension or debarment of the corporation and made a determination that this action is not necessary to protect the interests of the Government.\n(2) The Offeror represents that\u2013\n(i) It \u2610 is \u2610 is not a corporation that has any unpaid Federal tax liability that has been assessed, for which all judicial and administrative remedies have been exhausted or have lapsed, and that is not being paid in a timely manner pursuant to an agreement with the authority responsible for collecting the tax liability; and\n(ii) It \u2610 is \u2610 is not a corporation that was convicted of a felony criminal violation under a Federal law within the preceding 24 months.\n(r) Predecessor of Offeror. (Applies in all solicitations that include the provision at 52.204-16, Commercial and Government Entity Code Reporting.)\n(1) The Offeror represents that it \u2610 is or \u2610 is not a successor to a predecessor that held a Federal contract or grant within the last three years.\n(2) If the Offeror has indicated \"is\" in paragraph (r)(1) of this provision, enter the following information for all predecessors that held a Federal",
+          "section_titles": [
+            "Representation by Corporations Regarding Delinquent Tax Liability or a Felony Conviction under any Federal Law",
+            "Predecessor of Offeror"
+          ],
+          "references": [
+            "sections 744 and 745 of Division E of the Consolidated and Further Continuing Appropriations Act, 2015 (Pub. L. 113-235)",
+            "52.204-16"
+          ],
+          "checkboxes": [
+            "It \u2610 is \u2610 is not a corporation that has any unpaid Federal tax liability",
+            "It \u2610 is \u2610 is not a corporation that was convicted of a felony criminal violation under a Federal law within the preceding 24 months",
+            "it \u2610 is or \u2610 is not a successor to a predecessor that held a Federal contract or grant within the last three years"
+          ]
+        }
+      },
+      {
+        "page": 24,
+        "data": {
+          "page_number": 4,
+          "text_transcription": "contract or grant within the last three years (if more than one predecessor, list in reverse chronological order):\nPredecessor CAGE code: (or mark \"Unknown\").\nPredecessor legal name:____.\n(Do not use a \"doing business as\" name).\n(s) [Reserved].\n(t) Public Disclosure of Greenhouse Gas Emissions and Reduction Goals. Applies in all solicitations that require offerors to register in SAM (12.301(d)(1)).\n(1) This representation shall be completed if the Offeror received $7.5 million or more in contract awards in the prior Federal fiscal year. The representation is optional if the Offeror received less than $7.5 million in Federal contract awards in the prior Federal fiscal year.\n(2) Representation. [Offeror to check applicable block(s) in paragraph (t)(2)(i) and (ii)].\n(i) The Offeror (itself or through its immediate owner or highest-level owner) \u2610 does, \u2610 does not publicly disclose greenhouse gas emissions, i.e., makes available on a publicly accessible website the results of a greenhouse gas inventory, performed in accordance with an accounting standard with publicly available and consistently applied criteria, such as the Greenhouse Gas Protocol Corporate Standard.\n(ii) The Offeror (itself or through its immediate owner or highest-level owner) \u2610 does, \u2610 does not publicly disclose a quantitative greenhouse gas emissions reduction goal, i.e., make available on a publicly accessible website a target to reduce absolute emissions or emissions intensity by a specific quantity or percentage.\n(iii) A publicly accessible website includes the Offeror's own website or a recognized, third-party greenhouse gas emissions reporting program.\n(3) If the Offeror checked \"does\" in paragraphs (t)(2)(i) or (t)(2)(ii) of this provision, respectively, the Offeror shall provide the publicly accessible website(s) where greenhouse gas emissions and/or reduction goals are reported:__________.",
+          "section_titles": [
+            "Public Disclosure of Greenhouse Gas Emissions and Reduction Goals"
+          ],
+          "references": [
+            "12.301(d)(1)"
+          ],
+          "checkboxes": [
+            "\u2610 does, \u2610 does not publicly disclose greenhouse gas emissions",
+            "\u2610 does, \u2610 does not publicly disclose a quantitative greenhouse gas emissions reduction goal"
+          ],
+          "fields": [
+            "Predecessor CAGE code",
+            "Predecessor legal name",
+            "publicly accessible website(s) where greenhouse gas emissions and/or reduction goals are reported"
+          ],
+          "amounts": [
+            "$7.5 million"
+          ]
+        }
+      },
+      {
+        "page": 25,
+        "data": {
+          "page_number": 5,
+          "text_transcription": "(u)\n(1) In accordance with section 743 of Division E, Title VII, of the Consolidated and Further Continuing Appropriations Act, 2015 (Pub. L. 113-235) and its successor provisions in subsequent appropriations acts (and as extended in continuing resolutions), Government agencies are not permitted to use appropriated (or otherwise made available) funds for contracts with an entity that requires employees or subcontractors of such entity seeking to report waste, fraud, or abuse to sign internal confidentiality agreements or statements prohibiting or otherwise restricting such employees or subcontractors from lawfully reporting such waste, fraud, or abuse to a designated investigative or law enforcement representative of a Federal department or agency authorized to receive such information.\n(2) The prohibition in paragraph (u)(1) of this provision does not contravene requirements applicable to Standard Form 312 (Classified Information Nondisclosure Agreement), Form 4414 (Sensitive Compartmented Information Nondisclosure Agreement), or any other form issued by a Federal department or agency governing the nondisclosure of classified information.\n(3) Representation. By submission of its offer, the Offeror represents that it will not require its employees or subcontractors to sign or comply with internal confidentiality agreements or statements prohibiting or otherwise restricting such employees or subcontractors from lawfully reporting waste, fraud, or abuse related to the performance of a Government contract to a designated investigative or law enforcement representative of a Federal department or agency authorized to receive such information (e.g., agency Office of the Inspector General).\n(v) Covered Telecommunications Equipment or Services-Representation. Section 889(a)(1)(A) and section 889 (a)(1)(B) of Public Law 115-232.\n(1) The Offeror shall review the list of excluded parties in the System for Award Management (SAM) (https://www.sam.gov) for entities excluded from receiving federal awards for \"covered telecommunications equipment or services\".\n(2) The Offeror represents that\u2013\n(i) It \u2610 does, \u2610 does not provide covered telecommunications equipment or services as a part of its offered products or services to the Government in",
+          "section_titles": [
+            "Representation regarding internal confidentiality agreements",
+            "Covered Telecommunications Equipment or Services-Representation"
+          ],
+          "references": [
+            "section 743 of Division E, Title VII, of the Consolidated and Further Continuing Appropriations Act, 2015 (Pub. L. 113-235)",
+            "Standard Form 312",
+            "Form 4414",
+            "Section 889(a)(1)(A) and section 889 (a)(1)(B) of Public Law 115-232"
+          ],
+          "links": [
+            "https://www.sam.gov"
+          ],
+          "checkboxes": [
+            "It \u2610 does, \u2610 does not provide covered telecommunications equipment or services as a part of its offered products or services to the Government"
+          ]
+        }
+      },
+      {
+        "page": 26,
+        "data": {
+          "page_number": 1,
+          "text_transcription": "the performance of any contract, subcontract, or other contractual instrument.\n\n(ii) After conducting a reasonable inquiry for purposes of this representation, that it \u25a1 does, \u25a1 does not use covered telecommunications equipment or services, or any equipment, system, or service that uses covered telecommunications equipment or services.\n\n(End of Provision)\n\nAlternate I (Feb 2024). As prescribed in 12.301 (b)(2), add the following paragraph (c)(12) to the basic provision:\n\n(12) (Complete if the offeror has represented itself as disadvantaged in paragraph (c)(5) of this provision.)\n\n\u25a1 Black American.\n\n\u25a1 Hispanic American.\n\n\u25a1 Native American (American Indians, Eskimos, Aleuts, or Native Hawaiians).\n\n\u25a1 Asian-Pacific American (persons with origins from Burma, Thailand, Malaysia, Indonesia, Singapore, Brunei, Japan, China, Taiwan, Laos, Cambodia (Kampuchea), Vietnam, Korea, The Philippines, Republic of Palau, Republic of the Marshall Islands, Federated States of Micronesia, the Commonwealth of the Northern Mariana Islands, Guam, Samoa, Macao, Hong Kong, Fiji, Tonga, Kiribati, Tuvalu, or Nauru).\n\n\u25a1 Subcontinent Asian (Asian-Indian) American (persons with origins from India, Pakistan, Bangladesh, Sri Lanka, Bhutan, the Maldives Islands, or Nepal).\n\n\u25a1 Individual/concern, other than one of the preceding.\n\nParent topic: 52.212 [Reserved]",
+          "section_titles": [
+            "Alternate I (Feb 2024)"
+          ],
+          "contract_elements": [
+            {
+              "clause_reference": "12.301 (b)(2)",
+              "paragraph": "(c)(12)"
+            }
+          ],
+          "dates": [
+            "Feb 2024"
+          ],
+          "amounts": [],
+          "measurements": [],
+          "specifications": [
+            "Black American",
+            "Hispanic American",
+            "Native American (American Indians, Eskimos, Aleuts, or Native Hawaiians)",
+            "Asian-Pacific American (persons with origins from Burma, Thailand, Malaysia, Indonesia, Singapore, Brunei, Japan, China, Taiwan, Laos, Cambodia (Kampuchea), Vietnam, Korea, The Philippines, Republic of Palau, Republic of the Marshall Islands, Federated States of Micronesia, the Commonwealth of the Northern Mariana Islands, Guam, Samoa, Macao, Hong Kong, Fiji, Tonga, Kiribati, Tuvalu, or Nauru)",
+            "Subcontinent Asian (Asian-Indian) American (persons with origins from India, Pakistan, Bangladesh, Sri Lanka, Bhutan, the Maldives Islands, or Nepal)",
+            "Individual/concern, other than one of the preceding"
+          ],
+          "numerical_data": [
+            "(c)(5)",
+            "(c)(12)"
+          ],
+          "links": [
+            {
+              "text": "12.301",
+              "url": "https://www.acquisition.gov/far/12.301"
+            },
+            {
+              "text": "52.212 [Reserved]",
+              "url": "https://www.acquisition.gov/far/52.212"
+            }
+          ]
+        }
+      }
+    ],
+    "processingMethod": "detailed_batch_analysis"
+  }
+}
