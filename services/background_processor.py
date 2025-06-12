@@ -607,13 +607,13 @@ class BackgroundDocumentProcessor:
                     
                     logger.info(f"Sending to Norshin API: {filename}")
                     
-                    # Use reasonable timeout for concurrent processing
+                    # Use 1 hour timeout for Norshin API processing
                     if self.norshin_api_url:
                         norshin_response = requests.post(
                             self.norshin_api_url,
                             files=files,
                             headers=headers,
-                            timeout=300  # 5 minutes timeout for concurrent processing
+                            timeout=3600  # 1 hour timeout for Norshin API processing
                         )
                     else:
                         logger.error("Norshin API URL not configured")
