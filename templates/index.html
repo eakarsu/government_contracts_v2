@@ -482,17 +482,17 @@ async function queueDocuments() {
 }
 
 async function processDocuments() {
-    showJobProgress('Starting sequential document processing...');
+    showJobProgress('Starting direct processing with OpenRouter AI...');
     
     try {
-        const response = await fetch('/api/documents/queue/process-parallel', {
+        const response = await fetch('/api/documents/queue/process-direct', {
             method: 'POST'
         });
         
         const result = await response.json();
         
         if (response.ok) {
-            updateJobProgress(`✅ Processing started! ${result.total_processed} documents queued for sequential processing`, 'success');
+            updateJobProgress(`✅ Processing started! Documents are being analyzed with OpenRouter AI`, 'success');
             setTimeout(() => {
                 updateDashboardCounters();
                 hideJobProgress();
