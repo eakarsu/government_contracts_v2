@@ -102,14 +102,6 @@
                         </button>
                     </div>
                     <div class="col-md-3 mb-2">
-                        <button class="btn btn-success w-100" onclick="indexProcessedDocuments()">
-                            <i data-feather="database" class="me-2"></i>
-                            Index for Search
-                        </button>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-3 mb-2">
                         <a href="{{ url_for('web.search') }}" class="btn btn-secondary w-100">
                             <i data-feather="search" class="me-2"></i>
                             Search Contracts
@@ -489,30 +481,7 @@ async function queueDocuments() {
 
 
 
-async function indexProcessedDocuments() {
-    showJobProgress('Indexing processed documents for search...');
-    
-    try {
-        const response = await fetch('/api/documents/queue/index-processed', {
-            method: 'POST'
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            const stats = result.stats;
-            updateJobProgress(`✅ Indexed ${stats.indexed} documents! ${stats.errors} errors from ${stats.total_files} files`, 'success');
-            setTimeout(() => {
-                updateDashboardCounters();
-                hideJobProgress();
-            }, 2000);
-        } else {
-            updateJobProgress(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-        }
-    } catch (error) {
-        updateJobProgress(`❌ Error: ${error.message}`, 'error');
-    }
-}
+
 
 function showJobProgress(message) {
     document.getElementById('job-progress-content').innerHTML = `
