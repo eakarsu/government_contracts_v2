@@ -1,0 +1,559 @@
+{
+  "original_file": "queue_documents/f7d591d227b74a9bacf8867054a51f19_f50fbeed.pdf",
+  "processed_file": "processed_queue_documents/f7d591d227b74a9bacf8867054a51f19_f50fbeed.pdf",
+  "processed_timestamp": "2025-06-12T11:10:24.174416",
+  "processing_status": "completed",
+  "norshin_data_available": true,
+  "file_size": 907541,
+  "norshin_response": {
+    "success": true,
+    "totalPages": 10,
+    "totalBatches": 2,
+    "retriedPages": [],
+    "results": [
+      {
+        "page": 1,
+        "data": {
+          "page_number": 1,
+          "title": "Saint-Gaudens NHP Hazard Trees",
+          "map_labels": [
+            "SAGA Main Campus",
+            "Blow-Me-Down-Farm"
+          ],
+          "legend": {
+            "SAGA_Hazard_Trees_Jan_2025": "orange dot",
+            "Nps boundary": "noted",
+            "Lands": "green outline"
+          },
+          "date": "3/7/2025",
+          "imagery": [
+            "World Imagery",
+            "Low Resolution 15m Imagery",
+            "High Resolution 60cm Imagery",
+            "High Resolution 30cm Imagery",
+            "2.4m Resolution Metadata"
+          ],
+          "citations": "Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+          "scale": "1:11,401",
+          "scale_bar_miles": "0 0.05 0.1 0.2 mi",
+          "scale_bar_km": "0 0.1 0.2 0.4 km",
+          "author": "Kieran Kelly"
+        }
+      },
+      {
+        "page": 2,
+        "data": {
+          "page_number": 2,
+          "section_title": "SAGA Main Campus",
+          "table_headers": [
+            "Tree Number",
+            "Species",
+            "DBH",
+            "Work to be Performed"
+          ],
+          "tree_data": [
+            {
+              "Tree Number": "1-40",
+              "Species": "White, Grey, River Birch",
+              "DBH": "7-17\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "41",
+              "Species": "Thornless Honey Locust",
+              "DBH": "67\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter. Inspect, raise and fix lighting protection as needed, as of 2020 the highest terminal was 13-15' below branch tip heights. Inspect all current cabling systems. New cabling will need to be installed higher and farther out to compensate for past growth. Two large limbs on the South and Southwest side of the tree will need at least one new cable each. Total amount of cabling is approximately 50-75 yards in length."
+            },
+            {
+              "Tree Number": "42",
+              "Species": "Oak",
+              "DBH": "43\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "43",
+              "Species": "White Pine",
+              "DBH": "11\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "44",
+              "Species": "White Pine",
+              "DBH": "13\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "45",
+              "Species": "White Pine",
+              "DBH": "30.5\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "46",
+              "Species": "White Pine",
+              "DBH": "15\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "47",
+              "Species": "White Pine",
+              "DBH": "7.5\"",
+              "Work to be Performed": "Remove"
+            }
+          ]
+        }
+      },
+      {
+        "page": 3,
+        "data": {
+          "page_number": 3,
+          "section_title": "SAGA Main Campus",
+          "table_headers": [
+            "Tree Number",
+            "Species",
+            "DBH",
+            "Work to be Performed"
+          ],
+          "tree_data": [
+            {
+              "Tree Number": "48",
+              "Species": "Oak",
+              "DBH": "29.5\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "49",
+              "Species": "White Pine",
+              "DBH": "7.5\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "50",
+              "Species": "White Pine",
+              "DBH": "7.5\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "51",
+              "Species": "White Pine",
+              "DBH": "9\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "52",
+              "Species": "White Pine",
+              "DBH": "7.5\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "53",
+              "Species": "White Pine",
+              "DBH": "10\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "54",
+              "Species": "White Pine",
+              "DBH": "8\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "55",
+              "Species": "White Pine",
+              "DBH": "10\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "56",
+              "Species": "White Pine",
+              "DBH": "11\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "57",
+              "Species": "Oak",
+              "DBH": "21.5\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "58",
+              "Species": "Oak",
+              "DBH": "26\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "59",
+              "Species": "White Pine",
+              "DBH": "37\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "60",
+              "Species": "White Birch",
+              "DBH": "16\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "61",
+              "Species": "Ash",
+              "DBH": "9\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "62",
+              "Species": "Elm",
+              "DBH": "30\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter. Inspect and repair current cable system as needed."
+            }
+          ]
+        }
+      },
+      {
+        "page": 4,
+        "data": {
+          "page_number": 4,
+          "section_title": "SAGA Main Campus",
+          "table_headers": [
+            "Tree Number",
+            "Species",
+            "DBH",
+            "Work to be Performed"
+          ],
+          "tree_data": [
+            {
+              "Tree Number": "63",
+              "Species": "White Pine",
+              "DBH": "34\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "64",
+              "Species": "White Pine",
+              "DBH": "38\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "65",
+              "Species": "White Pine",
+              "DBH": "40.5\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "66",
+              "Species": "White Pine",
+              "DBH": "40\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "67",
+              "Species": "White Pine",
+              "DBH": "33\" & 33\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "68",
+              "Species": "White Birch",
+              "DBH": "10\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "69",
+              "Species": "White Pine",
+              "DBH": "16\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "70",
+              "Species": "White Pine",
+              "DBH": "21\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "71",
+              "Species": "White Pine",
+              "DBH": "22\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "72",
+              "Species": "Beech",
+              "DBH": "9\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "73",
+              "Species": "Beech",
+              "DBH": "8\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "74",
+              "Species": "Oak",
+              "DBH": "24\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "75",
+              "Species": "Ash",
+              "DBH": "10.5\"",
+              "Work to be Performed": "Remove"
+            }
+          ]
+        }
+      },
+      {
+        "page": 5,
+        "data": {
+          "page_number": 5,
+          "section_title": "SAGA Main Campus",
+          "table_headers": [
+            "Tree Number",
+            "Species",
+            "DBH",
+            "Work to be Performed"
+          ],
+          "tree_data": [
+            {
+              "Tree Number": "76",
+              "Species": "Oak",
+              "DBH": "30+\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "77",
+              "Species": "Oak",
+              "DBH": "31\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "78",
+              "Species": "Ash",
+              "DBH": "21\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "79",
+              "Species": "Ash",
+              "DBH": "16\"",
+              "Work to be Performed": "Remove"
+            }
+          ]
+        }
+      },
+      {
+        "page": 6,
+        "data": {
+          "page_number": 1,
+          "title": "Blow-Me-Down-Farm",
+          "table": [
+            {
+              "Tree Number": "F-1",
+              "Species": "Spruce",
+              "DBH": "21\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "F-2",
+              "Species": "Spruce",
+              "DBH": "13.8\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "F-3",
+              "Species": "Spruce",
+              "DBH": "16\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "F-4",
+              "Species": "Spruce",
+              "DBH": "16\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "F-5",
+              "Species": "Maple",
+              "DBH": "16\" & 12\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "F-6",
+              "Species": "Oak",
+              "DBH": "43\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            },
+            {
+              "Tree Number": "F-7",
+              "Species": "Spruce",
+              "DBH": "38\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "F-8",
+              "Species": "Oak",
+              "DBH": "34\"",
+              "Work to be Performed": "Remove & Stump Removal"
+            },
+            {
+              "Tree Number": "F-9",
+              "Species": "Willow",
+              "DBH": "38\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter."
+            }
+          ]
+        }
+      },
+      {
+        "page": 7,
+        "data": {
+          "page_number": 2,
+          "title": "Blow-Me-Down-Farm",
+          "table": [
+            {
+              "Tree Number": "F-10",
+              "Species": "Catalpa",
+              "DBH": "38\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter. Install up to a total of 11 bracing rods and two cables. Total amount of cable is approximately 25 yards in length."
+            },
+            {
+              "Tree Number": "F-11",
+              "Species": "Hemlock",
+              "DBH": "18\"",
+              "Work to be Performed": "Remove"
+            },
+            {
+              "Tree Number": "F-12",
+              "Species": "Black Locust",
+              "DBH": "67\"",
+              "Work to be Performed": "Prune and remove all dead, dying, diseased, interfering, objectionable weakly attached low vigor branches 1\" in diameter. Dead wood greater than 2' in length to be removed regardless of diameter. Install 2 bracing rods and one cable system. Total amount of cable is approximately 15 yards in length."
+            },
+            {
+              "Tree Number": "F-13",
+              "Species": "Oak",
+              "DBH": "18\"",
+              "Work to be Performed": "Remove & Stump Removal"
+            }
+          ]
+        }
+      },
+      {
+        "page": 8,
+        "data": {
+          "page_number": 3,
+          "title": "Blow-Me-Down-Farm",
+          "table": [
+            {
+              "Tree Number": "F-14",
+              "Species": "Oak",
+              "DBH": "18\"",
+              "Work to be Performed": "Remove & Stump Removal"
+            }
+          ]
+        }
+      },
+      {
+        "page": 9,
+        "data": {
+          "page_number": 4,
+          "title": "SAGA Main Campus",
+          "map_details": {
+            "date": "3/7/2025",
+            "legend": [
+              "SAGA_Hazard_Trees_Jan_2025",
+              "Nps boundary",
+              "Lands"
+            ],
+            "scale": "1:2,850",
+            "distance_mi": "0.07 mi",
+            "distance_km": "0.11 km",
+            "source": "Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+            "author": "Kieran Kelly"
+          },
+          "features": [
+            "World Imagery",
+            "Low Resolution 15m Imagery",
+            "High Resolution 60cm Imagery",
+            "High Resolution 30cm Imagery",
+            "Citations",
+            "60cm Resolution Metadata"
+          ],
+          "tree_numbers": [
+            "1-40",
+            "41",
+            "42",
+            "43-55",
+            "56",
+            "57",
+            "58",
+            "59",
+            "60",
+            "61",
+            "62",
+            "63",
+            "64",
+            "65",
+            "66",
+            "67",
+            "68",
+            "69",
+            "70",
+            "71",
+            "72",
+            "73",
+            "74",
+            "75",
+            "76",
+            "77",
+            "78",
+            "79"
+          ]
+        }
+      },
+      {
+        "page": 10,
+        "data": {
+          "page_number": 5,
+          "title": "Blow-Me-Down-Farm",
+          "map_details": {
+            "date": "3/5/2025",
+            "legend": [
+              "SAGA_Hazard_Trees_Jan_2025",
+              "Nps boundary",
+              "Lands"
+            ],
+            "scale": "1:5,700",
+            "distance_mi": "0.14 mi",
+            "distance_km": "0.2 km",
+            "source": "Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+            "author": "Kieran Kelly"
+          },
+          "features": [
+            "World Imagery",
+            "Low Resolution 15m Imagery",
+            "High Resolution 60cm Imagery",
+            "High Resolution 30cm Imagery",
+            "Citations",
+            "1.2m Resolution Metadata"
+          ],
+          "tree_numbers": [
+            "F-1",
+            "F-2",
+            "F-3",
+            "F-4",
+            "F-5",
+            "F-6",
+            "F-7",
+            "F-8",
+            "F-9",
+            "F-10",
+            "F-11",
+            "F-12",
+            "F-13",
+            "F-14"
+          ]
+        }
+      }
+    ],
+    "processingMethod": "detailed_batch_analysis"
+  }
+}
