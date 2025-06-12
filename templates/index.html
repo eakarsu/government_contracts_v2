@@ -330,11 +330,95 @@
         </div>
     </div>
 </div>
+
+<!-- Test Mode Status Modal -->
+<div class="modal fade" id="testModeStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i data-feather="beaker" class="me-2"></i>
+                    Test Mode Status
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="test-mode-content">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-3" role="status" id="test-mode-spinner">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div>
+                            <p class="mb-1" id="test-mode-message">Initializing...</p>
+                            <small class="text-muted" id="test-mode-subtitle">Please wait while we process your request</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
 let jobProgressModal;
+let testModeStatusModal;
+
+// Unified test mode status function
+function showTestModeStatus(message, type = 'info', subtitle = null) {
+    const messageElement = document.getElementById('test-mode-message');
+    const subtitleElement = document.getElementById('test-mode-subtitle');
+    const spinnerElement = document.getElementById('test-mode-spinner');
+    
+    if (messageElement) messageElement.textContent = message;
+    
+    // Set subtitle based on type or custom subtitle
+    if (subtitle) {
+        subtitleElement.textContent = subtitle;
+    } else {
+        switch (type) {
+            case 'info':
+                subtitleElement.textContent = 'Processing your request...';
+                break;
+            case 'success':
+                subtitleElement.textContent = 'Operation completed successfully';
+                break;
+            case 'warning':
+                subtitleElement.textContent = 'Please check the workflow steps';
+                break;
+            case 'error':
+                subtitleElement.textContent = 'Please try again or contact support';
+                break;
+            default:
+                subtitleElement.textContent = 'Status update';
+        }
+    }
+    
+    // Show/hide spinner based on type
+    if (type === 'info') {
+        spinnerElement.style.display = 'block';
+    } else {
+        spinnerElement.style.display = 'none';
+    }
+    
+    // Show the modal
+    if (testModeStatusModal) {
+        testModeStatusModal.show();
+    }
+    
+    // Auto-close for success/error after 3 seconds
+    if (type === 'success' || type === 'error') {
+        setTimeout(() => {
+            if (testModeStatusModal) {
+                testModeStatusModal.hide();
+            }
+        }, 3000);
+    }
+}
 
 // Alert function for user notifications
 function showAlert(type, message) {
@@ -369,6 +453,7 @@ function showAlert(type, message) {
 
 document.addEventListener('DOMContentLoaded', function() {
     jobProgressModal = new bootstrap.Modal(document.getElementById('jobProgressModal'));
+    testModeStatusModal = new bootstrap.Modal(document.getElementById('testModeStatusModal'));
     feather.replace();
     
     // Add global error handlers for debugging
@@ -764,7 +849,7 @@ function displayRecentNotifications(notifications) {
 // Test mode functions
 async function queueTestDocuments() {
     try {
-        showAlert('info', 'Queueing test documents (max 7, ≤5 pages each)...');
+        showTestModeStatus('Queueing test documents...', 'info');
         
         const response = await fetch('/api/documents/queue/test-mode', {
             method: 'POST'
@@ -773,70 +858,46 @@ async function queueTestDocuments() {
         const data = await response.json();
         
         if (data.success) {
-            showAlert('success', `${data.message} (${data.queued_count} documents)`);
-            updateDashboardCounters(); // Update status
+            showTestModeStatus(`Queued ${data.queued_count} test documents. Ready for processing.`, 'success');
+            updateDashboardCounters();
         } else {
-            showAlert('danger', `Failed to queue test documents: ${data.error}`);
+            showTestModeStatus(`Failed to queue: ${data.error}`, 'error');
         }
     } catch (error) {
-        showAlert('danger', `Error queueing test documents: ${error.message}`);
+        showTestModeStatus(`Error: ${error.message}`, 'error');
     }
 }
 
 async function processTestDocuments() {
     try {
-        console.log('Starting processTestDocuments function');
-        showAlert('info', 'Processing test documents with cost monitoring...');
+        showTestModeStatus('Processing test documents concurrently...', 'info');
         
-        console.log('Making fetch request to /api/documents/queue/test-process');
         const response = await fetch('/api/documents/queue/test-process', {
             method: 'POST'
         });
         
-        console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
-        
         if (!response.ok) {
-            console.error('Response not OK:', response.status, response.statusText);
-            showAlert('danger', `HTTP Error: ${response.status} ${response.statusText}`);
+            showTestModeStatus(`HTTP Error: ${response.status} ${response.statusText}`, 'error');
             return;
         }
         
-        console.log('Parsing JSON response');
         const data = await response.json();
-        console.log('Parsed data:', data);
         
         if (data.success) {
-            console.log('Success response received');
-            
-            // Handle different success scenarios
             if (data.action_needed === 'queue_documents') {
-                showAlert('info', data.message);
+                showTestModeStatus('No documents queued. Please click "Queue Test Docs" first.', 'warning');
             } else if (data.submitted_count) {
-                showAlert('success', `${data.message} (${data.submitted_count} documents)`);
+                showTestModeStatus(`Processing ${data.submitted_count} documents concurrently. Check status above.`, 'success');
             } else {
-                showAlert('success', data.message);
+                showTestModeStatus(data.message, 'success');
             }
             
-            console.log('Calling updateDashboardCounters');
-            try {
-                await updateDashboardCounters(); // Update status
-                console.log('updateDashboardCounters completed successfully');
-            } catch (counterError) {
-                console.error('Error in updateDashboardCounters:', counterError);
-                console.error('Counter error stack:', counterError.stack);
-            }
+            await updateDashboardCounters();
         } else {
-            console.error('API returned error:', data.error);
-            showAlert('danger', `Failed to process test documents: ${data.error}`);
+            showTestModeStatus(`Processing failed: ${data.error}`, 'error');
         }
     } catch (error) {
-        console.error('Caught error in processTestDocuments:', error);
-        console.error('Error stack:', error.stack);
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-        showAlert('danger', `Error processing test documents: ${error.message}`);
+        showTestModeStatus(`Error: ${error.message}`, 'error');
     }
 }
 </script>
