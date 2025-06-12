@@ -38,7 +38,7 @@ class BackgroundDocumentProcessor:
         except Exception as e:
             logger.warning(f"Could not resume processing from database: {e}")
     
-    def queue_document(self, contract_notice_id: str, document_url: str, description: str = None):
+    def queue_document(self, contract_notice_id: str, document_url: str, description: str = None, auto_process: bool = True):
         """Queue a document for background processing"""
         try:
             # Check if document is already queued
@@ -55,14 +55,13 @@ class BackgroundDocumentProcessor:
             local_file_path = self._download_document_to_queue(document_url, contract_notice_id)
             
             # Create new queue entry
-            queue_item = DocumentProcessingQueue(
-                contract_notice_id=contract_notice_id,
-                document_url=document_url,
-                description=description,
-                local_file_path=local_file_path,
-                filename=Path(local_file_path).name if local_file_path else None,
-                status='queued'
-            )
+            queue_item = DocumentProcessingQueue()
+            queue_item.contract_notice_id = contract_notice_id
+            queue_item.document_url = document_url
+            queue_item.description = description
+            queue_item.local_file_path = local_file_path
+            queue_item.filename = Path(local_file_path).name if local_file_path else None
+            queue_item.status = 'queued'
             
             db.session.add(queue_item)
             db.session.commit()
@@ -86,6 +85,16 @@ class BackgroundDocumentProcessor:
     def _download_document_to_queue(self, document_url: str, contract_notice_id: str) -> Optional[str]:
         """Download document and save to queue_documents folder before processing"""
         try:
+            # Check if this is already a local file path
+            if not document_url.startswith(('http://', 'https://')):
+                local_path = Path(document_url)
+                if local_path.exists():
+                    logger.info(f"Using existing local file: {document_url}")
+                    return str(local_path)
+                else:
+                    logger.error(f"Local file not found: {document_url}")
+                    return None
+            
             # Create filename with contract ID and URL hash for uniqueness
             url_hash = hashlib.md5(document_url.encode()).hexdigest()[:8]
             
