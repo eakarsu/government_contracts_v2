@@ -982,6 +982,166 @@ def process_async():
             'error': str(e)
         }), 500
 
+@api_bp.route('/documents/queue/test-mode', methods=['POST'])
+def queue_test_documents():
+    """Queue small test documents for cost-effective testing (max 7 docs, under 5 pages each)"""
+    try:
+        import json
+        import requests
+        import PyPDF2
+        from io import BytesIO
+        from pathlib import Path
+        import shutil
+        from models import DocumentProcessingQueue
+        
+        logger.info("Starting test mode document queueing...")
+        
+        # Clear existing test queue
+        DocumentProcessingQueue.query.delete()
+        db.session.commit()
+        
+        # Clear queue folders
+        queue_docs_dir = Path("queue_documents")
+        if queue_docs_dir.exists():
+            shutil.rmtree(queue_docs_dir)
+        queue_docs_dir.mkdir(exist_ok=True)
+        
+        def get_document_page_count(url):
+            """Download and check page count of document"""
+            try:
+                response = requests.head(url, timeout=10)
+                content_length = response.headers.get('content-length')
+                
+                # Skip large files (over 500KB)
+                if content_length and int(content_length) > 500000:
+                    return float('inf')
+                
+                # Download and check page count for PDFs
+                if '.pdf' in url.lower():
+                    doc_response = requests.get(url, timeout=30)
+                    if doc_response.status_code == 200:
+                        pdf_file = BytesIO(doc_response.content)
+                        try:
+                            pdf_reader = PyPDF2.PdfReader(pdf_file)
+                            return len(pdf_reader.pages)
+                        except:
+                            return float('inf')
+                
+                # Assume small documents for .docx/.txt files under 200KB
+                if content_length and int(content_length) < 200000:
+                    if any(ext in url.lower() for ext in ['.docx', '.txt', '.doc']):
+                        return 3  # Assume small document
+                
+                return float('inf')  # Unknown, assume large
+                
+            except Exception as e:
+                logger.warning(f"Could not check document size: {e}")
+                return float('inf')
+        
+        # Get contracts with documents
+        contracts = Contract.query.filter(
+            Contract.resource_links.isnot(None)
+        ).limit(5).all()
+        
+        if not contracts:
+            return jsonify({
+                'success': True,
+                'message': 'No contracts available for testing',
+                'queued_count': 0
+            })
+        
+        from services.background_processor import background_processor
+        
+        queued_count = 0
+        max_test_docs = 7
+        max_pages = 5
+        
+        for contract in contracts:
+            if queued_count >= max_test_docs:
+                break
+                
+            if contract.resource_links:
+                try:
+                    resource_links = json.loads(contract.resource_links) if isinstance(contract.resource_links, str) else contract.resource_links
+                    
+                    for link in resource_links:
+                        if queued_count >= max_test_docs:
+                            break
+                            
+                        url = link.get('url', '')
+                        description = link.get('description', '')
+                        
+                        # Check document size/page count
+                        page_count = get_document_page_count(url)
+                        
+                        if page_count <= max_pages:
+                            background_processor.queue_document(
+                                contract.notice_id,
+                                url,
+                                f"TEST MODE ({page_count}p): {description}"
+                            )
+                            queued_count += 1
+                            logger.info(f"Queued test document {queued_count}: {description[:50]} ({page_count} pages)")
+                            
+                except Exception as e:
+                    logger.error(f"Error processing contract {contract.notice_id}: {e}")
+                    continue
+        
+        return jsonify({
+            'success': True,
+            'message': f'Test mode: Queued {queued_count} small documents (≤{max_pages} pages each)',
+            'queued_count': queued_count,
+            'max_documents': max_test_docs,
+            'max_pages': max_pages,
+            'mode': 'test'
+        })
+        
+    except Exception as e:
+        logger.error(f"Test mode queueing failed: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@api_bp.route('/documents/queue/test-process', methods=['POST'])
+def process_test_async():
+    """Process test documents with cost monitoring"""
+    try:
+        import asyncio
+        from services.async_processor import async_processor
+        
+        # Check queue size before processing
+        test_docs = DocumentProcessingQueue.query.filter_by(status='queued').all()
+        
+        if len(test_docs) > 7:
+            return jsonify({
+                'success': False,
+                'error': f'Too many documents queued ({len(test_docs)}). Test mode limited to 7 documents max.',
+                'queued_count': len(test_docs)
+            }), 400
+        
+        logger.info(f"Starting test mode processing of {len(test_docs)} documents")
+        
+        # Run async processing
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(async_processor.process_all_queued_documents())
+        loop.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Test mode: Processed {len(test_docs)} small documents',
+            'processed_count': len(test_docs),
+            'processing_method': 'async_concurrent_test'
+        })
+        
+    except Exception as e:
+        logger.error(f"Test mode processing failed: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 @api_bp.route('/documents/queue/process-parallel', methods=['POST'])
 def process_parallel():

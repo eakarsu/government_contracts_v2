@@ -122,6 +122,34 @@
                         </a>
                     </div>
                 </div>
+                
+                <!-- Test Mode Section -->
+                <div class="row mt-3 pt-3 border-top">
+                    <div class="col-12">
+                        <h6 class="text-muted mb-3">
+                            <i data-feather="flask" class="me-2"></i>
+                            Test Mode (Cost-Controlled)
+                        </h6>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-info w-100" onclick="queueTestDocuments()">
+                            <i data-feather="file-plus" class="me-2"></i>
+                            Queue Test Docs (Max 7)
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-warning w-100" onclick="processTestDocuments()">
+                            <i data-feather="zap" class="me-2"></i>
+                            Process Test Docs
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <small class="text-muted d-block text-center mt-2">
+                            Limited to small documents<br>
+                            Cost-effective testing
+                        </small>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -664,6 +692,49 @@ function displayRecentNotifications(notifications) {
     }).join('');
     
     feather.replace();
+}
+
+// Test mode functions
+async function queueTestDocuments() {
+    try {
+        showAlert('info', 'Queueing test documents (max 7, ≤5 pages each)...');
+        
+        const response = await fetch('/api/documents/queue/test-mode', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('success', `${data.message} (${data.queued_count} documents)`);
+            refreshNotifications(); // Update status
+        } else {
+            showAlert('danger', `Failed to queue test documents: ${data.error}`);
+        }
+    } catch (error) {
+        showAlert('danger', `Error queueing test documents: ${error.message}`);
+    }
+}
+
+async function processTestDocuments() {
+    try {
+        showAlert('info', 'Processing test documents with cost monitoring...');
+        
+        const response = await fetch('/api/documents/queue/test-process', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('success', `${data.message} (${data.processed_count} documents)`);
+            refreshNotifications(); // Update status
+        } else {
+            showAlert('danger', `Failed to process test documents: ${data.error}`);
+        }
+    } catch (error) {
+        showAlert('danger', `Error processing test documents: ${error.message}`);
+    }
 }
 </script>
 {% endblock %}
