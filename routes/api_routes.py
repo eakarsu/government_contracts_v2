@@ -1168,10 +1168,11 @@ def process_test_async():
         
         if len(test_docs) == 0:
             return jsonify({
-                'success': False,
-                'error': 'No documents queued for processing. Click "Queue Test Docs" first.',
-                'queued_count': 0
-            }), 400
+                'success': True,
+                'message': 'No documents currently queued. Click "Queue Test Docs" to add documents for processing.',
+                'queued_count': 0,
+                'action_needed': 'queue_documents'
+            })
         
         logger.info(f"Starting test mode processing of {len(test_docs)} documents")
         

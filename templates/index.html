@@ -808,7 +808,16 @@ async function processTestDocuments() {
         
         if (data.success) {
             console.log('Success response received');
-            showAlert('success', `${data.message} (${data.submitted_count} documents)`);
+            
+            // Handle different success scenarios
+            if (data.action_needed === 'queue_documents') {
+                showAlert('info', data.message);
+            } else if (data.submitted_count) {
+                showAlert('success', `${data.message} (${data.submitted_count} documents)`);
+            } else {
+                showAlert('success', data.message);
+            }
+            
             console.log('Calling updateDashboardCounters');
             try {
                 await updateDashboardCounters(); // Update status
