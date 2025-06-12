@@ -96,6 +96,14 @@
                         </button>
                     </div>
                     <div class="col-md-3 mb-2">
+                        <button class="btn btn-warning w-100" onclick="processDocuments()">
+                            <i data-feather="play" class="me-2"></i>
+                            Process Documents
+                        </button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-2">
                         <a href="{{ url_for('web.search') }}" class="btn btn-secondary w-100">
                             <i data-feather="search" class="me-2"></i>
                             Search Contracts
@@ -450,7 +458,7 @@ async function indexContracts() {
 }
 
 async function queueDocuments() {
-    showJobProgress('Queuing documents for background processing...');
+    showJobProgress('Resetting queue and downloading fresh documents...');
     
     try {
         const response = await fetch('/api/documents/queue', {
@@ -460,9 +468,34 @@ async function queueDocuments() {
         const result = await response.json();
         
         if (response.ok) {
-            updateJobProgress(`✅ Queued ${result.queued_count} documents for processing`, 'success');
+            updateJobProgress(`✅ Queue reset! Downloaded ${result.queued_count} fresh documents`, 'success');
             setTimeout(() => {
-                location.reload();
+                updateDashboardCounters();
+                hideJobProgress();
+            }, 2000);
+        } else {
+            updateJobProgress(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        updateJobProgress(`❌ Error: ${error.message}`, 'error');
+    }
+}
+
+async function processDocuments() {
+    showJobProgress('Starting sequential document processing...');
+    
+    try {
+        const response = await fetch('/api/documents/queue/process-parallel', {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            updateJobProgress(`✅ Processing started! ${result.total_processed} documents queued for sequential processing`, 'success');
+            setTimeout(() => {
+                updateDashboardCounters();
+                hideJobProgress();
             }, 2000);
         } else {
             updateJobProgress(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
@@ -492,6 +525,12 @@ function updateJobProgress(message, type = 'info') {
             ${message}
         </div>
     `;
+}
+
+function hideJobProgress() {
+    if (jobProgressModal) {
+        jobProgressModal.hide();
+    }
 }
 
 // Notification system functions
