@@ -7,7 +7,7 @@ import os
 import tempfile
 import hashlib
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from models import db, Contract, DocumentProcessingQueue
 from services.vector_database import VectorDatabase
@@ -409,32 +409,8 @@ class BackgroundDocumentProcessor:
                         result = future.result()
                         logger.info(f"Future completed for doc {queued_doc.id}: {bool(result)}")
                         
-                        # Update database in main thread context with better error handling
-                        with app.app_context():
-                            try:
-                                doc = DocumentProcessingQueue.query.get(queued_doc.id)
-                                if not doc:
-                                    logger.error(f"Document {queued_doc.id} not found in database")
-                                    continue
-                                
-                                if result:
-                                    doc.status = 'completed'
-                                    doc.completed_at = datetime.utcnow()
-                                    doc.processed_data = json.dumps(result) if result else None
-                                    logger.info(f"Marking as completed: {doc.document_url}")
-                                else:
-                                    doc.status = 'failed'
-                                    doc.failed_at = datetime.utcnow()
-                                    doc.retry_count += 1
-                                    doc.error_message = "Failed to process with Norshin API"
-                                    logger.error(f"Marking as failed: {doc.document_url}")
-                                
-                                db.session.commit()
-                                logger.info(f"Database updated successfully for doc {doc.id}")
-                                
-                            except Exception as db_error:
-                                logger.error(f"Database update error for doc {queued_doc.id}: {db_error}")
-                                db.session.rollback()
+                        # Update database status immediately after processing
+                        self._update_document_status(queued_doc.id, result)
                             
                     except Exception as e:
                         logger.error(f"Error in concurrent processing for doc {queued_doc.id}: {e}")
@@ -464,6 +440,45 @@ class BackgroundDocumentProcessor:
         self.is_processing = False
         logger.info("Concurrent document queue processing completed")
     
+    def _update_document_status(self, doc_id, result):
+        """Update document status in database with proper thread safety"""
+        from app import app
+        
+        try:
+            with app.app_context():
+                doc = DocumentProcessingQueue.query.get(doc_id)
+                if not doc:
+                    logger.error(f"Document {doc_id} not found in database")
+                    return
+                
+                if result:
+                    doc.status = 'completed'
+                    doc.completed_at = datetime.utcnow()
+                    doc.processed_data = json.dumps(result) if result else None
+                    logger.info(f"Marking doc {doc_id} as completed: {doc.filename}")
+                else:
+                    doc.retry_count += 1
+                    doc.failed_at = datetime.utcnow()
+                    doc.error_message = "Failed to process with Norshin API"
+                    
+                    # Check if we should retry or mark as permanently failed
+                    if doc.retry_count < doc.max_retries:
+                        doc.status = 'queued'  # Queue for retry
+                        logger.info(f"Queuing doc {doc_id} for retry {doc.retry_count}/{doc.max_retries}")
+                    else:
+                        doc.status = 'failed'  # Permanently failed
+                        logger.error(f"Doc {doc_id} permanently failed after {doc.retry_count} attempts")
+                
+                db.session.commit()
+                logger.info(f"Database status updated for doc {doc_id}: {doc.status}")
+                
+        except Exception as e:
+            logger.error(f"Failed to update document status for {doc_id}: {e}")
+            try:
+                db.session.rollback()
+            except:
+                pass
+
     def _auto_retry_failed_documents(self):
         """Automatically retry failed documents that haven't exceeded max retries"""
         try:
