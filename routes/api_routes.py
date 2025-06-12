@@ -954,6 +954,34 @@ def stop_queue():
             'error': str(e)
         }), 500
 
+@api_bp.route('/documents/queue/process-async', methods=['POST'])
+def process_async():
+    """Process all queued documents with true async concurrency"""
+    try:
+        import asyncio
+        from services.async_processor import async_processor
+        
+        logger.info("Starting true async concurrent processing")
+        
+        # Run async processing
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(async_processor.process_all_queued_documents())
+        loop.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'All documents submitted to Norshin API simultaneously',
+            'processing_method': 'async_concurrent'
+        })
+        
+    except Exception as e:
+        logger.error(f"Async processing failed: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 @api_bp.route('/documents/queue/process-parallel', methods=['POST'])
 def process_parallel():
