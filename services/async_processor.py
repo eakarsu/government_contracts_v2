@@ -134,19 +134,64 @@ class AsyncDocumentProcessor:
                         else:
                             error_text = await response.text()
                             
-                            # Handle 504 timeouts differently - Norshin may still be processing with internal retries
+                            # Handle 504 timeouts with retry mechanism - Norshin processes documents with internal retries
                             if response.status == 504:
-                                logger.warning(f"Document {doc.id} got 504 timeout - Norshin may still be processing with internal retries")
-                                # Don't mark as failed immediately - let Norshin's retry mechanism work
-                                # This document should be checked later or retried
-                                with app.app_context():
-                                    db_doc = DocumentProcessingQueue.query.get(doc.id)
-                                    if db_doc:
-                                        db_doc.status = 'failed'  # Mark as failed for now, but this needs manual review
-                                        db_doc.failed_at = datetime.utcnow()
-                                        db_doc.error_message = f"Norshin API timeout (504) - document may have been processed successfully by Norshin's retry mechanism"
-                                        db_doc.retry_count += 1
-                                        db.session.commit()
+                                logger.warning(f"Document {doc.id} got 504 timeout - implementing retry with delay")
+                                
+                                # Wait and retry once after delay (Norshin may still be processing)
+                                await asyncio.sleep(30)  # Wait 30 seconds for Norshin's internal processing
+                                
+                                try:
+                                    # Retry the request once more
+                                    async with session.post(
+                                        self.norshin_api_url,
+                                        data=data,
+                                        headers=headers,
+                                        timeout=aiohttp.ClientTimeout(total=1800)  # 30 min timeout for retry
+                                    ) as retry_response:
+                                        if retry_response.status == 200:
+                                            result = await retry_response.json()
+                                            logger.info(f"Document {doc.id} processed successfully by Norshin on retry")
+                                            
+                                            # Update database on successful retry
+                                            with app.app_context():
+                                                db_doc = DocumentProcessingQueue.query.get(doc.id)
+                                                if db_doc:
+                                                    db_doc.status = 'completed'
+                                                    db_doc.completed_at = datetime.utcnow()
+                                                    db_doc.processed_data = json.dumps(result)
+                                                    db.session.commit()
+                                                    
+                                                    # Index in vector database
+                                                    try:
+                                                        self._index_document(db_doc, result)
+                                                    except Exception as e:
+                                                        logger.warning(f"Failed to index document {doc.id}: {e}")
+                                            
+                                            return result
+                                        else:
+                                            # Still failing after retry - mark as failed
+                                            retry_error = await retry_response.text()
+                                            logger.error(f"Document {doc.id} failed on retry: {retry_response.status} - {retry_error}")
+                                            
+                                            with app.app_context():
+                                                db_doc = DocumentProcessingQueue.query.get(doc.id)
+                                                if db_doc:
+                                                    db_doc.status = 'failed'
+                                                    db_doc.failed_at = datetime.utcnow()
+                                                    db_doc.error_message = f"Norshin API failed after retry: {retry_response.status} - {retry_error}"
+                                                    db_doc.retry_count += 1
+                                                    db.session.commit()
+                                except Exception as retry_e:
+                                    logger.error(f"Retry attempt failed for document {doc.id}: {retry_e}")
+                                    with app.app_context():
+                                        db_doc = DocumentProcessingQueue.query.get(doc.id)
+                                        if db_doc:
+                                            db_doc.status = 'failed'
+                                            db_doc.failed_at = datetime.utcnow()
+                                            db_doc.error_message = f"Norshin API retry failed: {str(retry_e)}"
+                                            db_doc.retry_count += 1
+                                            db.session.commit()
                             else:
                                 logger.error(f"Document {doc.id} failed: {response.status} - {error_text}")
                                 
