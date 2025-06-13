@@ -1,0 +1,1302 @@
+[0] [2025-06-13T11:11:58.669Z]  File upload attempt: {
+[0]   originalname: 'ee53404bf12245a8b5d5a5c6a0961daa_39a77c18_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:58.669Z]  File accepted: ee53404bf12245a8b5d5a5c6a0961daa_39a77c18_download
+[0] [2025-06-13T11:11:58.679Z]  File upload attempt: {
+[0]   originalname: 'f79aaaaa135a49a082a335e9eb795d81_bcaa82f4_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:58.679Z]  File accepted: f79aaaaa135a49a082a335e9eb795d81_bcaa82f4_download
+[0] [2025-06-13T11:11:58.681Z]  Converting document to images: ee53404bf12245a8b5d5a5c6a0961daa_39a77c18_download
+[0] [2025-06-13T11:11:58.684Z]  Starting LibreOffice conversion for: ee53404bf12245a8b5d5a5c6a0961daa_39a77c18_download
+[0] [2025-06-13T11:11:58.691Z]  Converting document to images: f79aaaaa135a49a082a335e9eb795d81_bcaa82f4_download
+[0] [2025-06-13T11:11:58.691Z]  Starting LibreOffice conversion for: f79aaaaa135a49a082a335e9eb795d81_bcaa82f4_download
+[0] [2025-06-13T11:11:58.695Z]  Converting with unique installation: /tmp/libreoffice_b76758b4-ff57-4585-9dac-9d9b0d6d815f
+[0] [2025-06-13T11:11:58.697Z]  Converting with unique installation: /tmp/libreoffice_bafcba97-63db-4d31-ba92-9c331b58408b
+[0] [2025-06-13T11:11:58.864Z]  File upload attempt: {
+[0]   originalname: 'f7d591d227b74a9bacf8867054a51f19_30a156f2_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:58.864Z]  File accepted: f7d591d227b74a9bacf8867054a51f19_30a156f2_download
+[0] [2025-06-13T11:11:58.870Z]  Converting document to images: f7d591d227b74a9bacf8867054a51f19_30a156f2_download
+[0] [2025-06-13T11:11:58.880Z]  File upload attempt: {
+[0]   originalname: 'f77b80c50d8c4cac9deb5114c4db437e_33579173_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:58.880Z]  File accepted: f77b80c50d8c4cac9deb5114c4db437e_33579173_download
+[0] [2025-06-13T11:11:58.884Z]  Converting document to images: f77b80c50d8c4cac9deb5114c4db437e_33579173_download
+[0] [2025-06-13T11:11:58.984Z]  File upload attempt: {
+[0]   originalname: 'f77b80c50d8c4cac9deb5114c4db437e_2a2d6a41_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:58.985Z]  File accepted: f77b80c50d8c4cac9deb5114c4db437e_2a2d6a41_download
+[0] [2025-06-13T11:11:58.999Z]  Converting document to images: f77b80c50d8c4cac9deb5114c4db437e_2a2d6a41_download
+[0] [2025-06-13T11:11:59.381Z]  File upload attempt: {
+[0]   originalname: 'f79aaaaa135a49a082a335e9eb795d81_b323738e_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:59.381Z]  File accepted: f79aaaaa135a49a082a335e9eb795d81_b323738e_download
+[0] [2025-06-13T11:11:59.387Z]  Converting document to images: f79aaaaa135a49a082a335e9eb795d81_b323738e_download
+[0] [2025-06-13T11:11:59.399Z]  File upload attempt: {
+[0]   originalname: 'f7d591d227b74a9bacf8867054a51f19_ff7dbd11_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:59.399Z]  File accepted: f7d591d227b74a9bacf8867054a51f19_ff7dbd11_download
+[0] [2025-06-13T11:11:59.404Z]  Converting document to images: f7d591d227b74a9bacf8867054a51f19_ff7dbd11_download
+[0] [2025-06-13T11:11:59.582Z]  File upload attempt: {
+[0]   originalname: 'f7d591d227b74a9bacf8867054a51f19_f50fbeed_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:59.583Z]  File accepted: f7d591d227b74a9bacf8867054a51f19_f50fbeed_download
+[0] [2025-06-13T11:11:59.590Z]  Converting document to images: f7d591d227b74a9bacf8867054a51f19_f50fbeed_download
+[0] [2025-06-13T11:12:00.884Z]  Converting PDF to images: outputs/1749813118691/document-1749813118679-767108966.pdf
+[0] [2025-06-13T11:12:00.935Z]  File upload attempt: {
+[0]   originalname: 'f832d128d988416686d431723e33c1c6_47304a8b_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:12:00.935Z]  File accepted: f832d128d988416686d431723e33c1c6_47304a8b_download
+[0] [2025-06-13T11:12:00.970Z]  Converting document to images: f832d128d988416686d431723e33c1c6_47304a8b_download
+[0] [2025-06-13T11:12:01.035Z]  Successfully converted f79aaaaa135a49a082a335e9eb795d81_bcaa82f4_download to 3 images
+[0] [2025-06-13T11:12:01.035Z]  Processing 3 pages with AI...
+[0] [2025-06-13T11:12:01.036Z]  Processing 3 images in 1 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:01.036Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:12:01.036Z]  Starting batch 1: pages 1-3
+[0] [2025-06-13T11:12:01.108Z]  Starting LibreOffice conversion for: f7d591d227b74a9bacf8867054a51f19_30a156f2_download
+[0] [2025-06-13T11:12:01.112Z]  Converting with unique installation: /tmp/libreoffice_0a2200a2-f61c-4be7-a41e-a9c8bf4c8581
+[0] [2025-06-13T11:12:01.159Z]  File upload attempt: {
+[0]   originalname: 'f7d591d227b74a9bacf8867054a51f19_551635c4_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:12:01.159Z]  File accepted: f7d591d227b74a9bacf8867054a51f19_551635c4_download
+[0] [2025-06-13T11:12:01.191Z]  Converting PDF to images: outputs/1749813118682/document-1749813118670-99665026.pdf
+[0] [2025-06-13T11:12:01.194Z]  Converting document to images: f7d591d227b74a9bacf8867054a51f19_551635c4_download
+[0] [2025-06-13T11:12:02.709Z]  Successfully converted ee53404bf12245a8b5d5a5c6a0961daa_39a77c18_download to 26 images
+[0] [2025-06-13T11:12:02.709Z]  Processing 26 pages with AI...
+[0] [2025-06-13T11:12:02.710Z]  Processing 26 images in 6 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:02.710Z]  Processing batch group 1/1 with 6 concurrent requests
+[0] [2025-06-13T11:12:02.710Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:02.739Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:02.767Z]  Starting batch 3: pages 11-15
+[0] [2025-06-13T11:12:02.790Z]  Starting batch 4: pages 16-20
+[0] [2025-06-13T11:12:02.815Z]  Starting batch 5: pages 21-25
+[0] [2025-06-13T11:12:02.842Z]  Starting batch 6: pages 26-26
+[0] [2025-06-13T11:12:02.847Z]  Starting LibreOffice conversion for: f77b80c50d8c4cac9deb5114c4db437e_33579173_download
+[0] [2025-06-13T11:12:02.851Z]  Converting with unique installation: /tmp/libreoffice_eedd937e-9315-49c2-bc3f-bfc30614a8a8
+[0] [2025-06-13T11:12:02.892Z]  Converting PDF to images: outputs/1749813118870/document-1749813118864-883470803.pdf
+[0] [2025-06-13T11:12:03.835Z]  Successfully converted f7d591d227b74a9bacf8867054a51f19_30a156f2_download to 7 images
+[0] [2025-06-13T11:12:03.835Z]  Processing 7 pages with AI...
+[0] [2025-06-13T11:12:03.835Z]  Processing 7 images in 2 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:03.835Z]  Processing batch group 1/1 with 2 concurrent requests
+[0] [2025-06-13T11:12:03.835Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:03.859Z]  Starting batch 2: pages 6-7
+[0] [2025-06-13T11:12:03.867Z]  Starting LibreOffice conversion for: f77b80c50d8c4cac9deb5114c4db437e_2a2d6a41_download
+[0] [2025-06-13T11:12:03.875Z]  Converting with unique installation: /tmp/libreoffice_c175c739-099d-42c4-90fa-bb4d5e4b35f9
+[0] [2025-06-13T11:12:04.274Z]  Converting PDF to images: outputs/1749813118884/document-1749813118880-527886108.pdf
+[0] [2025-06-13T11:12:04.810Z]  Successfully converted f77b80c50d8c4cac9deb5114c4db437e_33579173_download to 4 images
+[0] [2025-06-13T11:12:04.810Z]  Processing 4 pages with AI...
+[0] [2025-06-13T11:12:04.810Z]  Processing 4 images in 1 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:04.810Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:12:04.810Z]  Starting batch 1: pages 1-4
+[0] [2025-06-13T11:12:04.831Z]  Starting LibreOffice conversion for: f79aaaaa135a49a082a335e9eb795d81_b323738e_download
+[0] [2025-06-13T11:12:04.837Z]  Converting with unique installation: /tmp/libreoffice_d8c184d6-5f40-4a75-9c51-756f024a5cdc
+[0] [2025-06-13T11:12:06.495Z]  Converting PDF to images: outputs/1749813118999/document-1749813118985-611440298.pdf
+[0] [2025-06-13T11:12:07.820Z]  Successfully converted f77b80c50d8c4cac9deb5114c4db437e_2a2d6a41_download to 8 images
+[0] [2025-06-13T11:12:07.821Z]  Processing 8 pages with AI...
+[0] [2025-06-13T11:12:07.821Z]  Processing 8 images in 2 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:07.821Z]  Processing batch group 1/1 with 2 concurrent requests
+[0] [2025-06-13T11:12:07.821Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:07.858Z]  Starting batch 2: pages 6-8
+[0] [2025-06-13T11:12:07.872Z]  Starting LibreOffice conversion for: f7d591d227b74a9bacf8867054a51f19_ff7dbd11_download
+[0] [2025-06-13T11:12:07.877Z]  Converting with unique installation: /tmp/libreoffice_246ecb99-92b9-44f8-be10-848363e07579
+[0] [2025-06-13T11:12:10.692Z]  Converting PDF to images: outputs/1749813119387/document-1749813119381-957021586.pdf
+[0] [2025-06-13T11:12:11.898Z]  Converting PDF to images: outputs/1749813119404/document-1749813119399-292165176.pdf
+[0] [2025-06-13T11:12:16.526Z]  Completed batch 6: pages 26-26
+[0] [2025-06-13T11:12:17.182Z]  Completed batch 1: pages 1-3
+[0] [2025-06-13T11:12:17.182Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:12:17.182Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:12:17.183Z]  Original results: 3 pages
+[0] [2025-06-13T11:12:17.184Z]  Filtered results: 3 pages
+[0] [2025-06-13T11:12:17.184Z]  Clean pages: 3, failed pages: 0
+[0] [2025-06-13T11:12:17.184Z]  Original results: 3 pages
+[0] [2025-06-13T11:12:17.184Z]  Filtered results: 3 pages
+[0] [2025-06-13T11:12:17.184Z]  Successfully processed 3 pages
+[0] [2025-06-13T11:12:18.051Z]  Successfully converted f7d591d227b74a9bacf8867054a51f19_ff7dbd11_download to 40 images
+[0] [2025-06-13T11:12:18.051Z]  Processing 40 pages with AI...
+[0] [2025-06-13T11:12:18.051Z]  Processing 40 images in 8 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:18.051Z]  Processing batch group 1/1 with 8 concurrent requests
+[0] [2025-06-13T11:12:18.051Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:18.076Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:18.100Z]  Starting batch 3: pages 11-15
+[0] [2025-06-13T11:12:18.125Z]  Starting batch 4: pages 16-20
+[0] [2025-06-13T11:12:18.155Z]  Starting batch 5: pages 21-25
+[0] [2025-06-13T11:12:18.189Z]  Starting batch 6: pages 26-30
+[0] [2025-06-13T11:12:18.209Z]  Starting batch 7: pages 31-35
+[0] [2025-06-13T11:12:18.236Z]  Starting batch 8: pages 36-40
+[0] [2025-06-13T11:12:18.263Z]  Starting LibreOffice conversion for: f7d591d227b74a9bacf8867054a51f19_f50fbeed_download
+[0] [2025-06-13T11:12:18.284Z]  Converting with unique installation: /tmp/libreoffice_9e98ef95-58c2-4064-92dd-92a371567c95
+[0] [2025-06-13T11:12:20.209Z]  Converting PDF to images: outputs/1749813119590/document-1749813119583-511756806.pdf
+[0] [2025-06-13T11:12:20.714Z]  File upload attempt: {
+[0]   originalname: 'f40b0681174840d293346ab2230c5100_6f4f23dc_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:12:20.715Z]  File accepted: f40b0681174840d293346ab2230c5100_6f4f23dc_download
+[0] [2025-06-13T11:12:20.716Z]  Converting document to images: f40b0681174840d293346ab2230c5100_6f4f23dc_download
+[0] [2025-06-13T11:12:20.929Z]  Successfully converted f79aaaaa135a49a082a335e9eb795d81_b323738e_download to 74 images
+[0] [2025-06-13T11:12:20.929Z]  Processing 74 pages with AI...
+[0] [2025-06-13T11:12:20.929Z]  Processing 74 images in 15 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:20.929Z]  Processing batch group 1/1 with 15 concurrent requests
+[0] [2025-06-13T11:12:20.929Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:20.951Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:20.981Z]  Starting batch 3: pages 11-15
+[0] [2025-06-13T11:12:21.012Z]  Starting batch 4: pages 16-20
+[0] [2025-06-13T11:12:21.042Z]  Starting batch 5: pages 21-25
+[0] [2025-06-13T11:12:21.069Z]  Starting batch 6: pages 26-30
+[0] [2025-06-13T11:12:21.095Z]  Starting batch 7: pages 31-35
+[0] [2025-06-13T11:12:21.122Z]  Starting batch 8: pages 36-40
+[0] [2025-06-13T11:12:21.143Z]  Starting batch 9: pages 41-45
+[0] [2025-06-13T11:12:21.169Z]  Starting batch 10: pages 46-50
+[0] [2025-06-13T11:12:21.197Z]  Starting batch 11: pages 51-55
+[0] [2025-06-13T11:12:21.228Z]  Starting batch 12: pages 56-60
+[0] [2025-06-13T11:12:21.269Z]  Starting batch 13: pages 61-65
+[0] [2025-06-13T11:12:21.301Z]  Starting batch 14: pages 66-70
+[0] [2025-06-13T11:12:21.333Z]  Starting batch 15: pages 71-74
+[0] [2025-06-13T11:12:21.354Z]  Starting LibreOffice conversion for: f832d128d988416686d431723e33c1c6_47304a8b_download
+[0] [2025-06-13T11:12:21.373Z]  Converting with unique installation: /tmp/libreoffice_102cf9aa-fe5d-4b0d-a7e0-017719d7da63
+[0] [2025-06-13T11:12:22.689Z]  Successfully converted f7d591d227b74a9bacf8867054a51f19_f50fbeed_download to 10 images
+[0] [2025-06-13T11:12:22.689Z]  Processing 10 pages with AI...
+[0] [2025-06-13T11:12:22.689Z]  Processing 10 images in 2 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:22.689Z]  Processing batch group 1/1 with 2 concurrent requests
+[0] [2025-06-13T11:12:22.689Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:22.712Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:22.730Z]  Starting LibreOffice conversion for: f7d591d227b74a9bacf8867054a51f19_551635c4_download
+[0] [2025-06-13T11:12:22.747Z]  Converting with unique installation: /tmp/libreoffice_9327f164-ee12-45a3-bc75-42d499e6445c
+[0] [2025-06-13T11:12:29.367Z]  Completed batch 2: pages 6-7
+[0] [2025-06-13T11:12:35.028Z]  Converting PDF to images: outputs/1749813121194/document-1749813121159-960389380.pdf
+[0] [2025-06-13T11:12:38.525Z]  Successfully converted f7d591d227b74a9bacf8867054a51f19_551635c4_download to 11 images
+[0] [2025-06-13T11:12:38.525Z]  Processing 11 pages with AI...
+[0] [2025-06-13T11:12:38.525Z]  Processing 11 images in 3 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:38.525Z]  Processing batch group 1/1 with 3 concurrent requests
+[0] [2025-06-13T11:12:38.525Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:38.556Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:38.587Z]  Starting batch 3: pages 11-11
+[0] [2025-06-13T11:12:38.594Z]  Starting LibreOffice conversion for: f40b0681174840d293346ab2230c5100_6f4f23dc_download
+[0] [2025-06-13T11:12:38.610Z]  Converting with unique installation: /tmp/libreoffice_890924e9-4bb9-4a7a-9b0f-7e7657086070
+[0] [2025-06-13T11:12:40.190Z]  Converting PDF to images: outputs/1749813140716/document-1749813140715-243604149.pdf
+[0] [2025-06-13T11:12:41.105Z]  Successfully converted f40b0681174840d293346ab2230c5100_6f4f23dc_download to 14 images
+[0] [2025-06-13T11:12:41.105Z]  Processing 14 pages with AI...
+[0] [2025-06-13T11:12:41.105Z]  Processing 14 images in 3 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:41.105Z]  Processing batch group 1/1 with 3 concurrent requests
+[0] [2025-06-13T11:12:41.105Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:41.153Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:41.182Z]  Starting batch 3: pages 11-14
+[0] [2025-06-13T11:12:42.721Z]  Converting PDF to images: outputs/1749813120970/document-1749813120935-492930498.pdf
+[0] [2025-06-13T11:12:53.084Z]  Successfully converted f832d128d988416686d431723e33c1c6_47304a8b_download to 60 images
+[0] [2025-06-13T11:12:53.085Z]  Processing 60 pages with AI...
+[0] [2025-06-13T11:12:53.085Z]  Processing 60 images in 12 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:53.085Z]  Processing batch group 1/1 with 12 concurrent requests
+[0] [2025-06-13T11:12:53.085Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:53.111Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:53.133Z]  Starting batch 3: pages 11-15
+[0] [2025-06-13T11:12:53.161Z]  Starting batch 4: pages 16-20
+[0] [2025-06-13T11:12:53.186Z]  Starting batch 5: pages 21-25
+[0] [2025-06-13T11:12:53.212Z]  Starting batch 6: pages 26-30
+[0] [2025-06-13T11:12:53.237Z]  Starting batch 7: pages 31-35
+[0] [2025-06-13T11:12:53.266Z]  Starting batch 8: pages 36-40
+[0] [2025-06-13T11:12:53.290Z]  Starting batch 9: pages 41-45
+[0] [2025-06-13T11:12:53.311Z]  Starting batch 10: pages 46-50
+[0] [2025-06-13T11:12:53.334Z]  Starting batch 11: pages 51-55
+[0] [2025-06-13T11:12:53.350Z]  Starting batch 12: pages 56-60
+[0] [2025-06-13T11:12:53.810Z]  Completed batch 3: pages 11-11
+[0] [2025-06-13T11:13:05.902Z]  Completed batch 1: pages 1-4
+[0] [2025-06-13T11:13:05.902Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:13:05.902Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:13:05.903Z]  Original results: 4 pages
+[0] [2025-06-13T11:13:05.903Z]  Filtered results: 4 pages
+[0] [2025-06-13T11:13:05.903Z]  Clean pages: 4, failed pages: 0
+[0] [2025-06-13T11:13:05.903Z]  Original results: 4 pages
+[0] [2025-06-13T11:13:05.903Z]  Filtered results: 4 pages
+[0] [2025-06-13T11:13:05.903Z]  Successfully processed 4 pages
+[0] [2025-06-13T11:13:07.027Z]  File upload attempt: {
+[0]   originalname: 'f40b0681174840d293346ab2230c5100_0c731a70_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:13:07.028Z]  File accepted: f40b0681174840d293346ab2230c5100_0c731a70_download
+[0] [2025-06-13T11:13:07.030Z]  Converting document to images: f40b0681174840d293346ab2230c5100_0c731a70_download
+[0] [2025-06-13T11:13:07.030Z]  Starting LibreOffice conversion for: f40b0681174840d293346ab2230c5100_0c731a70_download
+[0] [2025-06-13T11:13:07.056Z]  Converting with unique installation: /tmp/libreoffice_8bd17059-04c3-4bc4-ad7e-1d2b0de11230
+[0] [2025-06-13T11:13:08.411Z]  Converting PDF to images: outputs/1749813187030/document-1749813187028-401558122.pdf
+[0] [2025-06-13T11:13:08.664Z]  Successfully converted f40b0681174840d293346ab2230c5100_0c731a70_download to 5 images
+[0] [2025-06-13T11:13:08.665Z]  Processing 5 pages with AI...
+[0] [2025-06-13T11:13:08.665Z]  Processing 5 images in 1 batches with max 30 concurrent requests
+[0] [2025-06-13T11:13:08.665Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:13:08.665Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:13:11.000Z]  Completed batch 3: pages 11-15
+[0] [2025-06-13T11:13:13.320Z]  Completed batch 11: pages 51-55
+[0] [2025-06-13T11:13:15.782Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:13:18.026Z]  Completed batch 12: pages 56-60
+[0] [2025-06-13T11:13:19.729Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:13:29.352Z]  Completed batch 7: pages 31-35
+[0] [2025-06-13T11:13:34.834Z]  Completed batch 4: pages 16-20
+[0] [2025-06-13T11:13:36.689Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:13:36.690Z]  Batch processing complete: 2 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:13:36.690Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:13:36.690Z]  Original results: 7 pages
+[0] [2025-06-13T11:13:36.690Z]  Filtered results: 7 pages
+[0] [2025-06-13T11:13:36.690Z]  Clean pages: 7, failed pages: 0
+[0] [2025-06-13T11:13:36.690Z]  Original results: 7 pages
+[0] [2025-06-13T11:13:36.690Z]  Filtered results: 7 pages
+[0] [2025-06-13T11:13:36.691Z]  Successfully processed 7 pages
+[0] [2025-06-13T11:13:37.105Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:13:38.146Z]  Completed batch 5: pages 21-25
+[0] [2025-06-13T11:13:38.176Z]  File upload attempt: {
+[0]   originalname: 'f3fc93ddcb6b40a88118f6418adf7e04_97f4f088_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:13:38.177Z]  File accepted: f3fc93ddcb6b40a88118f6418adf7e04_97f4f088_download
+[0] [2025-06-13T11:13:38.191Z]  Converting document to images: f3fc93ddcb6b40a88118f6418adf7e04_97f4f088_download
+[0] [2025-06-13T11:13:38.191Z]  Starting LibreOffice conversion for: f3fc93ddcb6b40a88118f6418adf7e04_97f4f088_download
+[0] [2025-06-13T11:13:38.210Z]  Converting with unique installation: /tmp/libreoffice_2465c134-c90f-4a4e-8fc7-71bb0b36777c
+[0] [2025-06-13T11:13:38.810Z]  Completed batch 2: pages 6-8
+[0] [2025-06-13T11:13:41.425Z]  Converting PDF to images: outputs/1749813218191/document-1749813218177-293710837.pdf
+[0] [2025-06-13T11:13:43.680Z]  Completed batch 6: pages 26-30
+[0] [2025-06-13T11:13:44.588Z]  Successfully converted f3fc93ddcb6b40a88118f6418adf7e04_97f4f088_download to 23 images
+[0] [2025-06-13T11:13:44.588Z]  Processing 23 pages with AI...
+[0] [2025-06-13T11:13:44.588Z]  Processing 23 images in 5 batches with max 30 concurrent requests
+[0] [2025-06-13T11:13:44.588Z]  Processing batch group 1/1 with 5 concurrent requests
+[0] [2025-06-13T11:13:44.589Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:13:44.611Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:13:44.643Z]  Starting batch 3: pages 11-15
+[0] [2025-06-13T11:13:44.663Z]  Starting batch 4: pages 16-20
+[0] [2025-06-13T11:13:44.690Z]  Starting batch 5: pages 21-23
+[0] [2025-06-13T11:13:46.179Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:13:47.051Z]  Completed batch 15: pages 71-74
+[0] [2025-06-13T11:13:52.029Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:13:52.029Z]  Batch processing complete: 6 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:13:52.029Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:13:52.029Z] ERROR:  Failed to parse JSON for batch 2: SyntaxError: Expected ',' or '}' after property value in JSON at position 10836 (line 20 column 1584)
+[0]     at JSON.parse (<anonymous>)
+[0]     at /app/src/services/ai.service.js:158:44
+[0]     at Array.forEach (<anonymous>)
+[0]     at AIService.flattenBatchResults (/app/src/services/ai.service.js:149:26)
+[0]     at /app/src/routes/document.routes.js:97:19
+[0]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[0] [2025-06-13T11:13:52.032Z]  Original results: 22 pages
+[0] [2025-06-13T11:13:52.032Z]  Removing page 6: Error - Invalid response format
+[0] [2025-06-13T11:13:52.033Z]  Filtered results: 21 pages
+[0] [2025-06-13T11:13:52.033Z]  Clean pages: 21, failed pages: 1
+[0] [2025-06-13T11:13:52.033Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:13:52.033Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:13:52.033Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:13:53.413Z]  Completed batch 6: pages 26-30
+[0] [2025-06-13T11:13:54.188Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:13:54.188Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:13:54.188Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:13:54.189Z]  Original results: 5 pages
+[0] [2025-06-13T11:13:54.189Z]  Filtered results: 5 pages
+[0] [2025-06-13T11:13:54.189Z]  Clean pages: 5, failed pages: 0
+[0] [2025-06-13T11:13:54.189Z]  Original results: 5 pages
+[0] [2025-06-13T11:13:54.189Z]  Filtered results: 5 pages
+[0] [2025-06-13T11:13:54.189Z]  Successfully processed 5 pages
+[0] [2025-06-13T11:13:55.470Z]  File upload attempt: {
+[0]   originalname: 'f3351061735c4c20a724e138f4f6c9d2_45760209_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:13:55.470Z]  File accepted: f3351061735c4c20a724e138f4f6c9d2_45760209_download
+[0] [2025-06-13T11:13:55.472Z]  Converting document to images: f3351061735c4c20a724e138f4f6c9d2_45760209_download
+[0] [2025-06-13T11:13:55.472Z]  Starting LibreOffice conversion for: f3351061735c4c20a724e138f4f6c9d2_45760209_download
+[0] [2025-06-13T11:13:55.494Z]  Converting with unique installation: /tmp/libreoffice_ea0e9e41-d9a2-4946-8254-e825f34a8706
+[0] [2025-06-13T11:13:56.874Z]  Converting PDF to images: outputs/1749813235472/document-1749813235470-197864070.pdf
+[0] [2025-06-13T11:13:57.208Z]  Completed batch 8: pages 36-40
+[0] [2025-06-13T11:13:57.444Z]  Successfully converted f3351061735c4c20a724e138f4f6c9d2_45760209_download to 3 images
+[0] [2025-06-13T11:13:57.444Z]  Processing 3 pages with AI...
+[0] [2025-06-13T11:13:57.444Z]  Processing 3 images in 1 batches with max 30 concurrent requests
+[0] [2025-06-13T11:13:57.444Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:13:57.444Z]  Starting batch 1: pages 1-3
+[0] [2025-06-13T11:14:09.704Z]  Completed batch 7: pages 31-35
+[0] [2025-06-13T11:14:15.339Z]  Completed batch 3: pages 11-14
+[0] [2025-06-13T11:14:15.353Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:15.353Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:15.353Z]  Original results: 22 pages
+[0] [2025-06-13T11:14:15.354Z]  Filtered results: 22 pages
+[0] [2025-06-13T11:14:15.354Z]  Successfully processed 26 pages
+[0] [2025-06-13T11:14:15.448Z]  Completed batch 10: pages 46-50
+[0] [2025-06-13T11:14:16.517Z]  Completed batch 12: pages 56-60
+[0] [2025-06-13T11:14:16.958Z]  File upload attempt: {
+[0]   originalname: 'f3351061735c4c20a724e138f4f6c9d2_6f8e9697_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:14:16.958Z]  File accepted: f3351061735c4c20a724e138f4f6c9d2_6f8e9697_download
+[0] [2025-06-13T11:14:16.961Z]  Converting document to images: f3351061735c4c20a724e138f4f6c9d2_6f8e9697_download
+[0] [2025-06-13T11:14:16.961Z]  Starting LibreOffice conversion for: f3351061735c4c20a724e138f4f6c9d2_6f8e9697_download
+[0] [2025-06-13T11:14:16.975Z]  Converting with unique installation: /tmp/libreoffice_de8f8251-f7d9-4dc6-a03b-376376e1c69a
+[0] [2025-06-13T11:14:17.172Z]  Completed batch 7: pages 31-35
+[0] [2025-06-13T11:14:17.502Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:14:17.502Z]  Batch processing complete: 2 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:17.502Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:14:17.502Z]  Original results: 10 pages
+[0] [2025-06-13T11:14:17.502Z]  Removing page 1: Empty content
+[0] [2025-06-13T11:14:17.502Z]  Removing page 9: Empty content
+[0] [2025-06-13T11:14:17.502Z]  Removing page 10: Empty content
+[0] [2025-06-13T11:14:17.502Z]  Filtered results: 7 pages
+[0] [2025-06-13T11:14:17.502Z]  Clean pages: 7, failed pages: 3
+[0] [2025-06-13T11:14:17.502Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:17.502Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:17.502Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:18.838Z]  Completed batch 4: pages 16-20
+[0] [2025-06-13T11:14:19.511Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:19.511Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:19.511Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:19.511Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:19.511Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:19.668Z]  Completed batch 5: pages 21-23
+[0] [2025-06-13T11:14:19.944Z]  Completed batch 5: pages 21-25
+[0] [2025-06-13T11:14:21.447Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:21.447Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:21.447Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:21.447Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:21.447Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:22.583Z]  Converting PDF to images: outputs/1749813256961/document-1749813256958-690862869.pdf
+[0] [2025-06-13T11:14:23.231Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:23.232Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:23.232Z]  Original results: 7 pages
+[0] [2025-06-13T11:14:23.232Z]  Filtered results: 7 pages
+[0] [2025-06-13T11:14:23.233Z]  Successfully processed 10 pages
+[0] [2025-06-13T11:14:24.504Z]  File upload attempt: {
+[0]   originalname: 'f3351061735c4c20a724e138f4f6c9d2_baf68d62_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:14:24.504Z]  File accepted: f3351061735c4c20a724e138f4f6c9d2_baf68d62_download
+[0] [2025-06-13T11:14:24.505Z]  Converting document to images: f3351061735c4c20a724e138f4f6c9d2_baf68d62_download
+[0] [2025-06-13T11:14:24.505Z]  Starting LibreOffice conversion for: f3351061735c4c20a724e138f4f6c9d2_baf68d62_download
+[0] [2025-06-13T11:14:24.517Z]  Converting with unique installation: /tmp/libreoffice_f4c1d923-88ec-42a9-b3d1-4cba2e19d304
+[0] [2025-06-13T11:14:25.821Z]  Converting PDF to images: outputs/1749813264505/document-1749813264505-153147894.pdf
+[0] [2025-06-13T11:14:26.098Z]  Successfully converted f3351061735c4c20a724e138f4f6c9d2_baf68d62_download to 2 images
+[0] [2025-06-13T11:14:26.098Z]  Processing 2 pages with AI...
+[0] [2025-06-13T11:14:26.098Z]  Processing 2 images in 1 batches with max 30 concurrent requests
+[0] [2025-06-13T11:14:26.098Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:26.098Z]  Starting batch 1: pages 1-2
+[0] [2025-06-13T11:14:27.360Z]  Completed batch 4: pages 16-20
+[0] [2025-06-13T11:14:32.458Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:14:32.750Z]  Successfully converted f3351061735c4c20a724e138f4f6c9d2_6f8e9697_download to 60 images
+[0] [2025-06-13T11:14:32.750Z]  Processing 60 pages with AI...
+[0] [2025-06-13T11:14:32.750Z]  Processing 60 images in 12 batches with max 30 concurrent requests
+[0] [2025-06-13T11:14:32.750Z]  Processing batch group 1/1 with 12 concurrent requests
+[0] [2025-06-13T11:14:32.750Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:14:32.801Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:14:32.828Z]  Starting batch 3: pages 11-15
+[0] [2025-06-13T11:14:32.854Z]  Starting batch 4: pages 16-20
+[0] [2025-06-13T11:14:32.882Z]  Starting batch 5: pages 21-25
+[0] [2025-06-13T11:14:32.913Z]  Starting batch 6: pages 26-30
+[0] [2025-06-13T11:14:32.946Z]  Starting batch 7: pages 31-35
+[0] [2025-06-13T11:14:32.983Z]  Starting batch 8: pages 36-40
+[0] [2025-06-13T11:14:33.012Z]  Starting batch 9: pages 41-45
+[0] [2025-06-13T11:14:33.042Z]  Starting batch 10: pages 46-50
+[0] [2025-06-13T11:14:33.072Z]  Starting batch 11: pages 51-55
+[0] [2025-06-13T11:14:33.097Z]  Starting batch 12: pages 56-60
+[0] [2025-06-13T11:14:33.492Z]  Completed batch 6: pages 26-30
+[0] [2025-06-13T11:14:34.224Z]  Completed batch 8: pages 36-40
+[0] [2025-06-13T11:14:35.501Z]  Completed batch 9: pages 41-45
+[0] [2025-06-13T11:14:36.251Z]  Completed batch 5: pages 21-25
+[0] [2025-06-13T11:14:36.442Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:14:36.620Z]  Completed batch 14: pages 66-70
+[0] [2025-06-13T11:14:37.409Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:14:38.455Z]  Completed batch 10: pages 46-50
+[0] [2025-06-13T11:14:38.745Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:14:41.814Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:14:42.170Z]  Completed batch 11: pages 51-55
+[0] [2025-06-13T11:14:43.148Z]  Completed batch 3: pages 11-15
+[0] [2025-06-13T11:14:43.148Z]  Batch processing complete: 8 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:43.148Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:14:43.148Z] ERROR:  Failed to parse JSON for batch 6: SyntaxError: Expected ',' or '}' after property value in JSON at position 3327 (line 8 column 573)
+[0]     at JSON.parse (<anonymous>)
+[0]     at /app/src/services/ai.service.js:158:44
+[0]     at Array.forEach (<anonymous>)
+[0]     at AIService.flattenBatchResults (/app/src/services/ai.service.js:149:26)
+[0]     at /app/src/routes/document.routes.js:97:19
+[0]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[0] [2025-06-13T11:14:43.148Z]  Original results: 36 pages
+[0] [2025-06-13T11:14:43.149Z]  Removing page 4: Empty content
+[0] [2025-06-13T11:14:43.149Z]  Removing page 26: Error - Invalid response format
+[0] [2025-06-13T11:14:43.149Z]  Filtered results: 34 pages
+[0] [2025-06-13T11:14:43.149Z]  Clean pages: 34, failed pages: 2
+[0] [2025-06-13T11:14:43.149Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:43.149Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:43.149Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:44.489Z]  Completed batch 1: pages 1-2
+[0] [2025-06-13T11:14:44.489Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:44.489Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:14:44.489Z]  Original results: 2 pages
+[0] [2025-06-13T11:14:44.489Z]  Removing page 2: Empty content
+[0] [2025-06-13T11:14:44.489Z]  Filtered results: 1 pages
+[0] [2025-06-13T11:14:44.489Z]  Clean pages: 1, failed pages: 1
+[0] [2025-06-13T11:14:44.489Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:44.489Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:44.489Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:46.030Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:46.030Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:46.030Z]  Original results: 1 pages
+[0] [2025-06-13T11:14:46.030Z]  Filtered results: 1 pages
+[0] [2025-06-13T11:14:46.031Z]  Successfully processed 2 pages
+[0] [2025-06-13T11:14:46.314Z]  Completed batch 1: pages 1-3
+[0] [2025-06-13T11:14:46.314Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:46.314Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:14:46.315Z]  Original results: 3 pages
+[0] [2025-06-13T11:14:46.315Z]  Filtered results: 3 pages
+[0] [2025-06-13T11:14:46.315Z]  Clean pages: 3, failed pages: 0
+[0] [2025-06-13T11:14:46.315Z]  Original results: 3 pages
+[0] [2025-06-13T11:14:46.315Z]  Filtered results: 3 pages
+[0] [2025-06-13T11:14:46.315Z]  Successfully processed 3 pages
+[0] [2025-06-13T11:14:46.482Z]  Completed batch 4: pages 16-20
+[0] [2025-06-13T11:14:47.919Z]  File upload attempt: {
+[0]   originalname: 'f3351061735c4c20a724e138f4f6c9d2_0d24a8d9_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:14:47.919Z]  File accepted: f3351061735c4c20a724e138f4f6c9d2_0d24a8d9_download
+[0] [2025-06-13T11:14:47.920Z]  Converting document to images: f3351061735c4c20a724e138f4f6c9d2_0d24a8d9_download
+[0] [2025-06-13T11:14:47.921Z]  Starting LibreOffice conversion for: f3351061735c4c20a724e138f4f6c9d2_0d24a8d9_download
+[0] [2025-06-13T11:14:47.945Z]  Converting with unique installation: /tmp/libreoffice_cf4450d9-61ab-4b52-9b3f-1aae0ae5f9f8
+[0] [2025-06-13T11:14:49.296Z]  Converting PDF to images: outputs/1749813287920/document-1749813287919-863382851.pdf
+[0] [2025-06-13T11:14:49.740Z]  Successfully converted f3351061735c4c20a724e138f4f6c9d2_0d24a8d9_download to 3 images
+[0] [2025-06-13T11:14:49.740Z]  Processing 3 pages with AI...
+[0] [2025-06-13T11:14:49.740Z]  Processing 3 images in 1 batches with max 30 concurrent requests
+[0] [2025-06-13T11:14:49.740Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:49.740Z]  Starting batch 1: pages 1-3
+[0] [2025-06-13T11:14:52.537Z]  Completed batch 3: pages 11-15
+[0] [2025-06-13T11:14:52.537Z]  Batch processing complete: 12 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:52.537Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:14:52.537Z]  Original results: 50 pages
+[0] [2025-06-13T11:14:52.538Z]  Removing page 53: Empty content
+[0] [2025-06-13T11:14:52.538Z]  Removing page 56: Empty content
+[0] [2025-06-13T11:14:52.538Z]  Removing page 57: Empty content
+[0] [2025-06-13T11:14:52.538Z]  Removing page 58: Empty content
+[0] [2025-06-13T11:14:52.538Z]  Removing page 59: Empty content
+[0] [2025-06-13T11:14:52.538Z]  Filtered results: 45 pages
+[0] [2025-06-13T11:14:52.538Z]  Clean pages: 45, failed pages: 5
+[0] [2025-06-13T11:14:52.538Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:52.538Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:52.538Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:54.689Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:54.690Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:54.690Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:54.690Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:54.690Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:56.156Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:56.156Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:56.157Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:56.157Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:56.157Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:57.301Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:57.301Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:57.301Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:57.301Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:57.301Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:59.190Z]  Completed batch 13: pages 61-65
+[0] [2025-06-13T11:14:59.331Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:59.331Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:59.331Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:59.331Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:59.331Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:15:21.047Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:15:21.047Z]  Batch processing complete: 3 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:15:21.047Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:15:21.048Z]  Original results: 14 pages
+[0] [2025-06-13T11:15:21.048Z]  Filtered results: 14 pages
+[0] [2025-06-13T11:15:21.048Z]  Clean pages: 14, failed pages: 0
+[0] [2025-06-13T11:15:21.048Z]  Original results: 14 pages
+[0] [2025-06-13T11:15:21.048Z]  Filtered results: 14 pages
+[0] [2025-06-13T11:15:21.048Z]  Successfully processed 14 pages
+[0] [2025-06-13T11:15:22.188Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:15:22.188Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:15:22.188Z]  Original results: 46 pages
+[0] [2025-06-13T11:15:22.188Z]  Filtered results: 46 pages
+[0] [2025-06-13T11:15:22.190Z]  Successfully processed 60 pages
+[0] [2025-06-13T11:15:23.977Z]  Completed batch 1: pages 1-3
+[0] [2025-06-13T11:15:23.977Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:15:23.977Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:15:23.978Z]  Original results: 3 pages
+[0] [2025-06-13T11:15:23.978Z]  Filtered results: 3 pages
+[0] [2025-06-13T11:15:23.978Z]  Clean pages: 3, failed pages: 0
+[0] [2025-06-13T11:15:23.978Z]  Original results: 3 pages
+[0] [2025-06-13T11:15:23.978Z]  Filtered results: 3 pages
+[0] [2025-06-13T11:15:23.978Z]  Successfully processed 3 pages
+[0] [2025-06-13T11:15:26.431Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:15:26.432Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:15:26.432Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:15:26.432Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:15:26.432Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:15:31.836Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:15:34.656Z]  Completed batch 5: pages 21-25
+[0] [2025-06-13T11:15:42.916Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:16:00.446Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:16:00.446Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:16:00.446Z]  Original results: 36 pages
+[0] [2025-06-13T11:16:00.447Z]  Filtered results: 36 pages
+[0] [2025-06-13T11:16:00.447Z]  Successfully processed 40 pages
+[1] (node:71) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+[0] [2025-06-13T11:16:18.059Z]  Completed batch 3: pages 11-15
+[0] [2025-06-13T11:16:25.224Z]  Completed batch 12: pages 56-60
+[0] [2025-06-13T11:16:26.382Z]  Completed batch 8: pages 36-40
+[0] [2025-06-13T11:16:27.148Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:16:28.377Z]  Completed batch 11: pages 51-55
+[0] [2025-06-13T11:16:29.800Z]  Completed batch 9: pages 41-45
+[0] [2025-06-13T11:16:33.224Z]  Completed batch 3: pages 11-15
+[0] [2025-06-13T11:16:37.568Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:16:37.568Z]  Batch processing complete: 2 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:16:37.568Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:16:37.568Z]  Original results: 8 pages
+[0] [2025-06-13T11:16:37.568Z]  Filtered results: 8 pages
+[0] [2025-06-13T11:16:37.569Z]  Clean pages: 8, failed pages: 0
+[0] [2025-06-13T11:16:37.569Z]  Original results: 8 pages
+[0] [2025-06-13T11:16:37.569Z]  Filtered results: 8 pages
+[0] [2025-06-13T11:16:37.569Z]  Successfully processed 8 pages
+[0] [2025-06-13T11:16:38.432Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:16:43.282Z]  Completed batch 8: pages 36-40
+[0] [2025-06-13T11:16:43.282Z]  Batch processing complete: 15 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:16:43.282Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:16:43.283Z]  Original results: 74 pages
+[0] [2025-06-13T11:16:43.283Z]  Filtered results: 74 pages
+[0] [2025-06-13T11:16:43.283Z]  Clean pages: 74, failed pages: 0
+[0] [2025-06-13T11:16:43.283Z]  Original results: 74 pages
+[0] [2025-06-13T11:16:43.284Z]  Filtered results: 74 pages
+[0] [2025-06-13T11:16:43.285Z]  Successfully processed 74 pages
+[0] [2025-06-13T11:16:43.523Z]  Completed batch 4: pages 16-20
+[0] [2025-06-13T11:16:50.630Z]  Completed batch 10: pages 46-50
+[0] [2025-06-13T11:16:53.397Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:16:53.913Z]  Completed batch 6: pages 26-30
+[0] [2025-06-13T11:16:57.880Z]  Completed batch 9: pages 41-45
+[0] [2025-06-13T11:17:01.141Z]  Completed batch 5: pages 21-25
+[0] [2025-06-13T11:17:04.028Z]  Completed batch 7: pages 31-35
+[0] [2025-06-13T11:17:04.028Z]  Batch processing complete: 12 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:17:04.028Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:17:04.029Z]  Original results: 60 pages
+[0] [2025-06-13T11:17:04.029Z]  Removing page 3: Empty content
+[0] [2025-06-13T11:17:04.029Z]  Removing page 4: Empty content
+[0] [2025-06-13T11:17:04.030Z]  Removing page 5: Empty content
+[0] [2025-06-13T11:17:04.030Z]  Filtered results: 57 pages
+[0] [2025-06-13T11:17:04.030Z]  Clean pages: 57, failed pages: 3
+[0] [2025-06-13T11:17:04.030Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:17:04.030Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:17:04.030Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:17:10.434Z]  Completed batch 4: pages 16-20
+[0] [2025-06-13T11:17:21.628Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:17:21.628Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:17:21.628Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:17:21.628Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:17:21.628Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:17:33.996Z]  Completed batch 3: pages 11-15
+[0] [2025-06-13T11:17:33.996Z]  Batch processing complete: 5 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:17:33.996Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:17:33.997Z]  Original results: 23 pages
+[0] [2025-06-13T11:17:33.997Z]  Removing page 7: Empty content
+[0] [2025-06-13T11:17:33.997Z]  Removing page 8: Empty content
+[0] [2025-06-13T11:17:33.997Z]  Removing page 9: Empty content
+[0] [2025-06-13T11:17:33.997Z]  Filtered results: 20 pages
+[0] [2025-06-13T11:17:33.997Z]  Clean pages: 20, failed pages: 3
+[0] [2025-06-13T11:17:33.997Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:17:33.997Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:17:33.997Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:17:51.495Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:17:51.495Z]  Batch processing complete: 3 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:17:51.495Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:17:51.496Z]  Original results: 11 pages
+[0] [2025-06-13T11:17:51.496Z]  Filtered results: 11 pages
+[0] [2025-06-13T11:17:51.496Z]  Clean pages: 11, failed pages: 0
+[0] [2025-06-13T11:17:51.496Z]  Original results: 11 pages
+[0] [2025-06-13T11:17:51.496Z]  Filtered results: 11 pages
+[0] [2025-06-13T11:17:51.497Z]  Successfully processed 11 pages
+root@ubuntu-4gb-ash-1:~# docker logs 01793ecae29ba2a31090b6c347578a144dbd934ed91c5435196350004d2aa923
+yarn run v1.22.22
+$ concurrently "yarn server" "yarn start"
+$ node server.js
+$ react-scripts  --openssl-legacy-provider  start
+[0] [2025-06-13T11:10:04.887Z]  Server running on port 3001
+[0] [2025-06-13T11:10:04.893Z]  Available endpoints:
+[0] [2025-06-13T11:10:04.893Z]    POST /api/convert-document - Convert document to images
+[0] [2025-06-13T11:10:04.893Z]    POST /api/process-document - Process document with AI
+[0] [2025-06-13T11:10:04.893Z]    GET  /api/health - Health check
+[1] (node:71) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+[1] (Use `node --trace-deprecation ...` to show where the warning was created)
+[1] (node:71) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+[1] Starting the development server...
+[1]
+[1] Compiled successfully!
+[1]
+[1] You can now view pdfgenius in the browser.
+[1]
+[1]   Local:            http://localhost:3000
+[1]   On Your Network:  http://172.17.0.2:3000
+[1]
+[1] Note that the development build is not optimized.
+[1] To create a production build, use yarn build.
+[1]
+[1] webpack compiled successfully
+[1] Compiling...
+[1] Compiled successfully!
+[1] webpack compiled successfully
+[0] [2025-06-13T11:11:58.669Z]  File upload attempt: {
+[0]   originalname: 'ee53404bf12245a8b5d5a5c6a0961daa_39a77c18_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:58.669Z]  File accepted: ee53404bf12245a8b5d5a5c6a0961daa_39a77c18_download
+[0] [2025-06-13T11:11:58.679Z]  File upload attempt: {
+[0]   originalname: 'f79aaaaa135a49a082a335e9eb795d81_bcaa82f4_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:58.679Z]  File accepted: f79aaaaa135a49a082a335e9eb795d81_bcaa82f4_download
+[0] [2025-06-13T11:11:58.681Z]  Converting document to images: ee53404bf12245a8b5d5a5c6a0961daa_39a77c18_download
+[0] [2025-06-13T11:11:58.684Z]  Starting LibreOffice conversion for: ee53404bf12245a8b5d5a5c6a0961daa_39a77c18_download
+[0] [2025-06-13T11:11:58.691Z]  Converting document to images: f79aaaaa135a49a082a335e9eb795d81_bcaa82f4_download
+[0] [2025-06-13T11:11:58.691Z]  Starting LibreOffice conversion for: f79aaaaa135a49a082a335e9eb795d81_bcaa82f4_download
+[0] [2025-06-13T11:11:58.695Z]  Converting with unique installation: /tmp/libreoffice_b76758b4-ff57-4585-9dac-9d9b0d6d815f
+[0] [2025-06-13T11:11:58.697Z]  Converting with unique installation: /tmp/libreoffice_bafcba97-63db-4d31-ba92-9c331b58408b
+[0] [2025-06-13T11:11:58.864Z]  File upload attempt: {
+[0]   originalname: 'f7d591d227b74a9bacf8867054a51f19_30a156f2_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:58.864Z]  File accepted: f7d591d227b74a9bacf8867054a51f19_30a156f2_download
+[0] [2025-06-13T11:11:58.870Z]  Converting document to images: f7d591d227b74a9bacf8867054a51f19_30a156f2_download
+[0] [2025-06-13T11:11:58.880Z]  File upload attempt: {
+[0]   originalname: 'f77b80c50d8c4cac9deb5114c4db437e_33579173_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:58.880Z]  File accepted: f77b80c50d8c4cac9deb5114c4db437e_33579173_download
+[0] [2025-06-13T11:11:58.884Z]  Converting document to images: f77b80c50d8c4cac9deb5114c4db437e_33579173_download
+[0] [2025-06-13T11:11:58.984Z]  File upload attempt: {
+[0]   originalname: 'f77b80c50d8c4cac9deb5114c4db437e_2a2d6a41_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:58.985Z]  File accepted: f77b80c50d8c4cac9deb5114c4db437e_2a2d6a41_download
+[0] [2025-06-13T11:11:58.999Z]  Converting document to images: f77b80c50d8c4cac9deb5114c4db437e_2a2d6a41_download
+[0] [2025-06-13T11:11:59.381Z]  File upload attempt: {
+[0]   originalname: 'f79aaaaa135a49a082a335e9eb795d81_b323738e_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:59.381Z]  File accepted: f79aaaaa135a49a082a335e9eb795d81_b323738e_download
+[0] [2025-06-13T11:11:59.387Z]  Converting document to images: f79aaaaa135a49a082a335e9eb795d81_b323738e_download
+[0] [2025-06-13T11:11:59.399Z]  File upload attempt: {
+[0]   originalname: 'f7d591d227b74a9bacf8867054a51f19_ff7dbd11_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:59.399Z]  File accepted: f7d591d227b74a9bacf8867054a51f19_ff7dbd11_download
+[0] [2025-06-13T11:11:59.404Z]  Converting document to images: f7d591d227b74a9bacf8867054a51f19_ff7dbd11_download
+[0] [2025-06-13T11:11:59.582Z]  File upload attempt: {
+[0]   originalname: 'f7d591d227b74a9bacf8867054a51f19_f50fbeed_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:11:59.583Z]  File accepted: f7d591d227b74a9bacf8867054a51f19_f50fbeed_download
+[0] [2025-06-13T11:11:59.590Z]  Converting document to images: f7d591d227b74a9bacf8867054a51f19_f50fbeed_download
+[0] [2025-06-13T11:12:00.884Z]  Converting PDF to images: outputs/1749813118691/document-1749813118679-767108966.pdf
+[0] [2025-06-13T11:12:00.935Z]  File upload attempt: {
+[0]   originalname: 'f832d128d988416686d431723e33c1c6_47304a8b_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:12:00.935Z]  File accepted: f832d128d988416686d431723e33c1c6_47304a8b_download
+[0] [2025-06-13T11:12:00.970Z]  Converting document to images: f832d128d988416686d431723e33c1c6_47304a8b_download
+[0] [2025-06-13T11:12:01.035Z]  Successfully converted f79aaaaa135a49a082a335e9eb795d81_bcaa82f4_download to 3 images
+[0] [2025-06-13T11:12:01.035Z]  Processing 3 pages with AI...
+[0] [2025-06-13T11:12:01.036Z]  Processing 3 images in 1 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:01.036Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:12:01.036Z]  Starting batch 1: pages 1-3
+[0] [2025-06-13T11:12:01.108Z]  Starting LibreOffice conversion for: f7d591d227b74a9bacf8867054a51f19_30a156f2_download
+[0] [2025-06-13T11:12:01.112Z]  Converting with unique installation: /tmp/libreoffice_0a2200a2-f61c-4be7-a41e-a9c8bf4c8581
+[0] [2025-06-13T11:12:01.159Z]  File upload attempt: {
+[0]   originalname: 'f7d591d227b74a9bacf8867054a51f19_551635c4_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:12:01.159Z]  File accepted: f7d591d227b74a9bacf8867054a51f19_551635c4_download
+[0] [2025-06-13T11:12:01.191Z]  Converting PDF to images: outputs/1749813118682/document-1749813118670-99665026.pdf
+[0] [2025-06-13T11:12:01.194Z]  Converting document to images: f7d591d227b74a9bacf8867054a51f19_551635c4_download
+[0] [2025-06-13T11:12:02.709Z]  Successfully converted ee53404bf12245a8b5d5a5c6a0961daa_39a77c18_download to 26 images
+[0] [2025-06-13T11:12:02.709Z]  Processing 26 pages with AI...
+[0] [2025-06-13T11:12:02.710Z]  Processing 26 images in 6 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:02.710Z]  Processing batch group 1/1 with 6 concurrent requests
+[0] [2025-06-13T11:12:02.710Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:02.739Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:02.767Z]  Starting batch 3: pages 11-15
+[0] [2025-06-13T11:12:02.790Z]  Starting batch 4: pages 16-20
+[0] [2025-06-13T11:12:02.815Z]  Starting batch 5: pages 21-25
+[0] [2025-06-13T11:12:02.842Z]  Starting batch 6: pages 26-26
+[0] [2025-06-13T11:12:02.847Z]  Starting LibreOffice conversion for: f77b80c50d8c4cac9deb5114c4db437e_33579173_download
+[0] [2025-06-13T11:12:02.851Z]  Converting with unique installation: /tmp/libreoffice_eedd937e-9315-49c2-bc3f-bfc30614a8a8
+[0] [2025-06-13T11:12:02.892Z]  Converting PDF to images: outputs/1749813118870/document-1749813118864-883470803.pdf
+[0] [2025-06-13T11:12:03.835Z]  Successfully converted f7d591d227b74a9bacf8867054a51f19_30a156f2_download to 7 images
+[0] [2025-06-13T11:12:03.835Z]  Processing 7 pages with AI...
+[0] [2025-06-13T11:12:03.835Z]  Processing 7 images in 2 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:03.835Z]  Processing batch group 1/1 with 2 concurrent requests
+[0] [2025-06-13T11:12:03.835Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:03.859Z]  Starting batch 2: pages 6-7
+[0] [2025-06-13T11:12:03.867Z]  Starting LibreOffice conversion for: f77b80c50d8c4cac9deb5114c4db437e_2a2d6a41_download
+[0] [2025-06-13T11:12:03.875Z]  Converting with unique installation: /tmp/libreoffice_c175c739-099d-42c4-90fa-bb4d5e4b35f9
+[0] [2025-06-13T11:12:04.274Z]  Converting PDF to images: outputs/1749813118884/document-1749813118880-527886108.pdf
+[0] [2025-06-13T11:12:04.810Z]  Successfully converted f77b80c50d8c4cac9deb5114c4db437e_33579173_download to 4 images
+[0] [2025-06-13T11:12:04.810Z]  Processing 4 pages with AI...
+[0] [2025-06-13T11:12:04.810Z]  Processing 4 images in 1 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:04.810Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:12:04.810Z]  Starting batch 1: pages 1-4
+[0] [2025-06-13T11:12:04.831Z]  Starting LibreOffice conversion for: f79aaaaa135a49a082a335e9eb795d81_b323738e_download
+[0] [2025-06-13T11:12:04.837Z]  Converting with unique installation: /tmp/libreoffice_d8c184d6-5f40-4a75-9c51-756f024a5cdc
+[0] [2025-06-13T11:12:06.495Z]  Converting PDF to images: outputs/1749813118999/document-1749813118985-611440298.pdf
+[0] [2025-06-13T11:12:07.820Z]  Successfully converted f77b80c50d8c4cac9deb5114c4db437e_2a2d6a41_download to 8 images
+[0] [2025-06-13T11:12:07.821Z]  Processing 8 pages with AI...
+[0] [2025-06-13T11:12:07.821Z]  Processing 8 images in 2 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:07.821Z]  Processing batch group 1/1 with 2 concurrent requests
+[0] [2025-06-13T11:12:07.821Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:07.858Z]  Starting batch 2: pages 6-8
+[0] [2025-06-13T11:12:07.872Z]  Starting LibreOffice conversion for: f7d591d227b74a9bacf8867054a51f19_ff7dbd11_download
+[0] [2025-06-13T11:12:07.877Z]  Converting with unique installation: /tmp/libreoffice_246ecb99-92b9-44f8-be10-848363e07579
+[0] [2025-06-13T11:12:10.692Z]  Converting PDF to images: outputs/1749813119387/document-1749813119381-957021586.pdf
+[0] [2025-06-13T11:12:11.898Z]  Converting PDF to images: outputs/1749813119404/document-1749813119399-292165176.pdf
+[0] [2025-06-13T11:12:16.526Z]  Completed batch 6: pages 26-26
+[0] [2025-06-13T11:12:17.182Z]  Completed batch 1: pages 1-3
+[0] [2025-06-13T11:12:17.182Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:12:17.182Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:12:17.183Z]  Original results: 3 pages
+[0] [2025-06-13T11:12:17.184Z]  Filtered results: 3 pages
+[0] [2025-06-13T11:12:17.184Z]  Clean pages: 3, failed pages: 0
+[0] [2025-06-13T11:12:17.184Z]  Original results: 3 pages
+[0] [2025-06-13T11:12:17.184Z]  Filtered results: 3 pages
+[0] [2025-06-13T11:12:17.184Z]  Successfully processed 3 pages
+[0] [2025-06-13T11:12:18.051Z]  Successfully converted f7d591d227b74a9bacf8867054a51f19_ff7dbd11_download to 40 images
+[0] [2025-06-13T11:12:18.051Z]  Processing 40 pages with AI...
+[0] [2025-06-13T11:12:18.051Z]  Processing 40 images in 8 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:18.051Z]  Processing batch group 1/1 with 8 concurrent requests
+[0] [2025-06-13T11:12:18.051Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:18.076Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:18.100Z]  Starting batch 3: pages 11-15
+[0] [2025-06-13T11:12:18.125Z]  Starting batch 4: pages 16-20
+[0] [2025-06-13T11:12:18.155Z]  Starting batch 5: pages 21-25
+[0] [2025-06-13T11:12:18.189Z]  Starting batch 6: pages 26-30
+[0] [2025-06-13T11:12:18.209Z]  Starting batch 7: pages 31-35
+[0] [2025-06-13T11:12:18.236Z]  Starting batch 8: pages 36-40
+[0] [2025-06-13T11:12:18.263Z]  Starting LibreOffice conversion for: f7d591d227b74a9bacf8867054a51f19_f50fbeed_download
+[0] [2025-06-13T11:12:18.284Z]  Converting with unique installation: /tmp/libreoffice_9e98ef95-58c2-4064-92dd-92a371567c95
+[0] [2025-06-13T11:12:20.209Z]  Converting PDF to images: outputs/1749813119590/document-1749813119583-511756806.pdf
+[0] [2025-06-13T11:12:20.714Z]  File upload attempt: {
+[0]   originalname: 'f40b0681174840d293346ab2230c5100_6f4f23dc_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:12:20.715Z]  File accepted: f40b0681174840d293346ab2230c5100_6f4f23dc_download
+[0] [2025-06-13T11:12:20.716Z]  Converting document to images: f40b0681174840d293346ab2230c5100_6f4f23dc_download
+[0] [2025-06-13T11:12:20.929Z]  Successfully converted f79aaaaa135a49a082a335e9eb795d81_b323738e_download to 74 images
+[0] [2025-06-13T11:12:20.929Z]  Processing 74 pages with AI...
+[0] [2025-06-13T11:12:20.929Z]  Processing 74 images in 15 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:20.929Z]  Processing batch group 1/1 with 15 concurrent requests
+[0] [2025-06-13T11:12:20.929Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:20.951Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:20.981Z]  Starting batch 3: pages 11-15
+[0] [2025-06-13T11:12:21.012Z]  Starting batch 4: pages 16-20
+[0] [2025-06-13T11:12:21.042Z]  Starting batch 5: pages 21-25
+[0] [2025-06-13T11:12:21.069Z]  Starting batch 6: pages 26-30
+[0] [2025-06-13T11:12:21.095Z]  Starting batch 7: pages 31-35
+[0] [2025-06-13T11:12:21.122Z]  Starting batch 8: pages 36-40
+[0] [2025-06-13T11:12:21.143Z]  Starting batch 9: pages 41-45
+[0] [2025-06-13T11:12:21.169Z]  Starting batch 10: pages 46-50
+[0] [2025-06-13T11:12:21.197Z]  Starting batch 11: pages 51-55
+[0] [2025-06-13T11:12:21.228Z]  Starting batch 12: pages 56-60
+[0] [2025-06-13T11:12:21.269Z]  Starting batch 13: pages 61-65
+[0] [2025-06-13T11:12:21.301Z]  Starting batch 14: pages 66-70
+[0] [2025-06-13T11:12:21.333Z]  Starting batch 15: pages 71-74
+[0] [2025-06-13T11:12:21.354Z]  Starting LibreOffice conversion for: f832d128d988416686d431723e33c1c6_47304a8b_download
+[0] [2025-06-13T11:12:21.373Z]  Converting with unique installation: /tmp/libreoffice_102cf9aa-fe5d-4b0d-a7e0-017719d7da63
+[0] [2025-06-13T11:12:22.689Z]  Successfully converted f7d591d227b74a9bacf8867054a51f19_f50fbeed_download to 10 images
+[0] [2025-06-13T11:12:22.689Z]  Processing 10 pages with AI...
+[0] [2025-06-13T11:12:22.689Z]  Processing 10 images in 2 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:22.689Z]  Processing batch group 1/1 with 2 concurrent requests
+[0] [2025-06-13T11:12:22.689Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:22.712Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:22.730Z]  Starting LibreOffice conversion for: f7d591d227b74a9bacf8867054a51f19_551635c4_download
+[0] [2025-06-13T11:12:22.747Z]  Converting with unique installation: /tmp/libreoffice_9327f164-ee12-45a3-bc75-42d499e6445c
+[0] [2025-06-13T11:12:29.367Z]  Completed batch 2: pages 6-7
+[0] [2025-06-13T11:12:35.028Z]  Converting PDF to images: outputs/1749813121194/document-1749813121159-960389380.pdf
+[0] [2025-06-13T11:12:38.525Z]  Successfully converted f7d591d227b74a9bacf8867054a51f19_551635c4_download to 11 images
+[0] [2025-06-13T11:12:38.525Z]  Processing 11 pages with AI...
+[0] [2025-06-13T11:12:38.525Z]  Processing 11 images in 3 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:38.525Z]  Processing batch group 1/1 with 3 concurrent requests
+[0] [2025-06-13T11:12:38.525Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:38.556Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:38.587Z]  Starting batch 3: pages 11-11
+[0] [2025-06-13T11:12:38.594Z]  Starting LibreOffice conversion for: f40b0681174840d293346ab2230c5100_6f4f23dc_download
+[0] [2025-06-13T11:12:38.610Z]  Converting with unique installation: /tmp/libreoffice_890924e9-4bb9-4a7a-9b0f-7e7657086070
+[0] [2025-06-13T11:12:40.190Z]  Converting PDF to images: outputs/1749813140716/document-1749813140715-243604149.pdf
+[0] [2025-06-13T11:12:41.105Z]  Successfully converted f40b0681174840d293346ab2230c5100_6f4f23dc_download to 14 images
+[0] [2025-06-13T11:12:41.105Z]  Processing 14 pages with AI...
+[0] [2025-06-13T11:12:41.105Z]  Processing 14 images in 3 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:41.105Z]  Processing batch group 1/1 with 3 concurrent requests
+[0] [2025-06-13T11:12:41.105Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:41.153Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:41.182Z]  Starting batch 3: pages 11-14
+[0] [2025-06-13T11:12:42.721Z]  Converting PDF to images: outputs/1749813120970/document-1749813120935-492930498.pdf
+[0] [2025-06-13T11:12:53.084Z]  Successfully converted f832d128d988416686d431723e33c1c6_47304a8b_download to 60 images
+[0] [2025-06-13T11:12:53.085Z]  Processing 60 pages with AI...
+[0] [2025-06-13T11:12:53.085Z]  Processing 60 images in 12 batches with max 30 concurrent requests
+[0] [2025-06-13T11:12:53.085Z]  Processing batch group 1/1 with 12 concurrent requests
+[0] [2025-06-13T11:12:53.085Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:12:53.111Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:12:53.133Z]  Starting batch 3: pages 11-15
+[0] [2025-06-13T11:12:53.161Z]  Starting batch 4: pages 16-20
+[0] [2025-06-13T11:12:53.186Z]  Starting batch 5: pages 21-25
+[0] [2025-06-13T11:12:53.212Z]  Starting batch 6: pages 26-30
+[0] [2025-06-13T11:12:53.237Z]  Starting batch 7: pages 31-35
+[0] [2025-06-13T11:12:53.266Z]  Starting batch 8: pages 36-40
+[0] [2025-06-13T11:12:53.290Z]  Starting batch 9: pages 41-45
+[0] [2025-06-13T11:12:53.311Z]  Starting batch 10: pages 46-50
+[0] [2025-06-13T11:12:53.334Z]  Starting batch 11: pages 51-55
+[0] [2025-06-13T11:12:53.350Z]  Starting batch 12: pages 56-60
+[0] [2025-06-13T11:12:53.810Z]  Completed batch 3: pages 11-11
+[0] [2025-06-13T11:13:05.902Z]  Completed batch 1: pages 1-4
+[0] [2025-06-13T11:13:05.902Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:13:05.902Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:13:05.903Z]  Original results: 4 pages
+[0] [2025-06-13T11:13:05.903Z]  Filtered results: 4 pages
+[0] [2025-06-13T11:13:05.903Z]  Clean pages: 4, failed pages: 0
+[0] [2025-06-13T11:13:05.903Z]  Original results: 4 pages
+[0] [2025-06-13T11:13:05.903Z]  Filtered results: 4 pages
+[0] [2025-06-13T11:13:05.903Z]  Successfully processed 4 pages
+[0] [2025-06-13T11:13:07.027Z]  File upload attempt: {
+[0]   originalname: 'f40b0681174840d293346ab2230c5100_0c731a70_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:13:07.028Z]  File accepted: f40b0681174840d293346ab2230c5100_0c731a70_download
+[0] [2025-06-13T11:13:07.030Z]  Converting document to images: f40b0681174840d293346ab2230c5100_0c731a70_download
+[0] [2025-06-13T11:13:07.030Z]  Starting LibreOffice conversion for: f40b0681174840d293346ab2230c5100_0c731a70_download
+[0] [2025-06-13T11:13:07.056Z]  Converting with unique installation: /tmp/libreoffice_8bd17059-04c3-4bc4-ad7e-1d2b0de11230
+[0] [2025-06-13T11:13:08.411Z]  Converting PDF to images: outputs/1749813187030/document-1749813187028-401558122.pdf
+[0] [2025-06-13T11:13:08.664Z]  Successfully converted f40b0681174840d293346ab2230c5100_0c731a70_download to 5 images
+[0] [2025-06-13T11:13:08.665Z]  Processing 5 pages with AI...
+[0] [2025-06-13T11:13:08.665Z]  Processing 5 images in 1 batches with max 30 concurrent requests
+[0] [2025-06-13T11:13:08.665Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:13:08.665Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:13:11.000Z]  Completed batch 3: pages 11-15
+[0] [2025-06-13T11:13:13.320Z]  Completed batch 11: pages 51-55
+[0] [2025-06-13T11:13:15.782Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:13:18.026Z]  Completed batch 12: pages 56-60
+[0] [2025-06-13T11:13:19.729Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:13:29.352Z]  Completed batch 7: pages 31-35
+[0] [2025-06-13T11:13:34.834Z]  Completed batch 4: pages 16-20
+[0] [2025-06-13T11:13:36.689Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:13:36.690Z]  Batch processing complete: 2 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:13:36.690Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:13:36.690Z]  Original results: 7 pages
+[0] [2025-06-13T11:13:36.690Z]  Filtered results: 7 pages
+[0] [2025-06-13T11:13:36.690Z]  Clean pages: 7, failed pages: 0
+[0] [2025-06-13T11:13:36.690Z]  Original results: 7 pages
+[0] [2025-06-13T11:13:36.690Z]  Filtered results: 7 pages
+[0] [2025-06-13T11:13:36.691Z]  Successfully processed 7 pages
+[0] [2025-06-13T11:13:37.105Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:13:38.146Z]  Completed batch 5: pages 21-25
+[0] [2025-06-13T11:13:38.176Z]  File upload attempt: {
+[0]   originalname: 'f3fc93ddcb6b40a88118f6418adf7e04_97f4f088_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:13:38.177Z]  File accepted: f3fc93ddcb6b40a88118f6418adf7e04_97f4f088_download
+[0] [2025-06-13T11:13:38.191Z]  Converting document to images: f3fc93ddcb6b40a88118f6418adf7e04_97f4f088_download
+[0] [2025-06-13T11:13:38.191Z]  Starting LibreOffice conversion for: f3fc93ddcb6b40a88118f6418adf7e04_97f4f088_download
+[0] [2025-06-13T11:13:38.210Z]  Converting with unique installation: /tmp/libreoffice_2465c134-c90f-4a4e-8fc7-71bb0b36777c
+[0] [2025-06-13T11:13:38.810Z]  Completed batch 2: pages 6-8
+[0] [2025-06-13T11:13:41.425Z]  Converting PDF to images: outputs/1749813218191/document-1749813218177-293710837.pdf
+[0] [2025-06-13T11:13:43.680Z]  Completed batch 6: pages 26-30
+[0] [2025-06-13T11:13:44.588Z]  Successfully converted f3fc93ddcb6b40a88118f6418adf7e04_97f4f088_download to 23 images
+[0] [2025-06-13T11:13:44.588Z]  Processing 23 pages with AI...
+[0] [2025-06-13T11:13:44.588Z]  Processing 23 images in 5 batches with max 30 concurrent requests
+[0] [2025-06-13T11:13:44.588Z]  Processing batch group 1/1 with 5 concurrent requests
+[0] [2025-06-13T11:13:44.589Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:13:44.611Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:13:44.643Z]  Starting batch 3: pages 11-15
+[0] [2025-06-13T11:13:44.663Z]  Starting batch 4: pages 16-20
+[0] [2025-06-13T11:13:44.690Z]  Starting batch 5: pages 21-23
+[0] [2025-06-13T11:13:46.179Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:13:47.051Z]  Completed batch 15: pages 71-74
+[0] [2025-06-13T11:13:52.029Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:13:52.029Z]  Batch processing complete: 6 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:13:52.029Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:13:52.029Z] ERROR:  Failed to parse JSON for batch 2: SyntaxError: Expected ',' or '}' after property value in JSON at position 10836 (line 20 column 1584)
+[0]     at JSON.parse (<anonymous>)
+[0]     at /app/src/services/ai.service.js:158:44
+[0]     at Array.forEach (<anonymous>)
+[0]     at AIService.flattenBatchResults (/app/src/services/ai.service.js:149:26)
+[0]     at /app/src/routes/document.routes.js:97:19
+[0]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[0] [2025-06-13T11:13:52.032Z]  Original results: 22 pages
+[0] [2025-06-13T11:13:52.032Z]  Removing page 6: Error - Invalid response format
+[0] [2025-06-13T11:13:52.033Z]  Filtered results: 21 pages
+[0] [2025-06-13T11:13:52.033Z]  Clean pages: 21, failed pages: 1
+[0] [2025-06-13T11:13:52.033Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:13:52.033Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:13:52.033Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:13:53.413Z]  Completed batch 6: pages 26-30
+[0] [2025-06-13T11:13:54.188Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:13:54.188Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:13:54.188Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:13:54.189Z]  Original results: 5 pages
+[0] [2025-06-13T11:13:54.189Z]  Filtered results: 5 pages
+[0] [2025-06-13T11:13:54.189Z]  Clean pages: 5, failed pages: 0
+[0] [2025-06-13T11:13:54.189Z]  Original results: 5 pages
+[0] [2025-06-13T11:13:54.189Z]  Filtered results: 5 pages
+[0] [2025-06-13T11:13:54.189Z]  Successfully processed 5 pages
+[0] [2025-06-13T11:13:55.470Z]  File upload attempt: {
+[0]   originalname: 'f3351061735c4c20a724e138f4f6c9d2_45760209_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:13:55.470Z]  File accepted: f3351061735c4c20a724e138f4f6c9d2_45760209_download
+[0] [2025-06-13T11:13:55.472Z]  Converting document to images: f3351061735c4c20a724e138f4f6c9d2_45760209_download
+[0] [2025-06-13T11:13:55.472Z]  Starting LibreOffice conversion for: f3351061735c4c20a724e138f4f6c9d2_45760209_download
+[0] [2025-06-13T11:13:55.494Z]  Converting with unique installation: /tmp/libreoffice_ea0e9e41-d9a2-4946-8254-e825f34a8706
+[0] [2025-06-13T11:13:56.874Z]  Converting PDF to images: outputs/1749813235472/document-1749813235470-197864070.pdf
+[0] [2025-06-13T11:13:57.208Z]  Completed batch 8: pages 36-40
+[0] [2025-06-13T11:13:57.444Z]  Successfully converted f3351061735c4c20a724e138f4f6c9d2_45760209_download to 3 images
+[0] [2025-06-13T11:13:57.444Z]  Processing 3 pages with AI...
+[0] [2025-06-13T11:13:57.444Z]  Processing 3 images in 1 batches with max 30 concurrent requests
+[0] [2025-06-13T11:13:57.444Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:13:57.444Z]  Starting batch 1: pages 1-3
+[0] [2025-06-13T11:14:09.704Z]  Completed batch 7: pages 31-35
+[0] [2025-06-13T11:14:15.339Z]  Completed batch 3: pages 11-14
+[0] [2025-06-13T11:14:15.353Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:15.353Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:15.353Z]  Original results: 22 pages
+[0] [2025-06-13T11:14:15.354Z]  Filtered results: 22 pages
+[0] [2025-06-13T11:14:15.354Z]  Successfully processed 26 pages
+[0] [2025-06-13T11:14:15.448Z]  Completed batch 10: pages 46-50
+[0] [2025-06-13T11:14:16.517Z]  Completed batch 12: pages 56-60
+[0] [2025-06-13T11:14:16.958Z]  File upload attempt: {
+[0]   originalname: 'f3351061735c4c20a724e138f4f6c9d2_6f8e9697_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:14:16.958Z]  File accepted: f3351061735c4c20a724e138f4f6c9d2_6f8e9697_download
+[0] [2025-06-13T11:14:16.961Z]  Converting document to images: f3351061735c4c20a724e138f4f6c9d2_6f8e9697_download
+[0] [2025-06-13T11:14:16.961Z]  Starting LibreOffice conversion for: f3351061735c4c20a724e138f4f6c9d2_6f8e9697_download
+[0] [2025-06-13T11:14:16.975Z]  Converting with unique installation: /tmp/libreoffice_de8f8251-f7d9-4dc6-a03b-376376e1c69a
+[0] [2025-06-13T11:14:17.172Z]  Completed batch 7: pages 31-35
+[0] [2025-06-13T11:14:17.502Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:14:17.502Z]  Batch processing complete: 2 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:17.502Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:14:17.502Z]  Original results: 10 pages
+[0] [2025-06-13T11:14:17.502Z]  Removing page 1: Empty content
+[0] [2025-06-13T11:14:17.502Z]  Removing page 9: Empty content
+[0] [2025-06-13T11:14:17.502Z]  Removing page 10: Empty content
+[0] [2025-06-13T11:14:17.502Z]  Filtered results: 7 pages
+[0] [2025-06-13T11:14:17.502Z]  Clean pages: 7, failed pages: 3
+[0] [2025-06-13T11:14:17.502Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:17.502Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:17.502Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:18.838Z]  Completed batch 4: pages 16-20
+[0] [2025-06-13T11:14:19.511Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:19.511Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:19.511Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:19.511Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:19.511Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:19.668Z]  Completed batch 5: pages 21-23
+[0] [2025-06-13T11:14:19.944Z]  Completed batch 5: pages 21-25
+[0] [2025-06-13T11:14:21.447Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:21.447Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:21.447Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:21.447Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:21.447Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:22.583Z]  Converting PDF to images: outputs/1749813256961/document-1749813256958-690862869.pdf
+[0] [2025-06-13T11:14:23.231Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:23.232Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:23.232Z]  Original results: 7 pages
+[0] [2025-06-13T11:14:23.232Z]  Filtered results: 7 pages
+[0] [2025-06-13T11:14:23.233Z]  Successfully processed 10 pages
+[0] [2025-06-13T11:14:24.504Z]  File upload attempt: {
+[0]   originalname: 'f3351061735c4c20a724e138f4f6c9d2_baf68d62_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:14:24.504Z]  File accepted: f3351061735c4c20a724e138f4f6c9d2_baf68d62_download
+[0] [2025-06-13T11:14:24.505Z]  Converting document to images: f3351061735c4c20a724e138f4f6c9d2_baf68d62_download
+[0] [2025-06-13T11:14:24.505Z]  Starting LibreOffice conversion for: f3351061735c4c20a724e138f4f6c9d2_baf68d62_download
+[0] [2025-06-13T11:14:24.517Z]  Converting with unique installation: /tmp/libreoffice_f4c1d923-88ec-42a9-b3d1-4cba2e19d304
+[0] [2025-06-13T11:14:25.821Z]  Converting PDF to images: outputs/1749813264505/document-1749813264505-153147894.pdf
+[0] [2025-06-13T11:14:26.098Z]  Successfully converted f3351061735c4c20a724e138f4f6c9d2_baf68d62_download to 2 images
+[0] [2025-06-13T11:14:26.098Z]  Processing 2 pages with AI...
+[0] [2025-06-13T11:14:26.098Z]  Processing 2 images in 1 batches with max 30 concurrent requests
+[0] [2025-06-13T11:14:26.098Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:26.098Z]  Starting batch 1: pages 1-2
+[0] [2025-06-13T11:14:27.360Z]  Completed batch 4: pages 16-20
+[0] [2025-06-13T11:14:32.458Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:14:32.750Z]  Successfully converted f3351061735c4c20a724e138f4f6c9d2_6f8e9697_download to 60 images
+[0] [2025-06-13T11:14:32.750Z]  Processing 60 pages with AI...
+[0] [2025-06-13T11:14:32.750Z]  Processing 60 images in 12 batches with max 30 concurrent requests
+[0] [2025-06-13T11:14:32.750Z]  Processing batch group 1/1 with 12 concurrent requests
+[0] [2025-06-13T11:14:32.750Z]  Starting batch 1: pages 1-5
+[0] [2025-06-13T11:14:32.801Z]  Starting batch 2: pages 6-10
+[0] [2025-06-13T11:14:32.828Z]  Starting batch 3: pages 11-15
+[0] [2025-06-13T11:14:32.854Z]  Starting batch 4: pages 16-20
+[0] [2025-06-13T11:14:32.882Z]  Starting batch 5: pages 21-25
+[0] [2025-06-13T11:14:32.913Z]  Starting batch 6: pages 26-30
+[0] [2025-06-13T11:14:32.946Z]  Starting batch 7: pages 31-35
+[0] [2025-06-13T11:14:32.983Z]  Starting batch 8: pages 36-40
+[0] [2025-06-13T11:14:33.012Z]  Starting batch 9: pages 41-45
+[0] [2025-06-13T11:14:33.042Z]  Starting batch 10: pages 46-50
+[0] [2025-06-13T11:14:33.072Z]  Starting batch 11: pages 51-55
+[0] [2025-06-13T11:14:33.097Z]  Starting batch 12: pages 56-60
+[0] [2025-06-13T11:14:33.492Z]  Completed batch 6: pages 26-30
+[0] [2025-06-13T11:14:34.224Z]  Completed batch 8: pages 36-40
+[0] [2025-06-13T11:14:35.501Z]  Completed batch 9: pages 41-45
+[0] [2025-06-13T11:14:36.251Z]  Completed batch 5: pages 21-25
+[0] [2025-06-13T11:14:36.442Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:14:36.620Z]  Completed batch 14: pages 66-70
+[0] [2025-06-13T11:14:37.409Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:14:38.455Z]  Completed batch 10: pages 46-50
+[0] [2025-06-13T11:14:38.745Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:14:41.814Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:14:42.170Z]  Completed batch 11: pages 51-55
+[0] [2025-06-13T11:14:43.148Z]  Completed batch 3: pages 11-15
+[0] [2025-06-13T11:14:43.148Z]  Batch processing complete: 8 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:43.148Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:14:43.148Z] ERROR:  Failed to parse JSON for batch 6: SyntaxError: Expected ',' or '}' after property value in JSON at position 3327 (line 8 column 573)
+[0]     at JSON.parse (<anonymous>)
+[0]     at /app/src/services/ai.service.js:158:44
+[0]     at Array.forEach (<anonymous>)
+[0]     at AIService.flattenBatchResults (/app/src/services/ai.service.js:149:26)
+[0]     at /app/src/routes/document.routes.js:97:19
+[0]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[0] [2025-06-13T11:14:43.148Z]  Original results: 36 pages
+[0] [2025-06-13T11:14:43.149Z]  Removing page 4: Empty content
+[0] [2025-06-13T11:14:43.149Z]  Removing page 26: Error - Invalid response format
+[0] [2025-06-13T11:14:43.149Z]  Filtered results: 34 pages
+[0] [2025-06-13T11:14:43.149Z]  Clean pages: 34, failed pages: 2
+[0] [2025-06-13T11:14:43.149Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:43.149Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:43.149Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:44.489Z]  Completed batch 1: pages 1-2
+[0] [2025-06-13T11:14:44.489Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:44.489Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:14:44.489Z]  Original results: 2 pages
+[0] [2025-06-13T11:14:44.489Z]  Removing page 2: Empty content
+[0] [2025-06-13T11:14:44.489Z]  Filtered results: 1 pages
+[0] [2025-06-13T11:14:44.489Z]  Clean pages: 1, failed pages: 1
+[0] [2025-06-13T11:14:44.489Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:44.489Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:44.489Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:46.030Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:46.030Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:46.030Z]  Original results: 1 pages
+[0] [2025-06-13T11:14:46.030Z]  Filtered results: 1 pages
+[0] [2025-06-13T11:14:46.031Z]  Successfully processed 2 pages
+[0] [2025-06-13T11:14:46.314Z]  Completed batch 1: pages 1-3
+[0] [2025-06-13T11:14:46.314Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:46.314Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:14:46.315Z]  Original results: 3 pages
+[0] [2025-06-13T11:14:46.315Z]  Filtered results: 3 pages
+[0] [2025-06-13T11:14:46.315Z]  Clean pages: 3, failed pages: 0
+[0] [2025-06-13T11:14:46.315Z]  Original results: 3 pages
+[0] [2025-06-13T11:14:46.315Z]  Filtered results: 3 pages
+[0] [2025-06-13T11:14:46.315Z]  Successfully processed 3 pages
+[0] [2025-06-13T11:14:46.482Z]  Completed batch 4: pages 16-20
+[0] [2025-06-13T11:14:47.919Z]  File upload attempt: {
+[0]   originalname: 'f3351061735c4c20a724e138f4f6c9d2_0d24a8d9_download',
+[0]   mimetype: 'application/octet-stream',
+[0]   fieldname: 'document'
+[0] }
+[0] [2025-06-13T11:14:47.919Z]  File accepted: f3351061735c4c20a724e138f4f6c9d2_0d24a8d9_download
+[0] [2025-06-13T11:14:47.920Z]  Converting document to images: f3351061735c4c20a724e138f4f6c9d2_0d24a8d9_download
+[0] [2025-06-13T11:14:47.921Z]  Starting LibreOffice conversion for: f3351061735c4c20a724e138f4f6c9d2_0d24a8d9_download
+[0] [2025-06-13T11:14:47.945Z]  Converting with unique installation: /tmp/libreoffice_cf4450d9-61ab-4b52-9b3f-1aae0ae5f9f8
+[0] [2025-06-13T11:14:49.296Z]  Converting PDF to images: outputs/1749813287920/document-1749813287919-863382851.pdf
+[0] [2025-06-13T11:14:49.740Z]  Successfully converted f3351061735c4c20a724e138f4f6c9d2_0d24a8d9_download to 3 images
+[0] [2025-06-13T11:14:49.740Z]  Processing 3 pages with AI...
+[0] [2025-06-13T11:14:49.740Z]  Processing 3 images in 1 batches with max 30 concurrent requests
+[0] [2025-06-13T11:14:49.740Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:49.740Z]  Starting batch 1: pages 1-3
+[0] [2025-06-13T11:14:52.537Z]  Completed batch 3: pages 11-15
+[0] [2025-06-13T11:14:52.537Z]  Batch processing complete: 12 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:52.537Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:14:52.537Z]  Original results: 50 pages
+[0] [2025-06-13T11:14:52.538Z]  Removing page 53: Empty content
+[0] [2025-06-13T11:14:52.538Z]  Removing page 56: Empty content
+[0] [2025-06-13T11:14:52.538Z]  Removing page 57: Empty content
+[0] [2025-06-13T11:14:52.538Z]  Removing page 58: Empty content
+[0] [2025-06-13T11:14:52.538Z]  Removing page 59: Empty content
+[0] [2025-06-13T11:14:52.538Z]  Filtered results: 45 pages
+[0] [2025-06-13T11:14:52.538Z]  Clean pages: 45, failed pages: 5
+[0] [2025-06-13T11:14:52.538Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:52.538Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:52.538Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:54.689Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:54.690Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:54.690Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:54.690Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:54.690Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:56.156Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:56.156Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:56.157Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:56.157Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:56.157Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:57.301Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:57.301Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:57.301Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:57.301Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:57.301Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:14:59.190Z]  Completed batch 13: pages 61-65
+[0] [2025-06-13T11:14:59.331Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:14:59.331Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:14:59.331Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:14:59.331Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:14:59.331Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:15:21.047Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:15:21.047Z]  Batch processing complete: 3 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:15:21.047Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:15:21.048Z]  Original results: 14 pages
+[0] [2025-06-13T11:15:21.048Z]  Filtered results: 14 pages
+[0] [2025-06-13T11:15:21.048Z]  Clean pages: 14, failed pages: 0
+[0] [2025-06-13T11:15:21.048Z]  Original results: 14 pages
+[0] [2025-06-13T11:15:21.048Z]  Filtered results: 14 pages
+[0] [2025-06-13T11:15:21.048Z]  Successfully processed 14 pages
+[0] [2025-06-13T11:15:22.188Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:15:22.188Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:15:22.188Z]  Original results: 46 pages
+[0] [2025-06-13T11:15:22.188Z]  Filtered results: 46 pages
+[0] [2025-06-13T11:15:22.190Z]  Successfully processed 60 pages
+[0] [2025-06-13T11:15:23.977Z]  Completed batch 1: pages 1-3
+[0] [2025-06-13T11:15:23.977Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:15:23.977Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:15:23.978Z]  Original results: 3 pages
+[0] [2025-06-13T11:15:23.978Z]  Filtered results: 3 pages
+[0] [2025-06-13T11:15:23.978Z]  Clean pages: 3, failed pages: 0
+[0] [2025-06-13T11:15:23.978Z]  Original results: 3 pages
+[0] [2025-06-13T11:15:23.978Z]  Filtered results: 3 pages
+[0] [2025-06-13T11:15:23.978Z]  Successfully processed 3 pages
+[0] [2025-06-13T11:15:26.431Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:15:26.432Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:15:26.432Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:15:26.432Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:15:26.432Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:15:31.836Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:15:34.656Z]  Completed batch 5: pages 21-25
+[0] [2025-06-13T11:15:42.916Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:16:00.446Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:16:00.446Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:16:00.446Z]  Original results: 36 pages
+[0] [2025-06-13T11:16:00.447Z]  Filtered results: 36 pages
+[0] [2025-06-13T11:16:00.447Z]  Successfully processed 40 pages
+[1] (node:71) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+[0] [2025-06-13T11:16:18.059Z]  Completed batch 3: pages 11-15
+[0] [2025-06-13T11:16:25.224Z]  Completed batch 12: pages 56-60
+[0] [2025-06-13T11:16:26.382Z]  Completed batch 8: pages 36-40
+[0] [2025-06-13T11:16:27.148Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:16:28.377Z]  Completed batch 11: pages 51-55
+[0] [2025-06-13T11:16:29.800Z]  Completed batch 9: pages 41-45
+[0] [2025-06-13T11:16:33.224Z]  Completed batch 3: pages 11-15
+[0] [2025-06-13T11:16:37.568Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:16:37.568Z]  Batch processing complete: 2 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:16:37.568Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:16:37.568Z]  Original results: 8 pages
+[0] [2025-06-13T11:16:37.568Z]  Filtered results: 8 pages
+[0] [2025-06-13T11:16:37.569Z]  Clean pages: 8, failed pages: 0
+[0] [2025-06-13T11:16:37.569Z]  Original results: 8 pages
+[0] [2025-06-13T11:16:37.569Z]  Filtered results: 8 pages
+[0] [2025-06-13T11:16:37.569Z]  Successfully processed 8 pages
+[0] [2025-06-13T11:16:38.432Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:16:43.282Z]  Completed batch 8: pages 36-40
+[0] [2025-06-13T11:16:43.282Z]  Batch processing complete: 15 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:16:43.282Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:16:43.283Z]  Original results: 74 pages
+[0] [2025-06-13T11:16:43.283Z]  Filtered results: 74 pages
+[0] [2025-06-13T11:16:43.283Z]  Clean pages: 74, failed pages: 0
+[0] [2025-06-13T11:16:43.283Z]  Original results: 74 pages
+[0] [2025-06-13T11:16:43.284Z]  Filtered results: 74 pages
+[0] [2025-06-13T11:16:43.285Z]  Successfully processed 74 pages
+[0] [2025-06-13T11:16:43.523Z]  Completed batch 4: pages 16-20
+[0] [2025-06-13T11:16:50.630Z]  Completed batch 10: pages 46-50
+[0] [2025-06-13T11:16:53.397Z]  Completed batch 2: pages 6-10
+[0] [2025-06-13T11:16:53.913Z]  Completed batch 6: pages 26-30
+[0] [2025-06-13T11:16:57.880Z]  Completed batch 9: pages 41-45
+[0] [2025-06-13T11:17:01.141Z]  Completed batch 5: pages 21-25
+[0] [2025-06-13T11:17:04.028Z]  Completed batch 7: pages 31-35
+[0] [2025-06-13T11:17:04.028Z]  Batch processing complete: 12 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:17:04.028Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:17:04.029Z]  Original results: 60 pages
+[0] [2025-06-13T11:17:04.029Z]  Removing page 3: Empty content
+[0] [2025-06-13T11:17:04.029Z]  Removing page 4: Empty content
+[0] [2025-06-13T11:17:04.030Z]  Removing page 5: Empty content
+[0] [2025-06-13T11:17:04.030Z]  Filtered results: 57 pages
+[0] [2025-06-13T11:17:04.030Z]  Clean pages: 57, failed pages: 3
+[0] [2025-06-13T11:17:04.030Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:17:04.030Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:17:04.030Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:17:10.434Z]  Completed batch 4: pages 16-20
+[0] [2025-06-13T11:17:21.628Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:17:21.628Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:17:21.628Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:17:21.628Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:17:21.628Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:17:33.996Z]  Completed batch 3: pages 11-15
+[0] [2025-06-13T11:17:33.996Z]  Batch processing complete: 5 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:17:33.996Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:17:33.997Z]  Original results: 23 pages
+[0] [2025-06-13T11:17:33.997Z]  Removing page 7: Empty content
+[0] [2025-06-13T11:17:33.997Z]  Removing page 8: Empty content
+[0] [2025-06-13T11:17:33.997Z]  Removing page 9: Empty content
+[0] [2025-06-13T11:17:33.997Z]  Filtered results: 20 pages
+[0] [2025-06-13T11:17:33.997Z]  Clean pages: 20, failed pages: 3
+[0] [2025-06-13T11:17:33.997Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:17:33.997Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:17:33.997Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:17:51.495Z]  Completed batch 1: pages 1-5
+[0] [2025-06-13T11:17:51.495Z]  Batch processing complete: 3 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:17:51.495Z]  Executed makeAIRequestBatchAsync
+[0] [2025-06-13T11:17:51.496Z]  Original results: 11 pages
+[0] [2025-06-13T11:17:51.496Z]  Filtered results: 11 pages
+[0] [2025-06-13T11:17:51.496Z]  Clean pages: 11, failed pages: 0
+[0] [2025-06-13T11:17:51.496Z]  Original results: 11 pages
+[0] [2025-06-13T11:17:51.496Z]  Filtered results: 11 pages
+[0] [2025-06-13T11:17:51.497Z]  Successfully processed 11 pages
+[0] [2025-06-13T11:18:20.322Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:18:20.323Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:18:20.323Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:18:20.323Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:18:20.323Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:18:27.148Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:18:27.148Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:18:27.148Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:18:27.148Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:18:27.148Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:18:57.052Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:18:57.052Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:18:57.052Z]  Processing 1 images in 1 batches with max 1 concurrent requests
+[0] [2025-06-13T11:18:57.052Z]  Processing batch group 1/1 with 1 concurrent requests
+[0] [2025-06-13T11:18:57.052Z]  Starting batch 1: pages 1-1
+[0] [2025-06-13T11:19:06.293Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:19:06.293Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:19:06.293Z]  Original results: 60 pages
+[0] [2025-06-13T11:19:06.293Z]  Filtered results: 60 pages
+[0] [2025-06-13T11:19:06.294Z]  Successfully processed 60 pages
+[0] [2025-06-13T11:19:45.448Z]  Completed batch 1: pages 1-1
+[0] [2025-06-13T11:19:45.448Z]  Batch processing complete: 1 successful, 0 failed, 0 required retries
+[0] [2025-06-13T11:19:45.448Z]  Original results: 23 pages
+[0] [2025-06-13T11:19:45.448Z]  Filtered results: 23 pages
+[0] [2025-06-13T11:19:45.449Z]  Successfully processed 23 pages
