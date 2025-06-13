@@ -91,46 +91,93 @@ class VectorDatabase:
         """Index a document in the vector database
         
         Args:
-            document_data: Dictionary containing document information and text
+            document_data: Dictionary containing Norshin processed document data
             contract_notice_id: Associated contract notice ID
             
         Returns:
             True if successful, False otherwise
         """
         try:
-            if not document_data.get('success', False) or not document_data.get('text_content'):
-                logger.warning(f"Skipping document indexing - no valid text content")
+            if not document_data.get('success', False):
+                logger.warning(f"Skipping document indexing - processing was not successful")
                 return False
             
-            # Create unique ID for the document
-            document_id = f"{contract_notice_id}_{uuid.uuid4()}"
+            # Extract text content from Norshin response format
+            text_chunks = []
+            results = document_data.get('results', [])
             
-            # Prepare text content
-            text_content = document_data['text_content']
+            for result in results:
+                page_data = result.get('data', {})
+                
+                # Extract section title
+                if page_data.get('section_title'):
+                    text_chunks.append(f"Section: {page_data['section_title']}")
+                
+                # Extract structured data (tree_data, table_data, etc.)
+                for data_key in ['tree_data', 'table_data', 'text_data']:
+                    if data_key in page_data and page_data[data_key]:
+                        if isinstance(page_data[data_key], list):
+                            for item in page_data[data_key]:
+                                if isinstance(item, dict):
+                                    # Convert dictionary to readable text
+                                    item_text = ' '.join([f"{k}: {v}" for k, v in item.items() if v])
+                                    text_chunks.append(item_text)
+                                else:
+                                    text_chunks.append(str(item))
+                        else:
+                            text_chunks.append(str(page_data[data_key]))
+                
+                # Extract raw text if available
+                if page_data.get('raw_text'):
+                    text_chunks.append(page_data['raw_text'])
             
-            # Prepare metadata
-            metadata = {
-                'contract_notice_id': contract_notice_id,
-                'document_url': document_data.get('url', ''),
-                'document_description': document_data.get('description', '')[:100],
-                'file_type': document_data.get('file_type', ''),
-                'text_length': str(document_data.get('text_length', 0)),
-                'indexed_at': datetime.utcnow().isoformat(),
-                'type': 'document'
-            }
+            if not text_chunks:
+                logger.warning(f"Skipping document indexing - no extractable text content")
+                return False
             
-            # Remove None values and ensure all values are strings
-            metadata = {k: str(v) for k, v in metadata.items() if v is not None}
+            # Combine all text chunks
+            full_text = '\n\n'.join(text_chunks)
             
-            # Add to collection
-            self.documents_collection.add(
-                documents=[text_content],
-                metadatas=[metadata],
-                ids=[document_id]
-            )
+            # Split into manageable chunks (ChromaDB works better with smaller chunks)
+            chunk_size = 1000
+            chunks = [full_text[i:i+chunk_size] for i in range(0, len(full_text), chunk_size)]
             
-            logger.info(f"Indexed document: {document_id}")
-            return True
+            indexed_count = 0
+            for i, chunk in enumerate(chunks):
+                if len(chunk.strip()) < 50:  # Skip very short chunks
+                    continue
+                    
+                # Create unique ID for each chunk
+                chunk_id = f"{contract_notice_id}_chunk_{i}"
+                
+                # Prepare metadata
+                metadata = {
+                    'contract_notice_id': contract_notice_id,
+                    'chunk_index': str(i),
+                    'total_pages': str(document_data.get('totalPages', 0)),
+                    'total_batches': str(document_data.get('totalBatches', 0)),
+                    'text_length': str(len(chunk)),
+                    'indexed_at': datetime.utcnow().isoformat(),
+                    'type': 'document_chunk'
+                }
+                
+                # Remove None values and ensure all values are strings
+                metadata = {k: str(v) for k, v in metadata.items() if v is not None}
+                
+                try:
+                    # Add to collection
+                    self.documents_collection.add(
+                        documents=[chunk],
+                        metadatas=[metadata],
+                        ids=[chunk_id]
+                    )
+                    indexed_count += 1
+                except Exception as chunk_error:
+                    logger.warning(f"Failed to index chunk {i}: {chunk_error}")
+                    continue
+            
+            logger.info(f"Indexed {indexed_count} chunks for document {contract_notice_id}")
+            return indexed_count > 0
             
         except Exception as e:
             logger.error(f"Failed to index document for contract {contract_notice_id}: {str(e)}")
