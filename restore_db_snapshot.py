@@ -30,8 +30,15 @@ def restore_database_snapshot(snapshot_file='database_snapshots/complete_snapsho
             
         print(f"Restoring table: {table_name} ({table_data['row_count']} rows)")
         
-        # Clear existing data
+        # Clear existing data and reset sequences
         cur.execute(f"DELETE FROM {table_name}")
+        
+        # Reset sequence for tables with id columns
+        try:
+            cur.execute(f"SELECT setval('{table_name}_id_seq', 1, false)")
+        except Exception:
+            # Sequence doesn't exist, continue
+            pass
         
         # Insert data
         for row in table_data['data']:
@@ -72,6 +79,16 @@ def restore_database_snapshot(snapshot_file='database_snapshots/complete_snapsho
             except Exception as e:
                 print(f"Error inserting row in {table_name}: {e}")
                 continue
+        
+        # Update sequence to max ID value after inserting data
+        try:
+            cur.execute(f"SELECT MAX(id) FROM {table_name}")
+            max_id = cur.fetchone()
+            if max_id and max_id[0]:
+                cur.execute(f"SELECT setval('{table_name}_id_seq', {max_id[0]})")
+                print(f"Updated {table_name}_id_seq to {max_id[0]}")
+        except Exception as seq_error:
+            print(f"Could not update sequence for {table_name}: {seq_error}")
     
     # Re-enable foreign key checks
     cur.execute("SET session_replication_role = DEFAULT;")
