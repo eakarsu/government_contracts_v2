@@ -754,7 +754,7 @@ def get_job_status(job_id):
 
 @api_bp.route('/documents/queue', methods=['POST'])
 def queue_documents_for_processing():
-    """Queue contract documents for background processing via Norshin API"""
+    """Queue contract documents for local storage only - NO API calls"""
     try:
         # Reset all existing queue items to start fresh
         from models import DocumentProcessingQueue
@@ -779,6 +779,7 @@ def queue_documents_for_processing():
             logger.info("Cleared processed_queue_documents folder")
             
         logger.info("Document processing queue and files cleared completely")
+        logger.info("QUEUE DOCUMENTS: NO API calls will be made - only local file downloads")
         
         # Get contracts with documents that haven't been processed
         contracts = Contract.query.filter(
@@ -832,7 +833,7 @@ def queue_documents_for_processing():
                                 queue_item.status = 'queued'
                                 db.session.add(queue_item)
                                 queued_count += 1
-                                logger.info(f"Queued document: {safe_filename}")
+                                logger.info(f"SAFELY QUEUED (no API call): {safe_filename}")
                         except Exception as e:
                             logger.warning(f"Failed to download document {link_url}: {e}")
                             continue
