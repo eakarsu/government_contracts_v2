@@ -18,18 +18,29 @@ docker run -d --network host \
 
 ## Setting Up Search Functionality
 
-Your Docker container starts with contract metadata but no processed documents for search. To enable search:
+Your Docker container starts empty. To enable full functionality including search:
 
-### Option 1: Process Documents (Recommended)
+### Option 1: Restore Complete Database (Recommended)
+```bash
+# Connect to your Docker container
+docker exec -it government_contracts bash
+
+# Restore complete database with processed documents
+python restore_db_snapshot.py
+```
+
+This restores:
+- 694 government contracts from SAM.gov
+- 17 processed documents with Norshin analysis
+- Complete search functionality with 138 document chunks
+
+### Option 2: Process Documents from Scratch
 1. Click "Queue Documents (Free)" - downloads contract files locally
 2. Click "Process Documents ($$)" - sends files to Norshin API for analysis
 3. Wait for processing to complete (monitor dashboard counters)
 4. Search functionality will be available once documents are processed
 
-### Option 2: Use Sample Data
-1. Connect to your Docker container's database
-2. Run the `database_restore.sql` script to mark some contracts as processed
-3. Note: This provides basic functionality but limited search content
+Note: Option 1 is recommended to avoid Norshin API costs and get immediate functionality.
 
 ## Environment Variables
 
