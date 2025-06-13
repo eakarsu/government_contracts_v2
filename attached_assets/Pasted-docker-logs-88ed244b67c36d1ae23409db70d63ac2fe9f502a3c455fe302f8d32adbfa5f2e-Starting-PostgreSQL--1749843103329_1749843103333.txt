@@ -1,0 +1,50 @@
+docker logs 88ed244b67c36d1ae23409db70d63ac2fe9f502a3c455fe302f8d32adbfa5f2e
+Starting PostgreSQL...
+Starting PostgreSQL 15 database server: main.
+localhost:5432 - accepting connections
+PostgreSQL is ready
+Checking database state and initializing if needed...
+Empty database detected, will let Flask create tables then restore data
+Starting Flask application...
+[2025-06-13 19:29:48 +0000] [1] [INFO] Starting gunicorn 23.0.0
+[2025-06-13 19:29:48 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+[2025-06-13 19:29:48 +0000] [1] [INFO] Using worker: sync
+[2025-06-13 19:29:48 +0000] [50] [INFO] Booting worker with pid: 50
+INFO:services.vector_database:Fixed ChromaDB directory permissions for Docker
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+DEBUG:chromadb.config:Starting component System
+DEBUG:chromadb.config:Starting component Posthog
+INFO:services.vector_database:Found 0 existing collections
+INFO:services.vector_database:Initialized government_contracts collection
+INFO:services.vector_database:Initialized contract_documents collection
+INFO:services.vector_database:ChromaDB client initialized successfully
+INFO:services.sam_gov_api:SAM.gov API initialized with key: 8fvkSRtpKd...
+INFO:services.vector_database:Fixed ChromaDB directory permissions for Docker
+INFO:services.vector_database:Found 2 existing collections
+INFO:services.vector_database:Initialized government_contracts collection
+INFO:services.vector_database:Initialized contract_documents collection
+INFO:services.vector_database:ChromaDB client initialized successfully
+INFO:services.ai_analyzer:Using OpenRouter API for AI analysis
+INFO:services.vector_database:Fixed ChromaDB directory permissions for Docker
+INFO:services.vector_database:Found 2 existing collections
+INFO:services.vector_database:Initialized government_contracts collection
+INFO:services.vector_database:Initialized contract_documents collection
+INFO:services.vector_database:ChromaDB client initialized successfully
+INFO:root:Empty tables detected in Docker, restoring database snapshot
+Restoring database snapshot from 2025-06-13T13:13:07.991815
+Restoring table: contract (694 rows)
+Updated contract_id_seq to 694
+Restoring table: document_processing_queue (17 rows)
+Updated document_processing_queue_id_seq to 406
+Restoring table: indexing_job (88 rows)
+Updated indexing_job_id_seq to 88
+Restoring table: search_query (21 rows)
+Updated search_query_id_seq to 21
+Skipping empty table: user
+Skipping empty table: company
+Skipping empty table: contract_application
+Skipping empty table: ai_template
+Database snapshot restored successfully!
+INFO:root:Database snapshot restored successfully
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): us.i.posthog.com:443
+DEBUG:urllib3.connectionpool:https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
