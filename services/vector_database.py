@@ -289,9 +289,9 @@ class VectorDatabase:
                             'id': results['ids'][0][i],
                             'content': doc,
                             'metadata': results['metadatas'][0][i],
-                        'distance': results['distances'][0][i] if 'distances' in results else None
-                    }
-                    formatted_results.append(result)
+                            'distance': results['distances'][0][i] if 'distances' in results else None
+                        }
+                        formatted_results.append(result)
             
             logger.info(f"Contract search returned {len(formatted_results)} results for query: {query}")
             return formatted_results
