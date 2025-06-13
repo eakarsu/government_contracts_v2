@@ -21,69 +21,69 @@ class VectorDatabase:
         """Initialize ChromaDB client and collections with robust error handling"""
         persist_directory = os.environ.get("CHROMADB_PATH", "./chromadb_data")
         
-        # For Docker containers, use in-memory database to avoid permission issues
-        if os.environ.get('DOCKER_CONTAINER'):
-            logger.info("Docker container detected, using in-memory ChromaDB")
-            try:
-                # Use ephemeral client for Docker containers
-                self.client = chromadb.EphemeralClient()
-                
-                # Create collections
-                self.contracts_collection = self.client.create_collection(
-                    name="government_contracts",
-                    metadata={"description": "Government contract metadata and descriptions"}
-                )
-                
-                self.documents_collection = self.client.create_collection(
-                    name="contract_documents", 
-                    metadata={"description": "Text content from contract documents"}
-                )
-                
-                logger.info("ChromaDB client initialized successfully (in-memory)")
-                return
-                
-            except Exception as e:
-                logger.error(f"Failed to initialize in-memory ChromaDB: {str(e)}")
-                # Fall through to persistent client attempts
-        
-        # Ensure directory exists for persistent client
+        # Ensure directory exists and has proper permissions
         os.makedirs(persist_directory, exist_ok=True)
         
-        # Try multiple initialization strategies for persistent storage
+        # Fix permissions for Docker environments
+        if os.environ.get('DOCKER_CONTAINER'):
+            try:
+                import subprocess
+                # Set proper ownership and permissions
+                subprocess.run(['chmod', '-R', '777', persist_directory], check=False)
+                subprocess.run(['chown', '-R', 'root:root', persist_directory], check=False)
+                logger.info("Fixed ChromaDB directory permissions for Docker")
+            except Exception as perm_error:
+                logger.warning(f"Could not fix permissions: {perm_error}")
+        
+        # Try multiple initialization strategies
         for attempt in range(3):
             try:
-                # Clean slate approach for first attempt
+                # Clean start for first attempt if collections table error
                 if attempt == 0:
+                    try:
+                        # Try to connect first
+                        test_client = chromadb.PersistentClient(path=persist_directory)
+                        # Test if we can access collections
+                        existing_collections = test_client.list_collections()
+                        logger.info(f"Found {len(existing_collections)} existing collections")
+                        self.client = test_client
+                    except Exception as test_error:
+                        if "collections already exists" in str(test_error) or "readonly database" in str(test_error):
+                            logger.info("Cleaning corrupted ChromaDB for fresh start")
+                            import shutil
+                            if os.path.exists(persist_directory):
+                                shutil.rmtree(persist_directory)
+                            os.makedirs(persist_directory, mode=0o777, exist_ok=True)
+                            if os.environ.get('DOCKER_CONTAINER'):
+                                subprocess.run(['chmod', '-R', '777', persist_directory], check=False)
+                        
+                        # Initialize fresh client
+                        self.client = chromadb.PersistentClient(path=persist_directory)
+                else:
+                    # For retry attempts, always start fresh
                     import shutil
                     if os.path.exists(persist_directory):
                         shutil.rmtree(persist_directory)
-                    os.makedirs(persist_directory, exist_ok=True)
+                    os.makedirs(persist_directory, mode=0o777, exist_ok=True)
+                    if os.environ.get('DOCKER_CONTAINER'):
+                        subprocess.run(['chmod', '-R', '777', persist_directory], check=False)
+                    self.client = chromadb.PersistentClient(path=persist_directory)
                 
                 # Initialize ChromaDB client with persistent storage
                 self.client = chromadb.PersistentClient(path=persist_directory)
                 
-                # Try to get existing collections first
-                try:
-                    self.contracts_collection = self.client.get_collection("government_contracts")
-                    logger.info("Found existing government_contracts collection")
-                except Exception:
-                    # Create new collection if it doesn't exist
-                    self.contracts_collection = self.client.create_collection(
-                        name="government_contracts",
-                        metadata={"description": "Government contract metadata and descriptions"}
-                    )
-                    logger.info("Created new government_contracts collection")
+                # Use get_or_create_collection to handle existing collections properly
+                self.contracts_collection = self.client.get_or_create_collection(
+                    name="government_contracts",
+                    metadata={"description": "Government contract metadata and descriptions"}
+                )
+                logger.info("Initialized government_contracts collection")
                 
-                try:
-                    self.documents_collection = self.client.get_collection("contract_documents")
-                    logger.info("Found existing contract_documents collection")
-                except Exception:
-                    # Create new collection if it doesn't exist
-                    self.documents_collection = self.client.create_collection(
-                        name="contract_documents", 
-                        metadata={"description": "Text content from contract documents"}
-                    )
-                    logger.info("Created new contract_documents collection")
+                self.documents_collection = self.client.get_or_create_collection(
+                    name="contract_documents", 
+                    metadata={"description": "Text content from contract documents"}
+                )
+                logger.info("Initialized contract_documents collection")
                 
                 logger.info("ChromaDB client initialized successfully")
                 return
