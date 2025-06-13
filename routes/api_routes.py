@@ -792,8 +792,11 @@ def queue_documents_for_processing():
                 'queued_count': 0
             })
         
-        # Import background processor locally to avoid circular import
-        from services.background_processor import background_processor
+        # Import async processor modules directly
+        import requests
+        from urllib.parse import urlparse
+        from pathlib import Path
+        import hashlib
         
         queued_count = 0
         for contract in contracts:
@@ -801,13 +804,41 @@ def queue_documents_for_processing():
                 # Parse resource_links JSON array
                 if isinstance(contract.resource_links, list):
                     for link_url in contract.resource_links:
-                        # Queue document for background processing
-                        background_processor.queue_document(
-                            contract_notice_id=contract.notice_id,
-                            document_url=link_url,
-                            description=contract.title
-                        )
-                        queued_count += 1
+                        try:
+                            # Download document to queue_documents folder
+                            response = requests.get(link_url, timeout=30, stream=True)
+                            if response.status_code == 200:
+                                # Generate safe filename
+                                url_hash = hashlib.md5(link_url.encode()).hexdigest()[:8]
+                                parsed_url = urlparse(link_url)
+                                original_name = Path(parsed_url.path).name or "document"
+                                safe_filename = f"{contract.notice_id}_{url_hash}_{original_name}"
+                                
+                                queue_file_path = Path("queue_documents") / safe_filename
+                                queue_file_path.parent.mkdir(exist_ok=True)
+                                
+                                # Save file locally
+                                with open(queue_file_path, 'wb') as f:
+                                    for chunk in response.iter_content(chunk_size=8192):
+                                        f.write(chunk)
+                                
+                                # Create queue entry in database
+                                queue_item = DocumentProcessingQueue()
+                                queue_item.contract_notice_id = contract.notice_id
+                                queue_item.document_url = link_url
+                                queue_item.description = contract.title
+                                queue_item.local_file_path = str(queue_file_path)
+                                queue_item.filename = safe_filename
+                                queue_item.status = 'queued'
+                                db.session.add(queue_item)
+                                queued_count += 1
+                                logger.info(f"Queued document: {safe_filename}")
+                        except Exception as e:
+                            logger.warning(f"Failed to download document {link_url}: {e}")
+                            continue
+        
+        # Commit all queue entries
+        db.session.commit()
         
         # Get fresh queue status after clearing and queueing
         from sqlalchemy import func
@@ -1178,6 +1209,61 @@ def process_test_async():
         
     except Exception as e:
         logger.error(f"Test mode processing failed: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/documents/queue/process', methods=['POST'])
+def process_queued_documents():
+    """Process all queued documents using async processor (same as test mode but no limits)"""
+    try:
+        from models import DocumentProcessingQueue
+        
+        # Check queue size
+        queued_docs = DocumentProcessingQueue.query.filter_by(status='queued').all()
+        
+        if len(queued_docs) == 0:
+            return jsonify({
+                'success': True,
+                'message': 'No documents currently queued. Click "Queue Documents" to add documents for processing.',
+                'queued_count': 0,
+                'action_needed': 'queue_documents'
+            })
+        
+        logger.info(f"Starting async processing of {len(queued_docs)} documents")
+        
+        # Start async processing in a separate thread to avoid blocking
+        import threading
+        import asyncio
+        from services.async_processor import async_processor
+        
+        def process_in_background():
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(async_processor.process_all_queued_documents())
+                loop.close()
+                logger.info("Async processing completed successfully")
+            except Exception as e:
+                logger.error(f"Background processing error: {e}")
+        
+        # Start processing thread
+        processing_thread = threading.Thread(target=process_in_background)
+        processing_thread.daemon = True
+        processing_thread.start()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Started processing {len(queued_docs)} documents concurrently',
+            'submitted_count': len(queued_docs),
+            'processing_method': 'async_concurrent',
+            'status': 'processing_started'
+        })
+        
+    except Exception as e:
+        logger.error(f"Document processing failed: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

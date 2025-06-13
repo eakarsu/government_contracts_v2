@@ -702,17 +702,23 @@ async function stopProcessing() {
 }
 
 async function resumeProcessing() {
-    showJobProgress('Resuming document processing...');
+    showJobProgress('Starting document processing...');
     
     try {
-        const response = await fetch('/api/documents/queue/resume', {
+        const response = await fetch('/api/documents/queue/process', {
             method: 'POST'
         });
         
         const result = await response.json();
         
         if (response.ok) {
-            updateJobProgress(`✅ ${result.message}`, 'success');
+            if (result.action_needed === 'queue_documents') {
+                updateJobProgress(`ℹ️ No documents queued. Please click "Queue Documents" first.`, 'info');
+            } else if (result.submitted_count) {
+                updateJobProgress(`✅ Processing ${result.submitted_count} documents concurrently`, 'success');
+            } else {
+                updateJobProgress(`✅ ${result.message}`, 'success');
+            }
             setTimeout(() => {
                 updateDashboardCounters();
                 hideJobProgress();
