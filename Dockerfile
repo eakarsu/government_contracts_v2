@@ -50,8 +50,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code
 COPY . .
 
-# Create directories
-RUN mkdir -p /app/chromadb_data /var/run/postgresql /var/lib/postgresql/data
+# Create directories with proper permissions
+RUN mkdir -p /app/chromadb_data /var/run/postgresql /var/lib/postgresql/data && \
+    chmod 755 /app/chromadb_data && \
+    chown -R postgres:postgres /var/run/postgresql /var/lib/postgresql
 
 # Initialize PostgreSQL
 USER postgres
@@ -66,6 +68,10 @@ RUN cat > /app/docker-start.sh << 'EOF'
 #!/bin/bash
 set -e
 
+echo "Cleaning ChromaDB directory..."
+rm -rf /app/chromadb_data/*
+mkdir -p /app/chromadb_data
+
 echo "Starting PostgreSQL..."
 service postgresql start
 
@@ -77,11 +83,17 @@ done
 
 echo "PostgreSQL is ready"
 
-# Start database initialization in background
-python /app/init-database.py &
-
 echo "Starting Flask application..."
-exec gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
+gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app &
+
+# Wait for Flask to initialize
+sleep 5
+
+echo "Starting database restoration..."
+python /app/init-database.py
+
+# Keep the container running
+wait
 EOF
 
 RUN chmod +x /app/docker-start.sh

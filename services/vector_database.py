@@ -23,6 +23,9 @@ class VectorDatabase:
             # Initialize ChromaDB client with persistent storage
             persist_directory = os.environ.get("CHROMADB_PATH", "./chromadb_data")
             
+            # Ensure directory exists
+            os.makedirs(persist_directory, exist_ok=True)
+            
             # Use persistent client for data retention
             self.client = chromadb.PersistentClient(path=persist_directory)
             
@@ -40,7 +43,31 @@ class VectorDatabase:
             
         except Exception as e:
             logger.error(f"Failed to initialize ChromaDB client: {str(e)}")
-            raise
+            # Try to recover by cleaning and reinitializing
+            try:
+                import shutil
+                persist_directory = os.environ.get("CHROMADB_PATH", "./chromadb_data")
+                if os.path.exists(persist_directory):
+                    shutil.rmtree(persist_directory)
+                os.makedirs(persist_directory, exist_ok=True)
+                
+                self.client = chromadb.PersistentClient(path=persist_directory)
+                
+                self.contracts_collection = self.client.get_or_create_collection(
+                    name="government_contracts",
+                    metadata={"description": "Government contract metadata and descriptions"}
+                )
+                
+                self.documents_collection = self.client.get_or_create_collection(
+                    name="contract_documents", 
+                    metadata={"description": "Text content from contract documents"}
+                )
+                
+                logger.info("ChromaDB client recovered and initialized successfully")
+                
+            except Exception as recovery_error:
+                logger.error(f"Failed to recover ChromaDB client: {str(recovery_error)}")
+                raise recovery_error
     
     def index_contract(self, contract_data: Dict) -> bool:
         """Index a contract in the vector database
