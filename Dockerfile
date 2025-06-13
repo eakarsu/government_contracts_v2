@@ -30,73 +30,32 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements
 COPY pyproject.toml ./
 
+# ✅ FIXED: Install Python dependencies with proper quoting
+# Copy requirements
+COPY requirements.txt ./
+
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir chromadb>=1.0.12 \
-                              email-validator>=2.2.0 \
-                              flask-login>=0.6.3 \
-                              flask>=3.1.1 \
-                              flask-sqlalchemy>=3.1.1 \
-                              gunicorn>=23.0.0 \
-                              openai>=1.84.0 \
-                              psycopg2-binary>=2.9.10 \
-                              pypdf2>=3.0.1 \
-                              python-docx>=1.1.2 \
-                              requests>=2.32.3 \
-                              sqlalchemy>=2.0.41 \
-                              trafilatura>=2.0.0 \
-                              werkzeug>=3.1.3
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Create directories with proper permissions
-RUN mkdir -p /app/chromadb_data /var/run/postgresql /var/lib/postgresql/data && \
-    chmod 755 /app/chromadb_data && \
-    chown -R postgres:postgres /var/run/postgresql /var/lib/postgresql
+# Create directories
+RUN mkdir -p /app/chromadb_data /var/run/postgresql /var/lib/postgresql/data
 
 # Initialize PostgreSQL
 USER postgres
 RUN /etc/init.d/postgresql start && \
-    psql --command "CREATE USER postgres WITH SUPERUSER PASSWORD 'postgres';" && \
+    psql --command "ALTER USER postgres PASSWORD 'postgres';" && \
     createdb -O postgres government_contracts
 
 USER root
 
-# Create startup script that handles PostgreSQL and database restoration
-RUN cat > /app/docker-start.sh << 'EOF'
-#!/bin/bash
-set -e
-
-echo "Cleaning ChromaDB directory..."
-rm -rf /app/chromadb_data/*
-mkdir -p /app/chromadb_data
-
-echo "Starting PostgreSQL..."
-service postgresql start
-
-# Wait for PostgreSQL to be ready
-until pg_isready -U postgres -h localhost; do
-  echo "Waiting for PostgreSQL to start..."
-  sleep 2
-done
-
-echo "PostgreSQL is ready"
-
-echo "Starting Flask application..."
-gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app &
-
-# Wait for Flask to initialize
-sleep 5
-
-echo "Starting database restoration..."
-python /app/init-database.py
-
-# Keep the container running
-wait
-EOF
-
+# ✅ FIXED: Copy startup script instead of using HERE-DOC
+COPY docker-start.sh /app/docker-start.sh
 RUN chmod +x /app/docker-start.sh
+
 
 # Expose port
 EXPOSE 5000
