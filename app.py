@@ -7,6 +7,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Configure logging for debugging
 logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class Base(DeclarativeBase):
     pass
@@ -40,4 +41,37 @@ app.register_blueprint(web_bp)
 with app.app_context():
     # Import models to ensure tables are created
     import models  # noqa: F401
-    db.create_all()
+    
+    # Only create tables if they don't exist (avoid Docker conflicts)
+    try:
+        db.create_all()
+        
+        # Check if we need to restore data after table creation
+        if os.environ.get('DOCKER_CONTAINER'):
+            import psycopg2
+            conn = psycopg2.connect(os.environ['DATABASE_URL'])
+            cur = conn.cursor()
+            
+            # Check if contract table is empty
+            cur.execute("SELECT COUNT(*) FROM contract")
+            count = cur.fetchone()[0]
+            
+            if count == 0:
+                logging.info("Empty tables detected in Docker, restoring database snapshot")
+                try:
+                    from restore_db_snapshot import restore_database_snapshot
+                    restore_database_snapshot()
+                    logging.info("Database snapshot restored successfully")
+                except Exception as restore_error:
+                    logging.error(f"Database restoration failed: {restore_error}")
+            
+            cur.close()
+            conn.close()
+            
+    except Exception as e:
+        # Handle case where tables already exist (common in Docker)
+        if "already exists" in str(e) or "duplicate key" in str(e):
+            logging.info("Database tables already exist, skipping creation")
+        else:
+            logging.error(f"Database initialization error: {e}")
+            raise e

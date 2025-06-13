@@ -44,7 +44,9 @@ def restore_database_snapshot(snapshot_file='database_snapshots/complete_snapsho
             
             # Convert None values and handle special types
             processed_values = []
-            for val in values:
+            for i, val in enumerate(values):
+                column_name = columns[i]
+                
                 if val is None:
                     processed_values.append(None)
                 elif isinstance(val, str) and val.endswith('Z'):
@@ -53,6 +55,12 @@ def restore_database_snapshot(snapshot_file='database_snapshots/complete_snapsho
                         processed_values.append(datetime.fromisoformat(val.replace('Z', '+00:00')))
                     except:
                         processed_values.append(val)
+                elif column_name == 'resource_links' and isinstance(val, list):
+                    # Handle JSON columns - convert lists to JSON strings
+                    processed_values.append(json.dumps(val))
+                elif isinstance(val, list) and column_name in ['naics_codes', 'set_aside_types', 'capabilities', 'certifications', 'team_composition', 'ai_generated_sections', 'ai_recommendations', 'documents', 'variables']:
+                    # Handle other JSON array columns
+                    processed_values.append(json.dumps(val))
                 else:
                     processed_values.append(val)
             
