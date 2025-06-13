@@ -20,8 +20,7 @@ def restore_database_snapshot(snapshot_file='database_snapshots/complete_snapsho
     
     print(f"Restoring database snapshot from {snapshot['created_at']}")
     
-    # Disable foreign key checks temporarily
-    cur.execute("SET session_replication_role = replica;")
+    # Note: Skip foreign key disable for regular users (requires superuser privileges)
     
     for table_name, table_data in snapshot['tables'].items():
         if not table_data['data']:
@@ -30,12 +29,12 @@ def restore_database_snapshot(snapshot_file='database_snapshots/complete_snapsho
             
         print(f"Restoring table: {table_name} ({table_data['row_count']} rows)")
         
-        # Clear existing data and reset sequences
-        cur.execute(f"DELETE FROM {table_name}")
+        # Clear existing data and reset sequences (handle reserved words)
+        cur.execute(f'DELETE FROM "{table_name}"')
         
         # Reset sequence for tables with id columns
         try:
-            cur.execute(f"SELECT setval('{table_name}_id_seq', 1, false)")
+            cur.execute(f'SELECT setval(\'{table_name}_id_seq\', 1, false)')
         except Exception:
             # Sequence doesn't exist, continue
             pass
@@ -45,9 +44,9 @@ def restore_database_snapshot(snapshot_file='database_snapshots/complete_snapsho
             columns = list(row.keys())
             values = list(row.values())
             
-            # Prepare placeholders
+            # Prepare placeholders (handle reserved words with quotes)
             placeholders = ', '.join(['%s'] * len(values))
-            column_names = ', '.join(columns)
+            column_names = ', '.join([f'"{col}"' for col in columns])
             
             # Convert None values and handle special types
             processed_values = []
@@ -73,7 +72,7 @@ def restore_database_snapshot(snapshot_file='database_snapshots/complete_snapsho
             
             try:
                 cur.execute(
-                    f"INSERT INTO {table_name} ({column_names}) VALUES ({placeholders})",
+                    f'INSERT INTO "{table_name}" ({column_names}) VALUES ({placeholders})',
                     processed_values
                 )
             except Exception as e:
@@ -82,16 +81,13 @@ def restore_database_snapshot(snapshot_file='database_snapshots/complete_snapsho
         
         # Update sequence to max ID value after inserting data
         try:
-            cur.execute(f"SELECT MAX(id) FROM {table_name}")
+            cur.execute(f'SELECT MAX("id") FROM "{table_name}"')
             max_id = cur.fetchone()
             if max_id and max_id[0]:
                 cur.execute(f"SELECT setval('{table_name}_id_seq', {max_id[0]})")
                 print(f"Updated {table_name}_id_seq to {max_id[0]}")
         except Exception as seq_error:
             print(f"Could not update sequence for {table_name}: {seq_error}")
-    
-    # Re-enable foreign key checks
-    cur.execute("SET session_replication_role = DEFAULT;")
     
     # Commit changes
     conn.commit()
