@@ -18,56 +18,69 @@ class VectorDatabase:
         self._initialize_client()
     
     def _initialize_client(self):
-        """Initialize ChromaDB client and collections"""
-        try:
-            # Initialize ChromaDB client with persistent storage
-            persist_directory = os.environ.get("CHROMADB_PATH", "./chromadb_data")
-            
-            # Ensure directory exists
-            os.makedirs(persist_directory, exist_ok=True)
-            
-            # Use persistent client for data retention
-            self.client = chromadb.PersistentClient(path=persist_directory)
-            
-            self.contracts_collection = self.client.get_or_create_collection(
-                name="government_contracts",
-                metadata={"description": "Government contract metadata and descriptions"}
-            )
-            
-            self.documents_collection = self.client.get_or_create_collection(
-                name="contract_documents", 
-                metadata={"description": "Text content from contract documents"}
-            )
-            
-            logger.info("ChromaDB client initialized successfully")
-            
-        except Exception as e:
-            logger.error(f"Failed to initialize ChromaDB client: {str(e)}")
-            # Try to recover by cleaning and reinitializing
+        """Initialize ChromaDB client and collections with robust error handling"""
+        persist_directory = os.environ.get("CHROMADB_PATH", "./chromadb_data")
+        
+        # Ensure directory exists
+        os.makedirs(persist_directory, exist_ok=True)
+        
+        # Try multiple initialization strategies
+        for attempt in range(3):
             try:
-                import shutil
-                persist_directory = os.environ.get("CHROMADB_PATH", "./chromadb_data")
-                if os.path.exists(persist_directory):
-                    shutil.rmtree(persist_directory)
-                os.makedirs(persist_directory, exist_ok=True)
+                # Clean slate approach for Docker containers
+                if attempt == 0 and os.environ.get('DOCKER_CONTAINER'):
+                    logger.info("Docker container detected, ensuring clean ChromaDB initialization")
+                    import shutil
+                    if os.path.exists(persist_directory):
+                        shutil.rmtree(persist_directory)
+                    os.makedirs(persist_directory, exist_ok=True)
                 
+                # Initialize ChromaDB client with persistent storage
                 self.client = chromadb.PersistentClient(path=persist_directory)
                 
-                self.contracts_collection = self.client.get_or_create_collection(
-                    name="government_contracts",
-                    metadata={"description": "Government contract metadata and descriptions"}
-                )
+                # Try to get existing collections first
+                try:
+                    self.contracts_collection = self.client.get_collection("government_contracts")
+                    logger.info("Found existing government_contracts collection")
+                except Exception:
+                    # Create new collection if it doesn't exist
+                    self.contracts_collection = self.client.create_collection(
+                        name="government_contracts",
+                        metadata={"description": "Government contract metadata and descriptions"}
+                    )
+                    logger.info("Created new government_contracts collection")
                 
-                self.documents_collection = self.client.get_or_create_collection(
-                    name="contract_documents", 
-                    metadata={"description": "Text content from contract documents"}
-                )
+                try:
+                    self.documents_collection = self.client.get_collection("contract_documents")
+                    logger.info("Found existing contract_documents collection")
+                except Exception:
+                    # Create new collection if it doesn't exist
+                    self.documents_collection = self.client.create_collection(
+                        name="contract_documents", 
+                        metadata={"description": "Text content from contract documents"}
+                    )
+                    logger.info("Created new contract_documents collection")
                 
-                logger.info("ChromaDB client recovered and initialized successfully")
+                logger.info("ChromaDB client initialized successfully")
+                return
                 
-            except Exception as recovery_error:
-                logger.error(f"Failed to recover ChromaDB client: {str(recovery_error)}")
-                raise recovery_error
+            except Exception as e:
+                logger.warning(f"Attempt {attempt + 1} failed to initialize ChromaDB: {str(e)}")
+                
+                if attempt < 2:  # Not the last attempt
+                    # Clean up and try again
+                    try:
+                        import shutil
+                        if os.path.exists(persist_directory):
+                            shutil.rmtree(persist_directory)
+                        os.makedirs(persist_directory, exist_ok=True)
+                        logger.info(f"Cleaned ChromaDB directory for attempt {attempt + 2}")
+                    except Exception as cleanup_error:
+                        logger.error(f"Failed to clean ChromaDB directory: {cleanup_error}")
+                else:
+                    # Last attempt failed
+                    logger.error(f"All attempts to initialize ChromaDB failed: {str(e)}")
+                    raise e
     
     def index_contract(self, contract_data: Dict) -> bool:
         """Index a contract in the vector database
