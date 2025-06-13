@@ -16,31 +16,39 @@ docker run -d --network host \
    - Open http://localhost:5000 in your browser
    - Dashboard will show contract counts and processing status
 
-## Setting Up Search Functionality
+## Automatic Database Setup
 
-Your Docker container starts empty. To enable full functionality including search:
+The Docker container automatically sets up PostgreSQL and restores the complete database on first startup.
 
-### Option 1: Restore Complete Database (Recommended)
+**What happens automatically:**
+1. PostgreSQL server starts inside the container
+2. Database restoration runs in the background
+3. Complete data loads automatically:
+   - 694 government contracts from SAM.gov
+   - 17 processed documents with Norshin analysis
+   - 138 searchable document chunks in ChromaDB
+
+**First startup may take 2-3 minutes** for database restoration to complete.
+
+## Manual Database Restoration (If Needed)
+
+If automatic restoration fails, you can run it manually:
+
 ```bash
 # Connect to your Docker container
 docker exec -it government_contracts bash
 
-# Restore complete database with processed documents
+# Manually restore database
 python restore_db_snapshot.py
 ```
 
-This restores:
-- 694 government contracts from SAM.gov
-- 17 processed documents with Norshin analysis
-- Complete search functionality with 138 document chunks
-
-### Option 2: Process Documents from Scratch
+## Alternative: Process Documents from Scratch
+Instead of using the snapshot, you can process fresh documents:
 1. Click "Queue Documents (Free)" - downloads contract files locally
 2. Click "Process Documents ($$)" - sends files to Norshin API for analysis
 3. Wait for processing to complete (monitor dashboard counters)
-4. Search functionality will be available once documents are processed
 
-Note: Option 1 is recommended to avoid Norshin API costs and get immediate functionality.
+Note: The automatic restoration is recommended to avoid API costs and get immediate functionality.
 
 ## Environment Variables
 
