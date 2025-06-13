@@ -38,6 +38,15 @@ def wait_for_flask_tables():
                         print("Flask tables created, restoring database snapshot...")
                         restore_database_snapshot()
                         print("Database restoration completed successfully")
+                        
+                        # Also restore ChromaDB vector data if it exists
+                        try:
+                            from services.processed_document_indexer import index_all_processed_documents
+                            print("Restoring ChromaDB vector database...")
+                            index_all_processed_documents()
+                            print("ChromaDB vector restoration completed successfully")
+                        except Exception as vector_error:
+                            print(f"ChromaDB vector restoration failed: {vector_error}")
                     else:
                         print(f"Database already contains {count} contracts, skipping restore")
                     
