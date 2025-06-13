@@ -46,8 +46,31 @@ try:
                 from restore_db_snapshot import restore_database_snapshot
                 restore_database_snapshot('database_snapshots/complete_snapshot_fixed.json')
                 print('Database restoration completed')
+                
+                # Also restore vector database after PostgreSQL restoration
+                print('Restoring vector database...')
+                from restore_vector_database import restore_vector_database
+                restore_vector_database()
+                print('Vector database restoration completed')
             else:
-                print('Database already contains data, skipping restoration')
+                print('Database already contains data, checking vector database...')
+                # Check if vector database needs restoration
+                try:
+                    from services.vector_database import VectorDatabase
+                    vector_db = VectorDatabase()
+                    contracts_count = vector_db.contracts_collection.count()
+                    docs_count = vector_db.documents_collection.count()
+                    print(f'Vector DB status: {contracts_count} contracts, {docs_count} document chunks')
+                    
+                    if contracts_count == 0:
+                        print('Vector database is empty, restoring...')
+                        from restore_vector_database import restore_vector_database
+                        restore_vector_database()
+                        print('Vector database restoration completed')
+                    else:
+                        print('Vector database already contains data')
+                except Exception as e:
+                    print(f'Vector database check failed: {e}')
         
     cur.close()
     conn.close()

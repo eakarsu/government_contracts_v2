@@ -1,0 +1,919 @@
+docker logs 3b56b3c08e76881226a3f56787c0b243193832d2432e04b6f21f084803fd4307
+Starting PostgreSQL...
+Starting PostgreSQL 15 database server: main.
+localhost:5432 - accepting connections
+PostgreSQL is ready
+Checking database state and initializing if needed...
+Empty database detected, will let Flask create tables then restore data
+Starting Flask application...
+[2025-06-13 20:15:14 +0000] [1] [INFO] Starting gunicorn 23.0.0
+[2025-06-13 20:15:14 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+[2025-06-13 20:15:14 +0000] [1] [INFO] Using worker: sync
+[2025-06-13 20:15:14 +0000] [50] [INFO] Booting worker with pid: 50
+INFO:services.vector_database:Fixed ChromaDB directory permissions for Docker
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+DEBUG:chromadb.config:Starting component System
+DEBUG:chromadb.config:Starting component Posthog
+INFO:services.vector_database:Found 0 existing collections
+INFO:services.vector_database:Initialized government_contracts collection
+INFO:services.vector_database:Initialized contract_documents collection
+INFO:services.vector_database:ChromaDB client initialized successfully
+INFO:services.sam_gov_api:SAM.gov API initialized with key: 8fvkSRtpKd...
+INFO:services.vector_database:Fixed ChromaDB directory permissions for Docker
+INFO:services.vector_database:Found 2 existing collections
+INFO:services.vector_database:Initialized government_contracts collection
+INFO:services.vector_database:Initialized contract_documents collection
+INFO:services.vector_database:ChromaDB client initialized successfully
+INFO:services.ai_analyzer:Using OpenRouter API for AI analysis
+INFO:services.vector_database:Fixed ChromaDB directory permissions for Docker
+INFO:services.vector_database:Found 2 existing collections
+INFO:services.vector_database:Initialized government_contracts collection
+INFO:services.vector_database:Initialized contract_documents collection
+INFO:services.vector_database:ChromaDB client initialized successfully
+INFO:root:Empty tables detected in Docker, restoring database snapshot
+Restoring database snapshot from 2025-06-13T13:13:07.991815
+Restoring table: contract (694 rows)
+Updated contract_id_seq to 694
+Restoring table: document_processing_queue (17 rows)
+Updated document_processing_queue_id_seq to 406
+Restoring table: indexing_job (88 rows)
+Updated indexing_job_id_seq to 88
+Restoring table: search_query (21 rows)
+Updated search_query_id_seq to 21
+Skipping empty table: user
+Skipping empty table: company
+Skipping empty table: contract_application
+Skipping empty table: ai_template
+Database snapshot restored successfully!
+INFO:root:Database snapshot restored successfully
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): us.i.posthog.com:443
+DEBUG:urllib3.connectionpool:https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+root@ubuntu-4gb-ash-1:~# docker logs 3b56b3c08e76881226a3f56787c0b243193832d2432e04b6f21f084803fd4307
+Starting PostgreSQL...
+Starting PostgreSQL 15 database server: main.
+localhost:5432 - accepting connections
+PostgreSQL is ready
+Checking database state and initializing if needed...
+Empty database detected, will let Flask create tables then restore data
+Starting Flask application...
+[2025-06-13 20:15:14 +0000] [1] [INFO] Starting gunicorn 23.0.0
+[2025-06-13 20:15:14 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+[2025-06-13 20:15:14 +0000] [1] [INFO] Using worker: sync
+[2025-06-13 20:15:14 +0000] [50] [INFO] Booting worker with pid: 50
+INFO:services.vector_database:Fixed ChromaDB directory permissions for Docker
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+DEBUG:chromadb.config:Starting component System
+DEBUG:chromadb.config:Starting component Posthog
+INFO:services.vector_database:Found 0 existing collections
+INFO:services.vector_database:Initialized government_contracts collection
+INFO:services.vector_database:Initialized contract_documents collection
+INFO:services.vector_database:ChromaDB client initialized successfully
+INFO:services.sam_gov_api:SAM.gov API initialized with key: 8fvkSRtpKd...
+INFO:services.vector_database:Fixed ChromaDB directory permissions for Docker
+INFO:services.vector_database:Found 2 existing collections
+INFO:services.vector_database:Initialized government_contracts collection
+INFO:services.vector_database:Initialized contract_documents collection
+INFO:services.vector_database:ChromaDB client initialized successfully
+INFO:services.ai_analyzer:Using OpenRouter API for AI analysis
+INFO:services.vector_database:Fixed ChromaDB directory permissions for Docker
+INFO:services.vector_database:Found 2 existing collections
+INFO:services.vector_database:Initialized government_contracts collection
+INFO:services.vector_database:Initialized contract_documents collection
+INFO:services.vector_database:ChromaDB client initialized successfully
+INFO:root:Empty tables detected in Docker, restoring database snapshot
+Restoring database snapshot from 2025-06-13T13:13:07.991815
+Restoring table: contract (694 rows)
+Updated contract_id_seq to 694
+Restoring table: document_processing_queue (17 rows)
+Updated document_processing_queue_id_seq to 406
+Restoring table: indexing_job (88 rows)
+Updated indexing_job_id_seq to 88
+Restoring table: search_query (21 rows)
+Updated search_query_id_seq to 21
+Skipping empty table: user
+Skipping empty table: company
+Skipping empty table: contract_application
+Skipping empty table: ai_template
+Database snapshot restored successfully!
+INFO:root:Database snapshot restored successfully
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): us.i.posthog.com:443
+DEBUG:urllib3.connectionpool:https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+DEBUG:httpcore.connection:connect_tcp.started host='chroma-onnx-models.s3.amazonaws.com' port=443 local_address=None timeout=5.0 socket_options=None
+DEBUG:httpcore.connection:connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ed41ad310>
+DEBUG:httpcore.connection:start_tls.started ssl_context=<ssl.SSLContext object at 0x777ed4095010> server_hostname='chroma-onnx-models.s3.amazonaws.com' timeout=5.0
+DEBUG:httpcore.connection:start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ed4239ed0>
+DEBUG:httpcore.http11:send_request_headers.started request=<Request [b'GET']>
+DEBUG:httpcore.http11:send_request_headers.complete
+DEBUG:httpcore.http11:send_request_body.started request=<Request [b'GET']>
+DEBUG:httpcore.http11:send_request_body.complete
+DEBUG:httpcore.http11:receive_response_headers.started request=<Request [b'GET']>
+DEBUG:httpcore.http11:receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'x-amz-id-2', b'E1INurfCZvXxZb2Bv51Gh9LjZwRFPhnSLdtOz9qqICXq+MsaYO8S3K1kKmCFogAFTI8yJUggino='), (b'x-amz-request-id', b'24YG4AECE086Q4RE'), (b'Date', b'Fri, 13 Jun 2025 20:15:39 GMT'), (b'Last-Modified', b'Thu, 30 Mar 2023 23:38:52 GMT'), (b'ETag', b'"c319dd36af997be17ffb4669076b13a0-5"'), (b'x-amz-server-side-encryption', b'AES256'), (b'x-amz-version-id', b'null'), (b'Accept-Ranges', b'bytes'), (b'Content-Type', b'application/x-gzip'), (b'Content-Length', b'83178821'), (b'Server', b'AmazonS3')])
+INFO:httpx:HTTP Request: GET https://chroma-onnx-models.s3.amazonaws.com/all-MiniLM-L6-v2/onnx.tar.gz "HTTP/1.1 200 OK"
+/root/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:   0%|          | 0.00/79.3M [00:00<?, ?iB/s]DEBUG:httpcore.http11:receive_response_body.started request=<Request [b'GET']>
+/root/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  94%|█████████▍| 74.9M/79.3M [00:00<00:00, 102MiB/s]DEBUG:httpcore.http11:receive_response_body.complete
+DEBUG:httpcore.http11:response_closed.started
+DEBUG:httpcore.http11:response_closed.complete
+/root/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz: 100%|██████████| 79.3M/79.3M [00:00<00:00, 104MiB/s]
+DEBUG:httpcore.connection:close.started
+DEBUG:httpcore.connection:close.complete
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Contract search returned 0 results for query: it
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+DEBUG:urllib3.connectionpool:https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+INFO:services.vector_database:Document search returned 0 results for query: it
+DEBUG:openai._base_client:Request options: {'method': 'post', 'url': '/chat/completions', 'files': None, 'idempotency_key': 'stainless-python-retry-b53a7590-2b56-4b7d-b724-e6b79ed6329a', 'json_data': {'messages': [{'role': 'system', 'content': 'You are a government contracting expert. Analyze search results and provide actionable insights and recommendations for businesses interested in government contracts. Always respond with valid JSON.'}, {'role': 'user', 'content': '\nAnalyze the following government contracting search results for the query: "it"\n\nSEARCH RESULTS CONTEXT:\n\n\nPlease provide a comprehensive analysis in JSON format with the following structure:\n{\n    "summary": "Brief overview of the search results and their relevance",\n    "key_opportunities": ["List of 3-5 key opportunities identified"],\n    "market_insights": ["List of 3-5 market insights from the results"],\n    "recommendations": [\n        {\n            "title": "Recommendation title",\n            "description": "Detailed recommendation",\n            "priority": "high|medium|low",\n            "action_items": ["List of specific action items"]\n        }\n    ],\n    "agencies_to_watch": ["List of agencies with multiple opportunities"],\n    "naics_codes_trending": ["List of trending NAICS codes"],\n    "next_steps": "Suggested next steps for businesses interested in these opportunities"\n}\n\nFocus on actionable insights that would help businesses identify and pursue relevant government contracting opportunities.\n'}], 'model': 'anthropic/claude-3.5-sonnet', 'response_format': {'type': 'json_object'}, 'temperature': 0.3}}
+DEBUG:openai._base_client:Sending HTTP Request: POST https://openrouter.ai/api/v1/chat/completions
+DEBUG:httpcore.connection:connect_tcp.started host='openrouter.ai' port=443 local_address=None timeout=5.0 socket_options=None
+DEBUG:httpcore.connection:connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ecc6a8310>
+DEBUG:httpcore.connection:start_tls.started ssl_context=<ssl.SSLContext object at 0x777ed82afb60> server_hostname='openrouter.ai' timeout=5.0
+DEBUG:httpcore.connection:start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ecc6a8390>
+DEBUG:httpcore.http11:send_request_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_headers.complete
+DEBUG:httpcore.http11:send_request_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_body.complete
+DEBUG:httpcore.http11:receive_response_headers.started request=<Request [b'POST']>
+DEBUG:urllib3.connectionpool:https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+DEBUG:httpcore.http11:receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Fri, 13 Jun 2025 20:15:41 GMT'), (b'Content-Type', b'application/json'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Content-Encoding', b'gzip'), (b'Access-Control-Allow-Origin', b'*'), (b'X-Clerk-Auth-Message', b'Invalid JWT form. A JWT consists of three parts separated by dots. (reason=token-invalid, token-carrier=header)'), (b'X-Clerk-Auth-Reason', b'token-invalid'), (b'X-Clerk-Auth-Status', b'signed-out'), (b'Vary', b'Accept-Encoding'), (b'Server', b'cloudflare'), (b'Cf-Ray', b'94f442e80d672009-IAD')])
+INFO:httpx:HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+DEBUG:httpcore.http11:receive_response_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:receive_response_body.complete
+DEBUG:httpcore.http11:response_closed.started
+DEBUG:httpcore.http11:response_closed.complete
+DEBUG:openai._base_client:HTTP Response: POST https://openrouter.ai/api/v1/chat/completions "200 OK" Headers({'date': 'Fri, 13 Jun 2025 20:15:41 GMT', 'content-type': 'application/json', 'transfer-encoding': 'chunked', 'connection': 'keep-alive', 'content-encoding': 'gzip', 'access-control-allow-origin': '*', 'x-clerk-auth-message': 'Invalid JWT form. A JWT consists of three parts separated by dots. (reason=token-invalid, token-carrier=header)', 'x-clerk-auth-reason': 'token-invalid', 'x-clerk-auth-status': 'signed-out', 'vary': 'Accept-Encoding', 'server': 'cloudflare', 'cf-ray': '94f442e80d672009-IAD'})
+DEBUG:openai._base_client:request_id: None
+INFO:services.ai_analyzer:AI analysis completed for query: it
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f6194c28d679417391a76d7ff8f433d0
+INFO:routes.api_routes:Successfully indexed contract: f6194c28d679417391a76d7ff8f433d0
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: c2997b5de9dc4567a24b7978d8982756
+INFO:routes.api_routes:Successfully indexed contract: c2997b5de9dc4567a24b7978d8982756
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: b5f5574727e84decaa679acb43d7e586
+INFO:routes.api_routes:Successfully indexed contract: b5f5574727e84decaa679acb43d7e586
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+DEBUG:urllib3.connectionpool:https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+INFO:services.vector_database:Indexed contract: ac0b233d71b642cd9c9fbb97966e9606
+INFO:routes.api_routes:Successfully indexed contract: ac0b233d71b642cd9c9fbb97966e9606
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 9c934a882da8498d945649e626c2b2af
+INFO:routes.api_routes:Successfully indexed contract: 9c934a882da8498d945649e626c2b2af
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 94d9bb3a8ebb4f70b42feb6cdec31622
+INFO:routes.api_routes:Successfully indexed contract: 94d9bb3a8ebb4f70b42feb6cdec31622
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f843138002d445d7b4bd933731e298bd
+INFO:routes.api_routes:Successfully indexed contract: f843138002d445d7b4bd933731e298bd
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f757c1f554eb4c51a0a1fc572c16f989
+INFO:routes.api_routes:Successfully indexed contract: f757c1f554eb4c51a0a1fc572c16f989
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f591faacbce7401897236c812ab3665d
+INFO:routes.api_routes:Successfully indexed contract: f591faacbce7401897236c812ab3665d
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f56f8cd610f44a089af4116aae7be3ac
+INFO:routes.api_routes:Successfully indexed contract: f56f8cd610f44a089af4116aae7be3ac
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f560899108b746beb8c0fda1ac153b05
+INFO:routes.api_routes:Successfully indexed contract: f560899108b746beb8c0fda1ac153b05
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f255e204910343ee8ebc8756a6ad9ebd
+INFO:routes.api_routes:Successfully indexed contract: f255e204910343ee8ebc8756a6ad9ebd
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f17425dac7514ee0b099e5b298fd7ac2
+INFO:routes.api_routes:Successfully indexed contract: f17425dac7514ee0b099e5b298fd7ac2
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f10a42554fe7407ea5ac73998143478f
+INFO:routes.api_routes:Successfully indexed contract: f10a42554fe7407ea5ac73998143478f
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f0e61897e8f04e66ad2d1ef3001eac65
+INFO:routes.api_routes:Successfully indexed contract: f0e61897e8f04e66ad2d1ef3001eac65
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 917059530e604e76b522b25bd888d3b5
+INFO:routes.api_routes:Successfully indexed contract: 917059530e604e76b522b25bd888d3b5
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 6d2a0405031e4a819f8ac196fc5b6a19
+INFO:routes.api_routes:Successfully indexed contract: 6d2a0405031e4a819f8ac196fc5b6a19
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 5f2842021f7342669ad87feff1e25ac4
+INFO:routes.api_routes:Successfully indexed contract: 5f2842021f7342669ad87feff1e25ac4
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 563cb206ac7444edb02a42a7ccf4d8dc
+INFO:routes.api_routes:Successfully indexed contract: 563cb206ac7444edb02a42a7ccf4d8dc
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 51dae63c84cd4831a8392db94c9495ad
+INFO:routes.api_routes:Successfully indexed contract: 51dae63c84cd4831a8392db94c9495ad
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 50100522de5847f7ae21155b2009144c
+INFO:routes.api_routes:Successfully indexed contract: 50100522de5847f7ae21155b2009144c
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f7c55f7fe7c940cc8ee0c35f76a18018
+INFO:routes.api_routes:Successfully indexed contract: f7c55f7fe7c940cc8ee0c35f76a18018
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f8b985d55e9f49d291a51a7381bb3205
+INFO:routes.api_routes:Successfully indexed contract: f8b985d55e9f49d291a51a7381bb3205
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f7900e0b587e417ebae22bac049aec77
+INFO:routes.api_routes:Successfully indexed contract: f7900e0b587e417ebae22bac049aec77
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f036b71fc12046c1b3fee6cd0713bd39
+INFO:routes.api_routes:Successfully indexed contract: f036b71fc12046c1b3fee6cd0713bd39
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f5d6e6ef16ce47d980cf12f0461e0131
+INFO:routes.api_routes:Successfully indexed contract: f5d6e6ef16ce47d980cf12f0461e0131
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f5d6e155568a47418b554bd4ab7872dd
+INFO:routes.api_routes:Successfully indexed contract: f5d6e155568a47418b554bd4ab7872dd
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f5d27646339b40638b2976b8b771e79e
+INFO:routes.api_routes:Successfully indexed contract: f5d27646339b40638b2976b8b771e79e
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f5c6fbda1e87480f8aec71c96b1b8bf5
+INFO:routes.api_routes:Successfully indexed contract: f5c6fbda1e87480f8aec71c96b1b8bf5
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 2add6c52836144d19b092fa1a983432a
+INFO:routes.api_routes:Successfully indexed contract: 2add6c52836144d19b092fa1a983432a
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 298f77d750b941fdaed21ca02d86ceb0
+INFO:routes.api_routes:Successfully indexed contract: 298f77d750b941fdaed21ca02d86ceb0
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 2459d18ee338449b894138a7f379bfa9
+INFO:routes.api_routes:Successfully indexed contract: 2459d18ee338449b894138a7f379bfa9
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 238b69472c0b4c8c916e0525a84219f3
+INFO:routes.api_routes:Successfully indexed contract: 238b69472c0b4c8c916e0525a84219f3
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fe429dd55d6d44dab34f07375fc8fce7
+INFO:routes.api_routes:Successfully indexed contract: fe429dd55d6d44dab34f07375fc8fce7
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fe3e0b17a166457188afa24e4d2f19dd
+INFO:routes.api_routes:Successfully indexed contract: fe3e0b17a166457188afa24e4d2f19dd
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fe283c33e25e46e78c2443277b0a8f0d
+INFO:routes.api_routes:Successfully indexed contract: fe283c33e25e46e78c2443277b0a8f0d
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fe0c50fee4764481928aced89ec87cb3
+INFO:routes.api_routes:Successfully indexed contract: fe0c50fee4764481928aced89ec87cb3
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fba1efd472c44e92be233439f67195c3
+INFO:routes.api_routes:Successfully indexed contract: fba1efd472c44e92be233439f67195c3
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fb904cd9abf24d608bee72274249cc5a
+INFO:routes.api_routes:Successfully indexed contract: fb904cd9abf24d608bee72274249cc5a
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f51ed27375a748b58199508a4cee1907
+INFO:routes.api_routes:Successfully indexed contract: f51ed27375a748b58199508a4cee1907
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f4eff0f8314d453ba34ffe65857a1eb7
+INFO:routes.api_routes:Successfully indexed contract: f4eff0f8314d453ba34ffe65857a1eb7
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f4df964f475743c89790356f350d71af
+INFO:routes.api_routes:Successfully indexed contract: f4df964f475743c89790356f350d71af
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fe85d24ea2194eae81ec45d0876f7a0e
+INFO:routes.api_routes:Successfully indexed contract: fe85d24ea2194eae81ec45d0876f7a0e
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f4cdffd2b0b941b8b138335938a0b87b
+INFO:routes.api_routes:Successfully indexed contract: f4cdffd2b0b941b8b138335938a0b87b
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f352b2357cad4b58a785dfeadd8d1f44
+INFO:routes.api_routes:Successfully indexed contract: f352b2357cad4b58a785dfeadd8d1f44
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f33aa02d6df84164bef107ec1f909bb1
+INFO:routes.api_routes:Successfully indexed contract: f33aa02d6df84164bef107ec1f909bb1
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f318292528024bb7841b4578a9e93146
+INFO:routes.api_routes:Successfully indexed contract: f318292528024bb7841b4578a9e93146
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fb25271ab1bb4d4984f05c45f288583a
+INFO:routes.api_routes:Successfully indexed contract: fb25271ab1bb4d4984f05c45f288583a
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f3a510223ed14a57a0748ec61e879186
+INFO:routes.api_routes:Successfully indexed contract: f3a510223ed14a57a0748ec61e879186
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f39228dd37d647b6bdcd861dc631e796
+INFO:routes.api_routes:Successfully indexed contract: f39228dd37d647b6bdcd861dc631e796
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ff7285e969e14c6e8726abc20ad3f1bf
+INFO:routes.api_routes:Successfully indexed contract: ff7285e969e14c6e8726abc20ad3f1bf
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fe58a44f2c384a2caf49122d3955b526
+INFO:routes.api_routes:Successfully indexed contract: fe58a44f2c384a2caf49122d3955b526
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fdedbd0466994a39b1fd66990a2b1ca3
+INFO:routes.api_routes:Successfully indexed contract: fdedbd0466994a39b1fd66990a2b1ca3
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fcac030dc29f4ef3a6ae3602896bbca7
+INFO:routes.api_routes:Successfully indexed contract: fcac030dc29f4ef3a6ae3602896bbca7
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fc8c1653390b4519aebc2745c3da954a
+INFO:routes.api_routes:Successfully indexed contract: fc8c1653390b4519aebc2745c3da954a
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fc896041369a488ca5da77062d345e32
+INFO:routes.api_routes:Successfully indexed contract: fc896041369a488ca5da77062d345e32
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fbf07520f21646d290a8f6075958f8c4
+INFO:routes.api_routes:Successfully indexed contract: fbf07520f21646d290a8f6075958f8c4
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ffa3e005658f4ceabb0a41de736cfd38
+INFO:routes.api_routes:Successfully indexed contract: ffa3e005658f4ceabb0a41de736cfd38
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ff3dece6b36e4b08b239511b12d644f2
+INFO:routes.api_routes:Successfully indexed contract: ff3dece6b36e4b08b239511b12d644f2
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ff2f0f76dbcd414f906e3048f1328aee
+INFO:routes.api_routes:Successfully indexed contract: ff2f0f76dbcd414f906e3048f1328aee
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ff29747dd01a447daff86603caf5a09b
+INFO:routes.api_routes:Successfully indexed contract: ff29747dd01a447daff86603caf5a09b
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ff234c03115a41e6a6735f1e3be043fb
+INFO:routes.api_routes:Successfully indexed contract: ff234c03115a41e6a6735f1e3be043fb
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fef27dca35f147c1995615f0eb03c6b1
+INFO:routes.api_routes:Successfully indexed contract: fef27dca35f147c1995615f0eb03c6b1
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: feec075df3ee4f8ba2838546f85622e2
+INFO:routes.api_routes:Successfully indexed contract: feec075df3ee4f8ba2838546f85622e2
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ff0052b047e94d668277f1a89a6929e7
+INFO:routes.api_routes:Successfully indexed contract: ff0052b047e94d668277f1a89a6929e7
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fedff474304d4944a5cdeddef204c72f
+INFO:routes.api_routes:Successfully indexed contract: fedff474304d4944a5cdeddef204c72f
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f7d28666b4094675a00c73f97ac50fda
+INFO:routes.api_routes:Successfully indexed contract: f7d28666b4094675a00c73f97ac50fda
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f4e622116ab544a88530b2ed0398df10
+INFO:routes.api_routes:Successfully indexed contract: f4e622116ab544a88530b2ed0398df10
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f4e5ff073fce417aa710d715eb123776
+INFO:routes.api_routes:Successfully indexed contract: f4e5ff073fce417aa710d715eb123776
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f4a81cf380344e1eb69d276d56c7e21a
+INFO:routes.api_routes:Successfully indexed contract: f4a81cf380344e1eb69d276d56c7e21a
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f46f37bb5c8442ebac145970f9092f71
+INFO:routes.api_routes:Successfully indexed contract: f46f37bb5c8442ebac145970f9092f71
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fbf61c9ab5e941f88e5e56e550b28ee0
+INFO:routes.api_routes:Successfully indexed contract: fbf61c9ab5e941f88e5e56e550b28ee0
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: c60b4ead03c249829745d43f80a08a12
+INFO:routes.api_routes:Successfully indexed contract: c60b4ead03c249829745d43f80a08a12
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ab45bee6bc2d43878e00bbb0ff06b253
+INFO:routes.api_routes:Successfully indexed contract: ab45bee6bc2d43878e00bbb0ff06b253
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: a67fb61c8eb040a4b1ef3eb8bacfd3a2
+INFO:routes.api_routes:Successfully indexed contract: a67fb61c8eb040a4b1ef3eb8bacfd3a2
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 983bd3e98c41410e919efdb4107e95e4
+INFO:routes.api_routes:Successfully indexed contract: 983bd3e98c41410e919efdb4107e95e4
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 895a8f3b23d6466dabb1895665e6daac
+INFO:routes.api_routes:Successfully indexed contract: 895a8f3b23d6466dabb1895665e6daac
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 79edbcc19cf64ec6b06f336652e5316a
+INFO:routes.api_routes:Successfully indexed contract: 79edbcc19cf64ec6b06f336652e5316a
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 6c3fe9ae73be4b1d8543afac0739d195
+INFO:routes.api_routes:Successfully indexed contract: 6c3fe9ae73be4b1d8543afac0739d195
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f49b51397daa4cfe9ec07c021ea4b393
+INFO:routes.api_routes:Successfully indexed contract: f49b51397daa4cfe9ec07c021ea4b393
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fd32f2e8c39e4e968694d8377f6a5d11
+INFO:routes.api_routes:Successfully indexed contract: fd32f2e8c39e4e968694d8377f6a5d11
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 57025e2c18744ef0aae8c51aefc31d2f
+INFO:routes.api_routes:Successfully indexed contract: 57025e2c18744ef0aae8c51aefc31d2f
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 1b9a351670a64d8b9bd8b191311f2e51
+INFO:routes.api_routes:Successfully indexed contract: 1b9a351670a64d8b9bd8b191311f2e51
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 08f0c567298147349da6d08f24fd31f3
+INFO:routes.api_routes:Successfully indexed contract: 08f0c567298147349da6d08f24fd31f3
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fbd589faad38422cb524b0326aa36923
+INFO:routes.api_routes:Successfully indexed contract: fbd589faad38422cb524b0326aa36923
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: e9792c4575e14a8bac13adeb52a7be94
+INFO:routes.api_routes:Successfully indexed contract: e9792c4575e14a8bac13adeb52a7be94
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: daa5dd12ea7245b19380b9a1c7d9eeb6
+INFO:routes.api_routes:Successfully indexed contract: daa5dd12ea7245b19380b9a1c7d9eeb6
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: d9742ec9ba694ab9ad7fbc34c1a03874
+INFO:routes.api_routes:Successfully indexed contract: d9742ec9ba694ab9ad7fbc34c1a03874
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: cf3cd258387d4f14b0d07e1386a1c33c
+INFO:routes.api_routes:Successfully indexed contract: cf3cd258387d4f14b0d07e1386a1c33c
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ca4670602b8949d983632572969ab0bc
+INFO:routes.api_routes:Successfully indexed contract: ca4670602b8949d983632572969ab0bc
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 8f51cec9bd0444b484a0bbe53a33fb4f
+INFO:routes.api_routes:Successfully indexed contract: 8f51cec9bd0444b484a0bbe53a33fb4f
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 8631f277e516430e9f9ff26ee92930d3
+INFO:routes.api_routes:Successfully indexed contract: 8631f277e516430e9f9ff26ee92930d3
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 78fd7ea8da6349feb9eda094a84a9624
+INFO:routes.api_routes:Successfully indexed contract: 78fd7ea8da6349feb9eda094a84a9624
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 6d2f21dbce5045f9a0b7434228bf0353
+INFO:routes.api_routes:Successfully indexed contract: 6d2f21dbce5045f9a0b7434228bf0353
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 443f14b959ef42a1a073b1cd703aae6e
+INFO:routes.api_routes:Successfully indexed contract: 443f14b959ef42a1a073b1cd703aae6e
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 3f8881c975b64c9bad66e366c191780d
+INFO:routes.api_routes:Successfully indexed contract: 3f8881c975b64c9bad66e366c191780d
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 3b9825097dc4483888fb3c84a7d05560
+INFO:routes.api_routes:Successfully indexed contract: 3b9825097dc4483888fb3c84a7d05560
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 39b77141d6c14642bc6b33397a241625
+INFO:routes.api_routes:Successfully indexed contract: 39b77141d6c14642bc6b33397a241625
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 3324ae17f83240859834329869bd4c75
+INFO:routes.api_routes:Successfully indexed contract: 3324ae17f83240859834329869bd4c75
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 00c1e6e2b8d4485788d59f08c3e342eb
+INFO:routes.api_routes:Successfully indexed contract: 00c1e6e2b8d4485788d59f08c3e342eb
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Contract search returned 1 results for query: it
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Document search returned 0 results for query: it
+DEBUG:openai._base_client:Request options: {'method': 'post', 'url': '/chat/completions', 'files': None, 'idempotency_key': 'stainless-python-retry-b1abd570-57ad-46c1-924d-93f1e5ce67ef', 'json_data': {'messages': [{'role': 'system', 'content': 'You are a government contracting expert. Analyze search results and provide actionable insights and recommendations for businesses interested in government contracts. Always respond with valid JSON.'}, {'role': 'user', 'content': '\nAnalyze the following government contracting search results for the query: "it"\n\nSEARCH RESULTS CONTEXT:\nTOP MATCHING CONTRACTS:\n1. Multiple Award Schedule - \n   NAICS: 541690 | Posted: 2025-05-30T00:00:00\n\nPlease provide a comprehensive analysis in JSON format with the following structure:\n{\n    "summary": "Brief overview of the search results and their relevance",\n    "key_opportunities": ["List of 3-5 key opportunities identified"],\n    "market_insights": ["List of 3-5 market insights from the results"],\n    "recommendations": [\n        {\n            "title": "Recommendation title",\n            "description": "Detailed recommendation",\n            "priority": "high|medium|low",\n            "action_items": ["List of specific action items"]\n        }\n    ],\n    "agencies_to_watch": ["List of agencies with multiple opportunities"],\n    "naics_codes_trending": ["List of trending NAICS codes"],\n    "next_steps": "Suggested next steps for businesses interested in these opportunities"\n}\n\nFocus on actionable insights that would help businesses identify and pursue relevant government contracting opportunities.\n'}], 'model': 'anthropic/claude-3.5-sonnet', 'response_format': {'type': 'json_object'}, 'temperature': 0.3}}
+DEBUG:openai._base_client:Sending HTTP Request: POST https://openrouter.ai/api/v1/chat/completions
+DEBUG:httpcore.connection:close.started
+DEBUG:httpcore.connection:close.complete
+DEBUG:httpcore.connection:connect_tcp.started host='openrouter.ai' port=443 local_address=None timeout=5.0 socket_options=None
+DEBUG:httpcore.connection:connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ecc6b8910>
+DEBUG:httpcore.connection:start_tls.started ssl_context=<ssl.SSLContext object at 0x777ed82afb60> server_hostname='openrouter.ai' timeout=5.0
+DEBUG:httpcore.connection:start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ecc6a8350>
+DEBUG:httpcore.http11:send_request_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_headers.complete
+DEBUG:httpcore.http11:send_request_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_body.complete
+DEBUG:httpcore.http11:receive_response_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Fri, 13 Jun 2025 20:16:30 GMT'), (b'Content-Type', b'application/json'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Content-Encoding', b'gzip'), (b'Access-Control-Allow-Origin', b'*'), (b'X-Clerk-Auth-Message', b'Invalid JWT form. A JWT consists of three parts separated by dots. (reason=token-invalid, token-carrier=header)'), (b'X-Clerk-Auth-Reason', b'token-invalid'), (b'X-Clerk-Auth-Status', b'signed-out'), (b'Vary', b'Accept-Encoding'), (b'Server', b'cloudflare'), (b'Cf-Ray', b'94f444156b64f282-IAD')])
+INFO:httpx:HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+DEBUG:httpcore.http11:receive_response_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:receive_response_body.complete
+DEBUG:httpcore.http11:response_closed.started
+DEBUG:httpcore.http11:response_closed.complete
+DEBUG:openai._base_client:HTTP Response: POST https://openrouter.ai/api/v1/chat/completions "200 OK" Headers({'date': 'Fri, 13 Jun 2025 20:16:30 GMT', 'content-type': 'application/json', 'transfer-encoding': 'chunked', 'connection': 'keep-alive', 'content-encoding': 'gzip', 'access-control-allow-origin': '*', 'x-clerk-auth-message': 'Invalid JWT form. A JWT consists of three parts separated by dots. (reason=token-invalid, token-carrier=header)', 'x-clerk-auth-reason': 'token-invalid', 'x-clerk-auth-status': 'signed-out', 'vary': 'Accept-Encoding', 'server': 'cloudflare', 'cf-ray': '94f444156b64f282-IAD'})
+DEBUG:openai._base_client:request_id: None
+INFO:services.ai_analyzer:AI analysis completed for query: it
+root@ubuntu-4gb-ash-1:~#
+root@ubuntu-4gb-ash-1:~# docker logs 3b56b3c08e76881226a3f56787c0b243193832d2432e04b6f21f084803fd4307
+Starting PostgreSQL...
+Starting PostgreSQL 15 database server: main.
+localhost:5432 - accepting connections
+PostgreSQL is ready
+Checking database state and initializing if needed...
+Empty database detected, will let Flask create tables then restore data
+Starting Flask application...
+[2025-06-13 20:15:14 +0000] [1] [INFO] Starting gunicorn 23.0.0
+[2025-06-13 20:15:14 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+[2025-06-13 20:15:14 +0000] [1] [INFO] Using worker: sync
+[2025-06-13 20:15:14 +0000] [50] [INFO] Booting worker with pid: 50
+INFO:services.vector_database:Fixed ChromaDB directory permissions for Docker
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+DEBUG:chromadb.config:Starting component System
+DEBUG:chromadb.config:Starting component Posthog
+INFO:services.vector_database:Found 0 existing collections
+INFO:services.vector_database:Initialized government_contracts collection
+INFO:services.vector_database:Initialized contract_documents collection
+INFO:services.vector_database:ChromaDB client initialized successfully
+INFO:services.sam_gov_api:SAM.gov API initialized with key: 8fvkSRtpKd...
+INFO:services.vector_database:Fixed ChromaDB directory permissions for Docker
+INFO:services.vector_database:Found 2 existing collections
+INFO:services.vector_database:Initialized government_contracts collection
+INFO:services.vector_database:Initialized contract_documents collection
+INFO:services.vector_database:ChromaDB client initialized successfully
+INFO:services.ai_analyzer:Using OpenRouter API for AI analysis
+INFO:services.vector_database:Fixed ChromaDB directory permissions for Docker
+INFO:services.vector_database:Found 2 existing collections
+INFO:services.vector_database:Initialized government_contracts collection
+INFO:services.vector_database:Initialized contract_documents collection
+INFO:services.vector_database:ChromaDB client initialized successfully
+INFO:root:Empty tables detected in Docker, restoring database snapshot
+Restoring database snapshot from 2025-06-13T13:13:07.991815
+Restoring table: contract (694 rows)
+Updated contract_id_seq to 694
+Restoring table: document_processing_queue (17 rows)
+Updated document_processing_queue_id_seq to 406
+Restoring table: indexing_job (88 rows)
+Updated indexing_job_id_seq to 88
+Restoring table: search_query (21 rows)
+Updated search_query_id_seq to 21
+Skipping empty table: user
+Skipping empty table: company
+Skipping empty table: contract_application
+Skipping empty table: ai_template
+Database snapshot restored successfully!
+INFO:root:Database snapshot restored successfully
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): us.i.posthog.com:443
+DEBUG:urllib3.connectionpool:https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+DEBUG:httpcore.connection:connect_tcp.started host='chroma-onnx-models.s3.amazonaws.com' port=443 local_address=None timeout=5.0 socket_options=None
+DEBUG:httpcore.connection:connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ed41ad310>
+DEBUG:httpcore.connection:start_tls.started ssl_context=<ssl.SSLContext object at 0x777ed4095010> server_hostname='chroma-onnx-models.s3.amazonaws.com' timeout=5.0
+DEBUG:httpcore.connection:start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ed4239ed0>
+DEBUG:httpcore.http11:send_request_headers.started request=<Request [b'GET']>
+DEBUG:httpcore.http11:send_request_headers.complete
+DEBUG:httpcore.http11:send_request_body.started request=<Request [b'GET']>
+DEBUG:httpcore.http11:send_request_body.complete
+DEBUG:httpcore.http11:receive_response_headers.started request=<Request [b'GET']>
+DEBUG:httpcore.http11:receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'x-amz-id-2', b'E1INurfCZvXxZb2Bv51Gh9LjZwRFPhnSLdtOz9qqICXq+MsaYO8S3K1kKmCFogAFTI8yJUggino='), (b'x-amz-request-id', b'24YG4AECE086Q4RE'), (b'Date', b'Fri, 13 Jun 2025 20:15:39 GMT'), (b'Last-Modified', b'Thu, 30 Mar 2023 23:38:52 GMT'), (b'ETag', b'"c319dd36af997be17ffb4669076b13a0-5"'), (b'x-amz-server-side-encryption', b'AES256'), (b'x-amz-version-id', b'null'), (b'Accept-Ranges', b'bytes'), (b'Content-Type', b'application/x-gzip'), (b'Content-Length', b'83178821'), (b'Server', b'AmazonS3')])
+INFO:httpx:HTTP Request: GET https://chroma-onnx-models.s3.amazonaws.com/all-MiniLM-L6-v2/onnx.tar.gz "HTTP/1.1 200 OK"
+/root/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:   0%|          | 0.00/79.3M [00:00<?, ?iB/s]DEBUG:httpcore.http11:receive_response_body.started request=<Request [b'GET']>
+/root/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  94%|█████████▍| 74.9M/79.3M [00:00<00:00, 102MiB/s]DEBUG:httpcore.http11:receive_response_body.complete
+DEBUG:httpcore.http11:response_closed.started
+DEBUG:httpcore.http11:response_closed.complete
+/root/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz: 100%|██████████| 79.3M/79.3M [00:00<00:00, 104MiB/s]
+DEBUG:httpcore.connection:close.started
+DEBUG:httpcore.connection:close.complete
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Contract search returned 0 results for query: it
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+DEBUG:urllib3.connectionpool:https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+INFO:services.vector_database:Document search returned 0 results for query: it
+DEBUG:openai._base_client:Request options: {'method': 'post', 'url': '/chat/completions', 'files': None, 'idempotency_key': 'stainless-python-retry-b53a7590-2b56-4b7d-b724-e6b79ed6329a', 'json_data': {'messages': [{'role': 'system', 'content': 'You are a government contracting expert. Analyze search results and provide actionable insights and recommendations for businesses interested in government contracts. Always respond with valid JSON.'}, {'role': 'user', 'content': '\nAnalyze the following government contracting search results for the query: "it"\n\nSEARCH RESULTS CONTEXT:\n\n\nPlease provide a comprehensive analysis in JSON format with the following structure:\n{\n    "summary": "Brief overview of the search results and their relevance",\n    "key_opportunities": ["List of 3-5 key opportunities identified"],\n    "market_insights": ["List of 3-5 market insights from the results"],\n    "recommendations": [\n        {\n            "title": "Recommendation title",\n            "description": "Detailed recommendation",\n            "priority": "high|medium|low",\n            "action_items": ["List of specific action items"]\n        }\n    ],\n    "agencies_to_watch": ["List of agencies with multiple opportunities"],\n    "naics_codes_trending": ["List of trending NAICS codes"],\n    "next_steps": "Suggested next steps for businesses interested in these opportunities"\n}\n\nFocus on actionable insights that would help businesses identify and pursue relevant government contracting opportunities.\n'}], 'model': 'anthropic/claude-3.5-sonnet', 'response_format': {'type': 'json_object'}, 'temperature': 0.3}}
+DEBUG:openai._base_client:Sending HTTP Request: POST https://openrouter.ai/api/v1/chat/completions
+DEBUG:httpcore.connection:connect_tcp.started host='openrouter.ai' port=443 local_address=None timeout=5.0 socket_options=None
+DEBUG:httpcore.connection:connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ecc6a8310>
+DEBUG:httpcore.connection:start_tls.started ssl_context=<ssl.SSLContext object at 0x777ed82afb60> server_hostname='openrouter.ai' timeout=5.0
+DEBUG:httpcore.connection:start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ecc6a8390>
+DEBUG:httpcore.http11:send_request_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_headers.complete
+DEBUG:httpcore.http11:send_request_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_body.complete
+DEBUG:httpcore.http11:receive_response_headers.started request=<Request [b'POST']>
+DEBUG:urllib3.connectionpool:https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+DEBUG:httpcore.http11:receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Fri, 13 Jun 2025 20:15:41 GMT'), (b'Content-Type', b'application/json'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Content-Encoding', b'gzip'), (b'Access-Control-Allow-Origin', b'*'), (b'X-Clerk-Auth-Message', b'Invalid JWT form. A JWT consists of three parts separated by dots. (reason=token-invalid, token-carrier=header)'), (b'X-Clerk-Auth-Reason', b'token-invalid'), (b'X-Clerk-Auth-Status', b'signed-out'), (b'Vary', b'Accept-Encoding'), (b'Server', b'cloudflare'), (b'Cf-Ray', b'94f442e80d672009-IAD')])
+INFO:httpx:HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+DEBUG:httpcore.http11:receive_response_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:receive_response_body.complete
+DEBUG:httpcore.http11:response_closed.started
+DEBUG:httpcore.http11:response_closed.complete
+DEBUG:openai._base_client:HTTP Response: POST https://openrouter.ai/api/v1/chat/completions "200 OK" Headers({'date': 'Fri, 13 Jun 2025 20:15:41 GMT', 'content-type': 'application/json', 'transfer-encoding': 'chunked', 'connection': 'keep-alive', 'content-encoding': 'gzip', 'access-control-allow-origin': '*', 'x-clerk-auth-message': 'Invalid JWT form. A JWT consists of three parts separated by dots. (reason=token-invalid, token-carrier=header)', 'x-clerk-auth-reason': 'token-invalid', 'x-clerk-auth-status': 'signed-out', 'vary': 'Accept-Encoding', 'server': 'cloudflare', 'cf-ray': '94f442e80d672009-IAD'})
+DEBUG:openai._base_client:request_id: None
+INFO:services.ai_analyzer:AI analysis completed for query: it
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f6194c28d679417391a76d7ff8f433d0
+INFO:routes.api_routes:Successfully indexed contract: f6194c28d679417391a76d7ff8f433d0
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: c2997b5de9dc4567a24b7978d8982756
+INFO:routes.api_routes:Successfully indexed contract: c2997b5de9dc4567a24b7978d8982756
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: b5f5574727e84decaa679acb43d7e586
+INFO:routes.api_routes:Successfully indexed contract: b5f5574727e84decaa679acb43d7e586
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+DEBUG:urllib3.connectionpool:https://us.i.posthog.com:443 "POST /batch/ HTTP/1.1" 200 15
+INFO:services.vector_database:Indexed contract: ac0b233d71b642cd9c9fbb97966e9606
+INFO:routes.api_routes:Successfully indexed contract: ac0b233d71b642cd9c9fbb97966e9606
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 9c934a882da8498d945649e626c2b2af
+INFO:routes.api_routes:Successfully indexed contract: 9c934a882da8498d945649e626c2b2af
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 94d9bb3a8ebb4f70b42feb6cdec31622
+INFO:routes.api_routes:Successfully indexed contract: 94d9bb3a8ebb4f70b42feb6cdec31622
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f843138002d445d7b4bd933731e298bd
+INFO:routes.api_routes:Successfully indexed contract: f843138002d445d7b4bd933731e298bd
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f757c1f554eb4c51a0a1fc572c16f989
+INFO:routes.api_routes:Successfully indexed contract: f757c1f554eb4c51a0a1fc572c16f989
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f591faacbce7401897236c812ab3665d
+INFO:routes.api_routes:Successfully indexed contract: f591faacbce7401897236c812ab3665d
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f56f8cd610f44a089af4116aae7be3ac
+INFO:routes.api_routes:Successfully indexed contract: f56f8cd610f44a089af4116aae7be3ac
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f560899108b746beb8c0fda1ac153b05
+INFO:routes.api_routes:Successfully indexed contract: f560899108b746beb8c0fda1ac153b05
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f255e204910343ee8ebc8756a6ad9ebd
+INFO:routes.api_routes:Successfully indexed contract: f255e204910343ee8ebc8756a6ad9ebd
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f17425dac7514ee0b099e5b298fd7ac2
+INFO:routes.api_routes:Successfully indexed contract: f17425dac7514ee0b099e5b298fd7ac2
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f10a42554fe7407ea5ac73998143478f
+INFO:routes.api_routes:Successfully indexed contract: f10a42554fe7407ea5ac73998143478f
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f0e61897e8f04e66ad2d1ef3001eac65
+INFO:routes.api_routes:Successfully indexed contract: f0e61897e8f04e66ad2d1ef3001eac65
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 917059530e604e76b522b25bd888d3b5
+INFO:routes.api_routes:Successfully indexed contract: 917059530e604e76b522b25bd888d3b5
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 6d2a0405031e4a819f8ac196fc5b6a19
+INFO:routes.api_routes:Successfully indexed contract: 6d2a0405031e4a819f8ac196fc5b6a19
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 5f2842021f7342669ad87feff1e25ac4
+INFO:routes.api_routes:Successfully indexed contract: 5f2842021f7342669ad87feff1e25ac4
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 563cb206ac7444edb02a42a7ccf4d8dc
+INFO:routes.api_routes:Successfully indexed contract: 563cb206ac7444edb02a42a7ccf4d8dc
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 51dae63c84cd4831a8392db94c9495ad
+INFO:routes.api_routes:Successfully indexed contract: 51dae63c84cd4831a8392db94c9495ad
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 50100522de5847f7ae21155b2009144c
+INFO:routes.api_routes:Successfully indexed contract: 50100522de5847f7ae21155b2009144c
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f7c55f7fe7c940cc8ee0c35f76a18018
+INFO:routes.api_routes:Successfully indexed contract: f7c55f7fe7c940cc8ee0c35f76a18018
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f8b985d55e9f49d291a51a7381bb3205
+INFO:routes.api_routes:Successfully indexed contract: f8b985d55e9f49d291a51a7381bb3205
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f7900e0b587e417ebae22bac049aec77
+INFO:routes.api_routes:Successfully indexed contract: f7900e0b587e417ebae22bac049aec77
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f036b71fc12046c1b3fee6cd0713bd39
+INFO:routes.api_routes:Successfully indexed contract: f036b71fc12046c1b3fee6cd0713bd39
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f5d6e6ef16ce47d980cf12f0461e0131
+INFO:routes.api_routes:Successfully indexed contract: f5d6e6ef16ce47d980cf12f0461e0131
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f5d6e155568a47418b554bd4ab7872dd
+INFO:routes.api_routes:Successfully indexed contract: f5d6e155568a47418b554bd4ab7872dd
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f5d27646339b40638b2976b8b771e79e
+INFO:routes.api_routes:Successfully indexed contract: f5d27646339b40638b2976b8b771e79e
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f5c6fbda1e87480f8aec71c96b1b8bf5
+INFO:routes.api_routes:Successfully indexed contract: f5c6fbda1e87480f8aec71c96b1b8bf5
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 2add6c52836144d19b092fa1a983432a
+INFO:routes.api_routes:Successfully indexed contract: 2add6c52836144d19b092fa1a983432a
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 298f77d750b941fdaed21ca02d86ceb0
+INFO:routes.api_routes:Successfully indexed contract: 298f77d750b941fdaed21ca02d86ceb0
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 2459d18ee338449b894138a7f379bfa9
+INFO:routes.api_routes:Successfully indexed contract: 2459d18ee338449b894138a7f379bfa9
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 238b69472c0b4c8c916e0525a84219f3
+INFO:routes.api_routes:Successfully indexed contract: 238b69472c0b4c8c916e0525a84219f3
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fe429dd55d6d44dab34f07375fc8fce7
+INFO:routes.api_routes:Successfully indexed contract: fe429dd55d6d44dab34f07375fc8fce7
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fe3e0b17a166457188afa24e4d2f19dd
+INFO:routes.api_routes:Successfully indexed contract: fe3e0b17a166457188afa24e4d2f19dd
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fe283c33e25e46e78c2443277b0a8f0d
+INFO:routes.api_routes:Successfully indexed contract: fe283c33e25e46e78c2443277b0a8f0d
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fe0c50fee4764481928aced89ec87cb3
+INFO:routes.api_routes:Successfully indexed contract: fe0c50fee4764481928aced89ec87cb3
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fba1efd472c44e92be233439f67195c3
+INFO:routes.api_routes:Successfully indexed contract: fba1efd472c44e92be233439f67195c3
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fb904cd9abf24d608bee72274249cc5a
+INFO:routes.api_routes:Successfully indexed contract: fb904cd9abf24d608bee72274249cc5a
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f51ed27375a748b58199508a4cee1907
+INFO:routes.api_routes:Successfully indexed contract: f51ed27375a748b58199508a4cee1907
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f4eff0f8314d453ba34ffe65857a1eb7
+INFO:routes.api_routes:Successfully indexed contract: f4eff0f8314d453ba34ffe65857a1eb7
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f4df964f475743c89790356f350d71af
+INFO:routes.api_routes:Successfully indexed contract: f4df964f475743c89790356f350d71af
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fe85d24ea2194eae81ec45d0876f7a0e
+INFO:routes.api_routes:Successfully indexed contract: fe85d24ea2194eae81ec45d0876f7a0e
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f4cdffd2b0b941b8b138335938a0b87b
+INFO:routes.api_routes:Successfully indexed contract: f4cdffd2b0b941b8b138335938a0b87b
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f352b2357cad4b58a785dfeadd8d1f44
+INFO:routes.api_routes:Successfully indexed contract: f352b2357cad4b58a785dfeadd8d1f44
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f33aa02d6df84164bef107ec1f909bb1
+INFO:routes.api_routes:Successfully indexed contract: f33aa02d6df84164bef107ec1f909bb1
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f318292528024bb7841b4578a9e93146
+INFO:routes.api_routes:Successfully indexed contract: f318292528024bb7841b4578a9e93146
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fb25271ab1bb4d4984f05c45f288583a
+INFO:routes.api_routes:Successfully indexed contract: fb25271ab1bb4d4984f05c45f288583a
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f3a510223ed14a57a0748ec61e879186
+INFO:routes.api_routes:Successfully indexed contract: f3a510223ed14a57a0748ec61e879186
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f39228dd37d647b6bdcd861dc631e796
+INFO:routes.api_routes:Successfully indexed contract: f39228dd37d647b6bdcd861dc631e796
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ff7285e969e14c6e8726abc20ad3f1bf
+INFO:routes.api_routes:Successfully indexed contract: ff7285e969e14c6e8726abc20ad3f1bf
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fe58a44f2c384a2caf49122d3955b526
+INFO:routes.api_routes:Successfully indexed contract: fe58a44f2c384a2caf49122d3955b526
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fdedbd0466994a39b1fd66990a2b1ca3
+INFO:routes.api_routes:Successfully indexed contract: fdedbd0466994a39b1fd66990a2b1ca3
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fcac030dc29f4ef3a6ae3602896bbca7
+INFO:routes.api_routes:Successfully indexed contract: fcac030dc29f4ef3a6ae3602896bbca7
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fc8c1653390b4519aebc2745c3da954a
+INFO:routes.api_routes:Successfully indexed contract: fc8c1653390b4519aebc2745c3da954a
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fc896041369a488ca5da77062d345e32
+INFO:routes.api_routes:Successfully indexed contract: fc896041369a488ca5da77062d345e32
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fbf07520f21646d290a8f6075958f8c4
+INFO:routes.api_routes:Successfully indexed contract: fbf07520f21646d290a8f6075958f8c4
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ffa3e005658f4ceabb0a41de736cfd38
+INFO:routes.api_routes:Successfully indexed contract: ffa3e005658f4ceabb0a41de736cfd38
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ff3dece6b36e4b08b239511b12d644f2
+INFO:routes.api_routes:Successfully indexed contract: ff3dece6b36e4b08b239511b12d644f2
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ff2f0f76dbcd414f906e3048f1328aee
+INFO:routes.api_routes:Successfully indexed contract: ff2f0f76dbcd414f906e3048f1328aee
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ff29747dd01a447daff86603caf5a09b
+INFO:routes.api_routes:Successfully indexed contract: ff29747dd01a447daff86603caf5a09b
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ff234c03115a41e6a6735f1e3be043fb
+INFO:routes.api_routes:Successfully indexed contract: ff234c03115a41e6a6735f1e3be043fb
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fef27dca35f147c1995615f0eb03c6b1
+INFO:routes.api_routes:Successfully indexed contract: fef27dca35f147c1995615f0eb03c6b1
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: feec075df3ee4f8ba2838546f85622e2
+INFO:routes.api_routes:Successfully indexed contract: feec075df3ee4f8ba2838546f85622e2
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ff0052b047e94d668277f1a89a6929e7
+INFO:routes.api_routes:Successfully indexed contract: ff0052b047e94d668277f1a89a6929e7
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fedff474304d4944a5cdeddef204c72f
+INFO:routes.api_routes:Successfully indexed contract: fedff474304d4944a5cdeddef204c72f
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f7d28666b4094675a00c73f97ac50fda
+INFO:routes.api_routes:Successfully indexed contract: f7d28666b4094675a00c73f97ac50fda
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f4e622116ab544a88530b2ed0398df10
+INFO:routes.api_routes:Successfully indexed contract: f4e622116ab544a88530b2ed0398df10
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f4e5ff073fce417aa710d715eb123776
+INFO:routes.api_routes:Successfully indexed contract: f4e5ff073fce417aa710d715eb123776
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f4a81cf380344e1eb69d276d56c7e21a
+INFO:routes.api_routes:Successfully indexed contract: f4a81cf380344e1eb69d276d56c7e21a
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f46f37bb5c8442ebac145970f9092f71
+INFO:routes.api_routes:Successfully indexed contract: f46f37bb5c8442ebac145970f9092f71
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fbf61c9ab5e941f88e5e56e550b28ee0
+INFO:routes.api_routes:Successfully indexed contract: fbf61c9ab5e941f88e5e56e550b28ee0
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: c60b4ead03c249829745d43f80a08a12
+INFO:routes.api_routes:Successfully indexed contract: c60b4ead03c249829745d43f80a08a12
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ab45bee6bc2d43878e00bbb0ff06b253
+INFO:routes.api_routes:Successfully indexed contract: ab45bee6bc2d43878e00bbb0ff06b253
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: a67fb61c8eb040a4b1ef3eb8bacfd3a2
+INFO:routes.api_routes:Successfully indexed contract: a67fb61c8eb040a4b1ef3eb8bacfd3a2
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 983bd3e98c41410e919efdb4107e95e4
+INFO:routes.api_routes:Successfully indexed contract: 983bd3e98c41410e919efdb4107e95e4
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 895a8f3b23d6466dabb1895665e6daac
+INFO:routes.api_routes:Successfully indexed contract: 895a8f3b23d6466dabb1895665e6daac
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 79edbcc19cf64ec6b06f336652e5316a
+INFO:routes.api_routes:Successfully indexed contract: 79edbcc19cf64ec6b06f336652e5316a
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 6c3fe9ae73be4b1d8543afac0739d195
+INFO:routes.api_routes:Successfully indexed contract: 6c3fe9ae73be4b1d8543afac0739d195
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: f49b51397daa4cfe9ec07c021ea4b393
+INFO:routes.api_routes:Successfully indexed contract: f49b51397daa4cfe9ec07c021ea4b393
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fd32f2e8c39e4e968694d8377f6a5d11
+INFO:routes.api_routes:Successfully indexed contract: fd32f2e8c39e4e968694d8377f6a5d11
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 57025e2c18744ef0aae8c51aefc31d2f
+INFO:routes.api_routes:Successfully indexed contract: 57025e2c18744ef0aae8c51aefc31d2f
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 1b9a351670a64d8b9bd8b191311f2e51
+INFO:routes.api_routes:Successfully indexed contract: 1b9a351670a64d8b9bd8b191311f2e51
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 08f0c567298147349da6d08f24fd31f3
+INFO:routes.api_routes:Successfully indexed contract: 08f0c567298147349da6d08f24fd31f3
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: fbd589faad38422cb524b0326aa36923
+INFO:routes.api_routes:Successfully indexed contract: fbd589faad38422cb524b0326aa36923
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: e9792c4575e14a8bac13adeb52a7be94
+INFO:routes.api_routes:Successfully indexed contract: e9792c4575e14a8bac13adeb52a7be94
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: daa5dd12ea7245b19380b9a1c7d9eeb6
+INFO:routes.api_routes:Successfully indexed contract: daa5dd12ea7245b19380b9a1c7d9eeb6
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: d9742ec9ba694ab9ad7fbc34c1a03874
+INFO:routes.api_routes:Successfully indexed contract: d9742ec9ba694ab9ad7fbc34c1a03874
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: cf3cd258387d4f14b0d07e1386a1c33c
+INFO:routes.api_routes:Successfully indexed contract: cf3cd258387d4f14b0d07e1386a1c33c
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: ca4670602b8949d983632572969ab0bc
+INFO:routes.api_routes:Successfully indexed contract: ca4670602b8949d983632572969ab0bc
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 8f51cec9bd0444b484a0bbe53a33fb4f
+INFO:routes.api_routes:Successfully indexed contract: 8f51cec9bd0444b484a0bbe53a33fb4f
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 8631f277e516430e9f9ff26ee92930d3
+INFO:routes.api_routes:Successfully indexed contract: 8631f277e516430e9f9ff26ee92930d3
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 78fd7ea8da6349feb9eda094a84a9624
+INFO:routes.api_routes:Successfully indexed contract: 78fd7ea8da6349feb9eda094a84a9624
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 6d2f21dbce5045f9a0b7434228bf0353
+INFO:routes.api_routes:Successfully indexed contract: 6d2f21dbce5045f9a0b7434228bf0353
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 443f14b959ef42a1a073b1cd703aae6e
+INFO:routes.api_routes:Successfully indexed contract: 443f14b959ef42a1a073b1cd703aae6e
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 3f8881c975b64c9bad66e366c191780d
+INFO:routes.api_routes:Successfully indexed contract: 3f8881c975b64c9bad66e366c191780d
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 3b9825097dc4483888fb3c84a7d05560
+INFO:routes.api_routes:Successfully indexed contract: 3b9825097dc4483888fb3c84a7d05560
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 39b77141d6c14642bc6b33397a241625
+INFO:routes.api_routes:Successfully indexed contract: 39b77141d6c14642bc6b33397a241625
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 3324ae17f83240859834329869bd4c75
+INFO:routes.api_routes:Successfully indexed contract: 3324ae17f83240859834329869bd4c75
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Indexed contract: 00c1e6e2b8d4485788d59f08c3e342eb
+INFO:routes.api_routes:Successfully indexed contract: 00c1e6e2b8d4485788d59f08c3e342eb
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Contract search returned 1 results for query: it
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Document search returned 0 results for query: it
+DEBUG:openai._base_client:Request options: {'method': 'post', 'url': '/chat/completions', 'files': None, 'idempotency_key': 'stainless-python-retry-b1abd570-57ad-46c1-924d-93f1e5ce67ef', 'json_data': {'messages': [{'role': 'system', 'content': 'You are a government contracting expert. Analyze search results and provide actionable insights and recommendations for businesses interested in government contracts. Always respond with valid JSON.'}, {'role': 'user', 'content': '\nAnalyze the following government contracting search results for the query: "it"\n\nSEARCH RESULTS CONTEXT:\nTOP MATCHING CONTRACTS:\n1. Multiple Award Schedule - \n   NAICS: 541690 | Posted: 2025-05-30T00:00:00\n\nPlease provide a comprehensive analysis in JSON format with the following structure:\n{\n    "summary": "Brief overview of the search results and their relevance",\n    "key_opportunities": ["List of 3-5 key opportunities identified"],\n    "market_insights": ["List of 3-5 market insights from the results"],\n    "recommendations": [\n        {\n            "title": "Recommendation title",\n            "description": "Detailed recommendation",\n            "priority": "high|medium|low",\n            "action_items": ["List of specific action items"]\n        }\n    ],\n    "agencies_to_watch": ["List of agencies with multiple opportunities"],\n    "naics_codes_trending": ["List of trending NAICS codes"],\n    "next_steps": "Suggested next steps for businesses interested in these opportunities"\n}\n\nFocus on actionable insights that would help businesses identify and pursue relevant government contracting opportunities.\n'}], 'model': 'anthropic/claude-3.5-sonnet', 'response_format': {'type': 'json_object'}, 'temperature': 0.3}}
+DEBUG:openai._base_client:Sending HTTP Request: POST https://openrouter.ai/api/v1/chat/completions
+DEBUG:httpcore.connection:close.started
+DEBUG:httpcore.connection:close.complete
+DEBUG:httpcore.connection:connect_tcp.started host='openrouter.ai' port=443 local_address=None timeout=5.0 socket_options=None
+DEBUG:httpcore.connection:connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ecc6b8910>
+DEBUG:httpcore.connection:start_tls.started ssl_context=<ssl.SSLContext object at 0x777ed82afb60> server_hostname='openrouter.ai' timeout=5.0
+DEBUG:httpcore.connection:start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ecc6a8350>
+DEBUG:httpcore.http11:send_request_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_headers.complete
+DEBUG:httpcore.http11:send_request_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_body.complete
+DEBUG:httpcore.http11:receive_response_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Fri, 13 Jun 2025 20:16:30 GMT'), (b'Content-Type', b'application/json'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Content-Encoding', b'gzip'), (b'Access-Control-Allow-Origin', b'*'), (b'X-Clerk-Auth-Message', b'Invalid JWT form. A JWT consists of three parts separated by dots. (reason=token-invalid, token-carrier=header)'), (b'X-Clerk-Auth-Reason', b'token-invalid'), (b'X-Clerk-Auth-Status', b'signed-out'), (b'Vary', b'Accept-Encoding'), (b'Server', b'cloudflare'), (b'Cf-Ray', b'94f444156b64f282-IAD')])
+INFO:httpx:HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+DEBUG:httpcore.http11:receive_response_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:receive_response_body.complete
+DEBUG:httpcore.http11:response_closed.started
+DEBUG:httpcore.http11:response_closed.complete
+DEBUG:openai._base_client:HTTP Response: POST https://openrouter.ai/api/v1/chat/completions "200 OK" Headers({'date': 'Fri, 13 Jun 2025 20:16:30 GMT', 'content-type': 'application/json', 'transfer-encoding': 'chunked', 'connection': 'keep-alive', 'content-encoding': 'gzip', 'access-control-allow-origin': '*', 'x-clerk-auth-message': 'Invalid JWT form. A JWT consists of three parts separated by dots. (reason=token-invalid, token-carrier=header)', 'x-clerk-auth-reason': 'token-invalid', 'x-clerk-auth-status': 'signed-out', 'vary': 'Accept-Encoding', 'server': 'cloudflare', 'cf-ray': '94f444156b64f282-IAD'})
+DEBUG:openai._base_client:request_id: None
+INFO:services.ai_analyzer:AI analysis completed for query: it
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Contract search returned 1 results for query: it
+DEBUG:chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2:WARNING: No ONNX providers provided, defaulting to available providers: ['AzureExecutionProvider', 'CPUExecutionProvider']
+INFO:services.vector_database:Document search returned 0 results for query: it
+DEBUG:openai._base_client:Request options: {'method': 'post', 'url': '/chat/completions', 'files': None, 'idempotency_key': 'stainless-python-retry-167af2a9-9e91-449a-953c-adab63ad3f51', 'json_data': {'messages': [{'role': 'system', 'content': 'You are a government contracting expert. Analyze search results and provide actionable insights and recommendations for businesses interested in government contracts. Always respond with valid JSON.'}, {'role': 'user', 'content': '\nAnalyze the following government contracting search results for the query: "it"\n\nSEARCH RESULTS CONTEXT:\nTOP MATCHING CONTRACTS:\n1. Multiple Award Schedule - \n   NAICS: 541690 | Posted: 2025-05-30T00:00:00\n\nPlease provide a comprehensive analysis in JSON format with the following structure:\n{\n    "summary": "Brief overview of the search results and their relevance",\n    "key_opportunities": ["List of 3-5 key opportunities identified"],\n    "market_insights": ["List of 3-5 market insights from the results"],\n    "recommendations": [\n        {\n            "title": "Recommendation title",\n            "description": "Detailed recommendation",\n            "priority": "high|medium|low",\n            "action_items": ["List of specific action items"]\n        }\n    ],\n    "agencies_to_watch": ["List of agencies with multiple opportunities"],\n    "naics_codes_trending": ["List of trending NAICS codes"],\n    "next_steps": "Suggested next steps for businesses interested in these opportunities"\n}\n\nFocus on actionable insights that would help businesses identify and pursue relevant government contracting opportunities.\n'}], 'model': 'anthropic/claude-3.5-sonnet', 'response_format': {'type': 'json_object'}, 'temperature': 0.3}}
+DEBUG:openai._base_client:Sending HTTP Request: POST https://openrouter.ai/api/v1/chat/completions
+DEBUG:httpcore.connection:close.started
+DEBUG:httpcore.connection:close.complete
+DEBUG:httpcore.connection:connect_tcp.started host='openrouter.ai' port=443 local_address=None timeout=5.0 socket_options=None
+DEBUG:httpcore.connection:connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ecc10bd90>
+DEBUG:httpcore.connection:start_tls.started ssl_context=<ssl.SSLContext object at 0x777ed82afb60> server_hostname='openrouter.ai' timeout=5.0
+DEBUG:httpcore.connection:start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x777ecc109f90>
+DEBUG:httpcore.http11:send_request_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_headers.complete
+DEBUG:httpcore.http11:send_request_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_body.complete
+DEBUG:httpcore.http11:receive_response_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Fri, 13 Jun 2025 20:17:48 GMT'), (b'Content-Type', b'application/json'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'Content-Encoding', b'gzip'), (b'Access-Control-Allow-Origin', b'*'), (b'X-Clerk-Auth-Message', b'Invalid JWT form. A JWT consists of three parts separated by dots. (reason=token-invalid, token-carrier=header)'), (b'X-Clerk-Auth-Reason', b'token-invalid'), (b'X-Clerk-Auth-Status', b'signed-out'), (b'Vary', b'Accept-Encoding'), (b'Server', b'cloudflare'), (b'Cf-Ray', b'94f446023d8a399a-IAD')])
+INFO:httpx:HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+DEBUG:httpcore.http11:receive_response_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:receive_response_body.complete
+DEBUG:httpcore.http11:response_closed.started
+DEBUG:httpcore.http11:response_closed.complete
+DEBUG:openai._base_client:HTTP Response: POST https://openrouter.ai/api/v1/chat/completions "200 OK" Headers({'date': 'Fri, 13 Jun 2025 20:17:48 GMT', 'content-type': 'application/json', 'transfer-encoding': 'chunked', 'connection': 'keep-alive', 'content-encoding': 'gzip', 'access-control-allow-origin': '*', 'x-clerk-auth-message': 'Invalid JWT form. A JWT consists of three parts separated by dots. (reason=token-invalid, token-carrier=header)', 'x-clerk-auth-reason': 'token-invalid', 'x-clerk-auth-status': 'signed-out', 'vary': 'Accept-Encoding', 'server': 'cloudflare', 'cf-ray': '94f446023d8a399a-IAD'})
+DEBUG:openai._base_client:request_id: None
+INFO:services.ai_analyzer:AI analysis completed for query: it
