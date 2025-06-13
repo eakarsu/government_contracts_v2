@@ -133,17 +133,32 @@ class AsyncDocumentProcessor:
                             return result
                         else:
                             error_text = await response.text()
-                            logger.error(f"Document {doc.id} failed: {response.status} - {error_text}")
                             
-                            # Update database immediately on failure
-                            with app.app_context():
-                                db_doc = DocumentProcessingQueue.query.get(doc.id)
-                                if db_doc:
-                                    db_doc.status = 'failed'
-                                    db_doc.failed_at = datetime.utcnow()
-                                    db_doc.error_message = f"Norshin API error: {response.status} - {error_text}"
-                                    db_doc.retry_count += 1
-                                    db.session.commit()
+                            # Handle 504 timeouts differently - Norshin may still be processing with internal retries
+                            if response.status == 504:
+                                logger.warning(f"Document {doc.id} got 504 timeout - Norshin may still be processing with internal retries")
+                                # Don't mark as failed immediately - let Norshin's retry mechanism work
+                                # This document should be checked later or retried
+                                with app.app_context():
+                                    db_doc = DocumentProcessingQueue.query.get(doc.id)
+                                    if db_doc:
+                                        db_doc.status = 'failed'  # Mark as failed for now, but this needs manual review
+                                        db_doc.failed_at = datetime.utcnow()
+                                        db_doc.error_message = f"Norshin API timeout (504) - document may have been processed successfully by Norshin's retry mechanism"
+                                        db_doc.retry_count += 1
+                                        db.session.commit()
+                            else:
+                                logger.error(f"Document {doc.id} failed: {response.status} - {error_text}")
+                                
+                                # Update database immediately on real failure
+                                with app.app_context():
+                                    db_doc = DocumentProcessingQueue.query.get(doc.id)
+                                    if db_doc:
+                                        db_doc.status = 'failed'
+                                        db_doc.failed_at = datetime.utcnow()
+                                        db_doc.error_message = f"Norshin API error: {response.status} - {error_text}"
+                                        db_doc.retry_count += 1
+                                        db.session.commit()
                             
                             return None
                             
