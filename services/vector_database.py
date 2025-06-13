@@ -181,23 +181,28 @@ class VectorDatabase:
                 if page_data.get('section_title'):
                     text_chunks.append(f"Section: {page_data['section_title']}")
                 
-                # Extract structured data (tree_data, table_data, etc.)
-                for data_key in ['tree_data', 'table_data', 'text_data']:
-                    if data_key in page_data and page_data[data_key]:
-                        if isinstance(page_data[data_key], list):
-                            for item in page_data[data_key]:
+                # Extract ALL data keys, not just specific ones
+                for data_key, data_value in page_data.items():
+                    if data_key in ['page_number']:  # Skip page numbers
+                        continue
+                        
+                    if data_value:  # Only process non-empty values
+                        if isinstance(data_value, list):
+                            for item in data_value:
                                 if isinstance(item, dict):
                                     # Convert dictionary to readable text
                                     item_text = ' '.join([f"{k}: {v}" for k, v in item.items() if v])
-                                    text_chunks.append(item_text)
+                                    if item_text.strip():
+                                        text_chunks.append(item_text)
                                 else:
                                     text_chunks.append(str(item))
-                        else:
-                            text_chunks.append(str(page_data[data_key]))
-                
-                # Extract raw text if available
-                if page_data.get('raw_text'):
-                    text_chunks.append(page_data['raw_text'])
+                        elif isinstance(data_value, str) and len(data_value.strip()) > 0:
+                            text_chunks.append(data_value)
+                        elif isinstance(data_value, dict):
+                            # Handle nested dictionaries
+                            dict_text = ' '.join([f"{k}: {v}" for k, v in data_value.items() if v])
+                            if dict_text.strip():
+                                text_chunks.append(dict_text)
             
             if not text_chunks:
                 logger.warning(f"Skipping document indexing - no extractable text content")
