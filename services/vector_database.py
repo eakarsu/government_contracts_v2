@@ -5,6 +5,7 @@ import json
 import uuid
 from datetime import datetime
 import os
+import subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -138,11 +139,14 @@ class VectorDatabase:
             metadata = {k: str(v) for k, v in metadata.items() if v is not None}
             
             # Add to collection
-            self.contracts_collection.add(
-                documents=[text_content],
-                metadatas=[metadata],
-                ids=[contract_id]
-            )
+            if self.contracts_collection is not None:
+                self.contracts_collection.add(
+                    documents=[text_content],
+                    metadatas=[metadata],
+                    ids=[contract_id]
+                )
+            else:
+                raise Exception("Contracts collection not initialized")
             
             logger.info(f"Indexed contract: {contract_id}")
             return True
@@ -230,12 +234,15 @@ class VectorDatabase:
                 
                 try:
                     # Add to collection
-                    self.documents_collection.add(
-                        documents=[chunk],
-                        metadatas=[metadata],
-                        ids=[chunk_id]
-                    )
-                    indexed_count += 1
+                    if self.documents_collection is not None:
+                        self.documents_collection.add(
+                            documents=[chunk],
+                            metadatas=[metadata],
+                            ids=[chunk_id]
+                        )
+                        indexed_count += 1
+                    else:
+                        raise Exception("Documents collection not initialized")
                 except Exception as chunk_error:
                     logger.warning(f"Failed to index chunk {i}: {chunk_error}")
                     continue
@@ -267,20 +274,21 @@ class VectorDatabase:
                         where_clause[key] = value
             
             # Search in contracts collection
-            results = self.contracts_collection.query(
-                query_texts=[query],
-                n_results=n_results,
-                where=where_clause if where_clause else None
-            )
-            
-            # Format results
-            formatted_results = []
-            if results['documents'] and results['documents'][0]:
-                for i, doc in enumerate(results['documents'][0]):
-                    result = {
-                        'id': results['ids'][0][i],
-                        'content': doc,
-                        'metadata': results['metadatas'][0][i],
+            if self.contracts_collection is not None:
+                results = self.contracts_collection.query(
+                    query_texts=[query],
+                    n_results=n_results,
+                    where=where_clause if where_clause else None
+                )
+                
+                # Format results
+                formatted_results = []
+                if results and results['documents'] and results['documents'][0]:
+                    for i, doc in enumerate(results['documents'][0]):
+                        result = {
+                            'id': results['ids'][0][i],
+                            'content': doc,
+                            'metadata': results['metadatas'][0][i],
                         'distance': results['distances'][0][i] if 'distances' in results else None
                     }
                     formatted_results.append(result)

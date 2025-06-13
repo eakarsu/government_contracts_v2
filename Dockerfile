@@ -58,6 +58,9 @@ COPY docker-start.sh /app/docker-start.sh
 RUN chmod +x /app/docker-start.sh
 
 
+# Set Docker environment variable for Flask detection
+ENV DOCKER_CONTAINER=1
+
 # Expose port
 EXPOSE 5000
 

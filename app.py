@@ -53,8 +53,13 @@ with app.app_context():
             cur = conn.cursor()
             
             # Check if contract table is empty
-            cur.execute("SELECT COUNT(*) FROM contract")
-            count = cur.fetchone()[0]
+            try:
+                cur.execute("SELECT COUNT(*) FROM contract")
+                result = cur.fetchone()
+                count = result[0] if result else 0
+            except Exception:
+                # Table doesn't exist yet, count as 0
+                count = 0
             
             if count == 0:
                 logging.info("Empty tables detected in Docker, restoring database snapshot")
