@@ -65,7 +65,8 @@ with app.app_context():
                 logging.info("Empty tables detected in Docker, restoring database snapshot")
                 try:
                     from restore_db_snapshot import restore_database_snapshot
-                    restore_database_snapshot()
+                    # Use the fixed snapshot without corrupted user data
+                    restore_database_snapshot('database_snapshots/complete_snapshot_fixed.json')
                     logging.info("Database snapshot restored successfully")
                 except Exception as restore_error:
                     logging.error(f"Database restoration failed: {restore_error}")

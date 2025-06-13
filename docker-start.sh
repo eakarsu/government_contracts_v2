@@ -44,7 +44,7 @@ try:
                 print('Contract table exists but is empty, restoring data...')
                 sys.path.append('/app')
                 from restore_db_snapshot import restore_database_snapshot
-                restore_database_snapshot()
+                restore_database_snapshot('database_snapshots/complete_snapshot_fixed.json')
                 print('Database restoration completed')
             else:
                 print('Database already contains data, skipping restoration')

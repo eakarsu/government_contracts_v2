@@ -41,8 +41,18 @@ def restore_database_snapshot(snapshot_file='database_snapshots/complete_snapsho
         
         # Insert data
         for row in table_data['data']:
+            # Skip invalid entries that don't match table structure
+            if table_name == 'user' and 'user' in row and 'email' not in row:
+                print(f"Skipping invalid user entry: {row}")
+                continue
+                
             columns = list(row.keys())
             values = list(row.values())
+            
+            # Validate that we have proper columns for this table
+            if not columns or not values:
+                print(f"Skipping empty row in {table_name}")
+                continue
             
             # Prepare placeholders (handle reserved words with quotes)
             placeholders = ', '.join(['%s'] * len(values))
@@ -77,6 +87,8 @@ def restore_database_snapshot(snapshot_file='database_snapshots/complete_snapsho
                 )
             except Exception as e:
                 print(f"Error inserting row in {table_name}: {e}")
+                # Rollback the failed transaction and continue
+                conn.rollback()
                 continue
         
         # Update sequence to max ID value after inserting data
