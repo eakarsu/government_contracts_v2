@@ -21,15 +21,39 @@ class VectorDatabase:
         """Initialize ChromaDB client and collections with robust error handling"""
         persist_directory = os.environ.get("CHROMADB_PATH", "./chromadb_data")
         
-        # Ensure directory exists
+        # For Docker containers, use in-memory database to avoid permission issues
+        if os.environ.get('DOCKER_CONTAINER'):
+            logger.info("Docker container detected, using in-memory ChromaDB")
+            try:
+                # Use ephemeral client for Docker containers
+                self.client = chromadb.EphemeralClient()
+                
+                # Create collections
+                self.contracts_collection = self.client.create_collection(
+                    name="government_contracts",
+                    metadata={"description": "Government contract metadata and descriptions"}
+                )
+                
+                self.documents_collection = self.client.create_collection(
+                    name="contract_documents", 
+                    metadata={"description": "Text content from contract documents"}
+                )
+                
+                logger.info("ChromaDB client initialized successfully (in-memory)")
+                return
+                
+            except Exception as e:
+                logger.error(f"Failed to initialize in-memory ChromaDB: {str(e)}")
+                # Fall through to persistent client attempts
+        
+        # Ensure directory exists for persistent client
         os.makedirs(persist_directory, exist_ok=True)
         
-        # Try multiple initialization strategies
+        # Try multiple initialization strategies for persistent storage
         for attempt in range(3):
             try:
-                # Clean slate approach for Docker containers
-                if attempt == 0 and os.environ.get('DOCKER_CONTAINER'):
-                    logger.info("Docker container detected, ensuring clean ChromaDB initialization")
+                # Clean slate approach for first attempt
+                if attempt == 0:
                     import shutil
                     if os.path.exists(persist_directory):
                         shutil.rmtree(persist_directory)
