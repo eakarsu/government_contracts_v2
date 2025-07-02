@@ -155,13 +155,77 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Upload and process single document
+app.post('/api/upload', upload.single('document'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No document file provided' });
+    }
 
+    const { customPrompt, model } = req.body;
+    
+    console.log(`Processing: ${req.file.originalname}`);
+    
+    // Send to Norshin API
+    const result = await sendToNorshinAPI(
+      req.file.path, 
+      req.file.originalname, 
+      customPrompt, 
+      model
+    );
 
+    // Clean up uploaded file
+    fs.unlinkSync(req.file.path);
 
+    res.json({
+      success: true,
+      filename: req.file.originalname,
+      result: result
+    });
 
+  } catch (error) {
+    // Clean up file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    
+    res.status(500).json({
+      error: 'Processing failed',
+      details: error.response?.data?.error || error.message
+    });
+  }
+});
 
+// Get list of static documents
+app.get('/api/documents', (req, res) => {
+  try {
+    const documentsDir = path.join(__dirname, config.documentsDir);
+    
+    if (!fs.existsSync(documentsDir)) {
+      return res.json({ documents: [] });
+    }
 
+    const files = fs.readdirSync(documentsDir)
+      .filter(file => {
+        const ext = path.extname(file).toLowerCase();
+        return config.allowedExtensions.includes(ext);
+      })
+      .map(file => {
+        const filePath = path.join(documentsDir, file);
+        const stats = fs.statSync(filePath);
+        return {
+          name: file,
+          size: stats.size,
+          modified: stats.mtime,
+          extension: path.extname(file).toLowerCase()
+        };
+      });
 
+    res.json({ documents: files });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to list documents' });
+  }
+});
 
 // Error handling middleware
 app.use((error, req, res, next) => {
@@ -171,12 +235,6 @@ app.use((error, req, res, next) => {
     }
   }
   
-  console.error('Unhandled error:', error);
-  res.status(500).json({ error: 'Internal server error' });
-});
-
-// Error handling middleware
-app.use((error, req, res, next) => {
   console.error('Unhandled error:', error);
   res.status(500).json({ error: 'Internal server error' });
 });
