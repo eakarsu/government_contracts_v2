@@ -28,14 +28,100 @@ router.post('/process', async (req, res) => {
     console.log(`🔄 [DEBUG] Contracts with document links available: ${contractsWithDocs}`);
     
     if (vectorStats.documents === 0) {
-      console.log('⚠️ [DEBUG] No documents in vector database');
-      return res.json({ 
-        message: `No documents found in vector database. You have ${vectorStats.contracts} contracts indexed, but 0 document files. Use /documents/download to fetch and index the actual document files from ${contractsWithDocs} contracts that have document links.`, 
-        processed_count: 0,
-        contracts_indexed: vectorStats.contracts,
-        documents_indexed: vectorStats.documents,
-        contracts_with_document_links: contractsWithDocs
+      console.log('⚠️ [DEBUG] No documents in vector database, will download from contracts with resourceLinks');
+      
+      // Get contracts with resourceLinks from vector database
+      console.log('🔍 [DEBUG] Searching for contracts with resourceLinks in vector database...');
+      const contractsInVector = await vectorService.searchContracts("contract", 200); // Get more contracts
+      console.log(`🔍 [DEBUG] Found ${contractsInVector.length} contracts in vector database`);
+      
+      // Get full contract data from PostgreSQL to access resourceLinks
+      const contractIds = contractsInVector.map(c => c.id);
+      const contractsWithLinks = await prisma.contract.findMany({
+        where: {
+          noticeId: { in: contractIds },
+          resourceLinks: { not: null }
+        },
+        take: limit
       });
+      
+      console.log(`📄 [DEBUG] Found ${contractsWithLinks.length} contracts with resourceLinks`);
+      
+      if (contractsWithLinks.length === 0) {
+        return res.json({ 
+          message: 'No contracts with document links found to download', 
+          processed_count: 0 
+        });
+      }
+      
+      // Download and index documents from these contracts
+      console.log('📥 [DEBUG] Starting document download and indexing...');
+      let downloadedCount = 0;
+      let errorsCount = 0;
+      
+      for (const contract of contractsWithLinks) {
+        try {
+          const resourceLinks = contract.resourceLinks;
+          if (!resourceLinks || !Array.isArray(resourceLinks)) continue;
+
+          console.log(`📄 [DEBUG] Processing ${resourceLinks.length} documents for contract ${contract.noticeId}`);
+          
+          // Process up to 3 documents per contract
+          for (const docUrl of resourceLinks.slice(0, 3)) {
+            try {
+              const documentId = `${contract.noticeId}_${docUrl.split('/').pop()}`;
+              
+              // Check if document is already indexed
+              const existingDocs = await vectorService.searchDocuments(documentId, 1);
+              if (existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) {
+                console.log(`📄 [DEBUG] Document already indexed, skipping: ${documentId}`);
+                continue;
+              }
+
+              // Download and process document
+              console.log(`📥 [DEBUG] Downloading document from: ${docUrl}`);
+              const result = await sendToNorshinAPI(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4.1');
+              
+              if (result) {
+                // Index the processed document in vector database
+                await vectorService.indexDocument({
+                  filename: `doc_${contract.noticeId}`,
+                  content: result.content || result.text || JSON.stringify(result),
+                  processedData: result
+                }, contract.noticeId);
+                
+                downloadedCount++;
+                console.log(`✅ [DEBUG] Downloaded and indexed document for contract: ${contract.noticeId}`);
+              } else {
+                errorsCount++;
+              }
+            } catch (error) {
+              console.error(`❌ [DEBUG] Error downloading document ${docUrl}:`, error);
+              errorsCount++;
+            }
+          }
+        } catch (error) {
+          console.error(`❌ [DEBUG] Error processing contract ${contract.noticeId}:`, error);
+          errorsCount++;
+        }
+      }
+      
+      // Update vector stats after downloading
+      const updatedVectorStats = await vectorService.getCollectionStats();
+      console.log(`📊 [DEBUG] Updated vector stats after download:`, updatedVectorStats);
+      
+      if (updatedVectorStats.documents === 0) {
+        return res.json({
+          success: true,
+          message: `Downloaded ${downloadedCount} documents but none were successfully indexed. Check logs for errors.`,
+          downloaded_count: downloadedCount,
+          errors_count: errorsCount,
+          documents_indexed: updatedVectorStats.documents
+        });
+      }
+      
+      // Continue with document processing now that we have documents
+      console.log(`🔄 [DEBUG] Now processing ${updatedVectorStats.documents} downloaded documents...`);
     }
 
     // Create processing job
@@ -59,9 +145,9 @@ router.post('/process', async (req, res) => {
       console.log('🔍 [DEBUG] Found vector documents:', vectorDocs.length);
 
       if (vectorDocs.length === 0) {
-        console.log('⚠️ [DEBUG] No documents found matching criteria');
+        console.log('⚠️ [DEBUG] No documents found matching criteria after download attempt');
         return res.json({ 
-          message: 'No documents found in vector database matching criteria', 
+          message: 'No documents found in vector database matching criteria even after attempting to download', 
           processed_count: 0 
         });
       }
