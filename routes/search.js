@@ -16,30 +16,37 @@ router.post('/', async (req, res) => {
 
     let contracts = [];
 
-    if (use_vector) {
+    if (use_vector && vectorService.isConnected) {
       // Use vector search
       try {
         const vectorResults = await vectorService.searchContracts(query, limit);
         
-        // Get full contract details from database
-        const contractIds = vectorResults.map(r => r.id);
-        contracts = await prisma.contract.findMany({
-          where: { noticeId: { in: contractIds } },
-          orderBy: { postedDate: 'desc' }
-        });
+        if (vectorResults.length > 0) {
+          // Get full contract details from database
+          const contractIds = vectorResults.map(r => r.id);
+          contracts = await prisma.contract.findMany({
+            where: { noticeId: { in: contractIds } },
+            orderBy: { postedDate: 'desc' }
+          });
 
-        // Add similarity scores
-        contracts = contracts.map(contract => {
-          const vectorResult = vectorResults.find(r => r.id === contract.noticeId);
-          return {
-            ...contract,
-            similarity_score: vectorResult?.score || 0
-          };
-        });
+          // Add similarity scores
+          contracts = contracts.map(contract => {
+            const vectorResult = vectorResults.find(r => r.id === contract.noticeId);
+            return {
+              ...contract,
+              similarity_score: vectorResult?.score || 0
+            };
+          });
+        } else {
+          use_vector = false;
+        }
       } catch (vectorError) {
         console.warn('Vector search failed, falling back to database search:', vectorError);
         use_vector = false;
       }
+    } else if (use_vector && !vectorService.isConnected) {
+      console.warn('Vector search requested but ChromaDB not connected, falling back to database search');
+      use_vector = false;
     }
 
     if (!use_vector || contracts.length === 0) {

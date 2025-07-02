@@ -245,7 +245,7 @@ async function startServer() {
     // Test database connection
     await testConnection();
     
-    // Initialize vector database
+    // Initialize vector database (non-blocking)
     await vectorService.initialize();
     
     // Start server
@@ -254,9 +254,16 @@ async function startServer() {
       console.log(`📁 Upload folder: ${path.join(__dirname, config.uploadDir)}`);
       console.log(`📄 Documents folder: ${path.join(__dirname, config.documentsDir)}`);
       console.log(`🌐 Norshin API: ${config.norshinApiUrl}`);
-      console.log(`🔍 Vector DB: ${config.chromaUrl}`);
+      console.log(`🔍 Vector DB: ${config.chromaUrl} ${vectorService.isConnected ? '(Connected)' : '(Disconnected)'}`);
       console.log(`📊 Database: Connected`);
       console.log(`🔑 Environment: ${config.nodeEnv}`);
+      
+      if (!vectorService.isConnected) {
+        console.log('');
+        console.log('💡 To enable vector search features:');
+        console.log('   docker run -p 8000:8000 chromadb/chroma');
+        console.log('   or install ChromaDB locally');
+      }
     });
   } catch (error) {
     console.error('Failed to start server:', error);

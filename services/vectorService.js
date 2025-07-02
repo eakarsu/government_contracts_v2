@@ -9,6 +9,7 @@ class VectorService {
     });
     this.contractsCollection = null;
     this.documentsCollection = null;
+    this.isConnected = false;
   }
 
   async initialize() {
@@ -25,19 +26,28 @@ class VectorService {
       });
 
       console.log('✅ Vector database (ChromaDB) initialized');
+      this.isConnected = true;
     } catch (error) {
-      console.error('❌ Vector database initialization failed:', error);
-      throw error;
+      console.warn('⚠️ Vector database initialization failed:', error.message);
+      console.warn('⚠️ ChromaDB is not available. Vector search features will be disabled.');
+      console.warn('⚠️ To enable vector search, start ChromaDB server: docker run -p 8000:8000 chromadb/chroma');
+      this.isConnected = false;
+      // Don't throw error - allow server to start without vector DB
     }
   }
 
   async indexContract(contract) {
+    if (!this.isConnected) {
+      console.warn('Vector database not connected - skipping contract indexing');
+      return false;
+    }
+
     try {
       const text = `${contract.title || ''} ${contract.description || ''} ${contract.agency || ''}`.trim();
       
       if (!text) {
         console.warn(`Skipping contract ${contract.noticeId} - no text content`);
-        return;
+        return false;
       }
 
       await this.contractsCollection.add({
@@ -53,13 +63,19 @@ class VectorService {
       });
 
       console.log(`Indexed contract: ${contract.noticeId}`);
+      return true;
     } catch (error) {
       console.error(`Error indexing contract ${contract.noticeId}:`, error);
-      throw error;
+      return false;
     }
   }
 
   async indexDocument(document, contractId) {
+    if (!this.isConnected) {
+      console.warn('Vector database not connected - skipping document indexing');
+      return false;
+    }
+
     try {
       const documentId = `${contractId}_${document.filename}`;
       
@@ -74,13 +90,19 @@ class VectorService {
       });
 
       console.log(`Indexed document: ${documentId}`);
+      return true;
     } catch (error) {
       console.error(`Error indexing document ${documentId}:`, error);
-      throw error;
+      return false;
     }
   }
 
   async searchContracts(query, limit = 10) {
+    if (!this.isConnected) {
+      console.warn('Vector database not connected - cannot perform vector search');
+      return [];
+    }
+
     try {
       const results = await this.contractsCollection.query({
         queryTexts: [query],
@@ -95,11 +117,16 @@ class VectorService {
       }));
     } catch (error) {
       console.error('Error searching contracts:', error);
-      throw error;
+      return [];
     }
   }
 
   async searchDocuments(query, limit = 10) {
+    if (!this.isConnected) {
+      console.warn('Vector database not connected - cannot perform vector search');
+      return [];
+    }
+
     try {
       const results = await this.documentsCollection.query({
         queryTexts: [query],
@@ -114,22 +141,35 @@ class VectorService {
       }));
     } catch (error) {
       console.error('Error searching documents:', error);
-      throw error;
+      return [];
     }
   }
 
   async getCollectionStats() {
+    if (!this.isConnected) {
+      return { 
+        contracts: 0, 
+        documents: 0,
+        status: 'disconnected'
+      };
+    }
+
     try {
       const contractsCount = await this.contractsCollection.count();
       const documentsCount = await this.documentsCollection.count();
 
       return {
         contracts: contractsCount,
-        documents: documentsCount
+        documents: documentsCount,
+        status: 'connected'
       };
     } catch (error) {
       console.error('Error getting collection stats:', error);
-      return { contracts: 0, documents: 0 };
+      return { 
+        contracts: 0, 
+        documents: 0,
+        status: 'error'
+      };
     }
   }
 }
