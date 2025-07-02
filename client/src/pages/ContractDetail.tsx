@@ -165,7 +165,7 @@ const ContractDetail: React.FC = () => {
             </div>
           )}
 
-          {analyzeMutation.error && (
+          {!!analyzeMutation.error && (
             <div className="mt-8 p-4 bg-red-50 border border-red-200 rounded-md">
               <div className="text-red-800">
                 Error analyzing contract: {analyzeMutation.error instanceof Error ? analyzeMutation.error.message : String(analyzeMutation.error)}
