@@ -37,6 +37,16 @@ const QuickActions: React.FC = () => {
     },
   });
 
+  const processQueueMutation = useMutation({
+    mutationFn: () => apiService.processQueuedDocuments(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+    },
+    onError: (error: any) => {
+      console.error('Process queue error:', error);
+    },
+  });
+
   return (
     <div className="bg-white shadow rounded-lg p-6 h-fit">
       <h3 className="text-lg font-medium text-gray-900 mb-6">Quick Actions</h3>
@@ -66,18 +76,6 @@ const QuickActions: React.FC = () => {
         </button>
 
         <button
-          onClick={() => processDocumentsMutation.mutate()}
-          disabled={processDocumentsMutation.isPending}
-          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
-        >
-          {processDocumentsMutation.isPending ? (
-            <LoadingSpinner size="sm" color="white" />
-          ) : (
-            'Process Documents'
-          )}
-        </button>
-
-        <button
           onClick={() => queueDocumentsMutation.mutate()}
           disabled={queueDocumentsMutation.isPending}
           className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 transition-colors"
@@ -86,6 +84,30 @@ const QuickActions: React.FC = () => {
             <LoadingSpinner size="sm" color="white" />
           ) : (
             'Queue Documents'
+          )}
+        </button>
+
+        <button
+          onClick={() => processQueueMutation.mutate()}
+          disabled={processQueueMutation.isPending}
+          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
+        >
+          {processQueueMutation.isPending ? (
+            <LoadingSpinner size="sm" color="white" />
+          ) : (
+            'Process Queue'
+          )}
+        </button>
+
+        <button
+          onClick={() => processDocumentsMutation.mutate()}
+          disabled={processDocumentsMutation.isPending}
+          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+        >
+          {processDocumentsMutation.isPending ? (
+            <LoadingSpinner size="sm" color="white" />
+          ) : (
+            'Auto Queue & Process'
           )}
         </button>
       </div>
@@ -103,15 +125,21 @@ const QuickActions: React.FC = () => {
         </div>
       ) : null}
 
-      {processDocumentsMutation.isSuccess ? (
-        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-          <div className="text-green-800 text-sm">Documents processing started!</div>
-        </div>
-      ) : null}
-
       {queueDocumentsMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
           <div className="text-green-800 text-sm">Documents queued successfully!</div>
+        </div>
+      ) : null}
+
+      {processQueueMutation.isSuccess ? (
+        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+          <div className="text-green-800 text-sm">Queue processing started!</div>
+        </div>
+      ) : null}
+
+      {processDocumentsMutation.isSuccess ? (
+        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+          <div className="text-green-800 text-sm">Auto queue & process started!</div>
         </div>
       ) : null}
 
@@ -132,18 +160,26 @@ const QuickActions: React.FC = () => {
         </div>
       ) : null}
 
-      {processDocumentsMutation.error ? (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <div className="text-red-800 text-sm">
-            Error processing documents: {processDocumentsMutation.error instanceof Error ? processDocumentsMutation.error.message : 'Unknown error'}
-          </div>
-        </div>
-      ) : null}
-
       {queueDocumentsMutation.error ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
             Error queueing documents: {queueDocumentsMutation.error instanceof Error ? queueDocumentsMutation.error.message : 'Unknown error'}
+          </div>
+        </div>
+      ) : null}
+
+      {processQueueMutation.error ? (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-red-800 text-sm">
+            Error processing queue: {processQueueMutation.error instanceof Error ? processQueueMutation.error.message : 'Unknown error'}
+          </div>
+        </div>
+      ) : null}
+
+      {processDocumentsMutation.error ? (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-red-800 text-sm">
+            Error with auto process: {processDocumentsMutation.error instanceof Error ? processDocumentsMutation.error.message : 'Unknown error'}
           </div>
         </div>
       ) : null}
