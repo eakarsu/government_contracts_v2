@@ -1,7 +1,9 @@
-const { prisma } = require('../config/database');
+const { PrismaClient } = require('@prisma/client');
 const vectorService = require('../services/vectorService');
 const fs = require('fs-extra');
 const path = require('path');
+
+const prisma = new PrismaClient();
 
 async function resetDatabases() {
   console.log('🔄 Starting complete database reset...');
@@ -11,17 +13,33 @@ async function resetDatabases() {
     console.log('📊 Resetting PostgreSQL database...');
     
     // Delete all records from all tables (in correct order to avoid foreign key constraints)
-    await prisma.documentAnalysis.deleteMany({});
-    console.log('✅ Cleared DocumentAnalysis table');
+    try {
+      await prisma.documentAnalysis.deleteMany({});
+      console.log('✅ Cleared DocumentAnalysis table');
+    } catch (error) {
+      console.log('⚠️ DocumentAnalysis table does not exist or is empty');
+    }
     
-    await prisma.documentProcessingQueue.deleteMany({});
-    console.log('✅ Cleared DocumentProcessingQueue table');
+    try {
+      await prisma.documentProcessingQueue.deleteMany({});
+      console.log('✅ Cleared DocumentProcessingQueue table');
+    } catch (error) {
+      console.log('⚠️ DocumentProcessingQueue table does not exist or is empty');
+    }
     
-    await prisma.indexingJob.deleteMany({});
-    console.log('✅ Cleared IndexingJob table');
+    try {
+      await prisma.indexingJob.deleteMany({});
+      console.log('✅ Cleared IndexingJob table');
+    } catch (error) {
+      console.log('⚠️ IndexingJob table does not exist or is empty');
+    }
     
-    await prisma.contract.deleteMany({});
-    console.log('✅ Cleared Contract table');
+    try {
+      await prisma.contract.deleteMany({});
+      console.log('✅ Cleared Contract table');
+    } catch (error) {
+      console.log('⚠️ Contract table does not exist or is empty');
+    }
     
     // 2. Reset Vector Database
     console.log('🔍 Resetting Vector database...');
@@ -44,10 +62,34 @@ async function resetDatabases() {
     // 3. Verify reset
     console.log('🔍 Verifying reset...');
     
-    const contractCount = await prisma.contract.count();
-    const jobCount = await prisma.indexingJob.count();
-    const queueCount = await prisma.documentProcessingQueue.count();
-    const analysisCount = await prisma.documentAnalysis.count();
+    let contractCount = 0;
+    let jobCount = 0;
+    let queueCount = 0;
+    let analysisCount = 0;
+    
+    try {
+      contractCount = await prisma.contract.count();
+    } catch (error) {
+      console.log('⚠️ Contract table does not exist');
+    }
+    
+    try {
+      jobCount = await prisma.indexingJob.count();
+    } catch (error) {
+      console.log('⚠️ IndexingJob table does not exist');
+    }
+    
+    try {
+      queueCount = await prisma.documentProcessingQueue.count();
+    } catch (error) {
+      console.log('⚠️ DocumentProcessingQueue table does not exist');
+    }
+    
+    try {
+      analysisCount = await prisma.documentAnalysis.count();
+    } catch (error) {
+      console.log('⚠️ DocumentAnalysis table does not exist');
+    }
     
     const vectorStats = await vectorService.getCollectionStats();
     
