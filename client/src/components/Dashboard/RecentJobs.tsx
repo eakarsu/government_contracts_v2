@@ -1,4 +1,3 @@
-export default RecentJobs;
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
