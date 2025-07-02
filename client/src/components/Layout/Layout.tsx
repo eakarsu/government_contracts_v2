@@ -13,7 +13,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Fetch app configuration
-  const { data: config } = useQuery('config', apiService.getConfig, {
+  const { data: config } = useQuery(['config'], apiService.getConfig, {
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 
