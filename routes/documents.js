@@ -36,6 +36,7 @@ router.post('/process', async (req, res) => {
 
     let processedCount = 0;
     let errorsCount = 0;
+    let skippedCount = 0;
 
     for (const contract of contracts) {
       try {
@@ -45,12 +46,30 @@ router.post('/process', async (req, res) => {
         // Process up to 3 documents per contract
         for (const docUrl of resourceLinks.slice(0, 3)) {
           try {
-            // Process document via Norshin API
+            const documentId = `${contract.noticeId}_${docUrl.split('/').pop()}`;
+            
+            // First check if document is already indexed in vector database
+            const existingDocs = await vectorService.searchDocuments(documentId, 1);
+            
+            if (existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) {
+              console.log(`Document already indexed, skipping: ${documentId}`);
+              skippedCount++;
+              continue;
+            }
+
+            // Document not found in vector DB, process it
             const result = await sendToNorshinAPI(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4.1');
             
             if (result) {
+              // Index the processed document in vector database
+              await vectorService.indexDocument({
+                filename: `doc_${contract.noticeId}`,
+                content: result.content || result.text || JSON.stringify(result),
+                processedData: result
+              }, contract.noticeId);
+              
               processedCount++;
-              console.log(`Processed document for contract: ${contract.noticeId}`);
+              console.log(`Processed and indexed document for contract: ${contract.noticeId}`);
             } else {
               errorsCount++;
             }
@@ -80,7 +99,9 @@ router.post('/process', async (req, res) => {
       success: true,
       job_id: job.id,
       processed_count: processedCount,
-      errors_count: errorsCount
+      errors_count: errorsCount,
+      skipped_count: skippedCount,
+      message: `Processed ${processedCount} new documents, skipped ${skippedCount} already indexed documents`
     });
 
   } catch (error) {
@@ -238,13 +259,47 @@ router.post('/queue/process', async (req, res) => {
           }
         });
 
-        // Process via Norshin API
+        const documentId = `${doc.contractNoticeId}_${doc.filename}`;
+        
+        // Check if document is already indexed in vector database
+        const existingDocs = await vectorService.searchDocuments(documentId, 1);
+        
+        if (existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) {
+          console.log(`Document already indexed, using cached version: ${documentId}`);
+          
+          // Update status to completed with cached data
+          await prisma.documentProcessingQueue.update({
+            where: { id: doc.id },
+            data: {
+              status: 'completed',
+              processedData: JSON.stringify({ 
+                cached: true, 
+                content: existingDocs[0].document,
+                source: 'vector_database'
+              }),
+              completedAt: new Date()
+            }
+          });
+
+          return { success: true, filename: doc.filename, cached: true };
+        }
+
+        // Document not found in vector DB, process via Norshin API
         const result = await sendToNorshinAPI(
           doc.documentUrl,
           doc.filename || 'document',
           '',
           'openai/gpt-4.1'
         );
+
+        // Index the processed document in vector database
+        if (result) {
+          await vectorService.indexDocument({
+            filename: doc.filename,
+            content: result.content || result.text || JSON.stringify(result),
+            processedData: result
+          }, doc.contractNoticeId);
+        }
 
         // Update status to completed
         await prisma.documentProcessingQueue.update({
@@ -256,7 +311,7 @@ router.post('/queue/process', async (req, res) => {
           }
         });
 
-        return { success: true, filename: doc.filename };
+        return { success: true, filename: doc.filename, cached: false };
       } catch (error) {
         // Update status to failed
         await prisma.documentProcessingQueue.update({
@@ -288,6 +343,50 @@ router.post('/queue/process', async (req, res) => {
 
   } catch (error) {
     console.error('Document processing failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Search documents in vector database
+router.post('/search', async (req, res) => {
+  try {
+    const { query, limit = 10, contract_id } = req.body;
+
+    if (!query) {
+      return res.status(400).json({ error: 'Query parameter is required' });
+    }
+
+    // Search documents in vector database
+    const vectorResults = await vectorService.searchDocuments(query, limit);
+
+    // Filter by contract_id if provided
+    let filteredResults = vectorResults;
+    if (contract_id) {
+      filteredResults = vectorResults.filter(result => 
+        result.metadata.contractId === contract_id
+      );
+    }
+
+    res.json({
+      success: true,
+      query,
+      results: {
+        documents: filteredResults.map(result => ({
+          id: result.metadata.id,
+          contract_id: result.metadata.contractId,
+          filename: result.metadata.filename,
+          processed_at: result.metadata.processedAt,
+          relevance_score: result.score,
+          content_preview: result.document.substring(0, 500) + '...'
+        })),
+        total_results: filteredResults.length,
+        source: 'vector_database'
+      },
+      response_time: Date.now()
+    });
+
+  } catch (error) {
+    console.error('Document search failed:', error);
     res.status(500).json({ error: error.message });
   }
 });
