@@ -1,23 +1,27 @@
-require('dotenv').config();
 const express = require('express');
-const multer = require('multer');
-const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs-extra');
 
+// Import configuration and services
+const config = require('./config/env');
+const { prisma, testConnection, disconnect } = require('./config/database');
+const vectorService = require('./services/vectorService');
+
+// Import routes
+const contractsRouter = require('./routes/contracts');
+
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(config.uploadDir));
 
 // Ensure directories exist
 const ensureDirectories = () => {
-  const dirs = ['uploads', 'documents', 'public'];
+  const dirs = [config.uploadDir, config.documentsDir, 'public', 'logs'];
   dirs.forEach(dir => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -27,66 +31,8 @@ const ensureDirectories = () => {
 
 ensureDirectories();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const extension = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + extension);
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 50 * 1024 * 1024 // 50MB
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedExtensions = (process.env.ALLOWED_EXTENSIONS || '.pdf,.doc,.docx').split(',');
-    const fileExtension = path.extname(file.originalname).toLowerCase();
-    
-    if (allowedExtensions.includes(fileExtension)) {
-      cb(null, true);
-    } else {
-      cb(new Error(`Unsupported file type. Allowed: ${allowedExtensions.join(', ')}`), false);
-    }
-  }
-});
-
-// Utility function to send file to Norshin API
-const sendToNorshinAPI = async (filePath, originalName, customPrompt = '', model = 'openai/gpt-4.1') => {
-  try {
-    const formData = new FormData();
-    const fileBuffer = fs.readFileSync(filePath);
-    const blob = new Blob([fileBuffer], { type: 'application/octet-stream' });
-    
-    formData.append('document', blob, originalName);
-    if (customPrompt) formData.append('customPrompt', customPrompt);
-    if (model) formData.append('model', model);
-
-    const response = await axios.post(process.env.NORSHIN_API_URL, formData, {
-      headers: {
-        'X-API-Key': process.env.NORSHIN_API_KEY,
-        'Content-Type': 'multipart/form-data'
-      },
-      timeout: 120000 // 2 minutes timeout
-    });
-
-    return response.data;
-  } catch (error) {
-    console.error('Norshin API Error:', error.response?.data || error.message);
-    throw error;
-  }
-};
-
-// Database setup (add Prisma client)
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-
 // Routes
+app.use('/api/contracts', contractsRouter);
 
 // Serve main page
 app.get('/', (req, res) => {
@@ -104,7 +50,7 @@ app.get('/', (req, res) => {
         status: '/api/status',
         health: '/api/health',
         config: '/api/config',
-        search: '/api/search',
+        contracts: '/api/contracts',
         documents: '/api/documents'
       },
       timestamp: new Date().toISOString()
@@ -121,15 +67,19 @@ app.get('/api/status', async (req, res) => {
       where: { indexedAt: { not: null } }
     });
 
+    // Get vector database stats
+    const vectorStats = await vectorService.getCollectionStats();
+
     res.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
       database_stats: {
         contracts_in_db: contractsCount,
         contracts_indexed: indexedContractsCount,
-        documents_indexed: 0 // Placeholder
+        documents_indexed: vectorStats.documents
       },
-      norshin_api: process.env.NORSHIN_API_URL
+      vector_stats: vectorStats,
+      norshin_api: config.norshinApiUrl
     });
   } catch (error) {
     console.error('Status check failed:', error);
@@ -138,6 +88,33 @@ app.get('/api/status', async (req, res) => {
       message: error.message 
     });
   }
+});
+
+// Environment configuration endpoint for UI
+app.get('/api/config', (req, res) => {
+  res.json({
+    apiBaseUrl: config.apiBaseUrl,
+    environment: config.nodeEnv,
+    maxFileSize: config.maxFileSize,
+    allowedExtensions: config.allowedExtensions,
+    features: {
+      norshinApi: !!config.norshinApiKey,
+      samGovApi: !!config.samGovApiKey,
+      openRouterApi: !!config.openRouterApiKey,
+      vectorDatabase: true // ChromaDB is always available
+    },
+    version: require('./package.json').version || '1.0.0'
+  });
+});
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date(),
+    norshinAPI: config.norshinApiUrl,
+    vectorDB: config.chromaUrl
+  });
 });
 
 // Fetch contracts from SAM.gov API
@@ -1799,17 +1776,43 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Unhandled error:', error);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// Initialize services and start server
+async function startServer() {
+  try {
+    // Test database connection
+    await testConnection();
+    
+    // Initialize vector database
+    await vectorService.initialize();
+    
+    // Start server
+    app.listen(config.port, () => {
+      console.log(`🚀 Server running on http://localhost:${config.port}`);
+      console.log(`📁 Upload folder: ${path.join(__dirname, config.uploadDir)}`);
+      console.log(`📄 Documents folder: ${path.join(__dirname, config.documentsDir)}`);
+      console.log(`🌐 Norshin API: ${config.norshinApiUrl}`);
+      console.log(`🔍 Vector DB: ${config.chromaUrl}`);
+      console.log(`📊 Database: Connected`);
+      console.log(`🔑 Environment: ${config.nodeEnv}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('Shutting down gracefully...');
-  await prisma.$disconnect();
+  await disconnect();
   process.exit(0);
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📁 Upload folder: ${path.join(__dirname, 'uploads')}`);
-  console.log(`📄 Documents folder: ${path.join(__dirname, 'documents')}`);
-  console.log(`🌐 Norshin API: ${process.env.NORSHIN_API_URL}`);
-  console.log(`📊 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
-});
+// Start the server
+startServer();
