@@ -8,7 +8,7 @@ SET session_replication_role = replica;
 -- Use DO blocks to handle missing tables gracefully
 DO $$
 BEGIN
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'DocumentAnalysis') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'DocumentAnalysis') THEN
         DELETE FROM "DocumentAnalysis";
         RAISE NOTICE 'Cleared DocumentAnalysis table';
     ELSE
@@ -18,7 +18,7 @@ END $$;
 
 DO $$
 BEGIN
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'DocumentProcessingQueue') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'DocumentProcessingQueue') THEN
         DELETE FROM "DocumentProcessingQueue";
         RAISE NOTICE 'Cleared DocumentProcessingQueue table';
     ELSE
@@ -28,7 +28,7 @@ END $$;
 
 DO $$
 BEGIN
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'IndexingJob') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'IndexingJob') THEN
         DELETE FROM "IndexingJob";
         RAISE NOTICE 'Cleared IndexingJob table';
     ELSE
@@ -38,7 +38,7 @@ END $$;
 
 DO $$
 BEGIN
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'Contract') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Contract') THEN
         DELETE FROM "Contract";
         RAISE NOTICE 'Cleared Contract table';
     ELSE
@@ -52,7 +52,7 @@ SET session_replication_role = DEFAULT;
 -- Reset sequences (auto-increment counters) if they exist
 DO $$
 BEGIN
-    IF EXISTS (SELECT FROM information_schema.sequences WHERE sequence_name = 'DocumentAnalysis_id_seq') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.sequences WHERE sequence_name = 'DocumentAnalysis_id_seq') THEN
         ALTER SEQUENCE "DocumentAnalysis_id_seq" RESTART WITH 1;
         RAISE NOTICE 'Reset DocumentAnalysis_id_seq';
     END IF;
@@ -60,7 +60,7 @@ END $$;
 
 DO $$
 BEGIN
-    IF EXISTS (SELECT FROM information_schema.sequences WHERE sequence_name = 'DocumentProcessingQueue_id_seq') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.sequences WHERE sequence_name = 'DocumentProcessingQueue_id_seq') THEN
         ALTER SEQUENCE "DocumentProcessingQueue_id_seq" RESTART WITH 1;
         RAISE NOTICE 'Reset DocumentProcessingQueue_id_seq';
     END IF;
@@ -68,7 +68,7 @@ END $$;
 
 DO $$
 BEGIN
-    IF EXISTS (SELECT FROM information_schema.sequences WHERE sequence_name = 'IndexingJob_id_seq') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.sequences WHERE sequence_name = 'IndexingJob_id_seq') THEN
         ALTER SEQUENCE "IndexingJob_id_seq" RESTART WITH 1;
         RAISE NOTICE 'Reset IndexingJob_id_seq';
     END IF;
@@ -84,22 +84,22 @@ DECLARE
     queue_count INTEGER := 0;
     analysis_count INTEGER := 0;
 BEGIN
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'Contract') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Contract') THEN
         SELECT COUNT(*) INTO contract_count FROM "Contract";
         RAISE NOTICE 'Contracts: %', contract_count;
     END IF;
     
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'IndexingJob') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'IndexingJob') THEN
         SELECT COUNT(*) INTO job_count FROM "IndexingJob";
         RAISE NOTICE 'IndexingJob: %', job_count;
     END IF;
     
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'DocumentProcessingQueue') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'DocumentProcessingQueue') THEN
         SELECT COUNT(*) INTO queue_count FROM "DocumentProcessingQueue";
         RAISE NOTICE 'DocumentProcessingQueue: %', queue_count;
     END IF;
     
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'DocumentAnalysis') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'DocumentAnalysis') THEN
         SELECT COUNT(*) INTO analysis_count FROM "DocumentAnalysis";
         RAISE NOTICE 'DocumentAnalysis: %', analysis_count;
     END IF;
