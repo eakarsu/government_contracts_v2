@@ -90,7 +90,26 @@ const prisma = new PrismaClient();
 
 // Serve main page
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  
+  // Check if index.html exists
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    // Fallback response if index.html doesn't exist
+    res.json({
+      message: 'Contract Indexer API Server',
+      status: 'running',
+      endpoints: {
+        status: '/api/status',
+        health: '/api/health',
+        config: '/api/config',
+        search: '/api/search',
+        documents: '/api/documents'
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // API Status endpoint
