@@ -1743,6 +1743,23 @@ app.post('/api/admin/documents/reset-all-stuck', async (req, res) => {
   }
 });
 
+// Environment configuration endpoint for UI
+app.get('/api/config', (req, res) => {
+  res.json({
+    apiBaseUrl: process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3000}`,
+    environment: process.env.NODE_ENV || 'development',
+    maxFileSize: process.env.MAX_FILE_SIZE || 52428800,
+    allowedExtensions: (process.env.ALLOWED_EXTENSIONS || '.pdf,.doc,.docx').split(','),
+    features: {
+      norshinApi: !!process.env.NORSHIN_API_KEY,
+      samGovApi: !!process.env.SAM_GOV_API_KEY,
+      openRouterApi: !!process.env.OPENROUTER_API_KEY,
+      vectorDatabase: !!process.env.VECTOR_DB_URL
+    },
+    version: require('../package.json').version || '1.0.0'
+  });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
