@@ -59,6 +59,7 @@ router.get('/', async (req, res) => {
         created_at: job.createdAt?.toISOString(),
         completed_at: job.completedAt?.toISOString()
       })),
+      total: totalJobs,
       pagination: {
         page,
         limit,
