@@ -85,9 +85,9 @@ const RecentJobs: React.FC = () => {
                 <div className="mt-1 text-xs text-gray-500">
                   {job.records_processed?.toLocaleString() || 0} records processed
                 </div>
-                {job.started_at && (
+                {job.start_date && (
                   <div className="text-xs text-gray-400">
-                    Started: {formatDate(job.started_at)}
+                    Started: {formatDate(job.start_date)}
                   </div>
                 )}
               </div>
