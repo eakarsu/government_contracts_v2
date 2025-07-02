@@ -100,10 +100,10 @@ const Search: React.FC = () => {
       </div>
 
       {/* Search Results */}
-      {searchMutation.error && (
+      {!!searchMutation.error && (
         <div className="mb-8 bg-red-50 border border-red-200 rounded-md p-4">
           <div className="text-red-800">
-            Search error: {searchMutation.error instanceof Error ? searchMutation.error.message : 'Unknown error'}
+            Search error: {searchMutation.error instanceof Error ? searchMutation.error.message : String(searchMutation.error)}
           </div>
         </div>
       )}
