@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { 
   FileText, 
   Database, 
@@ -10,31 +10,27 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
-import { apiService } from '@/services/api';
-import LoadingSpinner from '@/components/UI/LoadingSpinner';
-import StatsCard from '@/components/Dashboard/StatsCard';
-import RecentJobs from '@/components/Dashboard/RecentJobs';
-import QueueStatus from '@/components/Dashboard/QueueStatus';
-import QuickActions from '@/components/Dashboard/QuickActions';
+import { apiService } from '../services/api';
+import LoadingSpinner from '../components/UI/LoadingSpinner';
+import StatsCard from '../components/Dashboard/StatsCard';
+import RecentJobs from '../components/Dashboard/RecentJobs';
+import QueueStatus from '../components/Dashboard/QueueStatus';
+import QuickActions from '../components/Dashboard/QuickActions';
 
 const Dashboard: React.FC = () => {
   // Fetch API status
-  const { data: status, isLoading: statusLoading, error: statusError } = useQuery(
-    'api-status',
-    apiService.getStatus,
-    {
-      refetchInterval: 30000, // Refresh every 30 seconds
-    }
-  );
+  const { data: status, isLoading: statusLoading, error: statusError } = useQuery({
+    queryKey: ['api-status'],
+    queryFn: () => apiService.getStatus(),
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
 
   // Fetch queue status
-  const { data: queueData, isLoading: queueLoading } = useQuery(
-    'queue-status',
-    apiService.getQueueStatus,
-    {
-      refetchInterval: 5000, // Refresh every 5 seconds
-    }
-  );
+  const { data: queueData, isLoading: queueLoading } = useQuery({
+    queryKey: ['queue-status'],
+    queryFn: () => apiService.getQueueStatus(),
+    refetchInterval: 5000, // Refresh every 5 seconds
+  });
 
   if (statusLoading) {
     return (
@@ -101,33 +97,26 @@ const Dashboard: React.FC = () => {
         <StatsCard
           title="Total Contracts"
           value={stats?.contracts_in_db || 0}
-          icon={FileText}
+          icon={<FileText className="h-6 w-6" />}
           color="blue"
-          change="+12%"
-          changeType="increase"
         />
         <StatsCard
           title="Indexed Contracts"
           value={stats?.contracts_indexed || 0}
-          icon={Database}
+          icon={<Database className="h-6 w-6" />}
           color="green"
-          change="+8%"
-          changeType="increase"
         />
         <StatsCard
           title="Indexed Documents"
           value={stats?.documents_indexed || 0}
-          icon={Zap}
+          icon={<Zap className="h-6 w-6" />}
           color="purple"
-          change="+15%"
-          changeType="increase"
         />
         <StatsCard
           title="Processing Queue"
           value={queueStatus?.total || 0}
-          icon={Clock}
-          color="orange"
-          subtitle={`${queueStatus?.processing || 0} processing`}
+          icon={<Clock className="h-6 w-6" />}
+          color="yellow"
         />
       </div>
 
@@ -135,15 +124,12 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Jobs */}
         <div className="lg:col-span-2">
-          <RecentJobs jobs={status?.recent_jobs || []} />
+          <RecentJobs />
         </div>
 
         {/* Queue Status & Quick Actions */}
         <div className="space-y-6">
-          <QueueStatus 
-            status={queueStatus} 
-            isLoading={queueLoading}
-          />
+          <QueueStatus />
           <QuickActions />
         </div>
       </div>
