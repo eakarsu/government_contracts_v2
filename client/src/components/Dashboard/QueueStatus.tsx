@@ -100,7 +100,7 @@ const QueueStatus: React.FC = () => {
         <div>
           <h4 className="text-sm font-medium text-gray-700 mb-2">Recent Completions</h4>
           <div className="space-y-2">
-            {queueStatus.recent_documents.slice(0, 3).map((doc, index) => (
+            {queueStatus.recent_documents.slice(0, 3).map((doc: { filename: string; completed_at: string }, index) => (
               <div key={index} className="flex justify-between items-center text-xs">
                 <span className="text-gray-600 truncate">{doc.filename}</span>
                 <span className="text-gray-500">
