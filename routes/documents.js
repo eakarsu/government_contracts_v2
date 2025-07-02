@@ -1,7 +1,7 @@
 const express = require('express');
 const { prisma } = require('../config/database');
 const vectorService = require('../services/vectorService');
-const { sendToNorshinAPI } = require('../services/norshinService');
+const { sendToNorshinAPI, processTextWithAI } = require('../services/norshinService');
 const config = require('../config/env');
 
 const router = express.Router();

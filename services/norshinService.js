@@ -5,6 +5,29 @@ const config = require('../config/env');
 // Utility function to send file to Norshin API
 const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', model = 'openai/gpt-4.1') => {
   try {
+    // If filePathOrUrl is null, we're processing text content only
+    if (filePathOrUrl === null) {
+      // Process text content directly (no file upload)
+      if (!customPrompt) {
+        throw new Error('Custom prompt is required when processing text content');
+      }
+      
+      console.log(`Processing text content with AI analysis...`);
+      
+      const response = await axios.post(config.norshinApiUrl + '/analyze-text', {
+        text: customPrompt,
+        model: model
+      }, {
+        headers: {
+          'X-API-Key': config.norshinApiKey,
+          'Content-Type': 'application/json'
+        },
+        timeout: 120000 // 2 minutes timeout
+      });
+
+      return response.data;
+    }
+
     let fileBuffer;
     
     // Check if it's a URL or local file path
@@ -47,6 +70,66 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
   }
 };
 
+// Utility function to process text content with AI (no file upload)
+const processTextWithAI = async (textContent, analysisType = 'summary', model = 'openai/gpt-4.1') => {
+  try {
+    const prompt = `Analyze this government contract document and provide a detailed ${analysisType}. 
+
+Document Content:
+${textContent}
+
+Please provide:
+1. Key findings
+2. Important clauses
+3. Risk assessment
+4. Summary of terms`;
+
+    console.log(`Processing text content with AI for ${analysisType}...`);
+    
+    // If Norshin API has a text-only endpoint, use it
+    // Otherwise, create a temporary text file and send it
+    const response = await axios.post(config.norshinApiUrl + '/analyze-text', {
+      text: prompt,
+      model: model,
+      analysis_type: analysisType
+    }, {
+      headers: {
+        'X-API-Key': config.norshinApiKey,
+        'Content-Type': 'application/json'
+      },
+      timeout: 120000 // 2 minutes timeout
+    });
+
+    return response.data;
+  } catch (error) {
+    // Fallback: if text endpoint doesn't exist, use the regular file endpoint
+    console.log('Text endpoint not available, using file upload fallback...');
+    
+    // Create a temporary text file
+    const tempFilePath = `/tmp/temp_analysis_${Date.now()}.txt`;
+    await fs.writeFile(tempFilePath, textContent);
+    
+    try {
+      const result = await sendToNorshinAPI(
+        tempFilePath, 
+        'document_analysis.txt', 
+        `Analyze this document and provide: ${analysisType}`, 
+        model
+      );
+      
+      // Clean up temp file
+      await fs.remove(tempFilePath);
+      
+      return result;
+    } catch (fallbackError) {
+      // Clean up temp file even if processing fails
+      await fs.remove(tempFilePath).catch(() => {});
+      throw fallbackError;
+    }
+  }
+};
+
 module.exports = {
-  sendToNorshinAPI
+  sendToNorshinAPI,
+  processTextWithAI
 };
