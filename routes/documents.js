@@ -284,13 +284,13 @@ router.post('/download', async (req, res) => {
   }
 });
 
-// Queue documents for processing from all indexed contracts
+// Queue documents for processing from all indexed contracts using parallel processing
 router.post('/queue', async (req, res) => {
   try {
-    const { limit = 100, clear_existing = true } = req.body;
+    const { limit = 1000, clear_existing = true, concurrency = 10 } = req.body;
     
-    console.log('🔄 [DEBUG] Starting document queue population...');
-    console.log(`🔄 [DEBUG] Parameters: limit=${limit}, clear_existing=${clear_existing}`);
+    console.log('🔄 [DEBUG] Starting parallel document queue population...');
+    console.log(`🔄 [DEBUG] Parameters: limit=${limit}, clear_existing=${clear_existing}, concurrency=${concurrency}`);
 
     // Clear existing queue if requested
     if (clear_existing) {
@@ -298,12 +298,11 @@ router.post('/queue', async (req, res) => {
       console.log(`🗑️ [DEBUG] Cleared ${deletedCount.count} existing queue entries`);
     }
 
-    // Get all contracts with resourceLinks from database
+    // Get ALL contracts with resourceLinks from database (no limit for scanning)
     const contracts = await prisma.contract.findMany({
       where: { 
         resourceLinks: { not: null }
       },
-      take: limit,
       select: {
         noticeId: true,
         title: true,
@@ -312,7 +311,7 @@ router.post('/queue', async (req, res) => {
       }
     });
 
-    console.log(`📄 [DEBUG] Found ${contracts.length} contracts with resourceLinks`);
+    console.log(`📄 [DEBUG] Found ${contracts.length} contracts with resourceLinks to scan`);
 
     if (contracts.length === 0) {
       return res.json({
@@ -323,111 +322,155 @@ router.post('/queue', async (req, res) => {
       });
     }
 
-    let queuedCount = 0;
-    let skippedCount = 0;
-    let errorCount = 0;
+    // Use parallel processing to scan contracts and queue documents
+    const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
+    
+    if (isMainThread) {
+      // Main thread - coordinate parallel processing
+      let queuedCount = 0;
+      let skippedCount = 0;
+      let errorCount = 0;
+      let processedContracts = 0;
 
-    // Process each contract and queue its documents
-    for (const contract of contracts) {
-      try {
-        const resourceLinks = contract.resourceLinks;
-        
-        if (!resourceLinks || !Array.isArray(resourceLinks) || resourceLinks.length === 0) {
-          console.log(`⚠️ [DEBUG] Contract ${contract.noticeId} has no valid resourceLinks`);
-          skippedCount++;
-          continue;
-        }
-
-        console.log(`📄 [DEBUG] Processing ${resourceLinks.length} documents for contract ${contract.noticeId}`);
-
-        // Queue each document from this contract
-        for (let i = 0; i < resourceLinks.length; i++) {
-          const docUrl = resourceLinks[i];
-          
-          try {
-            // Generate unique filename
-            const urlParts = docUrl.split('/');
-            const originalFilename = urlParts[urlParts.length - 1] || `document_${i + 1}`;
-            const filename = `${contract.noticeId}_${originalFilename}`;
-
-            // Check if already queued
-            const existing = await prisma.documentProcessingQueue.findFirst({
-              where: {
-                contractNoticeId: contract.noticeId,
-                documentUrl: docUrl
-              }
-            });
-
-            if (existing) {
-              console.log(`⚠️ [DEBUG] Document already queued: ${filename}`);
-              skippedCount++;
-              continue;
-            }
-
-            // Create queue entry
-            await prisma.documentProcessingQueue.create({
-              data: {
-                contractNoticeId: contract.noticeId,
-                documentUrl: docUrl,
-                description: `${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
-                filename: filename,
-                status: 'queued'
-              }
-            });
-
-            queuedCount++;
-            console.log(`✅ [DEBUG] Queued document: ${filename}`);
-
-          } catch (docError) {
-            console.error(`❌ [DEBUG] Error queueing document ${docUrl}:`, docError.message);
-            errorCount++;
-          }
-        }
-
-      } catch (contractError) {
-        console.error(`❌ [DEBUG] Error processing contract ${contract.noticeId}:`, contractError.message);
-        errorCount++;
+      // Process contracts in parallel batches
+      const batchSize = Math.ceil(contracts.length / concurrency);
+      const batches = [];
+      
+      for (let i = 0; i < contracts.length; i += batchSize) {
+        batches.push(contracts.slice(i, i + batchSize));
       }
+
+      console.log(`🔄 [DEBUG] Processing ${contracts.length} contracts in ${batches.length} parallel batches`);
+
+      // Process each batch in parallel
+      const processPromises = batches.map(async (batch, batchIndex) => {
+        return new Promise(async (resolve) => {
+          let batchQueued = 0;
+          let batchSkipped = 0;
+          let batchErrors = 0;
+
+          for (const contract of batch) {
+            try {
+              const resourceLinks = contract.resourceLinks;
+              
+              if (!resourceLinks || !Array.isArray(resourceLinks) || resourceLinks.length === 0) {
+                batchSkipped++;
+                continue;
+              }
+
+              // Process each document URL in resourceLinks array
+              for (let i = 0; i < resourceLinks.length; i++) {
+                const docUrl = resourceLinks[i];
+                
+                try {
+                  // Generate unique filename
+                  const urlParts = docUrl.split('/');
+                  const originalFilename = urlParts[urlParts.length - 1] || `document_${i + 1}`;
+                  const filename = `${contract.noticeId}_${originalFilename}`;
+
+                  // Check if already queued
+                  const existing = await prisma.documentProcessingQueue.findFirst({
+                    where: {
+                      contractNoticeId: contract.noticeId,
+                      documentUrl: docUrl
+                    }
+                  });
+
+                  if (existing) {
+                    batchSkipped++;
+                    continue;
+                  }
+
+                  // Create queue entry for individual document
+                  await prisma.documentProcessingQueue.create({
+                    data: {
+                      contractNoticeId: contract.noticeId,
+                      documentUrl: docUrl,
+                      description: `${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
+                      filename: filename,
+                      status: 'queued'
+                    }
+                  });
+
+                  batchQueued++;
+
+                } catch (docError) {
+                  console.error(`❌ [DEBUG] Error queueing document ${docUrl}:`, docError.message);
+                  batchErrors++;
+                }
+              }
+
+              processedContracts++;
+              
+              // Log progress every 10 contracts
+              if (processedContracts % 10 === 0) {
+                console.log(`📊 [DEBUG] Progress: ${processedContracts}/${contracts.length} contracts processed`);
+              }
+
+            } catch (contractError) {
+              console.error(`❌ [DEBUG] Error processing contract ${contract.noticeId}:`, contractError.message);
+              batchErrors++;
+            }
+          }
+
+          resolve({ queued: batchQueued, skipped: batchSkipped, errors: batchErrors });
+        });
+      });
+
+      // Wait for all batches to complete
+      const results = await Promise.allSettled(processPromises);
+      
+      // Aggregate results
+      results.forEach(result => {
+        if (result.status === 'fulfilled') {
+          queuedCount += result.value.queued;
+          skippedCount += result.value.skipped;
+          errorCount += result.value.errors;
+        }
+      });
+
+      // Get final queue status
+      const queueStatus = await prisma.documentProcessingQueue.groupBy({
+        by: ['status'],
+        _count: { id: true }
+      });
+
+      const statusCounts = {};
+      queueStatus.forEach(item => {
+        statusCounts[item.status] = item._count.id;
+      });
+
+      const totalInQueue = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+
+      console.log(`📊 [DEBUG] Parallel queue population completed:`);
+      console.log(`📊 [DEBUG] - Queued: ${queuedCount} new documents`);
+      console.log(`📊 [DEBUG] - Skipped: ${skippedCount} documents`);
+      console.log(`📊 [DEBUG] - Errors: ${errorCount} documents`);
+      console.log(`📊 [DEBUG] - Total in queue: ${totalInQueue} documents`);
+      console.log(`📊 [DEBUG] - Contracts processed: ${processedContracts}/${contracts.length}`);
+
+      res.json({
+        success: true,
+        message: `Successfully queued ${queuedCount} individual documents from ${processedContracts} contracts using parallel processing`,
+        queued_count: queuedCount,
+        skipped_count: skippedCount,
+        error_count: errorCount,
+        contracts_processed: processedContracts,
+        total_contracts: contracts.length,
+        processing_method: 'parallel_batch_processing',
+        queue_status: {
+          queued: statusCounts.queued || 0,
+          processing: statusCounts.processing || 0,
+          completed: statusCounts.completed || 0,
+          failed: statusCounts.failed || 0,
+          total: totalInQueue,
+          is_processing: (statusCounts.processing || 0) > 0
+        }
+      });
     }
 
-    // Get final queue status
-    const queueStatus = await prisma.documentProcessingQueue.groupBy({
-      by: ['status'],
-      _count: { id: true }
-    });
-
-    const statusCounts = {};
-    queueStatus.forEach(item => {
-      statusCounts[item.status] = item._count.id;
-    });
-
-    const totalInQueue = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
-
-    console.log(`📊 [DEBUG] Queue population completed:`);
-    console.log(`📊 [DEBUG] - Queued: ${queuedCount} new documents`);
-    console.log(`📊 [DEBUG] - Skipped: ${skippedCount} documents`);
-    console.log(`📊 [DEBUG] - Errors: ${errorCount} documents`);
-    console.log(`📊 [DEBUG] - Total in queue: ${totalInQueue} documents`);
-
-    res.json({
-      success: true,
-      message: `Successfully queued ${queuedCount} documents from ${contracts.length} contracts`,
-      queued_count: queuedCount,
-      skipped_count: skippedCount,
-      error_count: errorCount,
-      contracts_processed: contracts.length,
-      queue_status: {
-        queued: statusCounts.queued || 0,
-        processing: statusCounts.processing || 0,
-        completed: statusCounts.completed || 0,
-        failed: statusCounts.failed || 0,
-        total: totalInQueue,
-        is_processing: (statusCounts.processing || 0) > 0
-      }
-    });
-
   } catch (error) {
-    console.error('❌ [DEBUG] Error queueing documents:', error);
+    console.error('❌ [DEBUG] Error in parallel queueing:', error);
     res.status(500).json({ 
       success: false,
       error: error.message 
@@ -438,7 +481,7 @@ router.post('/queue', async (req, res) => {
 // Get detailed queue status with real-time counters
 router.get('/queue/status', async (req, res) => {
   try {
-    console.log('📊 [DEBUG] Getting queue status...');
+    // console.log('📊 [DEBUG] Getting queue status...');
 
     // Get status counts
     const queueStatus = await prisma.documentProcessingQueue.groupBy({
