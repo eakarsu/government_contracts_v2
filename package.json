@@ -1,11 +1,16 @@
 {
-  "name": "contract-indexer-api",
+  "name": "contract-indexer-fullstack",
   "version": "1.0.0",
-  "description": "Government contract indexing and document processing API",
+  "description": "Government contract indexing and document processing application",
   "main": "server.js",
   "scripts": {
     "start": "node attached_assets/server.js",
     "dev": "nodemon attached_assets/server.js",
+    "client": "cd client && npm start",
+    "client:build": "cd client && npm run build",
+    "client:install": "cd client && npm install",
+    "dev:full": "concurrently \"npm run dev\" \"npm run client\"",
+    "build": "npm run client:build",
     "test": "jest",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -19,14 +24,14 @@
     "multer": "^1.4.5-lts.1",
     "axios": "^1.6.2",
     "fs-extra": "^11.2.0",
-    "dotenv": "^16.3.1",
-    "path": "^0.12.7"
+    "dotenv": "^16.3.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
     "jest": "^29.7.0",
     "supertest": "^6.3.3",
-    "prisma": "^5.7.0"
+    "prisma": "^5.7.0",
+    "concurrently": "^8.2.2"
   },
   "engines": {
     "node": ">=18.0.0"
