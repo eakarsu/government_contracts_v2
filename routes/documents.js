@@ -19,12 +19,22 @@ router.post('/process', async (req, res) => {
     console.log('🔄 [DEBUG] Getting vector database stats...');
     const vectorStats = await vectorService.getCollectionStats();
     console.log('🔄 [DEBUG] Vector stats:', vectorStats);
+    console.log('🔄 [DEBUG] Note: contracts are different from documents. You have contracts indexed but need to download/index the actual document files.');
+    
+    // Check if there are contracts with document links available for download
+    const contractsWithDocs = await prisma.contract.count({
+      where: { resourceLinks: { not: null } }
+    });
+    console.log(`🔄 [DEBUG] Contracts with document links available: ${contractsWithDocs}`);
     
     if (vectorStats.documents === 0) {
       console.log('⚠️ [DEBUG] No documents in vector database');
       return res.json({ 
-        message: 'No documents found in vector database. Use /documents/download to fetch documents first.', 
-        processed_count: 0 
+        message: `No documents found in vector database. You have ${vectorStats.contracts} contracts indexed, but 0 document files. Use /documents/download to fetch and index the actual document files from ${contractsWithDocs} contracts that have document links.`, 
+        processed_count: 0,
+        contracts_indexed: vectorStats.contracts,
+        documents_indexed: vectorStats.documents,
+        contracts_with_document_links: contractsWithDocs
       });
     }
 
