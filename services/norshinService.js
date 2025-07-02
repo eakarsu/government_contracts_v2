@@ -22,7 +22,7 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
           'X-API-Key': config.norshinApiKey,
           'Content-Type': 'application/json'
         },
-        timeout: 120000 // 2 minutes timeout
+        timeout: 3600000 // 1 hour timeout
       });
 
       return response.data;
@@ -36,7 +36,7 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
       console.log(`Downloading document from: ${filePathOrUrl}`);
       const downloadResponse = await axios.get(filePathOrUrl, {
         responseType: 'arraybuffer',
-        timeout: 60000, // 1 minute timeout for download
+        timeout: 3600000, // 1 hour timeout for download
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)'
         }
@@ -60,7 +60,7 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
         'X-API-Key': config.norshinApiKey,
         'Content-Type': 'multipart/form-data'
       },
-      timeout: 120000 // 2 minutes timeout
+      timeout: 3600000 // 1 hour timeout
     });
 
     return response.data;
@@ -105,7 +105,7 @@ Please provide:
         'X-API-Key': config.norshinApiKey,
         'Content-Type': 'application/json'
       },
-      timeout: 120000 // 2 minutes timeout
+      timeout: 3600000 // 1 hour timeout
     });
 
     console.log(`✅ [DEBUG] Norshin API response received:`, response.status);
