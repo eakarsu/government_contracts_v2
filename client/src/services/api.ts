@@ -15,7 +15,7 @@ import type {
 // Create axios instance with default config
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || '/api',
-  timeout: 30000,
+  timeout: 3600000, // 1 hour default timeout
   headers: {
     'Content-Type': 'application/json',
   },
@@ -92,12 +92,16 @@ class ApiService {
 
   // Contracts
   async fetchContracts(data: ContractFetchForm): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/contracts/fetch', data);
+    const response = await api.post<ApiResponse>('/contracts/fetch', data, {
+      timeout: 3600000 // 1 hour timeout
+    });
     return response.data;
   }
 
   async indexContracts(limit: number = 100): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/contracts/index', { limit });
+    const response = await api.post<ApiResponse>('/contracts/index', { limit }, {
+      timeout: 3600000 // 1 hour timeout
+    });
     return response.data;
   }
 
@@ -145,7 +149,9 @@ class ApiService {
   // Documents
   async processDocuments(contractId?: string, limit: number = 50): Promise<ApiResponse> {
     try {
-      const response = await api.post<ApiResponse>('/documents/process', { contract_id: contractId, limit });
+      const response = await api.post<ApiResponse>('/documents/process', { contract_id: contractId, limit }, {
+        timeout: 3600000 // 1 hour timeout
+      });
       return response.data;
     } catch (error: any) {
       // Handle non-JSON responses
@@ -162,7 +168,9 @@ class ApiService {
   }
 
   async queueDocuments(): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/queue');
+    const response = await api.post<ApiResponse>('/documents/queue', {}, {
+      timeout: 3600000 // 1 hour timeout
+    });
     return response.data;
   }
 
@@ -172,7 +180,9 @@ class ApiService {
   }
 
   async processQueuedDocuments(): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/queue/process');
+    const response = await api.post<ApiResponse>('/documents/queue/process', {}, {
+      timeout: 3600000 // 1 hour timeout
+    });
     return response.data;
   }
 
