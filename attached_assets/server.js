@@ -83,11 +83,249 @@ const sendToNorshinAPI = async (filePath, originalName, customPrompt = '', model
   }
 };
 
+// Database setup (add Prisma client)
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
 // Routes
 
 // Serve main page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// API Status endpoint
+app.get('/api/status', async (req, res) => {
+  try {
+    // Get database stats
+    const contractsCount = await prisma.contract.count();
+    const indexedContractsCount = await prisma.contract.count({
+      where: { indexedAt: { not: null } }
+    });
+
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      database_stats: {
+        contracts_in_db: contractsCount,
+        contracts_indexed: indexedContractsCount,
+        documents_indexed: 0 // Placeholder
+      },
+      norshin_api: process.env.NORSHIN_API_URL
+    });
+  } catch (error) {
+    console.error('Status check failed:', error);
+    res.status(500).json({ 
+      status: 'error', 
+      message: error.message 
+    });
+  }
+});
+
+// Fetch contracts from SAM.gov API
+app.post('/api/contracts/fetch', async (req, res) => {
+  try {
+    const { start_date, end_date, limit = 100, offset = 0 } = req.body;
+
+    // Parse dates or use intelligent defaults
+    let startDate = start_date ? new Date(start_date) : null;
+    let endDate = end_date ? new Date(end_date) : null;
+
+    // Auto-expand search range if no dates provided
+    if (!startDate && !endDate) {
+      const oldestContract = await prisma.contract.findFirst({
+        orderBy: { postedDate: 'asc' },
+        where: { postedDate: { not: null } }
+      });
+
+      if (oldestContract?.postedDate) {
+        startDate = new Date(oldestContract.postedDate);
+        startDate.setDate(startDate.getDate() - 30);
+        endDate = new Date(oldestContract.postedDate);
+        endDate.setDate(endDate.getDate() - 1);
+      } else {
+        endDate = new Date();
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - 60);
+      }
+    }
+
+    // Create indexing job record
+    const job = await prisma.indexingJob.create({
+      data: {
+        jobType: 'contracts',
+        status: 'running',
+        startDate,
+        endDate
+      }
+    });
+
+    try {
+      // Fetch contracts from SAM.gov (placeholder implementation)
+      const samGovUrl = `https://api.sam.gov/opportunities/v2/search`;
+      const params = new URLSearchParams({
+        api_key: process.env.SAM_GOV_API_KEY,
+        limit: Math.min(limit, 1000),
+        offset,
+        postedFrom: startDate?.toISOString().split('T')[0],
+        postedTo: endDate?.toISOString().split('T')[0]
+      });
+
+      const response = await axios.get(`${samGovUrl}?${params}`);
+      const contractsData = response.data.opportunitiesData || [];
+      
+      let processedCount = 0;
+      let errorsCount = 0;
+
+      for (const contractData of contractsData) {
+        try {
+          const contractDetails = {
+            noticeId: contractData.noticeId,
+            title: contractData.title,
+            description: contractData.description,
+            agency: contractData.fullParentPathName,
+            naicsCode: contractData.naicsCode,
+            classificationCode: contractData.classificationCode,
+            postedDate: contractData.postedDate ? new Date(contractData.postedDate) : null,
+            setAsideCode: contractData.typeOfSetAsideCode,
+            resourceLinks: contractData.resourceLinks || []
+          };
+          
+          if (!contractDetails.noticeId) continue;
+
+          // Upsert contract
+          await prisma.contract.upsert({
+            where: { noticeId: contractDetails.noticeId },
+            update: {
+              ...contractDetails,
+              updatedAt: new Date()
+            },
+            create: contractDetails
+          });
+
+          processedCount++;
+        } catch (error) {
+          console.error('Error processing contract:', error);
+          errorsCount++;
+        }
+      }
+
+      // Update job status
+      await prisma.indexingJob.update({
+        where: { id: job.id },
+        data: {
+          status: 'completed',
+          recordsProcessed: processedCount,
+          errorsCount,
+          completedAt: new Date()
+        }
+      });
+
+      res.json({
+        success: true,
+        job_id: job.id,
+        contracts_processed: processedCount,
+        errors: errorsCount,
+        total_available: response.data.totalRecords || 0
+      });
+
+    } catch (error) {
+      await prisma.indexingJob.update({
+        where: { id: job.id },
+        data: {
+          status: 'failed',
+          errorDetails: error.message,
+          completedAt: new Date()
+        }
+      });
+      throw error;
+    }
+
+  } catch (error) {
+    console.error('Contract fetch failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Search contracts endpoint
+app.post('/api/search', async (req, res) => {
+  try {
+    const startTime = Date.now();
+    const { query, limit = 10 } = req.body;
+
+    if (!query) {
+      return res.status(400).json({ error: 'Query parameter is required' });
+    }
+
+    // Simple database search (replace with vector search later)
+    const contracts = await prisma.contract.findMany({
+      where: {
+        OR: [
+          { title: { contains: query, mode: 'insensitive' } },
+          { description: { contains: query, mode: 'insensitive' } },
+          { agency: { contains: query, mode: 'insensitive' } }
+        ]
+      },
+      take: Math.min(limit, 50),
+      orderBy: { postedDate: 'desc' }
+    });
+
+    const responseTime = (Date.now() - startTime) / 1000;
+
+    // Log search query
+    await prisma.searchQuery.create({
+      data: {
+        queryText: query,
+        resultsCount: contracts.length,
+        responseTime,
+        userIp: req.ip
+      }
+    });
+
+    res.json({
+      query,
+      results: {
+        contracts: contracts,
+        total_results: contracts.length
+      },
+      response_time: responseTime
+    });
+
+  } catch (error) {
+    console.error('Search failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get job status
+app.get('/api/jobs/:jobId', async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const job = await prisma.indexingJob.findUnique({
+      where: { id: parseInt(jobId) }
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    res.json({
+      id: job.id,
+      type: job.jobType,
+      status: job.status,
+      start_date: job.startDate?.toISOString(),
+      end_date: job.endDate?.toISOString(),
+      records_processed: job.recordsProcessed,
+      errors_count: job.errorsCount,
+      error_details: job.errorDetails,
+      created_at: job.createdAt?.toISOString(),
+      completed_at: job.completedAt?.toISOString()
+    });
+
+  } catch (error) {
+    console.error('Job status retrieval failed:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Upload and process single document
@@ -284,10 +522,18 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('Shutting down gracefully...');
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📁 Upload folder: ${path.join(__dirname, 'uploads')}`);
   console.log(`📄 Documents folder: ${path.join(__dirname, 'documents')}`);
   console.log(`🌐 Norshin API: ${process.env.NORSHIN_API_URL}`);
+  console.log(`📊 Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
 });
 

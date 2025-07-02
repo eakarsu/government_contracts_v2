@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Contract {
+  id                  Int       @id @default(autoincrement())
+  noticeId            String    @unique @map("notice_id")
+  title               String?
+  description         String?
+  agency              String?
+  naicsCode           String?   @map("naics_code")
+  classificationCode  String?   @map("classification_code")
+  postedDate          DateTime? @map("posted_date")
+  setAsideCode        String?   @map("set_aside_code")
+  resourceLinks       Json?     @map("resource_links")
+  indexedAt           DateTime? @map("indexed_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@map("contract")
+}
+
+model IndexingJob {
+  id               Int       @id @default(autoincrement())
+  jobType          String    @map("job_type")
+  status           String    @default("pending")
+  startDate        DateTime? @map("start_date")
+  endDate          DateTime? @map("end_date")
+  recordsProcessed Int?      @map("records_processed")
+  errorsCount      Int?      @map("errors_count")
+  errorDetails     String?   @map("error_details")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  completedAt      DateTime? @map("completed_at")
+
+  @@map("indexing_job")
+}
+
+model SearchQuery {
+  id           Int      @id @default(autoincrement())
+  queryText    String   @map("query_text")
+  resultsCount Int      @map("results_count")
+  responseTime Float    @map("response_time")
+  userIp       String?  @map("user_ip")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("search_query")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  firstName String?  @map("first_name")
+  lastName  String?  @map("last_name")
+  password  String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user")
+}
+
+model Company {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  website     String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("company")
+}
+
+model ContractApplication {
+  id               Int      @id @default(autoincrement())
+  contractNoticeId String   @map("contract_notice_id")
+  companyId        Int      @map("company_id")
+  status           String   @default("pending")
+  submittedAt      DateTime @default(now()) @map("submitted_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("contract_application")
+}
+
+model AITemplate {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  template    String
+  category    String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("ai_template")
+}
+
+model DocumentProcessingQueue {
+  id                Int       @id @default(autoincrement())
+  contractNoticeId  String    @map("contract_notice_id")
+  documentUrl       String    @map("document_url")
+  description       String?
+  localFilePath     String?   @map("local_file_path")
+  filename          String?
+  status            String    @default("queued")
+  retryCount        Int       @default(0) @map("retry_count")
+  maxRetries        Int       @default(3) @map("max_retries")
+  processedData     String?   @map("processed_data")
+  errorMessage      String?   @map("error_message")
+  queuedAt          DateTime  @default(now()) @map("queued_at")
+  startedAt         DateTime? @map("started_at")
+  completedAt       DateTime? @map("completed_at")
+  failedAt          DateTime? @map("failed_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@map("document_processing_queue")
+}
