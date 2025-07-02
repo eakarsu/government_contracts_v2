@@ -6,82 +6,99 @@ const config = require('../config/env');
 
 const router = express.Router();
 
-// Process and index contract documents
+// Process documents already in vector database (AI analysis/processing)
 router.post('/process', async (req, res) => {
   try {
-    const { contract_id, limit = 50 } = req.body;
+    const { contract_id, limit = 50, analysis_type = 'summary' } = req.body;
 
-    // Get contracts with valid resource links
-    let whereClause = { resourceLinks: { not: null } };
-    if (contract_id) {
-      whereClause.noticeId = contract_id;
+    // Get all documents from vector database
+    const vectorStats = await vectorService.getCollectionStats();
+    
+    if (vectorStats.documents === 0) {
+      return res.json({ 
+        message: 'No documents found in vector database. Use /documents/download to fetch documents first.', 
+        processed_count: 0 
+      });
     }
 
-    const contracts = await prisma.contract.findMany({
-      where: whereClause,
-      take: limit
-    });
-
-    if (contracts.length === 0) {
-      return res.json({ message: 'No contracts with documents found', processed_count: 0 });
-    }
-
-    // Create indexing job
+    // Create processing job
     const job = await prisma.indexingJob.create({
       data: {
-        jobType: 'documents',
+        jobType: 'document_processing',
         status: 'running'
       }
     });
 
     let processedCount = 0;
     let errorsCount = 0;
-    let skippedCount = 0;
 
-    for (const contract of contracts) {
-      try {
-        const resourceLinks = contract.resourceLinks;
-        if (!resourceLinks || !Array.isArray(resourceLinks)) continue;
+    try {
+      // Search for documents in vector database
+      let searchQuery = contract_id ? contract_id : "contract document";
+      const vectorDocs = await vectorService.searchDocuments(searchQuery, limit);
 
-        // Process up to 3 documents per contract
-        for (const docUrl of resourceLinks.slice(0, 3)) {
-          try {
-            const documentId = `${contract.noticeId}_${docUrl.split('/').pop()}`;
-            
-            // First check if document is already indexed in vector database
-            const existingDocs = await vectorService.searchDocuments(documentId, 1);
-            
-            if (existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) {
-              console.log(`Document already indexed, skipping: ${documentId}`);
-              skippedCount++;
-              continue;
-            }
+      if (vectorDocs.length === 0) {
+        return res.json({ 
+          message: 'No documents found in vector database matching criteria', 
+          processed_count: 0 
+        });
+      }
 
-            // Document not found in vector DB, process it
-            const result = await sendToNorshinAPI(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4.1');
-            
-            if (result) {
-              // Index the processed document in vector database
-              await vectorService.indexDocument({
-                filename: `doc_${contract.noticeId}`,
-                content: result.content || result.text || JSON.stringify(result),
-                processedData: result
-              }, contract.noticeId);
-              
-              processedCount++;
-              console.log(`Processed and indexed document for contract: ${contract.noticeId}`);
-            } else {
-              errorsCount++;
-            }
-          } catch (error) {
-            console.error(`Error processing document ${docUrl}:`, error);
+      console.log(`Processing ${vectorDocs.length} documents from vector database...`);
+
+      for (const doc of vectorDocs) {
+        try {
+          // Process document content with AI analysis
+          const documentContent = doc.document;
+          const contractId = doc.metadata.contractId;
+          
+          if (!documentContent || documentContent.length < 100) {
+            console.log(`Skipping document ${doc.id} - insufficient content`);
+            continue;
+          }
+
+          // Process document content with AI analysis (no downloading)
+          const analysisResult = await processTextWithAI(
+            documentContent.substring(0, 4000), // Limit content size
+            analysis_type,
+            'openai/gpt-4.1'
+          );
+
+          if (analysisResult) {
+            // Store the analysis result
+            await prisma.documentAnalysis.upsert({
+              where: { 
+                documentId: doc.id 
+              },
+              update: {
+                analysisType: analysis_type,
+                analysisResult: JSON.stringify(analysisResult),
+                processedAt: new Date()
+              },
+              create: {
+                documentId: doc.id,
+                contractNoticeId: contractId,
+                analysisType: analysis_type,
+                analysisResult: JSON.stringify(analysisResult),
+                processedAt: new Date()
+              }
+            });
+
+            processedCount++;
+            console.log(`Processed analysis for document: ${doc.id}`);
+          } else {
             errorsCount++;
           }
+
+        } catch (error) {
+          console.error(`Error processing document ${doc.id}:`, error);
+          errorsCount++;
         }
-      } catch (error) {
-        console.error(`Error processing documents for contract ${contract.noticeId}:`, error);
-        errorsCount++;
       }
+
+    } catch (error) {
+      console.error('Vector database search failed:', error);
+      errorsCount++;
     }
 
     // Update job status
@@ -100,12 +117,117 @@ router.post('/process', async (req, res) => {
       job_id: job.id,
       processed_count: processedCount,
       errors_count: errorsCount,
-      skipped_count: skippedCount,
-      message: `Processed ${processedCount} new documents, skipped ${skippedCount} already indexed documents`
+      message: `Processed AI analysis for ${processedCount} documents from vector database`,
+      source: 'vector_database'
     });
 
   } catch (error) {
     console.error('Document processing failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Download and index new documents from government sources
+router.post('/download', async (req, res) => {
+  try {
+    const { contract_id, limit = 50 } = req.body;
+
+    // Get contracts with valid resource links
+    let whereClause = { resourceLinks: { not: null } };
+    if (contract_id) {
+      whereClause.noticeId = contract_id;
+    }
+
+    const contracts = await prisma.contract.findMany({
+      where: whereClause,
+      take: limit
+    });
+
+    if (contracts.length === 0) {
+      return res.json({ message: 'No contracts with documents found', downloaded_count: 0 });
+    }
+
+    // Create indexing job
+    const job = await prisma.indexingJob.create({
+      data: {
+        jobType: 'document_download',
+        status: 'running'
+      }
+    });
+
+    let downloadedCount = 0;
+    let errorsCount = 0;
+    let skippedCount = 0;
+
+    for (const contract of contracts) {
+      try {
+        const resourceLinks = contract.resourceLinks;
+        if (!resourceLinks || !Array.isArray(resourceLinks)) continue;
+
+        // Process up to 3 documents per contract
+        for (const docUrl of resourceLinks.slice(0, 3)) {
+          try {
+            const documentId = `${contract.noticeId}_${docUrl.split('/').pop()}`;
+            
+            // Check if document is already indexed in vector database
+            const existingDocs = await vectorService.searchDocuments(documentId, 1);
+            
+            if (existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) {
+              console.log(`Document already indexed, skipping: ${documentId}`);
+              skippedCount++;
+              continue;
+            }
+
+            // Document not found in vector DB, download and process it
+            console.log(`Downloading document from government: ${docUrl}`);
+            const result = await sendToNorshinAPI(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4.1');
+            
+            if (result) {
+              // Index the processed document in vector database
+              await vectorService.indexDocument({
+                filename: `doc_${contract.noticeId}`,
+                content: result.content || result.text || JSON.stringify(result),
+                processedData: result
+              }, contract.noticeId);
+              
+              downloadedCount++;
+              console.log(`Downloaded and indexed document for contract: ${contract.noticeId}`);
+            } else {
+              errorsCount++;
+            }
+          } catch (error) {
+            console.error(`Error downloading document ${docUrl}:`, error);
+            errorsCount++;
+          }
+        }
+      } catch (error) {
+        console.error(`Error downloading documents for contract ${contract.noticeId}:`, error);
+        errorsCount++;
+      }
+    }
+
+    // Update job status
+    await prisma.indexingJob.update({
+      where: { id: job.id },
+      data: {
+        status: 'completed',
+        recordsProcessed: downloadedCount,
+        errorsCount,
+        completedAt: new Date()
+      }
+    });
+
+    res.json({
+      success: true,
+      job_id: job.id,
+      downloaded_count: downloadedCount,
+      errors_count: errorsCount,
+      skipped_count: skippedCount,
+      message: `Downloaded ${downloadedCount} new documents, skipped ${skippedCount} already indexed documents`
+    });
+
+  } catch (error) {
+    console.error('Document download failed:', error);
     res.status(500).json({ error: error.message });
   }
 });
