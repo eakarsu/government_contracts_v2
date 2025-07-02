@@ -98,6 +98,7 @@ mkdir -p uploads documents logs
 print_success "Starting Node.js server and React client..."
 print_status "API Server will be available at: http://localhost:3000"
 print_status "React Client will be available at: http://localhost:3001"
+print_status "Vector Database: Vectra (Pure Node.js - embedded)"
 print_status "Press Ctrl+C to stop all servers"
 
 # Start the API server in background
@@ -125,6 +126,12 @@ if [ -d "client" ]; then
     echo "📊 Services:"
     echo "  • Node.js API Server:  http://localhost:3000"
     echo "  • React Client:        http://localhost:3001"
+    echo "  • Vector Database:     Vectra (embedded in Node.js)"
+    echo ""
+    echo "📁 Data Storage:"
+    echo "  • Vector Indexes:      ./vector_indexes/"
+    echo "  • Uploaded Files:      ./uploads/"
+    echo "  • Documents:           ./documents/"
     echo ""
     echo "🌐 Open your browser to: http://localhost:3001"
     
