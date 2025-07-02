@@ -114,7 +114,7 @@ const Jobs: React.FC = () => {
                       {job.end_date ? formatDate(job.end_date) : '-'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                      {job.error_message || '-'}
+                      {job.error_details || '-'}
                     </td>
                   </tr>
                 ))}
