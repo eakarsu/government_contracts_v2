@@ -1,0 +1,15 @@
+{
+  "watch": ["server.js", "prisma/schema.prisma", ".env"],
+  "ignore": [
+    "node_modules",
+    "uploads/*",
+    "documents/*",
+    "logs/*",
+    "client/*",
+    ".git",
+    "*.log",
+    "*.pid"
+  ],
+  "ext": "js,json,env",
+  "delay": 1000
+}
