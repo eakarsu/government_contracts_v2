@@ -25,6 +25,9 @@ const QuickActions: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queue-status'] });
     },
+    onError: (error: any) => {
+      console.error('Process documents error:', error);
+    },
   });
 
   const queueDocumentsMutation = useMutation({
