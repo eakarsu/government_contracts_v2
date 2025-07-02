@@ -37,6 +37,10 @@ check_dependencies() {
     
     local missing_deps=()
     
+    if ! command -v python3 &> /dev/null; then
+        missing_deps+=("python3")
+    fi
+    
     if ! command -v node &> /dev/null; then
         missing_deps+=("node")
     fi
@@ -98,6 +102,27 @@ start_database() {
     print_success "Database is ready!"
 }
 
+# Setup Python virtual environment for Flask app
+setup_python_env() {
+    print_status "Setting up Python environment for Flask app..."
+    
+    if [ ! -d "venv" ]; then
+        print_status "Creating virtual environment..."
+        python3 -m venv venv
+    fi
+    
+    source venv/bin/activate
+    
+    if [ -f "requirements.txt" ]; then
+        print_status "Installing Python dependencies..."
+        pip install -r requirements.txt
+    else
+        print_warning "requirements.txt not found, skipping Python dependencies"
+    fi
+    
+    print_success "Python environment ready"
+}
+
 # Install dependencies
 install_dependencies() {
     print_status "Installing server dependencies..."
@@ -135,36 +160,52 @@ start_servers() {
     # Create log directory
     mkdir -p logs
     
-    # Start Node.js server in background
-    print_status "Starting Node.js API server on port 3000..."
-    npm run dev > logs/server.log 2>&1 &
-    SERVER_PID=$!
-    echo $SERVER_PID > logs/server.pid
+    # Activate Python virtual environment for Flask
+    source venv/bin/activate
     
-    # Wait a moment for server to start
+    # Set Flask environment variables
+    export FLASK_ENV=development
+    export FLASK_DEBUG=1
+    
+    # Start Flask server in background
+    print_status "Starting Flask API server on port 5000..."
+    if [ -f "main.py" ]; then
+        python main.py > logs/flask.log 2>&1 &
+        FLASK_PID=$!
+        echo $FLASK_PID > logs/flask.pid
+    elif [ -f "app.py" ]; then
+        python app.py > logs/flask.log 2>&1 &
+        FLASK_PID=$!
+        echo $FLASK_PID > logs/flask.pid
+    else
+        print_error "No Flask app file found (main.py or app.py)"
+        exit 1
+    fi
+    
+    # Wait a moment for Flask to start
     sleep 3
     
-    # Check if server is running
-    if ! kill -0 $SERVER_PID 2>/dev/null; then
-        print_error "Failed to start Node.js server. Check logs/server.log for details."
+    # Check if Flask server is running
+    if ! kill -0 $FLASK_PID 2>/dev/null; then
+        print_error "Failed to start Flask server. Check logs/flask.log for details."
         exit 1
     fi
     
     # Start React client if directory exists
     if [ -d "client" ]; then
-        print_status "Starting React client on port 3001..."
+        print_status "Starting React client on port 3000..."
         cd client
-        BROWSER=none npm start > ../logs/client.log 2>&1 &
-        CLIENT_PID=$!
-        echo $CLIENT_PID > ../logs/client.pid
+        BROWSER=none npm start > ../logs/react.log 2>&1 &
+        REACT_PID=$!
+        echo $REACT_PID > ../logs/react.pid
         cd ..
         
-        # Wait a moment for client to start
+        # Wait a moment for React to start
         sleep 5
         
-        # Check if client is running
-        if ! kill -0 $CLIENT_PID 2>/dev/null; then
-            print_error "Failed to start React client. Check logs/client.log for details."
+        # Check if React client is running
+        if ! kill -0 $REACT_PID 2>/dev/null; then
+            print_error "Failed to start React client. Check logs/react.log for details."
             exit 1
         fi
     else
@@ -253,6 +294,7 @@ main() {
     
     check_dependencies
     check_env_file
+    setup_python_env
     start_database
     install_dependencies
     setup_database
