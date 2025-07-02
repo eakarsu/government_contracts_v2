@@ -47,6 +47,27 @@ const QuickActions: React.FC = () => {
     },
   });
 
+  const resetQueueMutation = useMutation({
+    mutationFn: () => apiService.resetQueue(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+      queryClient.invalidateQueries({ queryKey: ['api-status'] });
+    },
+    onError: (error: any) => {
+      console.error('Reset queue error:', error);
+    },
+  });
+
+  const stopQueueMutation = useMutation({
+    mutationFn: () => apiService.stopQueue(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+    },
+    onError: (error: any) => {
+      console.error('Stop queue error:', error);
+    },
+  });
+
   return (
     <div className="bg-white shadow rounded-lg p-6 h-fit">
       <h3 className="text-lg font-medium text-gray-900 mb-6">Quick Actions</h3>
@@ -110,6 +131,36 @@ const QuickActions: React.FC = () => {
             'Auto Queue & Process'
           )}
         </button>
+
+        {/* Queue Management Section */}
+        <div className="border-t pt-4 mt-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Queue Management</h4>
+          <div className="space-y-2">
+            <button
+              onClick={() => stopQueueMutation.mutate()}
+              disabled={stopQueueMutation.isPending}
+              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50 transition-colors"
+            >
+              {stopQueueMutation.isPending ? (
+                <LoadingSpinner size="sm" color="white" />
+              ) : (
+                'Stop Processing'
+              )}
+            </button>
+
+            <button
+              onClick={() => resetQueueMutation.mutate()}
+              disabled={resetQueueMutation.isPending}
+              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 transition-colors"
+            >
+              {resetQueueMutation.isPending ? (
+                <LoadingSpinner size="sm" color="white" />
+              ) : (
+                'Reset Queue System'
+              )}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Success Messages */}
@@ -180,6 +231,34 @@ const QuickActions: React.FC = () => {
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
             Error with auto process: {processDocumentsMutation.error instanceof Error ? processDocumentsMutation.error.message : 'Unknown error'}
+          </div>
+        </div>
+      ) : null}
+
+      {stopQueueMutation.isSuccess ? (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+          <div className="text-yellow-800 text-sm">Queue processing stopped!</div>
+        </div>
+      ) : null}
+
+      {resetQueueMutation.isSuccess ? (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-red-800 text-sm">Queue system reset successfully!</div>
+        </div>
+      ) : null}
+
+      {stopQueueMutation.error ? (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-red-800 text-sm">
+            Error stopping queue: {stopQueueMutation.error instanceof Error ? stopQueueMutation.error.message : 'Unknown error'}
+          </div>
+        </div>
+      ) : null}
+
+      {resetQueueMutation.error ? (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-red-800 text-sm">
+            Error resetting queue: {resetQueueMutation.error instanceof Error ? resetQueueMutation.error.message : 'Unknown error'}
           </div>
         </div>
       ) : null}

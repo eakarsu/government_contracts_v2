@@ -624,6 +624,23 @@ router.post('/queue/process', async (req, res) => {
     console.log('🔄 [DEBUG] Starting parallel document processing...');
     console.log(`🔄 [DEBUG] Concurrency: ${concurrency}, Batch size: ${batch_size}`);
 
+    // Check if there's already a running job
+    const existingJob = await prisma.indexingJob.findFirst({
+      where: { 
+        status: 'running',
+        jobType: { in: ['queue_processing', 'document_processing'] }
+      }
+    });
+
+    if (existingJob) {
+      return res.json({
+        success: false,
+        message: `Queue processing is already running (Job #${existingJob.id}). Please wait for it to complete or stop it first.`,
+        existing_job_id: existingJob.id,
+        started_at: existingJob.createdAt
+      });
+    }
+
     // Get queued documents
     const queuedDocs = await prisma.documentProcessingQueue.findMany({
       where: { status: 'queued' },
@@ -919,6 +936,133 @@ router.post('/queue/clear', async (req, res) => {
 
   } catch (error) {
     console.error('❌ [DEBUG] Error clearing queue:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// Reset entire queue system (documents + jobs)
+router.post('/queue/reset', async (req, res) => {
+  try {
+    console.log('🔄 [DEBUG] Resetting entire queue system...');
+    
+    // 1. Stop all running jobs by marking them as failed
+    const runningJobs = await prisma.indexingJob.updateMany({
+      where: { 
+        status: 'running',
+        jobType: { in: ['queue_processing', 'document_processing'] }
+      },
+      data: {
+        status: 'failed',
+        errorDetails: 'Manually reset by admin',
+        completedAt: new Date()
+      }
+    });
+    
+    console.log(`🛑 [DEBUG] Stopped ${runningJobs.count} running jobs`);
+    
+    // 2. Reset all processing documents to queued
+    const processingDocs = await prisma.documentProcessingQueue.updateMany({
+      where: { status: 'processing' },
+      data: {
+        status: 'queued',
+        startedAt: null,
+        errorMessage: null
+      }
+    });
+    
+    console.log(`🔄 [DEBUG] Reset ${processingDocs.count} processing documents to queued`);
+    
+    // 3. Clear all completed and failed documents
+    const clearedDocs = await prisma.documentProcessingQueue.deleteMany({
+      where: { status: { in: ['completed', 'failed'] } }
+    });
+    
+    console.log(`🗑️ [DEBUG] Cleared ${clearedDocs.count} completed/failed documents`);
+    
+    // 4. Get final status
+    const queueStatus = await prisma.documentProcessingQueue.groupBy({
+      by: ['status'],
+      _count: { id: true }
+    });
+
+    const statusCounts = {};
+    queueStatus.forEach(item => {
+      statusCounts[item.status] = item._count.id;
+    });
+
+    const totalInQueue = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+    
+    console.log(`✅ [DEBUG] Queue system reset completed`);
+    console.log(`📊 [DEBUG] Final queue status: ${totalInQueue} total documents`);
+
+    res.json({
+      success: true,
+      message: 'Queue system has been completely reset',
+      actions_taken: {
+        stopped_jobs: runningJobs.count,
+        reset_processing_docs: processingDocs.count,
+        cleared_completed_failed: clearedDocs.count
+      },
+      final_queue_status: {
+        queued: statusCounts.queued || 0,
+        processing: statusCounts.processing || 0,
+        completed: statusCounts.completed || 0,
+        failed: statusCounts.failed || 0,
+        total: totalInQueue,
+        is_processing: false
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error resetting queue system:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// Stop all running queue processing jobs
+router.post('/queue/stop', async (req, res) => {
+  try {
+    console.log('🛑 [DEBUG] Stopping all queue processing...');
+    
+    // Stop all running jobs
+    const stoppedJobs = await prisma.indexingJob.updateMany({
+      where: { 
+        status: 'running',
+        jobType: { in: ['queue_processing', 'document_processing'] }
+      },
+      data: {
+        status: 'failed',
+        errorDetails: 'Manually stopped by admin',
+        completedAt: new Date()
+      }
+    });
+    
+    // Reset processing documents to queued
+    const resetDocs = await prisma.documentProcessingQueue.updateMany({
+      where: { status: 'processing' },
+      data: {
+        status: 'queued',
+        startedAt: null
+      }
+    });
+    
+    console.log(`🛑 [DEBUG] Stopped ${stoppedJobs.count} jobs and reset ${resetDocs.count} documents`);
+
+    res.json({
+      success: true,
+      message: `Stopped ${stoppedJobs.count} running jobs and reset ${resetDocs.count} processing documents`,
+      stopped_jobs: stoppedJobs.count,
+      reset_documents: resetDocs.count
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error stopping queue processing:', error);
     res.status(500).json({ 
       success: false,
       error: error.message 
