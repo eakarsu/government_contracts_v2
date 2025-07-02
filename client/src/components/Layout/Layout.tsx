@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import { useQuery } from 'react-query';
-import { apiService } from '@/services/api';
+import { useQuery } from '@tanstack/react-query';
+import { apiService } from '../../services/api';
 
 interface LayoutProps {
   children: React.ReactNode;
