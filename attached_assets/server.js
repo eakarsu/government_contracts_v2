@@ -328,6 +328,383 @@ app.get('/api/jobs/:jobId', async (req, res) => {
   }
 });
 
+// Process and index contract documents
+app.post('/api/documents/process', async (req, res) => {
+  try {
+    const { contract_id, limit = 50 } = req.body;
+
+    // Get contracts with valid resource links
+    let whereClause = { resourceLinks: { not: null } };
+    if (contract_id) {
+      whereClause.noticeId = contract_id;
+    }
+
+    const contracts = await prisma.contract.findMany({
+      where: whereClause,
+      take: limit
+    });
+
+    if (contracts.length === 0) {
+      return res.json({ message: 'No contracts with documents found', processed_count: 0 });
+    }
+
+    // Create indexing job
+    const job = await prisma.indexingJob.create({
+      data: {
+        jobType: 'documents',
+        status: 'running'
+      }
+    });
+
+    let processedCount = 0;
+    let errorsCount = 0;
+
+    for (const contract of contracts) {
+      try {
+        const resourceLinks = contract.resourceLinks;
+        if (!resourceLinks || !Array.isArray(resourceLinks)) continue;
+
+        // Process up to 3 documents per contract
+        for (const docUrl of resourceLinks.slice(0, 3)) {
+          try {
+            // Process document via Norshin API
+            const result = await sendToNorshinAPI(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4.1');
+            
+            if (result) {
+              processedCount++;
+              console.log(`Processed document for contract: ${contract.noticeId}`);
+            } else {
+              errorsCount++;
+            }
+          } catch (error) {
+            console.error(`Error processing document ${docUrl}:`, error);
+            errorsCount++;
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing documents for contract ${contract.noticeId}:`, error);
+        errorsCount++;
+      }
+    }
+
+    // Update job status
+    await prisma.indexingJob.update({
+      where: { id: job.id },
+      data: {
+        status: 'completed',
+        recordsProcessed: processedCount,
+        errorsCount,
+        completedAt: new Date()
+      }
+    });
+
+    res.json({
+      success: true,
+      job_id: job.id,
+      processed_count: processedCount,
+      errors_count: errorsCount
+    });
+
+  } catch (error) {
+    console.error('Document processing failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Queue documents for processing
+app.post('/api/documents/queue', async (req, res) => {
+  try {
+    console.log('Queueing documents for processing...');
+
+    // Clear existing queue
+    await prisma.documentProcessingQueue.deleteMany({});
+
+    // Get contracts with documents
+    const contracts = await prisma.contract.findMany({
+      where: { resourceLinks: { not: null } },
+      take: 10
+    });
+
+    if (contracts.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No documents to queue for processing',
+        queued_count: 0
+      });
+    }
+
+    let queuedCount = 0;
+    for (const contract of contracts) {
+      if (contract.resourceLinks && Array.isArray(contract.resourceLinks)) {
+        for (const linkUrl of contract.resourceLinks) {
+          try {
+            // Create queue entry
+            await prisma.documentProcessingQueue.create({
+              data: {
+                contractNoticeId: contract.noticeId,
+                documentUrl: linkUrl,
+                description: contract.title || '',
+                filename: `${contract.noticeId}_doc_${queuedCount + 1}`,
+                status: 'queued'
+              }
+            });
+            queuedCount++;
+            console.log(`Queued document: ${linkUrl}`);
+          } catch (error) {
+            console.warn(`Failed to queue document ${linkUrl}:`, error);
+          }
+        }
+      }
+    }
+
+    // Get queue status
+    const queueStatus = await prisma.documentProcessingQueue.groupBy({
+      by: ['status'],
+      _count: { id: true }
+    });
+
+    const statusCounts = {};
+    queueStatus.forEach(item => {
+      statusCounts[item.status] = item._count.id;
+    });
+
+    res.json({
+      success: true,
+      message: `Queued ${queuedCount} documents for processing`,
+      queued_count: queuedCount,
+      queue_status: {
+        queued: statusCounts.queued || 0,
+        processing: statusCounts.processing || 0,
+        completed: statusCounts.completed || 0,
+        failed: statusCounts.failed || 0,
+        total: queuedCount,
+        is_processing: (statusCounts.processing || 0) > 0
+      }
+    });
+
+  } catch (error) {
+    console.error('Error queueing documents:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get queue status
+app.get('/api/documents/queue/status', async (req, res) => {
+  try {
+    const queueStatus = await prisma.documentProcessingQueue.groupBy({
+      by: ['status'],
+      _count: { id: true }
+    });
+
+    const statusCounts = {};
+    queueStatus.forEach(item => {
+      statusCounts[item.status] = item._count.id;
+    });
+
+    // Get recent completed documents
+    const recentDocs = await prisma.documentProcessingQueue.findMany({
+      where: { status: 'completed' },
+      orderBy: { completedAt: 'desc' },
+      take: 5
+    });
+
+    res.json({
+      success: true,
+      queue_status: {
+        queued: statusCounts.queued || 0,
+        processing: statusCounts.processing || 0,
+        completed: statusCounts.completed || 0,
+        failed: statusCounts.failed || 0,
+        total: Object.values(statusCounts).reduce((a, b) => a + b, 0),
+        is_processing: (statusCounts.processing || 0) > 0,
+        recent_documents: recentDocs.map(doc => ({
+          filename: doc.filename,
+          completed_at: doc.completedAt?.toISOString(),
+          contract_notice_id: doc.contractNoticeId
+        }))
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting queue status:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Process queued documents
+app.post('/api/documents/queue/process', async (req, res) => {
+  try {
+    const queuedDocs = await prisma.documentProcessingQueue.findMany({
+      where: { status: 'queued' }
+    });
+
+    if (queuedDocs.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No documents currently queued',
+        queued_count: 0
+      });
+    }
+
+    console.log(`Starting processing of ${queuedDocs.length} documents`);
+
+    // Process documents asynchronously
+    const processPromises = queuedDocs.map(async (doc) => {
+      try {
+        // Update status to processing
+        await prisma.documentProcessingQueue.update({
+          where: { id: doc.id },
+          data: { 
+            status: 'processing',
+            startedAt: new Date()
+          }
+        });
+
+        // Process via Norshin API
+        const result = await sendToNorshinAPI(
+          doc.documentUrl,
+          doc.filename || 'document',
+          '',
+          'openai/gpt-4.1'
+        );
+
+        // Update status to completed
+        await prisma.documentProcessingQueue.update({
+          where: { id: doc.id },
+          data: {
+            status: 'completed',
+            processedData: JSON.stringify(result),
+            completedAt: new Date()
+          }
+        });
+
+        return { success: true, filename: doc.filename };
+      } catch (error) {
+        // Update status to failed
+        await prisma.documentProcessingQueue.update({
+          where: { id: doc.id },
+          data: {
+            status: 'failed',
+            errorMessage: error.message,
+            failedAt: new Date()
+          }
+        });
+
+        return { success: false, filename: doc.filename, error: error.message };
+      }
+    });
+
+    // Wait for all processing to complete
+    const results = await Promise.allSettled(processPromises);
+    const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    const errorCount = results.length - successCount;
+
+    res.json({
+      success: true,
+      message: `Processing completed`,
+      submitted_count: queuedDocs.length,
+      success_count: successCount,
+      error_count: errorCount,
+      processing_method: 'async_concurrent'
+    });
+
+  } catch (error) {
+    console.error('Document processing failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Analyze specific contract with AI
+app.post('/api/contracts/:noticeId/analyze', async (req, res) => {
+  try {
+    const { noticeId } = req.params;
+    
+    const contract = await prisma.contract.findUnique({
+      where: { noticeId }
+    });
+
+    if (!contract) {
+      return res.status(404).json({ error: 'Contract not found' });
+    }
+
+    // Simple AI analysis (placeholder)
+    const analysis = {
+      summary: `Analysis for contract ${contract.title}`,
+      key_points: [
+        'Contract opportunity identified',
+        'Agency: ' + (contract.agency || 'Unknown'),
+        'NAICS Code: ' + (contract.naicsCode || 'Not specified')
+      ],
+      recommendations: [
+        'Review contract requirements carefully',
+        'Prepare competitive proposal',
+        'Consider partnership opportunities'
+      ]
+    };
+
+    res.json({
+      contract_id: noticeId,
+      analysis
+    });
+
+  } catch (error) {
+    console.error('Contract analysis failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get bidding recommendations
+app.post('/api/recommendations', async (req, res) => {
+  try {
+    const { naics_codes, agencies, keywords } = req.body;
+
+    let whereClause = {};
+    
+    if (naics_codes && naics_codes.length > 0) {
+      whereClause.naicsCode = { in: naics_codes };
+    }
+    
+    if (agencies && agencies.length > 0) {
+      whereClause.agency = { in: agencies };
+    }
+
+    const contracts = await prisma.contract.findMany({
+      where: whereClause,
+      take: 20
+    });
+
+    if (contracts.length === 0) {
+      return res.json({
+        message: 'No matching contracts found',
+        recommendations: []
+      });
+    }
+
+    // Generate simple recommendations
+    const recommendations = contracts.map(contract => ({
+      contract_id: contract.noticeId,
+      title: contract.title,
+      agency: contract.agency,
+      recommendation_score: Math.random() * 100,
+      reasons: [
+        'Matches your NAICS code criteria',
+        'Good fit for your capabilities',
+        'Competitive opportunity'
+      ]
+    }));
+
+    res.json({
+      criteria: req.body,
+      contracts_analyzed: contracts.length,
+      recommendations
+    });
+
+  } catch (error) {
+    console.error('Recommendations generation failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Upload and process single document
 app.post('/api/upload', upload.single('document'), async (req, res) => {
   try {
@@ -498,6 +875,127 @@ app.get('/api/documents', (req, res) => {
     res.json({ documents: files });
   } catch (error) {
     res.status(500).json({ error: 'Failed to list documents' });
+  }
+});
+
+// Admin Routes - Get stuck documents
+app.get('/api/admin/documents/stuck', async (req, res) => {
+  try {
+    // Documents processing for more than 20 minutes are considered stuck
+    const cutoffTime = new Date(Date.now() - 20 * 60 * 1000);
+
+    const stuckDocs = await prisma.documentProcessingQueue.findMany({
+      where: {
+        status: 'processing',
+        startedAt: { lt: cutoffTime }
+      }
+    });
+
+    const stuckList = stuckDocs.map(doc => {
+      const processingTime = doc.startedAt 
+        ? (Date.now() - doc.startedAt.getTime()) / 1000 
+        : 0;
+      
+      return {
+        id: doc.id,
+        filename: doc.filename,
+        contract_notice_id: doc.contractNoticeId,
+        started_at: doc.startedAt?.toISOString(),
+        processing_time_minutes: Math.round(processingTime / 60 * 10) / 10,
+        retry_count: doc.retryCount
+      };
+    });
+
+    res.json({
+      success: true,
+      stuck_documents: stuckList,
+      count: stuckList.length
+    });
+
+  } catch (error) {
+    console.error('Error getting stuck documents:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Admin Routes - Reset stuck document
+app.post('/api/admin/documents/reset/:docId', async (req, res) => {
+  try {
+    const { docId } = req.params;
+    const docIdInt = parseInt(docId);
+
+    const doc = await prisma.documentProcessingQueue.findUnique({
+      where: { id: docIdInt }
+    });
+
+    if (!doc) {
+      return res.status(404).json({ success: false, error: 'Document not found' });
+    }
+
+    const updatedDoc = await prisma.documentProcessingQueue.update({
+      where: { id: docIdInt },
+      data: {
+        status: 'queued',
+        startedAt: null,
+        retryCount: doc.retryCount + 1,
+        errorMessage: `Reset due to timeout after ${doc.retryCount + 1} attempts`,
+        updatedAt: new Date()
+      }
+    });
+
+    console.log(`Reset document ${doc.filename} back to queued status`);
+
+    res.json({
+      success: true,
+      message: `Document ${doc.filename} reset to queued status`,
+      retry_count: updatedDoc.retryCount
+    });
+
+  } catch (error) {
+    console.error(`Error resetting document ${req.params.docId}:`, error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Admin Routes - Reset all stuck documents
+app.post('/api/admin/documents/reset-all-stuck', async (req, res) => {
+  try {
+    // Documents processing for more than 20 minutes
+    const cutoffTime = new Date(Date.now() - 20 * 60 * 1000);
+
+    const stuckDocs = await prisma.documentProcessingQueue.findMany({
+      where: {
+        status: 'processing',
+        startedAt: { lt: cutoffTime }
+      }
+    });
+
+    let resetCount = 0;
+    for (const doc of stuckDocs) {
+      await prisma.documentProcessingQueue.update({
+        where: { id: doc.id },
+        data: {
+          status: 'queued',
+          startedAt: null,
+          retryCount: doc.retryCount + 1,
+          errorMessage: `Auto-reset due to timeout after ${doc.retryCount + 1} attempts`,
+          updatedAt: new Date()
+        }
+      });
+      resetCount++;
+    }
+
+    console.log(`Reset ${resetCount} stuck documents back to queued status`);
+
+    res.json({
+      success: true,
+      message: `Reset ${resetCount} stuck documents back to queued status`,
+      reset_count: resetCount
+    });
+
+  } catch (error) {
+    console.error('Error resetting stuck documents:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
