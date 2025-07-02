@@ -235,6 +235,46 @@ class DocumentAnalyzer {
     const analysis = this.analyzeDocument(Buffer.alloc(0), filename, contentType);
     return analysis.isSupported && !analysis.isZipFile;
   }
+
+  /**
+   * Get the correct file extension based on document type
+   */
+  getCorrectExtension(documentType, originalExtension) {
+    const typeToExtension = {
+      'PDF': '.pdf',
+      'Word Document': '.docx',
+      'Word Document (Legacy)': '.doc',
+      'Excel Spreadsheet': '.xlsx',
+      'Excel Spreadsheet (Legacy)': '.xls',
+      'PowerPoint Presentation': '.pptx',
+      'PowerPoint Presentation (Legacy)': '.ppt',
+      'Text Document': '.txt',
+      'CSV File': '.csv',
+      'Microsoft Office Document': '.docx', // Default for modern Office
+      'Microsoft Office Document (Legacy)': '.doc' // Default for legacy Office
+    };
+
+    // Return the correct extension based on document type
+    const correctExtension = typeToExtension[documentType];
+    if (correctExtension) {
+      return correctExtension;
+    }
+
+    // Fallback to original extension if we can't determine the type
+    return originalExtension || '.bin';
+  }
+
+  /**
+   * Generate a proper filename with correct extension
+   */
+  generateProperFilename(originalFilename, documentType, contractId) {
+    const correctExtension = this.getCorrectExtension(documentType, '');
+    const baseName = originalFilename ? 
+      originalFilename.replace(/\.[^/.]+$/, '') : // Remove existing extension
+      `document_${Date.now()}`;
+    
+    return `${contractId}_${baseName}${correctExtension}`;
+  }
 }
 
 module.exports = new DocumentAnalyzer();

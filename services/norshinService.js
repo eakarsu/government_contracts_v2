@@ -52,7 +52,7 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
       console.log(`📄 [DEBUG] Document Analysis:`);
       console.log(`📄 [DEBUG] - Type: ${analysis.documentType}`);
       console.log(`📄 [DEBUG] - Size: ${analysis.size} bytes`);
-      console.log(`📄 [DEBUG] - Extension: ${analysis.extension}`);
+      console.log(`📄 [DEBUG] - Original Extension: ${analysis.extension}`);
       console.log(`📄 [DEBUG] - Estimated Pages: ${analysis.estimatedPages}`);
       console.log(`📄 [DEBUG] - Supported: ${analysis.isSupported}`);
       console.log(`📄 [DEBUG] - Is ZIP: ${analysis.isZipFile}`);
@@ -68,6 +68,18 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
         console.log(`⚠️ [DEBUG] Skipping unsupported document type: ${analysis.documentType}`);
         throw new Error(`Unsupported document type: ${analysis.documentType}`);
       }
+
+      // Generate correct filename with proper extension
+      const correctExtension = documentAnalyzer.getCorrectExtension(analysis.documentType, analysis.extension);
+      const properFilename = originalName.includes('_') ? 
+        originalName.split('_')[0] + '_' + originalName.split('_').slice(1).join('_').replace(/\.[^/.]+$/, '') + correctExtension :
+        originalName.replace(/\.[^/.]+$/, '') + correctExtension;
+      
+      console.log(`📄 [DEBUG] - Correct Extension: ${correctExtension}`);
+      console.log(`📄 [DEBUG] - Proper Filename: ${properFilename}`);
+
+      // Update originalName to use the correct extension
+      originalName = properFilename;
 
     } else {
       // Read local file
@@ -79,7 +91,7 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
       console.log(`📄 [DEBUG] Local Document Analysis:`);
       console.log(`📄 [DEBUG] - Type: ${analysis.documentType}`);
       console.log(`📄 [DEBUG] - Size: ${analysis.size} bytes`);
-      console.log(`📄 [DEBUG] - Extension: ${analysis.extension}`);
+      console.log(`📄 [DEBUG] - Original Extension: ${analysis.extension}`);
       console.log(`📄 [DEBUG] - Estimated Pages: ${analysis.estimatedPages}`);
       console.log(`📄 [DEBUG] - Supported: ${analysis.isSupported}`);
       console.log(`📄 [DEBUG] - Is ZIP: ${analysis.isZipFile}`);
@@ -95,6 +107,16 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
         console.log(`⚠️ [DEBUG] Skipping unsupported document type: ${analysis.documentType}`);
         throw new Error(`Unsupported document type: ${analysis.documentType}`);
       }
+
+      // Generate correct filename with proper extension for local files
+      const correctExtension = documentAnalyzer.getCorrectExtension(analysis.documentType, analysis.extension);
+      const properFilename = originalName.replace(/\.[^/.]+$/, '') + correctExtension;
+      
+      console.log(`📄 [DEBUG] - Correct Extension: ${correctExtension}`);
+      console.log(`📄 [DEBUG] - Proper Filename: ${properFilename}`);
+
+      // Update originalName to use the correct extension
+      originalName = properFilename;
     }
     
     const formData = new FormData();
@@ -112,7 +134,13 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
       timeout: 3600000 // 1 hour timeout
     });
 
-    return response.data;
+    // Return the response data along with the corrected filename
+    const responseData = response.data;
+    if (originalName !== (filePathOrUrl.startsWith('http') ? filePathOrUrl.split('/').pop() : filePathOrUrl)) {
+      responseData.correctedFilename = originalName;
+    }
+
+    return responseData;
   } catch (error) {
     console.error('Norshin API Error:', error.response?.data || error.message);
     throw error;

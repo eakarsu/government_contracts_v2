@@ -75,6 +75,7 @@ router.post('/process', async (req, res) => {
           try {
             const urlParts = docUrl.split('/');
             const originalFilename = urlParts[urlParts.length - 1] || `document_${i + 1}`;
+            // Note: filename will be updated with correct extension during processing
             const filename = `${contract.noticeId}_${originalFilename}`;
 
             // Check if already queued
@@ -90,7 +91,7 @@ router.post('/process', async (req, res) => {
               continue;
             }
 
-            // Add to queue
+            // Add to queue (filename will be corrected during processing)
             await prisma.documentProcessingQueue.create({
               data: {
                 contractNoticeId: contract.noticeId,
@@ -360,7 +361,7 @@ router.post('/queue', async (req, res) => {
             const docUrl = resourceLinks[i];
             
             try {
-              // Generate unique filename
+              // Generate unique filename (will be updated with correct extension after analysis)
               const urlParts = docUrl.split('/');
               const originalFilename = urlParts[urlParts.length - 1] || `document_${i + 1}`;
               const filename = `${contract.noticeId}_${originalFilename}`;
@@ -387,7 +388,7 @@ router.post('/queue', async (req, res) => {
                   contractNoticeId: contract.noticeId,
                   documentUrl: docUrl, // This is the actual document URL from resourceLinks
                   description: `Document from: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
-                  filename: filename,
+                  filename: filename, // Will be updated with correct extension during processing
                   status: 'queued'
                 }
               });
@@ -761,9 +762,21 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       );
 
       if (result) {
+        // The filename might have been updated with correct extension in sendToNorshinAPI
+        const finalFilename = result.correctedFilename || doc.filename;
+        
+        // Update the queue entry with the corrected filename if it changed
+        if (finalFilename !== doc.filename) {
+          console.log(`📄 [DEBUG] Updating filename from ${doc.filename} to ${finalFilename}`);
+          await prisma.documentProcessingQueue.update({
+            where: { id: doc.id },
+            data: { filename: finalFilename }
+          });
+        }
+
         // Index the processed document in vector database
         await vectorService.indexDocument({
-          filename: doc.filename,
+          filename: finalFilename,
           content: result.content || result.text || JSON.stringify(result),
           processedData: result
         }, doc.contractNoticeId);
@@ -779,8 +792,8 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         });
 
         successCount++;
-        console.log(`✅ [DEBUG] Successfully processed: ${doc.filename}`);
-        return { success: true, filename: doc.filename, cached: false };
+        console.log(`✅ [DEBUG] Successfully processed: ${finalFilename}`);
+        return { success: true, filename: finalFilename, cached: false };
       } else {
         throw new Error('No result from Norshin API');
       }
