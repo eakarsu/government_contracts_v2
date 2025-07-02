@@ -80,20 +80,31 @@ router.post('/process', async (req, res) => {
 
               // Download and process document
               console.log(`📥 [DEBUG] Downloading document from: ${docUrl}`);
-              const result = await sendToNorshinAPI(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4.1');
-              
-              if (result) {
-                // Index the processed document in vector database
-                await vectorService.indexDocument({
-                  filename: `doc_${contract.noticeId}`,
-                  content: result.content || result.text || JSON.stringify(result),
-                  processedData: result
-                }, contract.noticeId);
+              try {
+                const result = await sendToNorshinAPI(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4.1');
                 
-                downloadedCount++;
-                console.log(`✅ [DEBUG] Downloaded and indexed document for contract: ${contract.noticeId}`);
-              } else {
-                errorsCount++;
+                if (result) {
+                  // Index the processed document in vector database
+                  await vectorService.indexDocument({
+                    filename: `doc_${contract.noticeId}`,
+                    content: result.content || result.text || JSON.stringify(result),
+                    processedData: result
+                  }, contract.noticeId);
+                  
+                  downloadedCount++;
+                  console.log(`✅ [DEBUG] Downloaded and indexed document for contract: ${contract.noticeId}`);
+                } else {
+                  errorsCount++;
+                }
+              } catch (docError) {
+                if (docError.message.includes('ZIP files are not supported') || 
+                    docError.message.includes('Unsupported document type')) {
+                  console.log(`⚠️ [DEBUG] Skipped unsupported document: ${docError.message}`);
+                  // Don't count as error, just skip
+                } else {
+                  console.error(`❌ [DEBUG] Error processing document: ${docError.message}`);
+                  errorsCount++;
+                }
               }
             } catch (error) {
               console.error(`❌ [DEBUG] Error downloading document ${docUrl}:`, error);
@@ -302,21 +313,32 @@ router.post('/download', async (req, res) => {
             }
 
             // Document not found in vector DB, download and process it
-            console.log(`Downloading document from government: ${docUrl}`);
-            const result = await sendToNorshinAPI(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4.1');
-            
-            if (result) {
-              // Index the processed document in vector database
-              await vectorService.indexDocument({
-                filename: `doc_${contract.noticeId}`,
-                content: result.content || result.text || JSON.stringify(result),
-                processedData: result
-              }, contract.noticeId);
+            console.log(`📥 [DEBUG] Downloading document from government: ${docUrl}`);
+            try {
+              const result = await sendToNorshinAPI(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4.1');
               
-              downloadedCount++;
-              console.log(`Downloaded and indexed document for contract: ${contract.noticeId}`);
-            } else {
-              errorsCount++;
+              if (result) {
+                // Index the processed document in vector database
+                await vectorService.indexDocument({
+                  filename: `doc_${contract.noticeId}`,
+                  content: result.content || result.text || JSON.stringify(result),
+                  processedData: result
+                }, contract.noticeId);
+                
+                downloadedCount++;
+                console.log(`✅ [DEBUG] Downloaded and indexed document for contract: ${contract.noticeId}`);
+              } else {
+                errorsCount++;
+              }
+            } catch (docError) {
+              if (docError.message.includes('ZIP files are not supported') || 
+                  docError.message.includes('Unsupported document type')) {
+                console.log(`⚠️ [DEBUG] Skipped unsupported document: ${docError.message}`);
+                // Don't count as error, just skip
+              } else {
+                console.error(`❌ [DEBUG] Error downloading document: ${docError.message}`);
+                errorsCount++;
+              }
             }
           } catch (error) {
             console.error(`Error downloading document ${docUrl}:`, error);

@@ -1,6 +1,7 @@
 const axios = require('axios');
 const fs = require('fs-extra');
 const config = require('../config/env');
+const documentAnalyzer = require('../utils/documentAnalyzer');
 
 // Utility function to send file to Norshin API
 const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', model = 'openai/gpt-4.1') => {
@@ -33,7 +34,7 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
     // Check if it's a URL or local file path
     if (filePathOrUrl.startsWith('http://') || filePathOrUrl.startsWith('https://')) {
       // Download the file from URL
-      console.log(`Downloading document from: ${filePathOrUrl}`);
+      console.log(`📥 [DEBUG] Downloading document from: ${filePathOrUrl}`);
       const downloadResponse = await axios.get(filePathOrUrl, {
         responseType: 'arraybuffer',
         timeout: 3600000, // 1 hour timeout for download
@@ -42,10 +43,58 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
         }
       });
       fileBuffer = Buffer.from(downloadResponse.data);
-      console.log(`Downloaded ${fileBuffer.length} bytes`);
+      console.log(`📥 [DEBUG] Downloaded ${fileBuffer.length} bytes`);
+
+      // Analyze the downloaded document
+      const contentType = downloadResponse.headers['content-type'] || '';
+      const analysis = documentAnalyzer.analyzeDocument(fileBuffer, originalName, contentType);
+      
+      console.log(`📄 [DEBUG] Document Analysis:`);
+      console.log(`📄 [DEBUG] - Type: ${analysis.documentType}`);
+      console.log(`📄 [DEBUG] - Size: ${analysis.size} bytes`);
+      console.log(`📄 [DEBUG] - Extension: ${analysis.extension}`);
+      console.log(`📄 [DEBUG] - Estimated Pages: ${analysis.estimatedPages}`);
+      console.log(`📄 [DEBUG] - Supported: ${analysis.isSupported}`);
+      console.log(`📄 [DEBUG] - Is ZIP: ${analysis.isZipFile}`);
+
+      // Skip ZIP files
+      if (analysis.isZipFile) {
+        console.log(`⚠️ [DEBUG] Skipping ZIP file: ${originalName}`);
+        throw new Error(`ZIP files are not supported: ${originalName}`);
+      }
+
+      // Skip unsupported types
+      if (!analysis.isSupported) {
+        console.log(`⚠️ [DEBUG] Skipping unsupported document type: ${analysis.documentType}`);
+        throw new Error(`Unsupported document type: ${analysis.documentType}`);
+      }
+
     } else {
       // Read local file
       fileBuffer = fs.readFileSync(filePathOrUrl);
+      
+      // Analyze the local file
+      const analysis = documentAnalyzer.analyzeDocument(fileBuffer, originalName, '');
+      
+      console.log(`📄 [DEBUG] Local Document Analysis:`);
+      console.log(`📄 [DEBUG] - Type: ${analysis.documentType}`);
+      console.log(`📄 [DEBUG] - Size: ${analysis.size} bytes`);
+      console.log(`📄 [DEBUG] - Extension: ${analysis.extension}`);
+      console.log(`📄 [DEBUG] - Estimated Pages: ${analysis.estimatedPages}`);
+      console.log(`📄 [DEBUG] - Supported: ${analysis.isSupported}`);
+      console.log(`📄 [DEBUG] - Is ZIP: ${analysis.isZipFile}`);
+
+      // Skip ZIP files
+      if (analysis.isZipFile) {
+        console.log(`⚠️ [DEBUG] Skipping ZIP file: ${originalName}`);
+        throw new Error(`ZIP files are not supported: ${originalName}`);
+      }
+
+      // Skip unsupported types
+      if (!analysis.isSupported) {
+        console.log(`⚠️ [DEBUG] Skipping unsupported document type: ${analysis.documentType}`);
+        throw new Error(`Unsupported document type: ${analysis.documentType}`);
+      }
     }
     
     const formData = new FormData();
