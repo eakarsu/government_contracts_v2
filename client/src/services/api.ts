@@ -39,6 +39,15 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response: AxiosResponse) => {
+    // Ensure response data is properly parsed
+    if (typeof response.data === 'string') {
+      try {
+        response.data = JSON.parse(response.data);
+      } catch (e) {
+        // If it's not JSON, leave it as string
+        console.warn('Response is not valid JSON:', response.data);
+      }
+    }
     return response;
   },
   (error) => {
@@ -52,6 +61,16 @@ api.interceptors.response.use(
     
     if (!isSilentEndpoint) {
       toast.error(message);
+    }
+    
+    // Handle non-JSON error responses
+    if (error.response?.data && typeof error.response.data === 'string') {
+      try {
+        error.response.data = JSON.parse(error.response.data);
+      } catch (e) {
+        // Leave as string if not JSON
+        console.warn('Error response is not valid JSON:', error.response.data);
+      }
     }
     
     return Promise.reject(error);
@@ -125,8 +144,16 @@ class ApiService {
 
   // Documents
   async processDocuments(contractId?: string, limit: number = 50): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/process', { contract_id: contractId, limit });
-    return response.data;
+    try {
+      const response = await api.post<ApiResponse>('/documents/process', { contract_id: contractId, limit });
+      return response.data;
+    } catch (error: any) {
+      // Handle non-JSON responses
+      if (error.response?.data && typeof error.response.data === 'string') {
+        throw new Error(`Server error: ${error.response.data}`);
+      }
+      throw error;
+    }
   }
 
   async processDocumentsNorshin(limit: number = 5): Promise<ApiResponse> {
