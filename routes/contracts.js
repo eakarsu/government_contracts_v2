@@ -6,6 +6,14 @@ const config = require('../config/env');
 
 const router = express.Router();
 
+// Helper function to format dates for SAM.gov API (MM/dd/yyyy format)
+function formatDateForSAM(date) {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month}/${day}/${year}`;
+}
+
 // Fetch contracts from SAM.gov API
 router.post('/fetch', async (req, res) => {
   try {
@@ -51,8 +59,8 @@ router.post('/fetch', async (req, res) => {
         api_key: config.samGovApiKey,
         limit: Math.min(limit, 1000),
         offset,
-        postedFrom: startDate?.toISOString().split('T')[0],
-        postedTo: endDate?.toISOString().split('T')[0]
+        postedFrom: startDate ? formatDateForSAM(startDate) : undefined,
+        postedTo: endDate ? formatDateForSAM(endDate) : undefined
       });
 
       const response = await axios.get(`${samGovUrl}?${params}`);
