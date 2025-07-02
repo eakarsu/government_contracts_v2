@@ -354,6 +354,8 @@ router.post('/queue', async (req, res) => {
           }
 
           // Process each document URL in resourceLinks array
+          console.log(`📄 [DEBUG] Contract ${contract.noticeId} has ${resourceLinks.length} documents in resourceLinks`);
+          
           for (let i = 0; i < resourceLinks.length; i++) {
             const docUrl = resourceLinks[i];
             
@@ -362,6 +364,8 @@ router.post('/queue', async (req, res) => {
               const urlParts = docUrl.split('/');
               const originalFilename = urlParts[urlParts.length - 1] || `document_${i + 1}`;
               const filename = `${contract.noticeId}_${originalFilename}`;
+
+              console.log(`📄 [DEBUG] Queueing document ${i + 1}/${resourceLinks.length}: ${docUrl}`);
 
               // Check if already queued
               const existing = await prisma.documentProcessingQueue.findFirst({
@@ -372,22 +376,24 @@ router.post('/queue', async (req, res) => {
               });
 
               if (existing) {
+                console.log(`⚠️ [DEBUG] Document already queued: ${filename}`);
                 batchSkipped++;
                 continue;
               }
 
-              // Create queue entry for individual document
+              // Create queue entry for individual document (NOT the contract)
               await prisma.documentProcessingQueue.create({
                 data: {
                   contractNoticeId: contract.noticeId,
-                  documentUrl: docUrl,
-                  description: `${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
+                  documentUrl: docUrl, // This is the actual document URL from resourceLinks
+                  description: `Document from: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
                   filename: filename,
                   status: 'queued'
                 }
               });
 
               batchQueued++;
+              console.log(`✅ [DEBUG] Queued individual document: ${filename} from contract ${contract.noticeId}`);
 
             } catch (docError) {
               console.error(`❌ [DEBUG] Error queueing document ${docUrl}:`, docError.message);
@@ -437,11 +443,12 @@ router.post('/queue', async (req, res) => {
     const totalInQueue = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
 
     console.log(`📊 [DEBUG] Parallel queue population completed:`);
-    console.log(`📊 [DEBUG] - Queued: ${queuedCount} new documents`);
+    console.log(`📊 [DEBUG] - Queued: ${queuedCount} new INDIVIDUAL DOCUMENTS (not contracts)`);
     console.log(`📊 [DEBUG] - Skipped: ${skippedCount} documents`);
     console.log(`📊 [DEBUG] - Errors: ${errorCount} documents`);
-    console.log(`📊 [DEBUG] - Total in queue: ${totalInQueue} documents`);
+    console.log(`📊 [DEBUG] - Total in queue: ${totalInQueue} individual document URLs`);
     console.log(`📊 [DEBUG] - Contracts processed: ${processedContracts}/${contracts.length}`);
+    console.log(`📊 [DEBUG] - Average documents per contract: ${(queuedCount / processedContracts).toFixed(1)}`);
 
     res.json({
       success: true,
