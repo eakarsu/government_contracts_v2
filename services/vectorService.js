@@ -1,36 +1,44 @@
-const { ChromaClient } = require('chromadb');
+const { LocalIndex } = require('vectra');
+const { pipeline } = require('@xenova/transformers');
+const path = require('path');
+const fs = require('fs-extra');
 const config = require('../config/env');
 
 class VectorService {
   constructor() {
-    this.client = new ChromaClient({
-      path: config.chromaUrl,
-      auth: config.chromaApiKey ? { provider: 'token', credentials: config.chromaApiKey } : undefined
-    });
-    this.contractsCollection = null;
-    this.documentsCollection = null;
+    this.contractsIndex = null;
+    this.documentsIndex = null;
+    this.embedder = null;
     this.isConnected = false;
+    this.indexPath = path.join(process.cwd(), 'vector_indexes');
   }
 
   async initialize() {
     try {
-      // Create or get collections
-      this.contractsCollection = await this.client.getOrCreateCollection({
-        name: 'contracts',
-        metadata: { description: 'Government contracts collection' }
-      });
+      // Ensure vector indexes directory exists
+      await fs.ensureDir(this.indexPath);
 
-      this.documentsCollection = await this.client.getOrCreateCollection({
-        name: 'documents',
-        metadata: { description: 'Contract documents collection' }
-      });
+      // Initialize the embedding model (using a lightweight model)
+      console.log('🔄 Loading embedding model...');
+      this.embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
 
-      console.log('✅ Vector database (ChromaDB) initialized');
+      // Initialize local vector indexes
+      this.contractsIndex = new LocalIndex(path.join(this.indexPath, 'contracts'));
+      this.documentsIndex = new LocalIndex(path.join(this.indexPath, 'documents'));
+
+      // Create indexes if they don't exist
+      if (!await this.contractsIndex.isIndexCreated()) {
+        await this.contractsIndex.createIndex();
+      }
+      if (!await this.documentsIndex.isIndexCreated()) {
+        await this.documentsIndex.createIndex();
+      }
+
+      console.log('✅ Vector database (Vectra) initialized - Pure Node.js solution');
       this.isConnected = true;
     } catch (error) {
       console.warn('⚠️ Vector database initialization failed:', error.message);
-      console.warn('⚠️ ChromaDB is not available. Vector search features will be disabled.');
-      console.warn('⚠️ To enable vector search, start ChromaDB server: docker run -p 8000:8000 chromadb/chroma');
+      console.warn('⚠️ Vector search features will be disabled.');
       this.isConnected = false;
       // Don't throw error - allow server to start without vector DB
     }
@@ -50,16 +58,21 @@ class VectorService {
         return false;
       }
 
-      await this.contractsCollection.add({
-        ids: [contract.noticeId],
-        documents: [text],
-        metadatas: [{
+      // Generate embedding
+      const embedding = await this.generateEmbedding(text);
+      
+      // Add to index
+      await this.contractsIndex.insertItem({
+        vector: embedding,
+        metadata: {
+          id: contract.noticeId,
           title: contract.title,
           agency: contract.agency,
           naicsCode: contract.naicsCode,
           postedDate: contract.postedDate?.toISOString(),
-          setAsideCode: contract.setAsideCode
-        }]
+          setAsideCode: contract.setAsideCode,
+          text: text
+        }
       });
 
       console.log(`Indexed contract: ${contract.noticeId}`);
@@ -78,15 +91,26 @@ class VectorService {
 
     try {
       const documentId = `${contractId}_${document.filename}`;
+      const text = document.content || document.processedData || '';
       
-      await this.documentsCollection.add({
-        ids: [documentId],
-        documents: [document.content || document.processedData || ''],
-        metadatas: [{
+      if (!text) {
+        console.warn(`Skipping document ${documentId} - no text content`);
+        return false;
+      }
+
+      // Generate embedding
+      const embedding = await this.generateEmbedding(text);
+      
+      // Add to index
+      await this.documentsIndex.insertItem({
+        vector: embedding,
+        metadata: {
+          id: documentId,
           contractId,
           filename: document.filename,
-          processedAt: new Date().toISOString()
-        }]
+          processedAt: new Date().toISOString(),
+          text: text
+        }
       });
 
       console.log(`Indexed document: ${documentId}`);
@@ -104,16 +128,17 @@ class VectorService {
     }
 
     try {
-      const results = await this.contractsCollection.query({
-        queryTexts: [query],
-        nResults: limit
-      });
-
-      return results.ids[0].map((id, index) => ({
-        id,
-        score: results.distances[0][index],
-        metadata: results.metadatas[0][index],
-        document: results.documents[0][index]
+      // Generate embedding for query
+      const queryEmbedding = await this.generateEmbedding(query);
+      
+      // Search in contracts index
+      const results = await this.contractsIndex.queryItems(queryEmbedding, limit);
+      
+      return results.map(result => ({
+        id: result.item.metadata.id,
+        score: result.score,
+        metadata: result.item.metadata,
+        document: result.item.metadata.text
       }));
     } catch (error) {
       console.error('Error searching contracts:', error);
@@ -128,16 +153,17 @@ class VectorService {
     }
 
     try {
-      const results = await this.documentsCollection.query({
-        queryTexts: [query],
-        nResults: limit
-      });
-
-      return results.ids[0].map((id, index) => ({
-        id,
-        score: results.distances[0][index],
-        metadata: results.metadatas[0][index],
-        document: results.documents[0][index]
+      // Generate embedding for query
+      const queryEmbedding = await this.generateEmbedding(query);
+      
+      // Search in documents index
+      const results = await this.documentsIndex.queryItems(queryEmbedding, limit);
+      
+      return results.map(result => ({
+        id: result.item.metadata.id,
+        score: result.score,
+        metadata: result.item.metadata,
+        document: result.item.metadata.text
       }));
     } catch (error) {
       console.error('Error searching documents:', error);
@@ -155,8 +181,8 @@ class VectorService {
     }
 
     try {
-      const contractsCount = await this.contractsCollection.count();
-      const documentsCount = await this.documentsCollection.count();
+      const contractsCount = await this.contractsIndex.listItems().then(items => items.length);
+      const documentsCount = await this.documentsIndex.listItems().then(items => items.length);
 
       return {
         contracts: contractsCount,
@@ -170,6 +196,21 @@ class VectorService {
         documents: 0,
         status: 'error'
       };
+    }
+  }
+
+  async generateEmbedding(text) {
+    if (!this.embedder) {
+      throw new Error('Embedding model not initialized');
+    }
+
+    try {
+      // Generate embedding using the transformer model
+      const output = await this.embedder(text, { pooling: 'mean', normalize: true });
+      return Array.from(output.data);
+    } catch (error) {
+      console.error('Error generating embedding:', error);
+      throw error;
     }
   }
 }

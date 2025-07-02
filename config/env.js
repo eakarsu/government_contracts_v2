@@ -34,9 +34,8 @@ const config = {
   norshinApiUrl: process.env.NORSHIN_API_URL || 'https://norshin.com/api/process-document',
   openRouterApiKey: process.env.OPENROUTER_API_KEY,
   
-  // Vector Database (ChromaDB)
-  chromaUrl: process.env.CHROMA_URL || 'http://localhost:8000',
-  chromaApiKey: process.env.CHROMA_API_KEY,
+  // Vector Database (Vectra - Pure Node.js)
+  vectorIndexPath: process.env.VECTOR_INDEX_PATH || './vector_indexes',
   
   // File Upload
   maxFileSize: parseInt(process.env.MAX_FILE_SIZE) || 50 * 1024 * 1024, // 50MB

@@ -14,12 +14,13 @@
   "dependencies": {
     "@prisma/client": "^5.7.0",
     "axios": "^1.6.2",
-    "chromadb": "^1.10.5",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "fs-extra": "^11.2.0",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "vectra": "^0.4.4",
+    "@xenova/transformers": "^2.6.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",

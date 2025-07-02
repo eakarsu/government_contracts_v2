@@ -151,7 +151,7 @@ app.get('/api/health', (req, res) => {
     status: 'OK', 
     timestamp: new Date(),
     norshinAPI: config.norshinApiUrl,
-    vectorDB: config.chromaUrl
+    vectorDB: 'Vectra (Pure Node.js)'
   });
 });
 
@@ -254,15 +254,14 @@ async function startServer() {
       console.log(`📁 Upload folder: ${path.join(__dirname, config.uploadDir)}`);
       console.log(`📄 Documents folder: ${path.join(__dirname, config.documentsDir)}`);
       console.log(`🌐 Norshin API: ${config.norshinApiUrl}`);
-      console.log(`🔍 Vector DB: ${config.chromaUrl} ${vectorService.isConnected ? '(Connected)' : '(Disconnected)'}`);
+      console.log(`🔍 Vector DB: Vectra (Pure Node.js) ${vectorService.isConnected ? '(Connected)' : '(Disconnected)'}`);
       console.log(`📊 Database: Connected`);
       console.log(`🔑 Environment: ${config.nodeEnv}`);
       
       if (!vectorService.isConnected) {
         console.log('');
-        console.log('💡 To enable vector search features:');
-        console.log('   docker run -p 8000:8000 chromadb/chroma');
-        console.log('   or install ChromaDB locally');
+        console.log('💡 Vector search is using pure Node.js implementation');
+        console.log('   No external dependencies required!');
       }
     });
   } catch (error) {
