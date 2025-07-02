@@ -145,18 +145,21 @@ router.post('/process', async (req, res) => {
 
     console.log(`✅ [DEBUG] Created processing job: ${job.id}`);
 
+    // Use higher concurrency for auto-queue processing
+    const autoConcurrency = Math.min(20, Math.max(10, Math.floor(queuedDocs.length / 10)));
+
     // Respond immediately and start background processing
     res.json({
       success: true,
-      message: `Started processing ${queuedDocs.length} documents from queue`,
+      message: `Started processing ${queuedDocs.length} documents from queue with ${autoConcurrency} workers`,
       job_id: job.id,
       documents_count: queuedDocs.length,
-      concurrency: concurrency,
-      processing_method: 'queue_based_parallel'
+      concurrency: autoConcurrency,
+      processing_method: 'auto_queue_parallel'
     });
 
-    // Process documents in background
-    processDocumentsInParallel(queuedDocs, concurrency, job.id);
+    // Process documents in background with higher concurrency
+    processDocumentsInParallel(queuedDocs, autoConcurrency, job.id);
 
   } catch (error) {
     console.error('❌ [DEBUG] Document processing failed:', error);
@@ -580,7 +583,7 @@ router.get('/queue/status', async (req, res) => {
 // Process queued documents with parallel processing and real-time updates
 router.post('/queue/process', async (req, res) => {
   try {
-    const { concurrency = 5, batch_size = 20 } = req.body;
+    const { concurrency = 15, batch_size = 100 } = req.body; // Increased defaults
     
     console.log('🔄 [DEBUG] Starting parallel document processing...');
     console.log(`🔄 [DEBUG] Concurrency: ${concurrency}, Batch size: ${batch_size}`);
@@ -616,11 +619,11 @@ router.post('/queue/process', async (req, res) => {
     // Respond immediately with job info
     res.json({
       success: true,
-      message: `Started processing ${queuedDocs.length} documents`,
+      message: `Started processing ${queuedDocs.length} documents with ${concurrency} parallel workers`,
       job_id: job.id,
       documents_count: queuedDocs.length,
       concurrency: concurrency,
-      processing_method: 'parallel_async'
+      processing_method: 'true_parallel_workers'
     });
 
     // Process documents in parallel (don't await - run in background)
@@ -635,7 +638,7 @@ router.post('/queue/process', async (req, res) => {
   }
 });
 
-// Helper function to process documents in parallel
+// Helper function to process documents in parallel with true concurrency
 async function processDocumentsInParallel(documents, concurrency, jobId) {
   console.log(`🔄 [DEBUG] Processing ${documents.length} documents with concurrency ${concurrency}`);
   
@@ -644,118 +647,125 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
   let errorCount = 0;
   let skippedCount = 0;
 
-  // Process documents in batches with limited concurrency
-  const processBatch = async (batch) => {
-    const promises = batch.map(async (doc) => {
-      try {
-        console.log(`🔄 [DEBUG] Starting processing: ${doc.filename}`);
-        
-        // Update status to processing
-        await prisma.documentProcessingQueue.update({
-          where: { id: doc.id },
-          data: { 
-            status: 'processing',
-            startedAt: new Date()
-          }
-        });
+  // Create a semaphore to limit concurrency
+  const semaphore = new Array(concurrency).fill(null);
+  let documentIndex = 0;
 
-        const documentId = `${doc.contractNoticeId}_${doc.filename}`;
-        
-        // Check if document is already indexed in vector database
-        const existingDocs = await vectorService.searchDocuments(documentId, 1);
-        
-        if (existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) {
-          console.log(`📄 [DEBUG] Document already indexed, using cached: ${documentId}`);
-          
-          // Update status to completed with cached data
-          await prisma.documentProcessingQueue.update({
-            where: { id: doc.id },
-            data: {
-              status: 'completed',
-              processedData: JSON.stringify({ 
-                cached: true, 
-                content: existingDocs[0].document,
-                source: 'vector_database'
-              }),
-              completedAt: new Date()
-            }
-          });
-
-          skippedCount++;
-          return { success: true, filename: doc.filename, cached: true };
+  // Process single document
+  const processDocument = async (doc) => {
+    try {
+      console.log(`🔄 [DEBUG] Starting processing: ${doc.filename}`);
+      
+      // Update status to processing immediately
+      await prisma.documentProcessingQueue.update({
+        where: { id: doc.id },
+        data: { 
+          status: 'processing',
+          startedAt: new Date()
         }
+      });
 
-        // Process document via Norshin API
-        console.log(`📥 [DEBUG] Sending to Norshin API: ${doc.documentUrl}`);
-        const result = await sendToNorshinAPI(
-          doc.documentUrl,
-          doc.filename || 'document',
-          '',
-          'openai/gpt-4.1'
-        );
-
-        if (result) {
-          // Index the processed document in vector database
-          await vectorService.indexDocument({
-            filename: doc.filename,
-            content: result.content || result.text || JSON.stringify(result),
-            processedData: result
-          }, doc.contractNoticeId);
-
-          // Update status to completed
-          await prisma.documentProcessingQueue.update({
-            where: { id: doc.id },
-            data: {
-              status: 'completed',
-              processedData: JSON.stringify(result),
-              completedAt: new Date()
-            }
-          });
-
-          successCount++;
-          console.log(`✅ [DEBUG] Successfully processed: ${doc.filename}`);
-          return { success: true, filename: doc.filename, cached: false };
-        } else {
-          throw new Error('No result from Norshin API');
-        }
-
-      } catch (error) {
-        console.error(`❌ [DEBUG] Error processing ${doc.filename}:`, error.message);
+      const documentId = `${doc.contractNoticeId}_${doc.filename}`;
+      
+      // Check if document is already indexed in vector database
+      const existingDocs = await vectorService.searchDocuments(documentId, 1);
+      
+      if (existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) {
+        console.log(`📄 [DEBUG] Document already indexed, using cached: ${documentId}`);
         
-        // Update status to failed
+        // Update status to completed with cached data
         await prisma.documentProcessingQueue.update({
           where: { id: doc.id },
           data: {
-            status: 'failed',
-            errorMessage: error.message,
-            failedAt: new Date()
+            status: 'completed',
+            processedData: JSON.stringify({ 
+              cached: true, 
+              content: existingDocs[0].document,
+              source: 'vector_database'
+            }),
+            completedAt: new Date()
           }
         });
 
-        errorCount++;
-        return { success: false, filename: doc.filename, error: error.message };
-      } finally {
-        processedCount++;
-        
-        // Log progress
-        console.log(`📊 [DEBUG] Progress: ${processedCount}/${documents.length} (${Math.round(processedCount/documents.length*100)}%)`);
+        skippedCount++;
+        return { success: true, filename: doc.filename, cached: true };
       }
-    });
 
-    return Promise.allSettled(promises);
+      // Process document via Norshin API
+      console.log(`📥 [DEBUG] Sending to Norshin API: ${doc.documentUrl}`);
+      const result = await sendToNorshinAPI(
+        doc.documentUrl,
+        doc.filename || 'document',
+        '',
+        'openai/gpt-4.1'
+      );
+
+      if (result) {
+        // Index the processed document in vector database
+        await vectorService.indexDocument({
+          filename: doc.filename,
+          content: result.content || result.text || JSON.stringify(result),
+          processedData: result
+        }, doc.contractNoticeId);
+
+        // Update status to completed
+        await prisma.documentProcessingQueue.update({
+          where: { id: doc.id },
+          data: {
+            status: 'completed',
+            processedData: JSON.stringify(result),
+            completedAt: new Date()
+          }
+        });
+
+        successCount++;
+        console.log(`✅ [DEBUG] Successfully processed: ${doc.filename}`);
+        return { success: true, filename: doc.filename, cached: false };
+      } else {
+        throw new Error('No result from Norshin API');
+      }
+
+    } catch (error) {
+      console.error(`❌ [DEBUG] Error processing ${doc.filename}:`, error.message);
+      
+      // Update status to failed
+      await prisma.documentProcessingQueue.update({
+        where: { id: doc.id },
+        data: {
+          status: 'failed',
+          errorMessage: error.message,
+          failedAt: new Date()
+        }
+      });
+
+      errorCount++;
+      return { success: false, filename: doc.filename, error: error.message };
+    } finally {
+      processedCount++;
+      
+      // Log progress every 10 documents
+      if (processedCount % 10 === 0 || processedCount === documents.length) {
+        console.log(`📊 [DEBUG] Progress: ${processedCount}/${documents.length} (${Math.round(processedCount/documents.length*100)}%) - Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}`);
+      }
+    }
   };
 
-  // Split documents into batches for controlled concurrency
-  const batches = [];
-  for (let i = 0; i < documents.length; i += concurrency) {
-    batches.push(documents.slice(i, i + concurrency));
-  }
+  // Worker function that processes documents from the queue
+  const worker = async () => {
+    while (documentIndex < documents.length) {
+      const currentIndex = documentIndex++;
+      if (currentIndex < documents.length) {
+        await processDocument(documents[currentIndex]);
+      }
+    }
+  };
 
-  // Process batches sequentially, but documents within each batch in parallel
-  for (let i = 0; i < batches.length; i++) {
-    console.log(`🔄 [DEBUG] Processing batch ${i + 1}/${batches.length} (${batches[i].length} documents)`);
-    await processBatch(batches[i]);
-  }
+  // Start all workers in parallel
+  console.log(`🚀 [DEBUG] Starting ${concurrency} parallel workers...`);
+  const workers = Array(concurrency).fill(null).map(() => worker());
+  
+  // Wait for all workers to complete
+  await Promise.allSettled(workers);
 
   // Update job status
   try {
