@@ -10,7 +10,7 @@ import type {
   AppConfig,
   ContractFetchForm,
   SearchForm,
-} from '@/types';
+} from '../types';
 
 // Create axios instance with default config
 const api = axios.create({
