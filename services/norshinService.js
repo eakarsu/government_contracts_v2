@@ -72,6 +72,12 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
 
 // Utility function to process text content with AI (no file upload)
 const processTextWithAI = async (textContent, analysisType = 'summary', model = 'openai/gpt-4.1') => {
+  console.log(`🤖 [DEBUG] processTextWithAI called with:`, {
+    textLength: textContent?.length || 0,
+    analysisType,
+    model
+  });
+  
   try {
     const prompt = `Analyze this government contract document and provide a detailed ${analysisType}. 
 
@@ -84,7 +90,9 @@ Please provide:
 3. Risk assessment
 4. Summary of terms`;
 
-    console.log(`Processing text content with AI for ${analysisType}...`);
+    console.log(`🤖 [DEBUG] Processing text content with AI for ${analysisType}...`);
+    console.log(`🤖 [DEBUG] Norshin API URL: ${config.norshinApiUrl}`);
+    console.log(`🤖 [DEBUG] API Key present: ${!!config.norshinApiKey}`);
     
     // If Norshin API has a text-only endpoint, use it
     // Otherwise, create a temporary text file and send it
@@ -100,16 +108,23 @@ Please provide:
       timeout: 120000 // 2 minutes timeout
     });
 
+    console.log(`✅ [DEBUG] Norshin API response received:`, response.status);
     return response.data;
   } catch (error) {
+    console.log(`⚠️ [DEBUG] Text endpoint failed:`, error.message);
+    console.log(`🔄 [DEBUG] Trying file upload fallback...`);
+    
     // Fallback: if text endpoint doesn't exist, use the regular file endpoint
     console.log('Text endpoint not available, using file upload fallback...');
     
     // Create a temporary text file
     const tempFilePath = `/tmp/temp_analysis_${Date.now()}.txt`;
+    console.log(`📁 [DEBUG] Creating temp file: ${tempFilePath}`);
+    
     await fs.writeFile(tempFilePath, textContent);
     
     try {
+      console.log(`🔄 [DEBUG] Calling sendToNorshinAPI with temp file...`);
       const result = await sendToNorshinAPI(
         tempFilePath, 
         'document_analysis.txt', 
@@ -118,10 +133,13 @@ Please provide:
       );
       
       // Clean up temp file
+      console.log(`🗑️ [DEBUG] Cleaning up temp file...`);
       await fs.remove(tempFilePath);
       
+      console.log(`✅ [DEBUG] Fallback method succeeded`);
       return result;
     } catch (fallbackError) {
+      console.error(`❌ [DEBUG] Fallback method also failed:`, fallbackError.message);
       // Clean up temp file even if processing fails
       await fs.remove(tempFilePath).catch(() => {});
       throw fallbackError;

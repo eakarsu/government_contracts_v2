@@ -8,13 +8,20 @@ const router = express.Router();
 
 // Process documents already in vector database (AI analysis/processing)
 router.post('/process', async (req, res) => {
+  console.log('🔄 [DEBUG] Process documents endpoint called');
+  console.log('🔄 [DEBUG] Request body:', req.body);
+  
   try {
     const { contract_id, limit = 50, analysis_type = 'summary' } = req.body;
+    console.log('🔄 [DEBUG] Parsed parameters:', { contract_id, limit, analysis_type });
 
     // Get all documents from vector database
+    console.log('🔄 [DEBUG] Getting vector database stats...');
     const vectorStats = await vectorService.getCollectionStats();
+    console.log('🔄 [DEBUG] Vector stats:', vectorStats);
     
     if (vectorStats.documents === 0) {
+      console.log('⚠️ [DEBUG] No documents in vector database');
       return res.json({ 
         message: 'No documents found in vector database. Use /documents/download to fetch documents first.', 
         processed_count: 0 
@@ -22,12 +29,14 @@ router.post('/process', async (req, res) => {
     }
 
     // Create processing job
+    console.log('🔄 [DEBUG] Creating indexing job...');
     const job = await prisma.indexingJob.create({
       data: {
         jobType: 'document_processing',
         status: 'running'
       }
     });
+    console.log('✅ [DEBUG] Created job with ID:', job.id);
 
     let processedCount = 0;
     let errorsCount = 0;
@@ -35,37 +44,48 @@ router.post('/process', async (req, res) => {
     try {
       // Search for documents in vector database
       let searchQuery = contract_id ? contract_id : "contract document";
+      console.log('🔍 [DEBUG] Searching vector database with query:', searchQuery);
       const vectorDocs = await vectorService.searchDocuments(searchQuery, limit);
+      console.log('🔍 [DEBUG] Found vector documents:', vectorDocs.length);
 
       if (vectorDocs.length === 0) {
+        console.log('⚠️ [DEBUG] No documents found matching criteria');
         return res.json({ 
           message: 'No documents found in vector database matching criteria', 
           processed_count: 0 
         });
       }
 
-      console.log(`Processing ${vectorDocs.length} documents from vector database...`);
+      console.log(`🔄 [DEBUG] Processing ${vectorDocs.length} documents from vector database...`);
 
       for (const doc of vectorDocs) {
         try {
+          console.log(`🔄 [DEBUG] Processing document: ${doc.id}`);
+          
           // Process document content with AI analysis
           const documentContent = doc.document;
           const contractId = doc.metadata.contractId;
           
+          console.log(`📄 [DEBUG] Document content length: ${documentContent?.length || 0}`);
+          console.log(`📄 [DEBUG] Contract ID: ${contractId}`);
+          
           if (!documentContent || documentContent.length < 100) {
-            console.log(`Skipping document ${doc.id} - insufficient content`);
+            console.log(`⚠️ [DEBUG] Skipping document ${doc.id} - insufficient content (${documentContent?.length || 0} chars)`);
             continue;
           }
 
           // Process document content with AI analysis (no downloading)
+          console.log(`🤖 [DEBUG] Calling processTextWithAI for document ${doc.id}...`);
           const analysisResult = await processTextWithAI(
             documentContent.substring(0, 4000), // Limit content size
             analysis_type,
             'openai/gpt-4.1'
           );
+          console.log(`🤖 [DEBUG] AI analysis result:`, analysisResult ? 'Success' : 'Failed');
 
           if (analysisResult) {
             // Store the analysis result
+            console.log(`💾 [DEBUG] Storing analysis result for document ${doc.id}...`);
             await prisma.documentAnalysis.upsert({
               where: { 
                 documentId: doc.id 
@@ -85,23 +105,25 @@ router.post('/process', async (req, res) => {
             });
 
             processedCount++;
-            console.log(`Processed analysis for document: ${doc.id}`);
+            console.log(`✅ [DEBUG] Processed analysis for document: ${doc.id}`);
           } else {
+            console.log(`❌ [DEBUG] No analysis result for document: ${doc.id}`);
             errorsCount++;
           }
 
         } catch (error) {
-          console.error(`Error processing document ${doc.id}:`, error);
+          console.error(`❌ [DEBUG] Error processing document ${doc.id}:`, error);
           errorsCount++;
         }
       }
 
     } catch (error) {
-      console.error('Vector database search failed:', error);
+      console.error('❌ [DEBUG] Vector database search failed:', error);
       errorsCount++;
     }
 
     // Update job status
+    console.log('🔄 [DEBUG] Updating job status...');
     await prisma.indexingJob.update({
       where: { id: job.id },
       data: {
@@ -111,18 +133,23 @@ router.post('/process', async (req, res) => {
         completedAt: new Date()
       }
     });
+    console.log('✅ [DEBUG] Job status updated');
 
-    res.json({
+    const response = {
       success: true,
       job_id: job.id,
       processed_count: processedCount,
       errors_count: errorsCount,
       message: `Processed AI analysis for ${processedCount} documents from vector database`,
       source: 'vector_database'
-    });
+    };
+    
+    console.log('📤 [DEBUG] Sending response:', response);
+    res.json(response);
 
   } catch (error) {
-    console.error('Document processing failed:', error);
+    console.error('❌ [DEBUG] Document processing failed:', error);
+    console.error('❌ [DEBUG] Error stack:', error.stack);
     res.status(500).json({ error: error.message });
   }
 });

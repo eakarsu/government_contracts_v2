@@ -147,26 +147,36 @@ class VectorService {
   }
 
   async searchDocuments(query, limit = 10) {
+    console.log(`🔍 [DEBUG] searchDocuments called with query: "${query}", limit: ${limit}`);
+    
     if (!this.isConnected) {
-      console.warn('Vector database not connected - cannot perform vector search');
+      console.warn('⚠️ [DEBUG] Vector database not connected - cannot perform vector search');
       return [];
     }
 
     try {
       // Generate embedding for query
+      console.log(`🔍 [DEBUG] Generating embedding for query...`);
       const queryEmbedding = await this.generateEmbedding(query);
+      console.log(`🔍 [DEBUG] Generated embedding with length: ${queryEmbedding.length}`);
       
       // Search in documents index
+      console.log(`🔍 [DEBUG] Searching documents index...`);
       const results = await this.documentsIndex.queryItems(queryEmbedding, limit);
+      console.log(`🔍 [DEBUG] Raw search results count: ${results.length}`);
       
-      return results.map(result => ({
+      const mappedResults = results.map(result => ({
         id: result.item.metadata.id,
         score: result.score,
         metadata: result.item.metadata,
         document: result.item.metadata.text
       }));
+      
+      console.log(`🔍 [DEBUG] Mapped results:`, mappedResults.map(r => ({ id: r.id, score: r.score, textLength: r.document?.length || 0 })));
+      
+      return mappedResults;
     } catch (error) {
-      console.error('Error searching documents:', error);
+      console.error('❌ [DEBUG] Error searching documents:', error);
       return [];
     }
   }
