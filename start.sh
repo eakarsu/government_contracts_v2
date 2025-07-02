@@ -112,7 +112,7 @@ sleep 3
 if [ -d "client" ]; then
     print_status "Starting React client..."
     cd client
-    BROWSER=none npm start &
+    PORT=3001 BROWSER=none npm start &
     CLIENT_PID=$!
     echo $CLIENT_PID > ../logs/client.pid
     cd ..
