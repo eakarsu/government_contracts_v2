@@ -975,12 +975,10 @@ router.post('/queue/reset', async (req, res) => {
     
     console.log(`🔄 [DEBUG] Reset ${processingDocs.count} processing documents to queued`);
     
-    // 3. Clear all completed and failed documents
-    const clearedDocs = await prisma.documentProcessingQueue.deleteMany({
-      where: { status: { in: ['completed', 'failed'] } }
-    });
+    // 3. Clear ALL documents from queue (including queued ones)
+    const clearedDocs = await prisma.documentProcessingQueue.deleteMany({});
     
-    console.log(`🗑️ [DEBUG] Cleared ${clearedDocs.count} completed/failed documents`);
+    console.log(`🗑️ [DEBUG] Cleared ${clearedDocs.count} documents from queue (all statuses)`);
     
     // 4. Get final status
     const queueStatus = await prisma.documentProcessingQueue.groupBy({
