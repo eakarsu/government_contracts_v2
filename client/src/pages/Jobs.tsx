@@ -108,10 +108,10 @@ const Jobs: React.FC = () => {
                       {job.records_processed?.toLocaleString() || 0}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {job.started_at ? formatDate(job.started_at) : '-'}
+                      {job.start_date ? formatDate(job.start_date) : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {job.completed_at ? formatDate(job.completed_at) : '-'}
+                      {job.end_date ? formatDate(job.end_date) : '-'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                       {job.error_message || '-'}
