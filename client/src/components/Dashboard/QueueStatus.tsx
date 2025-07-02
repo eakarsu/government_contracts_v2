@@ -48,8 +48,8 @@ const QueueStatus: React.FC = () => {
     : 0;
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <div className="flex justify-between items-center mb-4">
+    <div className="bg-white shadow rounded-lg p-6 h-fit">
+      <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-medium text-gray-900">Processing Queue</h3>
         {queueStatus.is_processing && (
           <div className="flex items-center text-sm text-yellow-600">
@@ -59,22 +59,22 @@ const QueueStatus: React.FC = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <div className="text-2xl font-bold text-blue-600">{queueStatus.queued}</div>
-          <div className="text-sm text-blue-600">Queued</div>
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="bg-blue-50 p-3 rounded-lg text-center">
+          <div className="text-xl font-bold text-blue-600">{queueStatus.queued}</div>
+          <div className="text-xs text-blue-600">Queued</div>
         </div>
-        <div className="bg-yellow-50 p-4 rounded-lg">
-          <div className="text-2xl font-bold text-yellow-600">{queueStatus.processing}</div>
-          <div className="text-sm text-yellow-600">Processing</div>
+        <div className="bg-yellow-50 p-3 rounded-lg text-center">
+          <div className="text-xl font-bold text-yellow-600">{queueStatus.processing}</div>
+          <div className="text-xs text-yellow-600">Processing</div>
         </div>
-        <div className="bg-green-50 p-4 rounded-lg">
-          <div className="text-2xl font-bold text-green-600">{queueStatus.completed}</div>
-          <div className="text-sm text-green-600">Completed</div>
+        <div className="bg-green-50 p-3 rounded-lg text-center">
+          <div className="text-xl font-bold text-green-600">{queueStatus.completed}</div>
+          <div className="text-xs text-green-600">Completed</div>
         </div>
-        <div className="bg-red-50 p-4 rounded-lg">
-          <div className="text-2xl font-bold text-red-600">{queueStatus.failed}</div>
-          <div className="text-sm text-red-600">Failed</div>
+        <div className="bg-red-50 p-3 rounded-lg text-center">
+          <div className="text-xl font-bold text-red-600">{queueStatus.failed}</div>
+          <div className="text-xs text-red-600">Failed</div>
         </div>
       </div>
 

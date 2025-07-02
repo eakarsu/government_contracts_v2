@@ -35,13 +35,13 @@ const QuickActions: React.FC = () => {
   });
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-      <div className="grid grid-cols-1 gap-3">
+    <div className="bg-white shadow rounded-lg p-6 h-fit">
+      <h3 className="text-lg font-medium text-gray-900 mb-6">Quick Actions</h3>
+      <div className="space-y-4">
         <button
           onClick={() => fetchContractsMutation.mutate()}
           disabled={fetchContractsMutation.isPending}
-          className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
         >
           {fetchContractsMutation.isPending ? (
             <LoadingSpinner size="sm" color="white" />
@@ -53,7 +53,7 @@ const QuickActions: React.FC = () => {
         <button
           onClick={() => indexContractsMutation.mutate()}
           disabled={indexContractsMutation.isPending}
-          className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition-colors"
         >
           {indexContractsMutation.isPending ? (
             <LoadingSpinner size="sm" color="white" />
@@ -65,7 +65,7 @@ const QuickActions: React.FC = () => {
         <button
           onClick={() => processDocumentsMutation.mutate()}
           disabled={processDocumentsMutation.isPending}
-          className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
         >
           {processDocumentsMutation.isPending ? (
             <LoadingSpinner size="sm" color="white" />
@@ -77,7 +77,7 @@ const QuickActions: React.FC = () => {
         <button
           onClick={() => queueDocumentsMutation.mutate()}
           disabled={queueDocumentsMutation.isPending}
-          className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50"
+          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 transition-colors"
         >
           {queueDocumentsMutation.isPending ? (
             <LoadingSpinner size="sm" color="white" />

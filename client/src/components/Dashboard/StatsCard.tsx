@@ -35,7 +35,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
+    <div className="bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow">
       <div className="flex items-center">
         {icon && (
           <div className={`flex-shrink-0 p-3 rounded-lg ${colorClasses[color]}`}>
@@ -43,12 +43,12 @@ const StatsCard: React.FC<StatsCardProps> = ({
           </div>
         )}
         <div className={icon ? 'ml-4' : ''}>
-          <div className="text-sm font-medium text-gray-500">{title}</div>
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-sm font-medium text-gray-500 mb-1">{title}</div>
+          <div className="text-3xl font-bold text-gray-900">
             {formatValue(value)}
           </div>
           {trend && (
-            <div className="flex items-center mt-1">
+            <div className="flex items-center mt-2">
               <span
                 className={`text-sm font-medium ${
                   trend.isPositive ? 'text-green-600' : 'text-red-600'
