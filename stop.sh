@@ -52,7 +52,7 @@ pkill -f "node.*3001" 2>/dev/null || true
 # Stop database
 if [ -f docker-compose.yml ]; then
     print_status "Stopping PostgreSQL database..."
-    docker-compose down
+    docker-compose stop postgres
     print_success "Database stopped"
 fi
 
