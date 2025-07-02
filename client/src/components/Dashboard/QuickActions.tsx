@@ -88,62 +88,62 @@ const QuickActions: React.FC = () => {
       </div>
 
       {/* Success Messages */}
-      {fetchContractsMutation.isSuccess && (
+      {fetchContractsMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
           <div className="text-green-800 text-sm">Contracts fetched successfully!</div>
         </div>
-      )}
+      ) : null}
 
-      {indexContractsMutation.isSuccess && (
+      {indexContractsMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
           <div className="text-green-800 text-sm">Contracts indexed successfully!</div>
         </div>
-      )}
+      ) : null}
 
-      {processDocumentsMutation.isSuccess && (
+      {processDocumentsMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
           <div className="text-green-800 text-sm">Documents processing started!</div>
         </div>
-      )}
+      ) : null}
 
-      {queueDocumentsMutation.isSuccess && (
+      {queueDocumentsMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
           <div className="text-green-800 text-sm">Documents queued successfully!</div>
         </div>
-      )}
+      ) : null}
 
       {/* Error Messages */}
-      {fetchContractsMutation.error && (
+      {fetchContractsMutation.error ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
             Error fetching contracts: {fetchContractsMutation.error instanceof Error ? fetchContractsMutation.error.message : 'Unknown error'}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {indexContractsMutation.error && (
+      {indexContractsMutation.error ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
             Error indexing contracts: {indexContractsMutation.error instanceof Error ? indexContractsMutation.error.message : 'Unknown error'}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {processDocumentsMutation.error && (
+      {processDocumentsMutation.error ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
             Error processing documents: {processDocumentsMutation.error instanceof Error ? processDocumentsMutation.error.message : 'Unknown error'}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {queueDocumentsMutation.error && (
+      {queueDocumentsMutation.error ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
             Error queueing documents: {queueDocumentsMutation.error instanceof Error ? queueDocumentsMutation.error.message : 'Unknown error'}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
