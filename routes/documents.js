@@ -519,7 +519,7 @@ router.get('/queue/status', async (req, res) => {
 
     const processingSpeed = Math.round(recentCompletions); // per hour
 
-    console.log(`📊 [DEBUG] Queue status: ${queuedCount} queued, ${processingCount} processing, ${completedCount} completed, ${failedCount} failed`);
+    // console.log(`📊 [DEBUG] Queue status: ${queuedCount} queued, ${processingCount} processing, ${completedCount} completed, ${failedCount} failed`);
 
     res.json({
       success: true,
