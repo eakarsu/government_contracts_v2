@@ -19,6 +19,37 @@ services:
       timeout: 5s
       retries: 5
 
+  # Node.js API server (for development)
+  api:
+    build: .
+    container_name: contract_api
+    environment:
+      DATABASE_URL: postgresql://contract_user:contract_password@postgres:5432/contract_db
+      NODE_ENV: development
+      PORT: 3000
+      API_BASE_URL: http://localhost:3000
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      SAM_GOV_API_KEY: ${SAM_GOV_API_KEY}
+      NORSHIN_API_KEY: ${NORSHIN_API_KEY}
+      NORSHIN_API_URL: ${NORSHIN_API_URL}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./documents:/app/documents
+      - ./queue_documents:/app/queue_documents
+      - ./processed_queue_documents:/app/processed_queue_documents
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Legacy Flask app (kept for compatibility)
   app:
     build: .
     container_name: contract_app
