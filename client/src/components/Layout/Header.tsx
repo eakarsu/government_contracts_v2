@@ -1,6 +1,6 @@
 import React from 'react';
 import { Menu, Bell, Search, Settings } from 'lucide-react';
-import { AppConfig } from '@/types';
+import { AppConfig } from '../../types';
 
 interface HeaderProps {
   onMenuClick: () => void;
