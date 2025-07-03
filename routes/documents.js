@@ -1243,6 +1243,12 @@ router.post('/queue/stop', async (req, res) => {
 // Download all documents to local folder (no AI processing)
 router.post('/download-all', async (req, res) => {
   try {
+    console.log('🚀 [DEBUG] ========================================');
+    console.log('🚀 [DEBUG] DOWNLOAD-ALL ENDPOINT CALLED!');
+    console.log('🚀 [DEBUG] Request received at:', new Date().toISOString());
+    console.log('🚀 [DEBUG] Request body:', JSON.stringify(req.body, null, 2));
+    console.log('🚀 [DEBUG] ========================================');
+    
     const { 
       limit = 1000, 
       download_folder = 'downloaded_documents',
