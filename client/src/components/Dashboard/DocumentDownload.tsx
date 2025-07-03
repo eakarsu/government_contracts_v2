@@ -64,6 +64,33 @@ const DocumentDownload: React.FC = () => {
     return () => clearInterval(interval);
   }, [isDownloading]);
 
+  const handleFetchContracts = async () => {
+    try {
+      console.log('🔄 [DEBUG] Fetch Contracts button clicked');
+      
+      const fetchOptions = {
+        start_date: '', // You can add date inputs if needed
+        end_date: '',
+        limit: downloadOptions.limit,
+        offset: 0
+      };
+
+      console.log('🔄 [DEBUG] Calling apiService.fetchContracts with options:', fetchOptions);
+      const response = await apiService.fetchContracts(fetchOptions);
+      
+      if (response.success) {
+        toast.success(`Successfully fetched contracts from government API`);
+        console.log('✅ [DEBUG] Contracts fetched successfully:', response);
+      } else {
+        toast.error(response.message || 'Failed to fetch contracts');
+        console.error('❌ [DEBUG] Failed to fetch contracts:', response);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to fetch contracts');
+      console.error('❌ [DEBUG] Error fetching contracts:', error);
+    }
+  };
+
   const handleStartDownload = async () => {
     try {
       setIsDownloading(true);
@@ -199,8 +226,15 @@ const DocumentDownload: React.FC = () => {
           </div>
         </div>
 
-        {/* Download Button */}
+        {/* Action Buttons */}
         <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={handleFetchContracts}
+            className="px-6 py-3 rounded-lg font-medium flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+          >
+            📋 Fetch Contracts
+          </button>
+
           <button
             onClick={handleStartDownload}
             disabled={isDownloading}
