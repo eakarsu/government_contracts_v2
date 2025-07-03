@@ -27,8 +27,6 @@ router.get('/ping', (req, res) => {
   });
 });
 
-// Add ping to the test route's available routes list
-
 // Test route to verify router is working
 router.get('/test', (req, res) => {
   console.log('');
@@ -1403,6 +1401,88 @@ router.post('/queue/stop', async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: error.message 
+    });
+  }
+});
+
+// Test download from specific contract with documents
+router.post('/download-test', async (req, res) => {
+  try {
+    console.log('🧪 [DEBUG] TEST DOWNLOAD ENDPOINT CALLED!');
+    
+    // Get the contract that has documents (from debug output)
+    const contractWithDocs = await prisma.contract.findUnique({
+      where: { noticeId: 'ff856adb3f23477590a162e253ae17b4' },
+      select: {
+        noticeId: true,
+        title: true,
+        resourceLinks: true,
+        agency: true
+      }
+    });
+
+    if (!contractWithDocs) {
+      return res.json({
+        success: false,
+        message: 'Test contract not found'
+      });
+    }
+
+    console.log('🧪 [DEBUG] Found test contract:', contractWithDocs.noticeId);
+    console.log('🧪 [DEBUG] Document URLs:', contractWithDocs.resourceLinks);
+
+    // Create download directory
+    const downloadPath = path.join(process.cwd(), 'test_downloads');
+    await fs.ensureDir(downloadPath);
+    console.log('🧪 [DEBUG] Created test download directory:', downloadPath);
+
+    // Download just the first document as a test
+    const firstDocUrl = contractWithDocs.resourceLinks[0];
+    console.log('🧪 [DEBUG] Testing download of:', firstDocUrl);
+
+    try {
+      const response = await axios.get(firstDocUrl, {
+        responseType: 'arraybuffer',
+        timeout: 60000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)'
+        }
+      });
+
+      const fileBuffer = Buffer.from(response.data);
+      const testFilename = `test_${Date.now()}.pdf`;
+      const testFilePath = path.join(downloadPath, testFilename);
+      
+      await fs.writeFile(testFilePath, fileBuffer);
+      
+      console.log('🧪 [DEBUG] Test download successful!');
+      console.log('🧪 [DEBUG] File saved to:', testFilePath);
+      console.log('🧪 [DEBUG] File size:', fileBuffer.length, 'bytes');
+
+      res.json({
+        success: true,
+        message: 'Test download successful!',
+        test_file: testFilename,
+        file_size: fileBuffer.length,
+        download_path: testFilePath,
+        source_url: firstDocUrl
+      });
+
+    } catch (downloadError) {
+      console.error('🧪 [DEBUG] Test download failed:', downloadError.message);
+      res.json({
+        success: false,
+        message: 'Test download failed',
+        error: downloadError.message,
+        source_url: firstDocUrl
+      });
+    }
+
+  } catch (error) {
+    console.error('🧪 [DEBUG] Test endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
