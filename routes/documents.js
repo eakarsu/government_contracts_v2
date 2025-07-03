@@ -666,12 +666,9 @@ router.post('/queue/process', async (req, res) => {
 
     console.log(`🔄 [DEBUG] Found ${queuedDocs.length} documents to process`);
 
-    // Auto-scale concurrency based on queue size if processing all
-    let finalConcurrency = concurrency;
-    if (process_all && queuedDocs.length > 50) {
-      finalConcurrency = Math.min(100, Math.max(50, Math.floor(queuedDocs.length / 2)));
-      console.log(`🔄 [DEBUG] Auto-scaled concurrency to ${finalConcurrency} for ${queuedDocs.length} documents`);
-    }
+    // Process ALL documents simultaneously (no concurrency limit)
+    let finalConcurrency = queuedDocs.length; // Set concurrency to total number of documents
+    console.log(`🔄 [DEBUG] Processing ALL ${queuedDocs.length} documents simultaneously (no concurrency limit)`);
 
     // Create processing job for tracking
     const job = await prisma.indexingJob.create({
@@ -687,11 +684,11 @@ router.post('/queue/process', async (req, res) => {
     // Respond immediately with job info
     res.json({
       success: true,
-      message: `Started processing ALL ${queuedDocs.length} documents with ${finalConcurrency} parallel workers`,
+      message: `Started processing ALL ${queuedDocs.length} documents SIMULTANEOUSLY (no limits)`,
       job_id: job.id,
       documents_count: queuedDocs.length,
       concurrency: finalConcurrency,
-      processing_method: 'maximum_parallel_processing',
+      processing_method: 'unlimited_simultaneous_processing',
       process_all: process_all
     });
 
@@ -707,18 +704,14 @@ router.post('/queue/process', async (req, res) => {
   }
 });
 
-// Helper function to process documents in parallel with true concurrency
+// Helper function to process ALL documents simultaneously (no concurrency limits)
 async function processDocumentsInParallel(documents, concurrency, jobId) {
-  console.log(`🔄 [DEBUG] Processing ${documents.length} documents with concurrency ${concurrency}`);
+  console.log(`🔄 [DEBUG] Processing ALL ${documents.length} documents SIMULTANEOUSLY (no concurrency limits)`);
   
   let processedCount = 0;
   let successCount = 0;
   let errorCount = 0;
   let skippedCount = 0;
-
-  // Create a semaphore to limit concurrency
-  const semaphore = new Array(concurrency).fill(null);
-  let documentIndex = 0;
 
   // Process single document
   const processDocument = async (doc) => {
@@ -831,22 +824,14 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
     }
   };
 
-  // Worker function that processes documents from the queue
-  const worker = async () => {
-    while (documentIndex < documents.length) {
-      const currentIndex = documentIndex++;
-      if (currentIndex < documents.length) {
-        await processDocument(documents[currentIndex]);
-      }
-    }
-  };
-
-  // Start all workers in parallel
-  console.log(`🚀 [DEBUG] Starting ${concurrency} parallel workers...`);
-  const workers = Array(concurrency).fill(null).map(() => worker());
+  // Process ALL documents simultaneously (no worker pattern)
+  console.log(`🚀 [DEBUG] Starting ALL ${documents.length} documents simultaneously...`);
   
-  // Wait for all workers to complete
-  await Promise.allSettled(workers);
+  // Create a promise for each document and run them ALL in parallel
+  const allPromises = documents.map(doc => processDocument(doc));
+  
+  // Wait for ALL documents to complete
+  await Promise.allSettled(allPromises);
 
   // Update job status
   try {
