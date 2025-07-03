@@ -12,7 +12,20 @@ const router = express.Router();
 
 // Test route to verify router is working
 router.get('/test', (req, res) => {
-  res.json({ message: 'Documents router is working!', timestamp: new Date() });
+  console.log('📋 [DEBUG] Test route called successfully');
+  res.json({ 
+    message: 'Documents router is working!', 
+    timestamp: new Date(),
+    routes_available: [
+      '/test',
+      '/download/debug',
+      '/download/status',
+      '/download-all',
+      '/process',
+      '/queue',
+      '/queue/status'
+    ]
+  });
 });
 
 // Process documents using queue system workflow
@@ -1904,4 +1917,5 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
   }
 }
 
+console.log('📋 [DEBUG] Documents router module loaded successfully');
 module.exports = router;

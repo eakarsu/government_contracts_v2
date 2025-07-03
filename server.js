@@ -72,6 +72,9 @@ app.use('/api/search', searchRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/recommendations', recommendationsRouter);
 
+// Debug: Log when documents router is loaded
+console.log('📋 [DEBUG] Documents router mounted at /api/documents');
+
 // Serve main page
 app.get('/', (req, res) => {
   const indexPath = path.join(__dirname, 'public', 'index.html');
