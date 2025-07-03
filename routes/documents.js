@@ -10,6 +10,11 @@ const documentAnalyzer = require('../utils/documentAnalyzer');
 
 const router = express.Router();
 
+// Test route to verify router is working
+router.get('/test', (req, res) => {
+  res.json({ message: 'Documents router is working!', timestamp: new Date() });
+});
+
 // Process documents using queue system workflow
 router.post('/process', async (req, res) => {
   console.log('🔄 [DEBUG] Process documents endpoint called');
@@ -1317,9 +1322,11 @@ router.post('/download-all', async (req, res) => {
 // Debug endpoint to check available documents
 router.get('/download/debug', async (req, res) => {
   try {
+    console.log('🔍 [DEBUG] Debug endpoint called');
     const { limit = 10 } = req.query;
     
     console.log('🔍 [DEBUG] Checking available documents for download...');
+    console.log('🔍 [DEBUG] Limit:', limit);
     
     // Get contracts with resourceLinks
     const contracts = await prisma.contract.findMany({
@@ -1332,6 +1339,8 @@ router.get('/download/debug', async (req, res) => {
         agency: true
       }
     });
+
+    console.log('🔍 [DEBUG] Found contracts:', contracts.length);
 
     const debugInfo = contracts.map(contract => {
       const resourceLinks = contract.resourceLinks;
@@ -1364,6 +1373,8 @@ router.get('/download/debug', async (req, res) => {
     });
 
     const totalValidDocuments = debugInfo.reduce((sum, contract) => sum + contract.valid_document_urls, 0);
+    
+    console.log('🔍 [DEBUG] Total valid documents:', totalValidDocuments);
     
     res.json({
       success: true,
