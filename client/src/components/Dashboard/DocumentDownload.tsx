@@ -30,6 +30,8 @@ interface DownloadStatus {
   download_path: string;
 }
 
+export default DocumentDownload;
+
 export const DocumentDownload: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState<DownloadStatus | null>(null);
