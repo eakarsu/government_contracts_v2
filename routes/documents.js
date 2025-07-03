@@ -27,6 +27,8 @@ router.get('/ping', (req, res) => {
   });
 });
 
+// Add ping to the test route's available routes list
+
 // Test route to verify router is working
 router.get('/test', (req, res) => {
   console.log('');
@@ -41,6 +43,7 @@ router.get('/test', (req, res) => {
     message: 'Documents router is working!', 
     timestamp: new Date(),
     routes_available: [
+      '/ping',
       '/test',
       '/download/debug',
       '/download/status',
