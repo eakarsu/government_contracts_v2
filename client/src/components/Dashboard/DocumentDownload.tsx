@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/api';
-import { LoadingSpinner } from '../UI/LoadingSpinner';
-import { StatsCard } from './StatsCard';
+import LoadingSpinner from '../UI/LoadingSpinner';
+import StatsCard from './StatsCard';
 import toast from 'react-hot-toast';
 
 interface DownloadJob {
