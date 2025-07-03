@@ -10,9 +10,33 @@ const documentAnalyzer = require('../utils/documentAnalyzer');
 
 const router = express.Router();
 
+// Simple ping endpoint to test connectivity
+router.get('/ping', (req, res) => {
+  console.log('');
+  console.log('🏓 ==========================================');
+  console.log('🏓 🏓 🏓 PING ENDPOINT CALLED! 🏓 🏓 🏓');
+  console.log('🏓 ==========================================');
+  console.log('🏓 Ping received at:', new Date().toISOString());
+  console.log('🏓 ==========================================');
+  console.log('');
+  
+  res.json({ 
+    message: 'PONG! Server is responding!',
+    timestamp: new Date().toISOString(),
+    server_time: Date.now()
+  });
+});
+
 // Test route to verify router is working
 router.get('/test', (req, res) => {
-  console.log('📋 [DEBUG] Test route called successfully');
+  console.log('');
+  console.log('🧪 ==========================================');
+  console.log('🧪 🧪 🧪 TEST ROUTE CALLED! 🧪 🧪 🧪');
+  console.log('🧪 ==========================================');
+  console.log('🧪 Test route called successfully at:', new Date().toISOString());
+  console.log('🧪 ==========================================');
+  console.log('');
+  
   res.json({ 
     message: 'Documents router is working!', 
     timestamp: new Date(),
@@ -32,11 +56,14 @@ router.get('/test', (req, res) => {
 // Fetch contracts endpoint (temporary - should be in contracts router)
 router.post('/fetch-contracts', async (req, res) => {
   try {
-    console.log('🔄 [DEBUG] ========================================');
-    console.log('🔄 [DEBUG] FETCH CONTRACTS ENDPOINT CALLED!');
-    console.log('🔄 [DEBUG] Request received at:', new Date().toISOString());
-    console.log('🔄 [DEBUG] Request body:', JSON.stringify(req.body, null, 2));
-    console.log('🔄 [DEBUG] ========================================');
+    console.log('');
+    console.log('🚀 ==========================================');
+    console.log('🚀 🚀 🚀 FETCH CONTRACTS ENDPOINT CALLED! 🚀 🚀 🚀');
+    console.log('🚀 ==========================================');
+    console.log('🚀 Request received at:', new Date().toISOString());
+    console.log('🚀 Request body:', JSON.stringify(req.body, null, 2));
+    console.log('🚀 ==========================================');
+    console.log('');
     
     const { start_date, end_date, limit = 100, offset = 0 } = req.body;
     
@@ -67,7 +94,7 @@ router.post('/fetch-contracts', async (req, res) => {
     let fetchedCount = 0;
     const sampleContracts = [];
     
-    // Create sample contracts with realistic document URLs
+    // Create sample contracts with REAL downloadable document URLs
     for (let i = 1; i <= Math.min(limit, 10); i++) {
       const contractId = `SAMPLE_${Date.now()}_${i}`;
       const sampleContract = {
@@ -80,9 +107,10 @@ router.post('/fetch-contracts', async (req, res) => {
         postedDate: new Date(),
         setAsideCode: 'SBA',
         resourceLinks: [
-          `https://sam.gov/api/prod/opps/v3/opportunities/resources/files/sample${i}_doc1/download`,
-          `https://sam.gov/api/prod/opps/v3/opportunities/resources/files/sample${i}_doc2/download`,
-          `https://sam.gov/api/prod/opps/v3/opportunities/resources/files/sample${i}_doc3/download`
+          // Use real, publicly available PDF documents for testing
+          `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`,
+          `https://www.africau.edu/images/default/sample.pdf`,
+          `https://file-examples.com/storage/fe68c1b7c66c4d6c8e9b8c7/2017/10/file_example_PDF_500_kB.pdf`
         ]
       };
       
@@ -120,10 +148,17 @@ router.post('/fetch-contracts', async (req, res) => {
     
     const finalContractCount = await prisma.contract.count();
     
-    console.log('✅ [DEBUG] Fetch contracts simulation completed');
-    console.log(`📊 [DEBUG] Contracts before: ${currentContractCount}`);
-    console.log(`📊 [DEBUG] Contracts after: ${finalContractCount}`);
-    console.log(`📊 [DEBUG] New contracts created: ${fetchedCount}`);
+    console.log('');
+    console.log('🎉 ========================================');
+    console.log('🎉 FETCH CONTRACTS SIMULATION COMPLETED!');
+    console.log('🎉 ========================================');
+    console.log(`📊 Contracts before: ${currentContractCount}`);
+    console.log(`📊 Contracts after: ${finalContractCount}`);
+    console.log(`📊 New contracts created: ${fetchedCount}`);
+    console.log(`📄 Each contract has 3 REAL downloadable PDF documents`);
+    console.log(`📥 Total documents available for download: ${fetchedCount * 3}`);
+    console.log('🎉 ========================================');
+    console.log('');
     
     res.json({
       success: true,
