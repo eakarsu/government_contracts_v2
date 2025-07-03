@@ -45,7 +45,7 @@ const Contracts: React.FC = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const totalPages = contractsData?.total ? Math.ceil(contractsData.total / 20) : 1;
+  const totalPages = contractsData?.pagination?.totalPages || 1;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -137,7 +137,7 @@ const Contracts: React.FC = () => {
               </div>
             </div>
           </div>
-        ) : contractsData?.contracts && contractsData.contracts.length > 0 ? (
+        ) : contractsData?.data && contractsData.data.length > 0 ? (
           <>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -161,7 +161,7 @@ const Contracts: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {contractsData.contracts.map((contract: Contract) => (
+                  {contractsData.data.map((contract: Contract) => (
                     <tr key={contract.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {contract.noticeId}
@@ -194,7 +194,7 @@ const Contracts: React.FC = () => {
               <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-600">
-                    Showing page {page} of {totalPages} ({contractsData.total} total contracts)
+                    Showing page {page} of {totalPages} ({contractsData.pagination.total} total contracts)
                   </div>
                   <div className="flex space-x-2">
                     <button
