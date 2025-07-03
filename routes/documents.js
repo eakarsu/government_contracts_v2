@@ -1471,6 +1471,23 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
   });
 
   console.log(`📥 [DEBUG] Total documents to download: ${totalDocuments}`);
+  
+  if (totalDocuments === 0) {
+    console.log(`⚠️ [DEBUG] No documents found to download`);
+    
+    // Update job status
+    await prisma.indexingJob.update({
+      where: { id: jobId },
+      data: {
+        status: 'completed',
+        recordsProcessed: 0,
+        errorsCount: 0,
+        completedAt: new Date()
+      }
+    });
+    
+    return;
+  }
 
   // Download single document with better error handling
   const downloadDocument = async (contract, docUrl, docIndex) => {
@@ -1479,16 +1496,11 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
     try {
       console.log(`📥 [DEBUG] [${documentId}] Starting download: ${docUrl}`);
       
-      // Check if file already exists
+      // Get original filename from URL
       const originalFilename = docUrl.split('/').pop() || `document_${docIndex}`;
-      const tempFilename = `${contract.noticeId}_${originalFilename}`;
-      const tempFilePath = path.join(downloadPath, tempFilename);
       
-      if (await fs.pathExists(tempFilePath)) {
-        console.log(`⚠️ [DEBUG] [${documentId}] File already exists, skipping: ${tempFilename}`);
-        skippedCount++;
-        return { success: false, reason: 'Already exists' };
-      }
+      // Don't check for existing files since we'll use timestamps to make them unique
+      console.log(`📥 [DEBUG] [${documentId}] Processing: ${originalFilename}`);
       
       // Download the file with retries
       let response;
@@ -1541,9 +1553,11 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
         return { success: false, reason: 'Unsupported type' };
       }
 
-      // Generate proper filename with correct extension
+      // Generate proper filename with correct extension and timestamp to ensure uniqueness
       const correctExtension = documentAnalyzer.getCorrectExtension(analysis.documentType, analysis.extension);
-      const properFilename = `${contract.noticeId}_${originalFilename.replace(/\.[^/.]+$/, '')}${correctExtension}`;
+      const timestamp = Date.now();
+      const baseFilename = originalFilename.replace(/\.[^/.]+$/, '');
+      const properFilename = `${contract.noticeId}_${baseFilename}_${timestamp}${correctExtension}`;
       
       // Save to download folder
       const filePath = path.join(downloadPath, properFilename);
@@ -1551,6 +1565,7 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       
       downloadedCount++;
       console.log(`✅ [DEBUG] [${documentId}] Downloaded: ${properFilename} (${analysis.documentType}, ${fileBuffer.length} bytes, ~${analysis.estimatedPages} pages)`);
+      console.log(`📁 [DEBUG] [${documentId}] Saved to: ${filePath}`);
       
       return { 
         success: true, 
