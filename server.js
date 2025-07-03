@@ -75,6 +75,21 @@ app.use('/api/recommendations', recommendationsRouter);
 // Debug: Log when documents router is loaded
 console.log('📋 [DEBUG] Documents router mounted at /api/documents');
 
+// Test that routes are properly loaded
+app.get('/api/test-routes', (req, res) => {
+  res.json({
+    message: 'Route testing endpoint',
+    available_routes: [
+      'GET /api/documents/ping',
+      'GET /api/documents/test', 
+      'POST /api/documents/download-test',
+      'POST /api/documents/download-all',
+      'GET /api/documents/download/debug'
+    ],
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Serve main page
 app.get('/', (req, res) => {
   const indexPath = path.join(__dirname, 'public', 'index.html');
