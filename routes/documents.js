@@ -718,14 +718,22 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
     try {
       console.log(`🔄 [DEBUG] Starting processing: ${doc.filename}`);
       
-      // Update status to processing immediately
-      await prisma.documentProcessingQueue.update({
-        where: { id: doc.id },
-        data: { 
-          status: 'processing',
-          startedAt: new Date()
+      // Update status to processing immediately with existence check
+      try {
+        await prisma.documentProcessingQueue.update({
+          where: { id: doc.id },
+          data: { 
+            status: 'processing',
+            startedAt: new Date()
+          }
+        });
+      } catch (updateError) {
+        if (updateError.code === 'P2025') {
+          console.log(`⚠️ [DEBUG] Document record ${doc.id} no longer exists, skipping processing`);
+          return { success: false, filename: doc.filename, error: 'Record not found at start' };
         }
-      });
+        throw updateError;
+      }
 
       const documentId = `${doc.contractNoticeId}_${doc.filename}`;
       
@@ -736,18 +744,26 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         console.log(`📄 [DEBUG] Document already indexed, using cached: ${documentId}`);
         
         // Update status to completed with cached data
-        await prisma.documentProcessingQueue.update({
-          where: { id: doc.id },
-          data: {
-            status: 'completed',
-            processedData: JSON.stringify({ 
-              cached: true, 
-              content: existingDocs[0].document,
-              source: 'vector_database'
-            }),
-            completedAt: new Date()
+        try {
+          await prisma.documentProcessingQueue.update({
+            where: { id: doc.id },
+            data: {
+              status: 'completed',
+              processedData: JSON.stringify({ 
+                cached: true, 
+                content: existingDocs[0].document,
+                source: 'vector_database'
+              }),
+              completedAt: new Date()
+            }
+          });
+        } catch (updateError) {
+          if (updateError.code === 'P2025') {
+            console.log(`⚠️ [DEBUG] Document record ${doc.id} was deleted, cannot mark as cached`);
+            return { success: false, filename: doc.filename, error: 'Record deleted during caching' };
           }
-        });
+          throw updateError;
+        }
 
         skippedCount++;
         return { success: true, filename: doc.filename, cached: true };
@@ -766,13 +782,28 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         // The filename might have been updated with correct extension in sendToNorshinAPI
         const finalFilename = result.correctedFilename || doc.filename;
         
+        // Check if record still exists before updating
+        const existingRecord = await prisma.documentProcessingQueue.findUnique({
+          where: { id: doc.id }
+        });
+
+        if (!existingRecord) {
+          console.log(`⚠️ [DEBUG] Document record ${doc.id} no longer exists, skipping update`);
+          return { success: false, filename: doc.filename, error: 'Record not found' };
+        }
+
         // Update the queue entry with the corrected filename if it changed
         if (finalFilename !== doc.filename) {
           console.log(`📄 [DEBUG] Updating filename from ${doc.filename} to ${finalFilename}`);
-          await prisma.documentProcessingQueue.update({
-            where: { id: doc.id },
-            data: { filename: finalFilename }
-          });
+          try {
+            await prisma.documentProcessingQueue.update({
+              where: { id: doc.id },
+              data: { filename: finalFilename }
+            });
+          } catch (updateError) {
+            console.log(`⚠️ [DEBUG] Failed to update filename for ${doc.id}: ${updateError.message}`);
+            // Continue processing even if filename update fails
+          }
         }
 
         // Index the processed document in vector database
@@ -782,15 +813,23 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           processedData: result
         }, doc.contractNoticeId);
 
-        // Update status to completed
-        await prisma.documentProcessingQueue.update({
-          where: { id: doc.id },
-          data: {
-            status: 'completed',
-            processedData: JSON.stringify(result),
-            completedAt: new Date()
+        // Update status to completed with existence check
+        try {
+          await prisma.documentProcessingQueue.update({
+            where: { id: doc.id },
+            data: {
+              status: 'completed',
+              processedData: JSON.stringify(result),
+              completedAt: new Date()
+            }
+          });
+        } catch (updateError) {
+          if (updateError.code === 'P2025') {
+            console.log(`⚠️ [DEBUG] Document record ${doc.id} was deleted during processing`);
+            return { success: false, filename: doc.filename, error: 'Record deleted during processing' };
           }
-        });
+          throw updateError;
+        }
 
         successCount++;
         console.log(`✅ [DEBUG] Successfully processed: ${finalFilename}`);
@@ -802,15 +841,23 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
     } catch (error) {
       console.error(`❌ [DEBUG] Error processing ${doc.filename}:`, error.message);
       
-      // Update status to failed
-      await prisma.documentProcessingQueue.update({
-        where: { id: doc.id },
-        data: {
-          status: 'failed',
-          errorMessage: error.message,
-          failedAt: new Date()
+      // Update status to failed with existence check
+      try {
+        await prisma.documentProcessingQueue.update({
+          where: { id: doc.id },
+          data: {
+            status: 'failed',
+            errorMessage: error.message,
+            failedAt: new Date()
+          }
+        });
+      } catch (updateError) {
+        if (updateError.code === 'P2025') {
+          console.log(`⚠️ [DEBUG] Document record ${doc.id} was deleted, cannot mark as failed`);
+        } else {
+          console.error(`❌ [DEBUG] Error updating failed status for ${doc.id}:`, updateError.message);
         }
-      });
+      }
 
       errorCount++;
       return { success: false, filename: doc.filename, error: error.message };
