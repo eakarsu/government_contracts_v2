@@ -32,12 +32,27 @@ const Contracts: React.FC = () => {
     },
   });
 
+  const downloadMutation = useMutation({
+    mutationFn: (options: { limit?: number; download_folder?: string }) => 
+      apiService.downloadAllDocuments(options),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+    },
+  });
+
   const handleFetch = () => {
     fetchMutation.mutate(fetchForm);
   };
 
   const handleIndex = () => {
     indexMutation.mutate(100);
+  };
+
+  const handleDownload = () => {
+    downloadMutation.mutate({
+      limit: 50,
+      download_folder: 'downloaded_documents'
+    });
   };
 
   const formatDate = (dateString?: string) => {
@@ -100,6 +115,13 @@ const Contracts: React.FC = () => {
           >
             {indexMutation.isPending ? <LoadingSpinner size="sm" /> : 'Index Contracts'}
           </button>
+          <button
+            onClick={handleDownload}
+            disabled={downloadMutation.isPending}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+          >
+            {downloadMutation.isPending ? <LoadingSpinner size="sm" /> : 'Download Documents'}
+          </button>
         </div>
 
         {fetchMutation.isSuccess && (
@@ -114,6 +136,14 @@ const Contracts: React.FC = () => {
           <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
             <div className="text-green-800 text-sm">
               Contracts indexed successfully!
+            </div>
+          </div>
+        )}
+
+        {downloadMutation.isSuccess && (
+          <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-md">
+            <div className="text-purple-800 text-sm">
+              Documents download started! Check the downloaded_documents folder.
             </div>
           </div>
         )}
