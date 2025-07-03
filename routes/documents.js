@@ -1488,11 +1488,21 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
   // Count total documents first
   console.log(`📊 [DEBUG] Analyzing contracts for document links...`);
   contracts.forEach((contract, index) => {
+    console.log(`📄 [DEBUG] Contract ${index + 1}/${contracts.length}: ${contract.noticeId}`);
+    console.log(`📄 [DEBUG]   Title: ${contract.title || 'No title'}`);
+    console.log(`📄 [DEBUG]   Agency: ${contract.agency || 'No agency'}`);
+    
     if (contract.resourceLinks && Array.isArray(contract.resourceLinks)) {
-      console.log(`📄 [DEBUG] Contract ${index + 1}/${contracts.length}: ${contract.noticeId} has ${contract.resourceLinks.length} documents`);
+      console.log(`📄 [DEBUG]   ✅ Has ${contract.resourceLinks.length} document URLs:`);
+      contract.resourceLinks.forEach((url, urlIndex) => {
+        console.log(`📄 [DEBUG]     ${urlIndex + 1}. ${url}`);
+      });
       totalDocuments += contract.resourceLinks.length;
+    } else if (contract.resourceLinks) {
+      console.log(`⚠️ [DEBUG]   ❌ resourceLinks exists but is not an array: ${typeof contract.resourceLinks}`);
+      console.log(`📄 [DEBUG]   resourceLinks value: ${JSON.stringify(contract.resourceLinks)}`);
     } else {
-      console.log(`⚠️ [DEBUG] Contract ${index + 1}/${contracts.length}: ${contract.noticeId} has NO documents`);
+      console.log(`⚠️ [DEBUG]   ❌ NO resourceLinks found`);
     }
   });
 
@@ -1570,13 +1580,16 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       
       // Skip ZIP files and unsupported types
       if (analysis.isZipFile) {
-        console.log(`⚠️ [DEBUG] [${documentId}] Skipping ZIP file: ${originalFilename}`);
+        console.log(`⚠️ [DEBUG] [${documentId}] SKIPPED - ZIP file: ${originalFilename}`);
+        console.log(`⚠️ [DEBUG] [${documentId}] Document type detected: ${analysis.documentType}`);
         skippedCount++;
         return { success: false, reason: 'ZIP file' };
       }
 
       if (!analysis.isSupported) {
-        console.log(`⚠️ [DEBUG] [${documentId}] Skipping unsupported document type: ${analysis.documentType}`);
+        console.log(`⚠️ [DEBUG] [${documentId}] SKIPPED - Unsupported document type: ${analysis.documentType}`);
+        console.log(`⚠️ [DEBUG] [${documentId}] Content-Type: ${contentType}`);
+        console.log(`⚠️ [DEBUG] [${documentId}] File extension: ${analysis.extension}`);
         skippedCount++;
         return { success: false, reason: 'Unsupported type' };
       }
@@ -1623,7 +1636,13 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       };
 
     } catch (error) {
-      console.error(`❌ [DEBUG] [${documentId}] Error downloading document ${docUrl}:`, error.message);
+      console.error(`❌ [DEBUG] [${documentId}] FAILED - Error downloading document ${docUrl}:`);
+      console.error(`❌ [DEBUG] [${documentId}] Error message: ${error.message}`);
+      console.error(`❌ [DEBUG] [${documentId}] Error type: ${error.constructor.name}`);
+      if (error.response) {
+        console.error(`❌ [DEBUG] [${documentId}] HTTP Status: ${error.response.status}`);
+        console.error(`❌ [DEBUG] [${documentId}] HTTP Status Text: ${error.response.statusText}`);
+      }
       errorCount++;
       return { success: false, error: error.message, documentId };
     }
@@ -1643,16 +1662,24 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       console.log(`📄 [DEBUG] ✅ Contract ${contract.noticeId} has ${contract.resourceLinks.length} documents`);
       
       contract.resourceLinks.forEach((docUrl, index) => {
+        console.log(`📋 [DEBUG]   Checking URL ${index + 1}/${contract.resourceLinks.length}: ${docUrl}`);
+        
         if (docUrl && docUrl.trim()) { // Ensure URL is not empty
           taskIndex++;
-          console.log(`📋 [DEBUG]   Task ${taskIndex}: ${docUrl}`);
+          console.log(`📋 [DEBUG]   ✅ Valid URL - Creating task ${taskIndex}: ${docUrl}`);
           downloadTasks.push(() => downloadDocument(contract, docUrl, taskIndex));
         } else {
-          console.log(`⚠️ [DEBUG]   Skipping empty URL for contract ${contract.noticeId}`);
+          console.log(`⚠️ [DEBUG]   ❌ Skipping empty/invalid URL for contract ${contract.noticeId}: "${docUrl}"`);
         }
       });
+    } else if (contract.resourceLinks) {
+      console.log(`❌ [DEBUG] Contract ${contract.noticeId} has invalid resourceLinks:`);
+      console.log(`❌ [DEBUG]   Type: ${typeof contract.resourceLinks}`);
+      console.log(`❌ [DEBUG]   Is Array: ${Array.isArray(contract.resourceLinks)}`);
+      console.log(`❌ [DEBUG]   Length: ${contract.resourceLinks.length}`);
+      console.log(`❌ [DEBUG]   Value: ${JSON.stringify(contract.resourceLinks)}`);
     } else {
-      console.log(`❌ [DEBUG] Contract ${contract.noticeId} has no valid resourceLinks`);
+      console.log(`❌ [DEBUG] Contract ${contract.noticeId} has NO resourceLinks property`);
     }
   });
   
