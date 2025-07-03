@@ -6,8 +6,15 @@ const config = require('../config/env');
 
 const router = express.Router();
 
+// Debug middleware for contracts router
+router.use((req, res, next) => {
+  console.log(`📋 [DEBUG] Contracts route hit: ${req.method} ${req.path}`);
+  next();
+});
+
 // Get contracts with pagination
 router.get('/', async (req, res) => {
+  console.log('📋 [DEBUG] GET / route handler called');
   try {
     const { page = 1, limit = 20, search, agency, naicsCode } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
