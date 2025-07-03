@@ -1314,6 +1314,73 @@ router.post('/download-all', async (req, res) => {
   }
 });
 
+// Debug endpoint to check available documents
+router.get('/download/debug', async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    
+    console.log('🔍 [DEBUG] Checking available documents for download...');
+    
+    // Get contracts with resourceLinks
+    const contracts = await prisma.contract.findMany({
+      where: { resourceLinks: { not: null } },
+      take: parseInt(limit),
+      select: {
+        noticeId: true,
+        title: true,
+        resourceLinks: true,
+        agency: true
+      }
+    });
+
+    const debugInfo = contracts.map(contract => {
+      const resourceLinks = contract.resourceLinks;
+      let documentCount = 0;
+      let validUrls = [];
+      let invalidUrls = [];
+      
+      if (resourceLinks && Array.isArray(resourceLinks)) {
+        resourceLinks.forEach(url => {
+          if (url && url.trim()) {
+            documentCount++;
+            validUrls.push(url);
+          } else {
+            invalidUrls.push(url);
+          }
+        });
+      }
+      
+      return {
+        contract_id: contract.noticeId,
+        title: contract.title,
+        agency: contract.agency,
+        total_resource_links: resourceLinks ? (Array.isArray(resourceLinks) ? resourceLinks.length : 1) : 0,
+        valid_document_urls: documentCount,
+        valid_urls: validUrls,
+        invalid_urls: invalidUrls,
+        resource_links_type: typeof resourceLinks,
+        is_array: Array.isArray(resourceLinks)
+      };
+    });
+
+    const totalValidDocuments = debugInfo.reduce((sum, contract) => sum + contract.valid_document_urls, 0);
+    
+    res.json({
+      success: true,
+      total_contracts_checked: contracts.length,
+      total_valid_documents: totalValidDocuments,
+      contracts: debugInfo
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error in download debug:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
 // Get download status and statistics
 router.get('/download/status', async (req, res) => {
   try {
