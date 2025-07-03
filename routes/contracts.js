@@ -6,6 +6,62 @@ const config = require('../config/env');
 
 const router = express.Router();
 
+// Get contracts with pagination
+router.get('/', async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search, agency, naicsCode } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build where clause for filtering
+    const where = {};
+    
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { agency: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+    
+    if (agency) {
+      where.agency = { contains: agency, mode: 'insensitive' };
+    }
+    
+    if (naicsCode) {
+      where.naicsCode = naicsCode;
+    }
+
+    // Get total count for pagination
+    const totalCount = await prisma.contract.count({ where });
+
+    // Get contracts with pagination
+    const contracts = await prisma.contract.findMany({
+      where,
+      skip: offset,
+      take: parseInt(limit),
+      orderBy: { postedDate: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      data: contracts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / parseInt(limit))
+      }
+    });
+
+  } catch (error) {
+    console.error('Failed to fetch contracts:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
 // Helper function to format dates for SAM.gov API (MM/dd/yyyy format)
 function formatDateForSAM(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
