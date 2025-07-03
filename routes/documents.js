@@ -1496,6 +1496,7 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       
       while (retries > 0) {
         try {
+          console.log(`📥 [DEBUG] [${documentId}] Attempting download (${4 - retries}/3): ${docUrl}`);
           response = await axios.get(docUrl, {
             responseType: 'arraybuffer',
             timeout: 120000, // 2 minute timeout per attempt
@@ -1504,12 +1505,18 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
               'Accept': '*/*'
             }
           });
+          console.log(`✅ [DEBUG] [${documentId}] Download successful on attempt ${4 - retries}`);
           break; // Success, exit retry loop
         } catch (downloadError) {
           retries--;
-          if (retries === 0) throw downloadError;
+          console.log(`❌ [DEBUG] [${documentId}] Download attempt ${4 - retries} failed: ${downloadError.message}`);
           
-          console.log(`⚠️ [DEBUG] [${documentId}] Download attempt failed, retrying... (${retries} attempts left)`);
+          if (retries === 0) {
+            console.log(`💥 [DEBUG] [${documentId}] All download attempts failed`);
+            throw downloadError;
+          }
+          
+          console.log(`⚠️ [DEBUG] [${documentId}] Retrying in 2 seconds... (${retries} attempts left)`);
           await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
         }
       }
@@ -1563,19 +1570,44 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
   // Create download tasks for all documents
   const downloadTasks = [];
   let taskIndex = 0;
+  let contractsWithDocs = 0;
   
   contracts.forEach(contract => {
-    if (contract.resourceLinks && Array.isArray(contract.resourceLinks)) {
+    if (contract.resourceLinks && Array.isArray(contract.resourceLinks) && contract.resourceLinks.length > 0) {
+      contractsWithDocs++;
       console.log(`📄 [DEBUG] Contract ${contract.noticeId} has ${contract.resourceLinks.length} documents`);
       
       contract.resourceLinks.forEach((docUrl, index) => {
-        taskIndex++;
-        downloadTasks.push(() => downloadDocument(contract, docUrl, taskIndex));
+        if (docUrl && docUrl.trim()) { // Ensure URL is not empty
+          taskIndex++;
+          downloadTasks.push(() => downloadDocument(contract, docUrl, taskIndex));
+        } else {
+          console.log(`⚠️ [DEBUG] Skipping empty URL for contract ${contract.noticeId}`);
+        }
       });
+    } else {
+      console.log(`⚠️ [DEBUG] Contract ${contract.noticeId} has no valid resourceLinks`);
     }
   });
   
-  console.log(`📥 [DEBUG] Created ${downloadTasks.length} download tasks from ${contracts.length} contracts`);
+  console.log(`📥 [DEBUG] Created ${downloadTasks.length} download tasks from ${contractsWithDocs}/${contracts.length} contracts with documents`);
+
+  if (downloadTasks.length === 0) {
+    console.log(`⚠️ [DEBUG] No download tasks created - no documents to download`);
+    
+    // Update job status
+    await prisma.indexingJob.update({
+      where: { id: jobId },
+      data: {
+        status: 'completed',
+        recordsProcessed: 0,
+        errorsCount: 0,
+        completedAt: new Date()
+      }
+    });
+    
+    return;
+  }
 
   // Process downloads with proper concurrency control
   const batchSize = concurrency; // Each batch processes 'concurrency' number of downloads
@@ -1595,11 +1627,30 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
     const batchPromises = batch.map(task => task());
     const batchResults = await Promise.allSettled(batchPromises);
     
-    // Log batch results
-    const batchSuccess = batchResults.filter(r => r.status === 'fulfilled' && r.value?.success).length;
-    const batchErrors = batchResults.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value?.success)).length;
+    // Process batch results and update counters
+    let batchSuccess = 0;
+    let batchErrors = 0;
+    let batchSkipped = 0;
     
-    console.log(`📊 [DEBUG] Batch ${batchIndex + 1} completed: ${batchSuccess} success, ${batchErrors} errors`);
+    batchResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        const value = result.value;
+        if (value?.success) {
+          batchSuccess++;
+        } else {
+          if (value?.reason === 'Already exists' || value?.reason === 'ZIP file' || value?.reason === 'Unsupported type') {
+            batchSkipped++;
+          } else {
+            batchErrors++;
+          }
+        }
+      } else {
+        console.error(`❌ [DEBUG] Batch ${batchIndex + 1} task ${index + 1} rejected:`, result.reason);
+        batchErrors++;
+      }
+    });
+    
+    console.log(`📊 [DEBUG] Batch ${batchIndex + 1} completed: ${batchSuccess} success, ${batchErrors} errors, ${batchSkipped} skipped`);
     
     // Log overall progress
     const completed = downloadedCount + errorCount + skippedCount;
