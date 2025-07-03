@@ -94,9 +94,18 @@ class ApiService {
   async fetchContracts(data: ContractFetchForm): Promise<ApiResponse> {
     console.log('🔄 [DEBUG] API Service fetchContracts called with:', data);
     const response = await api.post<ApiResponse>('/contracts/fetch', data, {
-      timeout: 3600000 // 1 hour timeout
+      timeout: 1800000 // 30 minutes timeout
     });
     console.log('✅ [DEBUG] API Service fetchContracts response:', response.data);
+    return response.data;
+  }
+
+  async fetchContractsFromSamGov(data: ContractFetchForm): Promise<ApiResponse> {
+    console.log('🔄 [DEBUG] API Service fetchContractsFromSamGov called with:', data);
+    const response = await api.post<ApiResponse>('/contracts/fetch', data, {
+      timeout: 1800000 // 30 minutes timeout
+    });
+    console.log('✅ [DEBUG] API Service fetchContractsFromSamGov response:', response.data);
     return response.data;
   }
 
@@ -107,8 +116,39 @@ class ApiService {
     return response.data;
   }
 
-  async getContracts(page: number = 1, limit: number = 20): Promise<{ contracts: Contract[]; total: number }> {
-    const response = await api.get<{ contracts: Contract[]; total: number }>(`/contracts?page=${page}&limit=${limit}`);
+  async getContracts(page: number = 1, limit: number = 20, filters?: {
+    search?: string;
+    agency?: string;
+    naicsCode?: string;
+  }): Promise<{ 
+    success: boolean;
+    data: Contract[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+    
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.agency) params.append('agency', filters.agency);
+    if (filters?.naicsCode) params.append('naicsCode', filters.naicsCode);
+    
+    const response = await api.get<{ 
+      success: boolean;
+      data: Contract[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/contracts?${params.toString()}`);
     return response.data;
   }
 
