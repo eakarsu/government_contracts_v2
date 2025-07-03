@@ -66,7 +66,9 @@ const DocumentDownload: React.FC = () => {
 
   const handleFetchContracts = async () => {
     try {
-      console.log('🔄 [DEBUG] Fetch Contracts button clicked');
+      console.log('🔄 [DEBUG] ========================================');
+      console.log('🔄 [DEBUG] FETCH CONTRACTS BUTTON CLICKED!');
+      console.log('🔄 [DEBUG] ========================================');
       
       const fetchOptions = {
         start_date: '', // You can add date inputs if needed
@@ -75,19 +77,28 @@ const DocumentDownload: React.FC = () => {
         offset: 0
       };
 
-      console.log('🔄 [DEBUG] Calling apiService.fetchContractsFromDocuments with options:', fetchOptions);
+      console.log('🔄 [DEBUG] Fetch options prepared:', fetchOptions);
+      console.log('🔄 [DEBUG] About to call apiService.fetchContractsFromDocuments...');
+      
       const response = await apiService.fetchContractsFromDocuments(fetchOptions);
       
+      console.log('🔄 [DEBUG] Response received from API:', response);
+      
       if (response.success) {
-        toast.success(`Successfully fetched contracts from government API`);
+        toast.success(`Successfully fetched contracts: ${response.message}`);
         console.log('✅ [DEBUG] Contracts fetched successfully:', response);
       } else {
         toast.error(response.message || 'Failed to fetch contracts');
         console.error('❌ [DEBUG] Failed to fetch contracts:', response);
       }
     } catch (error: any) {
+      console.error('❌ [DEBUG] ========================================');
+      console.error('❌ [DEBUG] ERROR IN FETCH CONTRACTS HANDLER!');
+      console.error('❌ [DEBUG] Error message:', error.message);
+      console.error('❌ [DEBUG] Error object:', error);
+      console.error('❌ [DEBUG] ========================================');
+      
       toast.error(error.message || 'Failed to fetch contracts');
-      console.error('❌ [DEBUG] Error fetching contracts:', error);
     }
   };
 
@@ -233,6 +244,24 @@ const DocumentDownload: React.FC = () => {
             className="px-6 py-3 rounded-lg font-medium flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
           >
             📋 Fetch Contracts
+          </button>
+
+          <button
+            onClick={async () => {
+              console.log('🧪 [DEBUG] Test API button clicked');
+              try {
+                const response = await fetch('/api/documents/test');
+                const data = await response.json();
+                console.log('🧪 [DEBUG] Test API response:', data);
+                toast.success('API connection test successful!');
+              } catch (error) {
+                console.error('🧪 [DEBUG] Test API error:', error);
+                toast.error('API connection test failed!');
+              }
+            }}
+            className="px-4 py-2 rounded-lg font-medium flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white"
+          >
+            🧪 Test API
           </button>
 
           <button

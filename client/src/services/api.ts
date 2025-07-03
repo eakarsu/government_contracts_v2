@@ -259,9 +259,19 @@ class ApiService {
     offset?: number;
   }): Promise<ApiResponse> {
     console.log('🔄 [DEBUG] API Service fetchContractsFromDocuments called with:', options);
-    const response = await api.post<ApiResponse>('/documents/fetch-contracts', options);
-    console.log('✅ [DEBUG] API Service fetchContractsFromDocuments response:', response.data);
-    return response.data;
+    console.log('🔄 [DEBUG] Making POST request to: /documents/fetch-contracts');
+    console.log('🔄 [DEBUG] Full URL will be:', `${api.defaults.baseURL}/documents/fetch-contracts`);
+    
+    try {
+      const response = await api.post<ApiResponse>('/documents/fetch-contracts', options);
+      console.log('✅ [DEBUG] API Service fetchContractsFromDocuments response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [DEBUG] API Service fetchContractsFromDocuments error:', error);
+      console.error('❌ [DEBUG] Error response:', error.response?.data);
+      console.error('❌ [DEBUG] Error status:', error.response?.status);
+      throw error;
+    }
   }
 
   async clearQueue(options?: { clear_completed?: boolean; clear_failed?: boolean; clear_all?: boolean }): Promise<ApiResponse> {
