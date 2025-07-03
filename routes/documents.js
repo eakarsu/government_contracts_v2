@@ -956,6 +956,96 @@ router.post('/queue/clear', async (req, res) => {
   }
 });
 
+// Reset all documents to processing state at once
+router.post('/queue/reset-to-processing', async (req, res) => {
+  try {
+    console.log('🔄 [DEBUG] Resetting ALL documents to processing state...');
+    
+    // Get current queue status before reset
+    const beforeStatus = await prisma.documentProcessingQueue.groupBy({
+      by: ['status'],
+      _count: { id: true }
+    });
+
+    const beforeCounts = {};
+    beforeStatus.forEach(item => {
+      beforeCounts[item.status] = item._count.id;
+    });
+
+    const totalDocuments = Object.values(beforeCounts).reduce((sum, count) => sum + count, 0);
+    
+    console.log(`📊 [DEBUG] Before reset: ${beforeCounts.queued || 0} queued, ${beforeCounts.processing || 0} processing, ${beforeCounts.completed || 0} completed, ${beforeCounts.failed || 0} failed (${totalDocuments} total)`);
+
+    // Reset ALL documents to processing state regardless of current status
+    const resetResult = await prisma.documentProcessingQueue.updateMany({
+      where: {}, // No where clause = update ALL documents
+      data: {
+        status: 'processing',
+        startedAt: new Date(),
+        completedAt: null,
+        failedAt: null,
+        errorMessage: null,
+        processedData: null
+      }
+    });
+
+    console.log(`🔄 [DEBUG] Reset ${resetResult.count} documents to processing state`);
+
+    // Create a new processing job to track this batch
+    const job = await prisma.indexingJob.create({
+      data: {
+        jobType: 'queue_processing',
+        status: 'running',
+        startDate: new Date()
+      }
+    });
+
+    console.log(`✅ [DEBUG] Created new processing job: ${job.id}`);
+
+    // Get updated status
+    const afterStatus = await prisma.documentProcessingQueue.groupBy({
+      by: ['status'],
+      _count: { id: true }
+    });
+
+    const afterCounts = {};
+    afterStatus.forEach(item => {
+      afterCounts[item.status] = item._count.id;
+    });
+
+    console.log(`📊 [DEBUG] After reset: ${afterCounts.processing || 0} processing documents`);
+
+    res.json({
+      success: true,
+      message: `Reset ALL ${resetResult.count} documents to processing state simultaneously`,
+      job_id: job.id,
+      before_status: {
+        queued: beforeCounts.queued || 0,
+        processing: beforeCounts.processing || 0,
+        completed: beforeCounts.completed || 0,
+        failed: beforeCounts.failed || 0,
+        total: totalDocuments
+      },
+      after_status: {
+        queued: afterCounts.queued || 0,
+        processing: afterCounts.processing || 0,
+        completed: afterCounts.completed || 0,
+        failed: afterCounts.failed || 0,
+        total: Object.values(afterCounts).reduce((sum, count) => sum + count, 0)
+      },
+      documents_reset: resetResult.count,
+      processing_method: 'all_documents_simultaneous_processing'
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error resetting documents to processing:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
 // Reset entire queue system (documents + jobs)
 router.post('/queue/reset', async (req, res) => {
   try {

@@ -230,6 +230,11 @@ class ApiService {
     return response.data;
   }
 
+  async resetAllToProcessing(): Promise<ApiResponse> {
+    const response = await api.post<ApiResponse>('/documents/queue/reset-to-processing');
+    return response.data;
+  }
+
   async clearQueue(options?: { clear_completed?: boolean; clear_failed?: boolean; clear_all?: boolean }): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>('/documents/queue/clear', options || {});
     return response.data;
