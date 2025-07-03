@@ -53,7 +53,7 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
       console.log(`📄 [DEBUG] - Type: ${analysis.documentType}`);
       console.log(`📄 [DEBUG] - Size: ${analysis.size} bytes`);
       console.log(`📄 [DEBUG] - Original Extension: ${analysis.extension}`);
-      console.log(`📄 [DEBUG] - Estimated Pages: ${analysis.estimatedPages}`);
+      console.log(`📄 [DEBUG] - Estimated Pages: ${analysis.estimatedPages} pages`);
       console.log(`📄 [DEBUG] - Supported: ${analysis.isSupported}`);
       console.log(`📄 [DEBUG] - Is ZIP: ${analysis.isZipFile}`);
 
@@ -92,7 +92,7 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
       console.log(`📄 [DEBUG] - Type: ${analysis.documentType}`);
       console.log(`📄 [DEBUG] - Size: ${analysis.size} bytes`);
       console.log(`📄 [DEBUG] - Original Extension: ${analysis.extension}`);
-      console.log(`📄 [DEBUG] - Estimated Pages: ${analysis.estimatedPages}`);
+      console.log(`📄 [DEBUG] - Estimated Pages: ${analysis.estimatedPages} pages`);
       console.log(`📄 [DEBUG] - Supported: ${analysis.isSupported}`);
       console.log(`📄 [DEBUG] - Is ZIP: ${analysis.isZipFile}`);
 

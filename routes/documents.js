@@ -1516,7 +1516,7 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       await fs.writeFile(filePath, fileBuffer);
       
       downloadedCount++;
-      console.log(`✅ [DEBUG] Downloaded: ${properFilename} (${analysis.documentType}, ${fileBuffer.length} bytes)`);
+      console.log(`✅ [DEBUG] Downloaded: ${properFilename} (${analysis.documentType}, ${fileBuffer.length} bytes, ~${analysis.estimatedPages} pages)`);
       
       return { 
         success: true, 
