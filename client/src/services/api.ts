@@ -181,8 +181,9 @@ class ApiService {
 
   async processQueuedDocuments(): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>('/documents/queue/process', {
-      concurrency: 20, // Higher concurrency for better parallel processing
-      batch_size: 200  // Process more documents at once
+      concurrency: 75,    // Much higher concurrency
+      batch_size: 1000,   // Process way more documents at once
+      process_all: true   // Process ALL queued documents
     }, {
       timeout: 3600000 // 1 hour timeout
     });

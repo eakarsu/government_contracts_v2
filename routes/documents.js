@@ -146,20 +146,20 @@ router.post('/process', async (req, res) => {
 
     console.log(`✅ [DEBUG] Created processing job: ${job.id}`);
 
-    // Use higher concurrency for auto-queue processing
-    const autoConcurrency = Math.min(20, Math.max(10, Math.floor(queuedDocs.length / 10)));
+    // Use much higher concurrency for auto-queue processing
+    const autoConcurrency = Math.min(100, Math.max(50, Math.floor(queuedDocs.length / 2)));
 
     // Respond immediately and start background processing
     res.json({
       success: true,
-      message: `Started processing ${queuedDocs.length} documents from queue with ${autoConcurrency} workers`,
+      message: `Started processing ALL ${queuedDocs.length} documents from queue with ${autoConcurrency} workers`,
       job_id: job.id,
       documents_count: queuedDocs.length,
       concurrency: autoConcurrency,
-      processing_method: 'auto_queue_parallel'
+      processing_method: 'maximum_auto_parallel'
     });
 
-    // Process documents in background with higher concurrency
+    // Process documents in background with much higher concurrency
     processDocumentsInParallel(queuedDocs, autoConcurrency, job.id);
 
   } catch (error) {
@@ -627,10 +627,10 @@ router.get('/queue/status', async (req, res) => {
 // Process queued documents with parallel processing and real-time updates
 router.post('/queue/process', async (req, res) => {
   try {
-    const { concurrency = 15, batch_size = 100 } = req.body; // Increased defaults
+    const { concurrency = 50, batch_size = 1000, process_all = true } = req.body; // Much higher defaults
     
     console.log('🔄 [DEBUG] Starting parallel document processing...');
-    console.log(`🔄 [DEBUG] Concurrency: ${concurrency}, Batch size: ${batch_size}`);
+    console.log(`🔄 [DEBUG] Concurrency: ${concurrency}, Batch size: ${batch_size}, Process all: ${process_all}`);
 
     // Check if there's already a running job
     const existingJob = await prisma.indexingJob.findFirst({
@@ -649,10 +649,10 @@ router.post('/queue/process', async (req, res) => {
       });
     }
 
-    // Get queued documents
+    // Get ALL queued documents if process_all is true
     const queuedDocs = await prisma.documentProcessingQueue.findMany({
       where: { status: 'queued' },
-      take: batch_size,
+      ...(process_all ? {} : { take: batch_size }), // No limit if process_all is true
       orderBy: { queuedAt: 'asc' }
     });
 
@@ -665,6 +665,13 @@ router.post('/queue/process', async (req, res) => {
     }
 
     console.log(`🔄 [DEBUG] Found ${queuedDocs.length} documents to process`);
+
+    // Auto-scale concurrency based on queue size if processing all
+    let finalConcurrency = concurrency;
+    if (process_all && queuedDocs.length > 50) {
+      finalConcurrency = Math.min(100, Math.max(50, Math.floor(queuedDocs.length / 2)));
+      console.log(`🔄 [DEBUG] Auto-scaled concurrency to ${finalConcurrency} for ${queuedDocs.length} documents`);
+    }
 
     // Create processing job for tracking
     const job = await prisma.indexingJob.create({
@@ -680,15 +687,16 @@ router.post('/queue/process', async (req, res) => {
     // Respond immediately with job info
     res.json({
       success: true,
-      message: `Started processing ${queuedDocs.length} documents with ${concurrency} parallel workers`,
+      message: `Started processing ALL ${queuedDocs.length} documents with ${finalConcurrency} parallel workers`,
       job_id: job.id,
       documents_count: queuedDocs.length,
-      concurrency: concurrency,
-      processing_method: 'true_parallel_workers'
+      concurrency: finalConcurrency,
+      processing_method: 'maximum_parallel_processing',
+      process_all: process_all
     });
 
     // Process documents in parallel (don't await - run in background)
-    processDocumentsInParallel(queuedDocs, concurrency, job.id);
+    processDocumentsInParallel(queuedDocs, finalConcurrency, job.id);
 
   } catch (error) {
     console.error('❌ [DEBUG] Error starting document processing:', error);
