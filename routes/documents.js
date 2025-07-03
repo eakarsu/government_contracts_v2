@@ -23,9 +23,54 @@ router.get('/test', (req, res) => {
       '/download-all',
       '/process',
       '/queue',
-      '/queue/status'
+      '/queue/status',
+      '/fetch-contracts'
     ]
   });
+});
+
+// Fetch contracts endpoint (temporary - should be in contracts router)
+router.post('/fetch-contracts', async (req, res) => {
+  try {
+    console.log('🔄 [DEBUG] ========================================');
+    console.log('🔄 [DEBUG] FETCH CONTRACTS ENDPOINT CALLED!');
+    console.log('🔄 [DEBUG] Request received at:', new Date().toISOString());
+    console.log('🔄 [DEBUG] Request body:', JSON.stringify(req.body, null, 2));
+    console.log('🔄 [DEBUG] ========================================');
+    
+    const { start_date, end_date, limit = 100, offset = 0 } = req.body;
+    
+    console.log('📋 [DEBUG] Parsed parameters:');
+    console.log(`📋 [DEBUG] - start_date: ${start_date}`);
+    console.log(`📋 [DEBUG] - end_date: ${end_date}`);
+    console.log(`📋 [DEBUG] - limit: ${limit}`);
+    console.log(`📋 [DEBUG] - offset: ${offset}`);
+    
+    // For now, just return a success message since we don't have SAM.gov integration
+    // In a real implementation, this would call SAM.gov API to fetch contracts
+    
+    console.log('✅ [DEBUG] Fetch contracts request processed successfully');
+    
+    res.json({
+      success: true,
+      message: `Fetch contracts endpoint called successfully with limit ${limit}`,
+      parameters: {
+        start_date,
+        end_date,
+        limit,
+        offset
+      },
+      note: 'This is a placeholder endpoint. Real SAM.gov integration would be implemented here.',
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ [DEBUG] Error in fetch contracts endpoint:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
 });
 
 // Process documents using queue system workflow

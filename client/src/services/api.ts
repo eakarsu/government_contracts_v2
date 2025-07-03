@@ -92,9 +92,11 @@ class ApiService {
 
   // Contracts
   async fetchContracts(data: ContractFetchForm): Promise<ApiResponse> {
+    console.log('🔄 [DEBUG] API Service fetchContracts called with:', data);
     const response = await api.post<ApiResponse>('/contracts/fetch', data, {
       timeout: 3600000 // 1 hour timeout
     });
+    console.log('✅ [DEBUG] API Service fetchContracts response:', response.data);
     return response.data;
   }
 
@@ -247,6 +249,18 @@ class ApiService {
 
   async getDownloadStatus(): Promise<ApiResponse> {
     const response = await api.get<ApiResponse>('/documents/download/status');
+    return response.data;
+  }
+
+  async fetchContractsFromDocuments(options: {
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<ApiResponse> {
+    console.log('🔄 [DEBUG] API Service fetchContractsFromDocuments called with:', options);
+    const response = await api.post<ApiResponse>('/documents/fetch-contracts', options);
+    console.log('✅ [DEBUG] API Service fetchContractsFromDocuments response:', response.data);
     return response.data;
   }
 

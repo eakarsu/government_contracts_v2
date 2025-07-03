@@ -75,8 +75,8 @@ const DocumentDownload: React.FC = () => {
         offset: 0
       };
 
-      console.log('🔄 [DEBUG] Calling apiService.fetchContracts with options:', fetchOptions);
-      const response = await apiService.fetchContracts(fetchOptions);
+      console.log('🔄 [DEBUG] Calling documents fetch-contracts endpoint with options:', fetchOptions);
+      const response = await apiService.api.post('/documents/fetch-contracts', fetchOptions);
       
       if (response.success) {
         toast.success(`Successfully fetched contracts from government API`);
