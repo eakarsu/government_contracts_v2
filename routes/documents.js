@@ -1472,37 +1472,64 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
 
   console.log(`📥 [DEBUG] Total documents to download: ${totalDocuments}`);
 
-  // Download single document
+  // Download single document with better error handling
   const downloadDocument = async (contract, docUrl, docIndex) => {
+    const documentId = `${contract.noticeId}_doc${docIndex}`;
+    
     try {
-      console.log(`📥 [DEBUG] Downloading document ${docIndex} from contract ${contract.noticeId}: ${docUrl}`);
+      console.log(`📥 [DEBUG] [${documentId}] Starting download: ${docUrl}`);
       
-      // Download the file
-      const response = await axios.get(docUrl, {
-        responseType: 'arraybuffer',
-        timeout: 300000, // 5 minute timeout
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)'
+      // Check if file already exists
+      const originalFilename = docUrl.split('/').pop() || `document_${docIndex}`;
+      const tempFilename = `${contract.noticeId}_${originalFilename}`;
+      const tempFilePath = path.join(downloadPath, tempFilename);
+      
+      if (await fs.pathExists(tempFilePath)) {
+        console.log(`⚠️ [DEBUG] [${documentId}] File already exists, skipping: ${tempFilename}`);
+        skippedCount++;
+        return { success: false, reason: 'Already exists' };
+      }
+      
+      // Download the file with retries
+      let response;
+      let retries = 3;
+      
+      while (retries > 0) {
+        try {
+          response = await axios.get(docUrl, {
+            responseType: 'arraybuffer',
+            timeout: 120000, // 2 minute timeout per attempt
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)',
+              'Accept': '*/*'
+            }
+          });
+          break; // Success, exit retry loop
+        } catch (downloadError) {
+          retries--;
+          if (retries === 0) throw downloadError;
+          
+          console.log(`⚠️ [DEBUG] [${documentId}] Download attempt failed, retrying... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
         }
-      });
+      }
 
       const fileBuffer = Buffer.from(response.data);
-      console.log(`📥 [DEBUG] Downloaded ${fileBuffer.length} bytes`);
+      console.log(`📥 [DEBUG] [${documentId}] Downloaded ${fileBuffer.length} bytes`);
 
       // Analyze the document to get proper extension
       const contentType = response.headers['content-type'] || '';
-      const originalFilename = docUrl.split('/').pop() || `document_${docIndex}`;
       const analysis = documentAnalyzer.analyzeDocument(fileBuffer, originalFilename, contentType);
       
       // Skip ZIP files and unsupported types
       if (analysis.isZipFile) {
-        console.log(`⚠️ [DEBUG] Skipping ZIP file: ${originalFilename}`);
+        console.log(`⚠️ [DEBUG] [${documentId}] Skipping ZIP file: ${originalFilename}`);
         skippedCount++;
         return { success: false, reason: 'ZIP file' };
       }
 
       if (!analysis.isSupported) {
-        console.log(`⚠️ [DEBUG] Skipping unsupported document type: ${analysis.documentType}`);
+        console.log(`⚠️ [DEBUG] [${documentId}] Skipping unsupported document type: ${analysis.documentType}`);
         skippedCount++;
         return { success: false, reason: 'Unsupported type' };
       }
@@ -1516,51 +1543,73 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       await fs.writeFile(filePath, fileBuffer);
       
       downloadedCount++;
-      console.log(`✅ [DEBUG] Downloaded: ${properFilename} (${analysis.documentType}, ${fileBuffer.length} bytes, ~${analysis.estimatedPages} pages)`);
+      console.log(`✅ [DEBUG] [${documentId}] Downloaded: ${properFilename} (${analysis.documentType}, ${fileBuffer.length} bytes, ~${analysis.estimatedPages} pages)`);
       
       return { 
         success: true, 
         filename: properFilename, 
         size: fileBuffer.length,
-        type: analysis.documentType 
+        type: analysis.documentType,
+        pages: analysis.estimatedPages
       };
 
     } catch (error) {
-      console.error(`❌ [DEBUG] Error downloading document ${docUrl}:`, error.message);
+      console.error(`❌ [DEBUG] [${documentId}] Error downloading document ${docUrl}:`, error.message);
       errorCount++;
-      return { success: false, error: error.message };
+      return { success: false, error: error.message, documentId };
     }
   };
 
   // Create download tasks for all documents
   const downloadTasks = [];
+  let taskIndex = 0;
+  
   contracts.forEach(contract => {
     if (contract.resourceLinks && Array.isArray(contract.resourceLinks)) {
+      console.log(`📄 [DEBUG] Contract ${contract.noticeId} has ${contract.resourceLinks.length} documents`);
+      
       contract.resourceLinks.forEach((docUrl, index) => {
-        downloadTasks.push(() => downloadDocument(contract, docUrl, index + 1));
+        taskIndex++;
+        downloadTasks.push(() => downloadDocument(contract, docUrl, taskIndex));
       });
     }
   });
+  
+  console.log(`📥 [DEBUG] Created ${downloadTasks.length} download tasks from ${contracts.length} contracts`);
 
-  // Process downloads in batches with concurrency limit
-  const batchSize = Math.ceil(downloadTasks.length / concurrency);
+  // Process downloads with proper concurrency control
+  const batchSize = concurrency; // Each batch processes 'concurrency' number of downloads
   const batches = [];
   
   for (let i = 0; i < downloadTasks.length; i += batchSize) {
     batches.push(downloadTasks.slice(i, i + batchSize));
   }
 
-  console.log(`📥 [DEBUG] Processing ${downloadTasks.length} downloads in ${batches.length} parallel batches`);
+  console.log(`📥 [DEBUG] Processing ${downloadTasks.length} downloads in ${batches.length} batches of ${batchSize} each`);
 
   // Process each batch in parallel
-  for (const batch of batches) {
-    const batchPromises = batch.map(task => task());
-    await Promise.allSettled(batchPromises);
+  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+    const batch = batches[batchIndex];
+    console.log(`📥 [DEBUG] Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} downloads`);
     
-    // Log progress
+    const batchPromises = batch.map(task => task());
+    const batchResults = await Promise.allSettled(batchPromises);
+    
+    // Log batch results
+    const batchSuccess = batchResults.filter(r => r.status === 'fulfilled' && r.value?.success).length;
+    const batchErrors = batchResults.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value?.success)).length;
+    
+    console.log(`📊 [DEBUG] Batch ${batchIndex + 1} completed: ${batchSuccess} success, ${batchErrors} errors`);
+    
+    // Log overall progress
     const completed = downloadedCount + errorCount + skippedCount;
     const progress = Math.round((completed / totalDocuments) * 100);
-    console.log(`📊 [DEBUG] Progress: ${completed}/${totalDocuments} (${progress}%) - Downloaded: ${downloadedCount}, Errors: ${errorCount}, Skipped: ${skippedCount}`);
+    console.log(`📊 [DEBUG] Overall progress: ${completed}/${totalDocuments} (${progress}%) - Downloaded: ${downloadedCount}, Errors: ${errorCount}, Skipped: ${skippedCount}`);
+    
+    // Small delay between batches to avoid overwhelming the server
+    if (batchIndex < batches.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
   }
 
   // Update job status
