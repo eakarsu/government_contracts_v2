@@ -126,6 +126,9 @@ const sendToNorshinAPI = async (filePathOrUrl, originalName, customPrompt = '', 
     if (customPrompt) formData.append('customPrompt', customPrompt);
     if (model) formData.append('model', model);
 
+    console.log(`📤 [DEBUG] Sending document to Norshin API: ${config.norshinApiUrl}`);
+    console.log(`📤 [DEBUG] Document filename: ${originalName}`);
+    
     const response = await axios.post(config.norshinApiUrl, formData, {
       headers: {
         'X-API-Key': config.norshinApiKey,
@@ -169,6 +172,7 @@ Please provide:
 
     console.log(`🤖 [DEBUG] Processing text content with AI for ${analysisType}...`);
     console.log(`🤖 [DEBUG] Norshin API URL: ${config.norshinApiUrl}`);
+    console.log(`🤖 [DEBUG] Text endpoint URL: ${config.norshinApiUrl}/analyze-text`);
     console.log(`🤖 [DEBUG] API Key present: ${!!config.norshinApiKey}`);
     
     // If Norshin API has a text-only endpoint, use it
