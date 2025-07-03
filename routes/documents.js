@@ -1238,7 +1238,22 @@ router.post('/download-all', async (req, res) => {
     // Create download directory
     const downloadPath = path.join(process.cwd(), download_folder);
     await fs.ensureDir(downloadPath);
-    console.log(`📁 [DEBUG] Created download directory: ${downloadPath}`);
+    
+    // Verify directory was created and is writable
+    const dirExists = await fs.pathExists(downloadPath);
+    if (!dirExists) {
+      throw new Error(`Failed to create download directory: ${downloadPath}`);
+    }
+    
+    // Test write permissions
+    const testFile = path.join(downloadPath, 'test_write.tmp');
+    try {
+      await fs.writeFile(testFile, 'test');
+      await fs.remove(testFile);
+      console.log(`📁 [DEBUG] Download directory verified: ${downloadPath}`);
+    } catch (permError) {
+      throw new Error(`Download directory is not writable: ${downloadPath} - ${permError.message}`);
+    }
 
     // Get contracts with resourceLinks
     let whereClause = { resourceLinks: { not: null } };
@@ -1561,11 +1576,30 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       
       // Save to download folder
       const filePath = path.join(downloadPath, properFilename);
-      await fs.writeFile(filePath, fileBuffer);
       
-      downloadedCount++;
-      console.log(`✅ [DEBUG] [${documentId}] Downloaded: ${properFilename} (${analysis.documentType}, ${fileBuffer.length} bytes, ~${analysis.estimatedPages} pages)`);
-      console.log(`📁 [DEBUG] [${documentId}] Saved to: ${filePath}`);
+      try {
+        await fs.writeFile(filePath, fileBuffer);
+        
+        // Verify file was actually written
+        const fileExists = await fs.pathExists(filePath);
+        if (!fileExists) {
+          throw new Error(`File was not created: ${filePath}`);
+        }
+        
+        const fileStats = await fs.stat(filePath);
+        if (fileStats.size !== fileBuffer.length) {
+          throw new Error(`File size mismatch: expected ${fileBuffer.length}, got ${fileStats.size}`);
+        }
+        
+        downloadedCount++;
+        console.log(`✅ [DEBUG] [${documentId}] Downloaded: ${properFilename} (${analysis.documentType}, ${fileBuffer.length} bytes, ~${analysis.estimatedPages} pages)`);
+        console.log(`📁 [DEBUG] [${documentId}] Saved to: ${filePath}`);
+        console.log(`📁 [DEBUG] [${documentId}] File verified: exists=${fileExists}, size=${fileStats.size}`);
+        
+      } catch (writeError) {
+        console.error(`❌ [DEBUG] [${documentId}] Error writing file to ${filePath}:`, writeError.message);
+        throw new Error(`Failed to save file: ${writeError.message}`);
+      }
       
       return { 
         success: true, 
@@ -1678,20 +1712,40 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
     }
   }
 
+  // Verify final file count in directory
+  let actualFileCount = 0;
+  try {
+    if (await fs.pathExists(downloadPath)) {
+      const files = await fs.readdir(downloadPath);
+      actualFileCount = files.length;
+      console.log(`📁 [DEBUG] Actual files in directory: ${actualFileCount}`);
+      
+      if (actualFileCount !== downloadedCount) {
+        console.error(`❌ [DEBUG] File count mismatch! Expected: ${downloadedCount}, Actual: ${actualFileCount}`);
+        
+        // List first 10 files for debugging
+        const fileList = files.slice(0, 10);
+        console.log(`📁 [DEBUG] Files found: ${fileList.join(', ')}`);
+      }
+    }
+  } catch (dirError) {
+    console.error(`❌ [DEBUG] Error checking download directory: ${dirError.message}`);
+  }
+
   // Update job status
   try {
     await prisma.indexingJob.update({
       where: { id: jobId },
       data: {
         status: 'completed',
-        recordsProcessed: downloadedCount,
+        recordsProcessed: actualFileCount, // Use actual file count
         errorsCount: errorCount,
         completedAt: new Date()
       }
     });
 
     console.log(`🎉 [DEBUG] Download completed!`);
-    console.log(`📊 [DEBUG] Final stats: ${downloadedCount} downloaded, ${errorCount} errors, ${skippedCount} skipped`);
+    console.log(`📊 [DEBUG] Final stats: ${downloadedCount} downloads attempted, ${actualFileCount} files saved, ${errorCount} errors, ${skippedCount} skipped`);
   } catch (updateError) {
     console.error('❌ [DEBUG] Error updating job status:', updateError);
   }
