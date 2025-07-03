@@ -3,6 +3,10 @@ const { prisma } = require('../config/database');
 const vectorService = require('../services/vectorService');
 const { sendToNorshinAPI, processTextWithAI } = require('../services/norshinService');
 const config = require('../config/env');
+const axios = require('axios');
+const fs = require('fs-extra');
+const path = require('path');
+const documentAnalyzer = require('../utils/documentAnalyzer');
 
 const router = express.Router();
 
@@ -1218,6 +1222,138 @@ router.post('/queue/stop', async (req, res) => {
   }
 });
 
+// Download all documents to local folder (no AI processing)
+router.post('/download-all', async (req, res) => {
+  try {
+    const { 
+      limit = 1000, 
+      download_folder = 'downloaded_documents',
+      concurrency = 10,
+      contract_id 
+    } = req.body;
+    
+    console.log('📥 [DEBUG] Starting bulk document download...');
+    console.log(`📥 [DEBUG] Parameters: limit=${limit}, folder=${download_folder}, concurrency=${concurrency}`);
+
+    // Create download directory
+    const downloadPath = path.join(process.cwd(), download_folder);
+    await fs.ensureDir(downloadPath);
+    console.log(`📁 [DEBUG] Created download directory: ${downloadPath}`);
+
+    // Get contracts with resourceLinks
+    let whereClause = { resourceLinks: { not: null } };
+    if (contract_id) {
+      whereClause.noticeId = contract_id;
+    }
+
+    const contracts = await prisma.contract.findMany({
+      where: whereClause,
+      take: limit,
+      select: {
+        noticeId: true,
+        title: true,
+        resourceLinks: true,
+        agency: true
+      }
+    });
+
+    if (contracts.length === 0) {
+      return res.json({
+        success: false,
+        message: 'No contracts with documents found to download',
+        downloaded_count: 0
+      });
+    }
+
+    console.log(`📄 [DEBUG] Found ${contracts.length} contracts with documents`);
+
+    // Create download job for tracking
+    const job = await prisma.indexingJob.create({
+      data: {
+        jobType: 'document_download',
+        status: 'running',
+        startDate: new Date()
+      }
+    });
+
+    // Respond immediately and start background downloading
+    res.json({
+      success: true,
+      message: `Started downloading documents from ${contracts.length} contracts to folder: ${download_folder}`,
+      job_id: job.id,
+      contracts_count: contracts.length,
+      download_folder: download_folder,
+      download_path: downloadPath
+    });
+
+    // Start background download process
+    downloadDocumentsInParallel(contracts, downloadPath, concurrency, job.id);
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error starting document download:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// Get download status and statistics
+router.get('/download/status', async (req, res) => {
+  try {
+    const downloadJobs = await prisma.indexingJob.findMany({
+      where: { jobType: 'document_download' },
+      orderBy: { createdAt: 'desc' },
+      take: 10
+    });
+
+    // Get download folder info if it exists
+    const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+    let folderStats = null;
+    
+    if (await fs.pathExists(downloadPath)) {
+      const files = await fs.readdir(downloadPath);
+      const stats = await Promise.all(
+        files.map(async (file) => {
+          const filePath = path.join(downloadPath, file);
+          const stat = await fs.stat(filePath);
+          return { name: file, size: stat.size, modified: stat.mtime };
+        })
+      );
+      
+      folderStats = {
+        total_files: files.length,
+        total_size_bytes: stats.reduce((sum, file) => sum + file.size, 0),
+        files: stats.slice(0, 20) // Show first 20 files
+      };
+    }
+
+    res.json({
+      success: true,
+      download_jobs: downloadJobs.map(job => ({
+        id: job.id,
+        status: job.status,
+        started_at: job.createdAt,
+        completed_at: job.completedAt,
+        records_processed: job.recordsProcessed,
+        errors_count: job.errorsCount,
+        duration_minutes: job.completedAt 
+          ? Math.round((job.completedAt.getTime() - job.createdAt.getTime()) / 60000)
+          : Math.round((Date.now() - job.createdAt.getTime()) / 60000)
+      })),
+      folder_stats: folderStats,
+      download_path: downloadPath
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error getting download status:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
 // Get queue analytics and detailed statistics
 router.get('/queue/analytics', async (req, res) => {
   try {
@@ -1317,5 +1453,133 @@ router.get('/queue/analytics', async (req, res) => {
     });
   }
 });
+
+// Helper function to download documents in parallel
+async function downloadDocumentsInParallel(contracts, downloadPath, concurrency, jobId) {
+  console.log(`📥 [DEBUG] Starting parallel download of documents from ${contracts.length} contracts`);
+  
+  let downloadedCount = 0;
+  let errorCount = 0;
+  let skippedCount = 0;
+  let totalDocuments = 0;
+
+  // Count total documents first
+  contracts.forEach(contract => {
+    if (contract.resourceLinks && Array.isArray(contract.resourceLinks)) {
+      totalDocuments += contract.resourceLinks.length;
+    }
+  });
+
+  console.log(`📥 [DEBUG] Total documents to download: ${totalDocuments}`);
+
+  // Download single document
+  const downloadDocument = async (contract, docUrl, docIndex) => {
+    try {
+      console.log(`📥 [DEBUG] Downloading document ${docIndex} from contract ${contract.noticeId}: ${docUrl}`);
+      
+      // Download the file
+      const response = await axios.get(docUrl, {
+        responseType: 'arraybuffer',
+        timeout: 300000, // 5 minute timeout
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)'
+        }
+      });
+
+      const fileBuffer = Buffer.from(response.data);
+      console.log(`📥 [DEBUG] Downloaded ${fileBuffer.length} bytes`);
+
+      // Analyze the document to get proper extension
+      const contentType = response.headers['content-type'] || '';
+      const originalFilename = docUrl.split('/').pop() || `document_${docIndex}`;
+      const analysis = documentAnalyzer.analyzeDocument(fileBuffer, originalFilename, contentType);
+      
+      // Skip ZIP files and unsupported types
+      if (analysis.isZipFile) {
+        console.log(`⚠️ [DEBUG] Skipping ZIP file: ${originalFilename}`);
+        skippedCount++;
+        return { success: false, reason: 'ZIP file' };
+      }
+
+      if (!analysis.isSupported) {
+        console.log(`⚠️ [DEBUG] Skipping unsupported document type: ${analysis.documentType}`);
+        skippedCount++;
+        return { success: false, reason: 'Unsupported type' };
+      }
+
+      // Generate proper filename with correct extension
+      const correctExtension = documentAnalyzer.getCorrectExtension(analysis.documentType, analysis.extension);
+      const properFilename = `${contract.noticeId}_${originalFilename.replace(/\.[^/.]+$/, '')}${correctExtension}`;
+      
+      // Save to download folder
+      const filePath = path.join(downloadPath, properFilename);
+      await fs.writeFile(filePath, fileBuffer);
+      
+      downloadedCount++;
+      console.log(`✅ [DEBUG] Downloaded: ${properFilename} (${analysis.documentType}, ${fileBuffer.length} bytes)`);
+      
+      return { 
+        success: true, 
+        filename: properFilename, 
+        size: fileBuffer.length,
+        type: analysis.documentType 
+      };
+
+    } catch (error) {
+      console.error(`❌ [DEBUG] Error downloading document ${docUrl}:`, error.message);
+      errorCount++;
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Create download tasks for all documents
+  const downloadTasks = [];
+  contracts.forEach(contract => {
+    if (contract.resourceLinks && Array.isArray(contract.resourceLinks)) {
+      contract.resourceLinks.forEach((docUrl, index) => {
+        downloadTasks.push(() => downloadDocument(contract, docUrl, index + 1));
+      });
+    }
+  });
+
+  // Process downloads in batches with concurrency limit
+  const batchSize = Math.ceil(downloadTasks.length / concurrency);
+  const batches = [];
+  
+  for (let i = 0; i < downloadTasks.length; i += batchSize) {
+    batches.push(downloadTasks.slice(i, i + batchSize));
+  }
+
+  console.log(`📥 [DEBUG] Processing ${downloadTasks.length} downloads in ${batches.length} parallel batches`);
+
+  // Process each batch in parallel
+  for (const batch of batches) {
+    const batchPromises = batch.map(task => task());
+    await Promise.allSettled(batchPromises);
+    
+    // Log progress
+    const completed = downloadedCount + errorCount + skippedCount;
+    const progress = Math.round((completed / totalDocuments) * 100);
+    console.log(`📊 [DEBUG] Progress: ${completed}/${totalDocuments} (${progress}%) - Downloaded: ${downloadedCount}, Errors: ${errorCount}, Skipped: ${skippedCount}`);
+  }
+
+  // Update job status
+  try {
+    await prisma.indexingJob.update({
+      where: { id: jobId },
+      data: {
+        status: 'completed',
+        recordsProcessed: downloadedCount,
+        errorsCount: errorCount,
+        completedAt: new Date()
+      }
+    });
+
+    console.log(`🎉 [DEBUG] Download completed!`);
+    console.log(`📊 [DEBUG] Final stats: ${downloadedCount} downloaded, ${errorCount} errors, ${skippedCount} skipped`);
+  } catch (updateError) {
+    console.error('❌ [DEBUG] Error updating job status:', updateError);
+  }
+}
 
 module.exports = router;

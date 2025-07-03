@@ -235,6 +235,21 @@ class ApiService {
     return response.data;
   }
 
+  async downloadAllDocuments(options?: {
+    limit?: number;
+    download_folder?: string;
+    concurrency?: number;
+    contract_id?: string;
+  }): Promise<ApiResponse> {
+    const response = await api.post<ApiResponse>('/documents/download-all', options || {});
+    return response.data;
+  }
+
+  async getDownloadStatus(): Promise<ApiResponse> {
+    const response = await api.get<ApiResponse>('/documents/download/status');
+    return response.data;
+  }
+
   async clearQueue(options?: { clear_completed?: boolean; clear_failed?: boolean; clear_all?: boolean }): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>('/documents/queue/clear', options || {});
     return response.data;
