@@ -1302,6 +1302,7 @@ router.post('/download-all', async (req, res) => {
     });
 
     // Start background download process
+    console.log(`🚀 [DEBUG] Starting background download process for job ${job.id}`);
     downloadDocumentsInParallel(contracts, downloadPath, concurrency, job.id);
 
   } catch (error) {
@@ -1471,7 +1472,13 @@ router.get('/queue/analytics', async (req, res) => {
 
 // Helper function to download documents in parallel
 async function downloadDocumentsInParallel(contracts, downloadPath, concurrency, jobId) {
-  console.log(`📥 [DEBUG] Starting parallel download of documents from ${contracts.length} contracts`);
+  console.log(`🚀 [DEBUG] ========================================`);
+  console.log(`🚀 [DEBUG] STARTING DOCUMENT DOWNLOAD PROCESS`);
+  console.log(`🚀 [DEBUG] Job ID: ${jobId}`);
+  console.log(`🚀 [DEBUG] Contracts to process: ${contracts.length}`);
+  console.log(`🚀 [DEBUG] Download path: ${downloadPath}`);
+  console.log(`🚀 [DEBUG] Concurrency: ${concurrency}`);
+  console.log(`🚀 [DEBUG] ========================================`);
   
   let downloadedCount = 0;
   let errorCount = 0;
@@ -1479,13 +1486,19 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
   let totalDocuments = 0;
 
   // Count total documents first
-  contracts.forEach(contract => {
+  console.log(`📊 [DEBUG] Analyzing contracts for document links...`);
+  contracts.forEach((contract, index) => {
     if (contract.resourceLinks && Array.isArray(contract.resourceLinks)) {
+      console.log(`📄 [DEBUG] Contract ${index + 1}/${contracts.length}: ${contract.noticeId} has ${contract.resourceLinks.length} documents`);
       totalDocuments += contract.resourceLinks.length;
+    } else {
+      console.log(`⚠️ [DEBUG] Contract ${index + 1}/${contracts.length}: ${contract.noticeId} has NO documents`);
     }
   });
 
-  console.log(`📥 [DEBUG] Total documents to download: ${totalDocuments}`);
+  console.log(`📊 [DEBUG] TOTAL DOCUMENTS TO DOWNLOAD: ${totalDocuments}`);
+  console.log(`📊 [DEBUG] Starting download process in 3 seconds...`);
+  await new Promise(resolve => setTimeout(resolve, 3000));
   
   if (totalDocuments === 0) {
     console.log(`⚠️ [DEBUG] No documents found to download`);
@@ -1617,29 +1630,35 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
   };
 
   // Create download tasks for all documents
+  console.log(`🔧 [DEBUG] Creating download tasks...`);
   const downloadTasks = [];
   let taskIndex = 0;
   let contractsWithDocs = 0;
   
-  contracts.forEach(contract => {
+  contracts.forEach((contract, contractIndex) => {
+    console.log(`🔍 [DEBUG] Processing contract ${contractIndex + 1}/${contracts.length}: ${contract.noticeId}`);
+    
     if (contract.resourceLinks && Array.isArray(contract.resourceLinks) && contract.resourceLinks.length > 0) {
       contractsWithDocs++;
-      console.log(`📄 [DEBUG] Contract ${contract.noticeId} has ${contract.resourceLinks.length} documents`);
+      console.log(`📄 [DEBUG] ✅ Contract ${contract.noticeId} has ${contract.resourceLinks.length} documents`);
       
       contract.resourceLinks.forEach((docUrl, index) => {
         if (docUrl && docUrl.trim()) { // Ensure URL is not empty
           taskIndex++;
+          console.log(`📋 [DEBUG]   Task ${taskIndex}: ${docUrl}`);
           downloadTasks.push(() => downloadDocument(contract, docUrl, taskIndex));
         } else {
-          console.log(`⚠️ [DEBUG] Skipping empty URL for contract ${contract.noticeId}`);
+          console.log(`⚠️ [DEBUG]   Skipping empty URL for contract ${contract.noticeId}`);
         }
       });
     } else {
-      console.log(`⚠️ [DEBUG] Contract ${contract.noticeId} has no valid resourceLinks`);
+      console.log(`❌ [DEBUG] Contract ${contract.noticeId} has no valid resourceLinks`);
     }
   });
   
-  console.log(`📥 [DEBUG] Created ${downloadTasks.length} download tasks from ${contractsWithDocs}/${contracts.length} contracts with documents`);
+  console.log(`📊 [DEBUG] TASK CREATION COMPLETE:`);
+  console.log(`📊 [DEBUG] - Created ${downloadTasks.length} download tasks`);
+  console.log(`📊 [DEBUG] - From ${contractsWithDocs}/${contracts.length} contracts with documents`);
 
   if (downloadTasks.length === 0) {
     console.log(`⚠️ [DEBUG] No download tasks created - no documents to download`);
@@ -1659,6 +1678,7 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
   }
 
   // Process downloads with proper concurrency control
+  console.log(`⚙️ [DEBUG] Setting up batch processing...`);
   const batchSize = concurrency; // Each batch processes 'concurrency' number of downloads
   const batches = [];
   
@@ -1666,15 +1686,29 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
     batches.push(downloadTasks.slice(i, i + batchSize));
   }
 
-  console.log(`📥 [DEBUG] Processing ${downloadTasks.length} downloads in ${batches.length} batches of ${batchSize} each`);
+  console.log(`📊 [DEBUG] BATCH SETUP COMPLETE:`);
+  console.log(`📊 [DEBUG] - Total downloads: ${downloadTasks.length}`);
+  console.log(`📊 [DEBUG] - Batch size: ${batchSize}`);
+  console.log(`📊 [DEBUG] - Number of batches: ${batches.length}`);
+  console.log(`📊 [DEBUG] - Starting batch processing...`);
 
   // Process each batch in parallel
   for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
     const batch = batches[batchIndex];
-    console.log(`📥 [DEBUG] Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} downloads`);
+    console.log(`🚀 [DEBUG] ========================================`);
+    console.log(`🚀 [DEBUG] STARTING BATCH ${batchIndex + 1}/${batches.length}`);
+    console.log(`🚀 [DEBUG] Batch contains ${batch.length} downloads`);
+    console.log(`🚀 [DEBUG] ========================================`);
     
-    const batchPromises = batch.map(task => task());
+    const batchStartTime = Date.now();
+    const batchPromises = batch.map((task, taskIndex) => {
+      console.log(`🔄 [DEBUG] Starting task ${taskIndex + 1}/${batch.length} in batch ${batchIndex + 1}`);
+      return task();
+    });
+    
+    console.log(`⏳ [DEBUG] Waiting for batch ${batchIndex + 1} to complete...`);
     const batchResults = await Promise.allSettled(batchPromises);
+    const batchDuration = Math.round((Date.now() - batchStartTime) / 1000);
     
     // Process batch results and update counters
     let batchSuccess = 0;
@@ -1699,15 +1733,22 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       }
     });
     
-    console.log(`📊 [DEBUG] Batch ${batchIndex + 1} completed: ${batchSuccess} success, ${batchErrors} errors, ${batchSkipped} skipped`);
+    console.log(`✅ [DEBUG] ========================================`);
+    console.log(`✅ [DEBUG] BATCH ${batchIndex + 1} COMPLETED in ${batchDuration}s`);
+    console.log(`✅ [DEBUG] Batch results: ${batchSuccess} success, ${batchErrors} errors, ${batchSkipped} skipped`);
+    console.log(`✅ [DEBUG] ========================================`);
     
     // Log overall progress
     const completed = downloadedCount + errorCount + skippedCount;
     const progress = Math.round((completed / totalDocuments) * 100);
-    console.log(`📊 [DEBUG] Overall progress: ${completed}/${totalDocuments} (${progress}%) - Downloaded: ${downloadedCount}, Errors: ${errorCount}, Skipped: ${skippedCount}`);
+    console.log(`📊 [DEBUG] 🎯 OVERALL PROGRESS: ${completed}/${totalDocuments} (${progress}%)`);
+    console.log(`📊 [DEBUG] 📥 Downloaded: ${downloadedCount}`);
+    console.log(`📊 [DEBUG] ❌ Errors: ${errorCount}`);
+    console.log(`📊 [DEBUG] ⏭️  Skipped: ${skippedCount}`);
     
     // Small delay between batches to avoid overwhelming the server
     if (batchIndex < batches.length - 1) {
+      console.log(`⏸️ [DEBUG] Waiting 1 second before next batch...`);
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
@@ -1744,8 +1785,15 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       }
     });
 
-    console.log(`🎉 [DEBUG] Download completed!`);
-    console.log(`📊 [DEBUG] Final stats: ${downloadedCount} downloads attempted, ${actualFileCount} files saved, ${errorCount} errors, ${skippedCount} skipped`);
+    console.log(`🎉 [DEBUG] ========================================`);
+    console.log(`🎉 [DEBUG] DOWNLOAD PROCESS COMPLETED!`);
+    console.log(`🎉 [DEBUG] ========================================`);
+    console.log(`📊 [DEBUG] 📥 Downloads attempted: ${downloadedCount}`);
+    console.log(`📊 [DEBUG] 💾 Files actually saved: ${actualFileCount}`);
+    console.log(`📊 [DEBUG] ❌ Errors encountered: ${errorCount}`);
+    console.log(`📊 [DEBUG] ⏭️  Files skipped: ${skippedCount}`);
+    console.log(`📊 [DEBUG] 📁 Download directory: ${downloadPath}`);
+    console.log(`🎉 [DEBUG] ========================================`);
   } catch (updateError) {
     console.error('❌ [DEBUG] Error updating job status:', updateError);
   }
