@@ -46,21 +46,105 @@ router.post('/fetch-contracts', async (req, res) => {
     console.log(`📋 [DEBUG] - limit: ${limit}`);
     console.log(`📋 [DEBUG] - offset: ${offset}`);
     
-    // For now, just return a success message since we don't have SAM.gov integration
-    // In a real implementation, this would call SAM.gov API to fetch contracts
+    // Create a job to track the fetch operation
+    const job = await prisma.indexingJob.create({
+      data: {
+        jobType: 'contract_fetch',
+        status: 'running',
+        startDate: new Date()
+      }
+    });
     
-    console.log('✅ [DEBUG] Fetch contracts request processed successfully');
+    console.log(`✅ [DEBUG] Created fetch job: ${job.id}`);
+    
+    // Check current contract count
+    const currentContractCount = await prisma.contract.count();
+    console.log(`📊 [DEBUG] Current contracts in database: ${currentContractCount}`);
+    
+    // Simulate contract fetching by creating some sample contracts with documents
+    console.log('🔄 [DEBUG] Simulating contract fetch process...');
+    
+    let fetchedCount = 0;
+    const sampleContracts = [];
+    
+    // Create sample contracts with realistic document URLs
+    for (let i = 1; i <= Math.min(limit, 10); i++) {
+      const contractId = `SAMPLE_${Date.now()}_${i}`;
+      const sampleContract = {
+        noticeId: contractId,
+        title: `Sample Government Contract ${i} - ${new Date().toLocaleDateString()}`,
+        description: `This is a sample government contract created for testing document download functionality. Contract ${i} of ${limit}.`,
+        agency: `Department of Testing - Agency ${i}`,
+        naicsCode: `54151${i}`,
+        classificationCode: `R--RESEARCH AND DEVELOPMENT`,
+        postedDate: new Date(),
+        setAsideCode: 'SBA',
+        resourceLinks: [
+          `https://sam.gov/api/prod/opps/v3/opportunities/resources/files/sample${i}_doc1/download`,
+          `https://sam.gov/api/prod/opps/v3/opportunities/resources/files/sample${i}_doc2/download`,
+          `https://sam.gov/api/prod/opps/v3/opportunities/resources/files/sample${i}_doc3/download`
+        ]
+      };
+      
+      try {
+        // Check if contract already exists
+        const existing = await prisma.contract.findUnique({
+          where: { noticeId: contractId }
+        });
+        
+        if (!existing) {
+          await prisma.contract.create({
+            data: sampleContract
+          });
+          fetchedCount++;
+          console.log(`✅ [DEBUG] Created sample contract: ${contractId}`);
+        } else {
+          console.log(`⚠️ [DEBUG] Contract already exists: ${contractId}`);
+        }
+        
+        sampleContracts.push(sampleContract);
+      } catch (createError) {
+        console.error(`❌ [DEBUG] Error creating contract ${contractId}:`, createError.message);
+      }
+    }
+    
+    // Update job status
+    await prisma.indexingJob.update({
+      where: { id: job.id },
+      data: {
+        status: 'completed',
+        recordsProcessed: fetchedCount,
+        completedAt: new Date()
+      }
+    });
+    
+    const finalContractCount = await prisma.contract.count();
+    
+    console.log('✅ [DEBUG] Fetch contracts simulation completed');
+    console.log(`📊 [DEBUG] Contracts before: ${currentContractCount}`);
+    console.log(`📊 [DEBUG] Contracts after: ${finalContractCount}`);
+    console.log(`📊 [DEBUG] New contracts created: ${fetchedCount}`);
     
     res.json({
       success: true,
-      message: `Fetch contracts endpoint called successfully with limit ${limit}`,
+      message: `Successfully simulated fetching ${fetchedCount} new contracts with document links`,
+      job_id: job.id,
+      contracts_fetched: fetchedCount,
+      total_contracts_now: finalContractCount,
+      contracts_before: currentContractCount,
+      sample_contracts: sampleContracts.map(c => ({
+        notice_id: c.noticeId,
+        title: c.title,
+        agency: c.agency,
+        document_count: c.resourceLinks.length
+      })),
       parameters: {
         start_date,
         end_date,
         limit,
         offset
       },
-      note: 'This is a placeholder endpoint. Real SAM.gov integration would be implemented here.',
+      note: 'This is a simulation. In production, this would fetch real contracts from SAM.gov API.',
       timestamp: new Date().toISOString()
     });
     
