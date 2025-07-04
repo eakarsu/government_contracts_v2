@@ -829,7 +829,7 @@ router.get('/queue/status', async (req, res) => {
     let displayCompleted = completedCount;
     let displayTotal = totalDocuments;
     
-    // ALWAYS show downloaded files count if they exist, regardless of queue status
+    // ALWAYS prioritize downloaded files count over queue count
     try {
       const downloadPath = path.join(process.cwd(), 'downloaded_documents');
       console.log(`📊 [DEBUG] Checking download path: ${downloadPath}`);
@@ -842,13 +842,14 @@ router.get('/queue/status', async (req, res) => {
         const fileCount = files.length;
         console.log(`📊 [DEBUG] Found ${fileCount} files in download directory`);
         
-        // If there are downloaded files, show that count as the total
+        // ALWAYS use downloaded files count as the total, regardless of queue status
         if (fileCount > 0) {
           displayTotal = fileCount;
           displayCompleted = 0; // Keep completed as 0 since these aren't queue completions
           displayQueued = 0;    // Keep queued as 0 since nothing is queued
           
-          console.log(`📊 [DEBUG] Using downloaded files count - Total: ${displayTotal}, Completed: ${displayCompleted}, Queued: ${displayQueued}`);
+          console.log(`📊 [DEBUG] OVERRIDING queue count with downloaded files count - Total: ${displayTotal}`);
+          console.log(`📊 [DEBUG] Original queue total was: ${totalDocuments}, now showing: ${displayTotal}`);
         }
       } else {
         console.log(`📊 [DEBUG] Download directory does not exist`);
