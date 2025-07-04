@@ -146,19 +146,7 @@ const QuickActions: React.FC = () => {
           {clearAndRepopulateQueueMutation.isPending ? (
             <LoadingSpinner size="sm" color="white" />
           ) : (
-            'Clear & Queue Valid Docs Only'
-          )}
-        </button>
-
-        <button
-          onClick={() => downloadDocumentsMutation.mutate()}
-          disabled={downloadDocumentsMutation.isPending}
-          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
-        >
-          {downloadDocumentsMutation.isPending ? (
-            <LoadingSpinner size="sm" color="white" />
-          ) : (
-            'Download Documents'
+            '🔄 Fix Queue Count (Clear & Repopulate)'
           )}
         </button>
 
