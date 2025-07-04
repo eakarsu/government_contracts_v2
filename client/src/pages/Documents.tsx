@@ -36,6 +36,21 @@ const Documents: React.FC = () => {
     },
   });
 
+  const queueDocumentsMutation = useMutation({
+    mutationFn: () => apiService.queueDocuments(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
+    },
+  });
+
+  const downloadQueuedMutation = useMutation({
+    mutationFn: (options: { limit?: number; download_folder?: string }) => 
+      apiService.downloadAllDocuments(options),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
+    },
+  });
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFiles(event.target.files);
   };
@@ -48,6 +63,17 @@ const Documents: React.FC = () => {
 
   const handleProcessQueue = () => {
     processQueueMutation.mutate();
+  };
+
+  const handleQueueDocuments = () => {
+    queueDocumentsMutation.mutate();
+  };
+
+  const handleDownloadQueued = () => {
+    downloadQueuedMutation.mutate({
+      limit: 100,
+      download_folder: 'downloaded_documents'
+    });
   };
 
   return (
@@ -159,13 +185,29 @@ const Documents: React.FC = () => {
         <div className="bg-white shadow rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Processing Queue</h2>
-            <button
-              onClick={handleProcessQueue}
-              disabled={processQueueMutation.isPending}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-            >
-              {processQueueMutation.isPending ? <LoadingSpinner size="sm" /> : 'Process Queue'}
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={handleQueueDocuments}
+                disabled={queueDocumentsMutation.isPending}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {queueDocumentsMutation.isPending ? <LoadingSpinner size="sm" /> : 'Queue Documents'}
+              </button>
+              <button
+                onClick={handleDownloadQueued}
+                disabled={downloadQueuedMutation.isPending}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+              >
+                {downloadQueuedMutation.isPending ? <LoadingSpinner size="sm" /> : 'Download to Folder'}
+              </button>
+              <button
+                onClick={handleProcessQueue}
+                disabled={processQueueMutation.isPending}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+              >
+                {processQueueMutation.isPending ? <LoadingSpinner size="sm" /> : 'Process Queue'}
+              </button>
+            </div>
           </div>
 
           {queueLoading ? (
@@ -227,6 +269,31 @@ const Documents: React.FC = () => {
           ) : (
             <div className="text-gray-500">No queue data available</div>
           )}
+
+          {/* Success Messages */}
+          {queueDocumentsMutation.isSuccess && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="text-blue-800 text-sm">
+                Documents queued successfully!
+              </div>
+            </div>
+          )}
+
+          {downloadQueuedMutation.isSuccess && (
+            <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-md">
+              <div className="text-purple-800 text-sm">
+                Documents download started! Check the downloaded_documents folder.
+              </div>
+            </div>
+          )}
+
+          {processQueueMutation.isSuccess && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+              <div className="text-green-800 text-sm">
+                Queue processing started!
+              </div>
+            </div>
+          )}
         </div>
         </div>
       )}
@@ -235,13 +302,29 @@ const Documents: React.FC = () => {
         <div className="bg-white shadow rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Processing Queue</h2>
-            <button
-              onClick={handleProcessQueue}
-              disabled={processQueueMutation.isPending}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-            >
-              {processQueueMutation.isPending ? <LoadingSpinner size="sm" /> : 'Process Queue'}
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={handleQueueDocuments}
+                disabled={queueDocumentsMutation.isPending}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {queueDocumentsMutation.isPending ? <LoadingSpinner size="sm" /> : 'Queue Documents'}
+              </button>
+              <button
+                onClick={handleDownloadQueued}
+                disabled={downloadQueuedMutation.isPending}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+              >
+                {downloadQueuedMutation.isPending ? <LoadingSpinner size="sm" /> : 'Download to Folder'}
+              </button>
+              <button
+                onClick={handleProcessQueue}
+                disabled={processQueueMutation.isPending}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+              >
+                {processQueueMutation.isPending ? <LoadingSpinner size="sm" /> : 'Process Queue'}
+              </button>
+            </div>
           </div>
 
           {queueLoading ? (
