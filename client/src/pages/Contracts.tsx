@@ -74,8 +74,8 @@ const Contracts: React.FC = () => {
       {/* Actions */}
       <div className="mb-6 bg-white shadow rounded-lg p-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Actions</h2>
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center space-x-4">
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-4 items-end">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Limit
@@ -98,30 +98,31 @@ const Contracts: React.FC = () => {
                 className="block w-24 border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
               />
             </div>
-            <div className="flex items-end">
-              <button
-                onClick={handleFetch}
-                disabled={fetchMutation.isPending}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                {fetchMutation.isPending ? <LoadingSpinner size="sm" /> : 'Fetch Contracts'}
-              </button>
-            </div>
+            <button
+              onClick={handleFetch}
+              disabled={fetchMutation.isPending}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {fetchMutation.isPending ? <LoadingSpinner size="sm" /> : 'Fetch Contracts'}
+            </button>
           </div>
-          <button
-            onClick={handleIndex}
-            disabled={indexMutation.isPending}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-          >
-            {indexMutation.isPending ? <LoadingSpinner size="sm" /> : 'Index Contracts'}
-          </button>
-          <button
-            onClick={handleDownload}
-            disabled={downloadMutation.isPending}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
-          >
-            {downloadMutation.isPending ? <LoadingSpinner size="sm" /> : 'Download Documents'}
-          </button>
+          
+          <div className="flex flex-wrap gap-4">
+            <button
+              onClick={handleIndex}
+              disabled={indexMutation.isPending}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+            >
+              {indexMutation.isPending ? <LoadingSpinner size="sm" /> : 'Index Contracts'}
+            </button>
+            <button
+              onClick={handleDownload}
+              disabled={downloadMutation.isPending}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+            >
+              {downloadMutation.isPending ? <LoadingSpinner size="sm" /> : 'Download Documents'}
+            </button>
+          </div>
         </div>
 
         {fetchMutation.isSuccess && (
