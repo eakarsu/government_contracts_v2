@@ -829,7 +829,7 @@ router.get('/queue/status', async (req, res) => {
     let displayCompleted = completedCount;
     let displayTotal = totalDocuments;
     
-    // Only show downloaded files count when queue is completely empty
+    // ALWAYS show downloaded files count when queue is empty
     if (totalDocuments === 0) {
       try {
         const downloadPath = path.join(process.cwd(), 'downloaded_documents');
@@ -843,13 +843,13 @@ router.get('/queue/status', async (req, res) => {
           const fileCount = files.length;
           console.log(`📊 [DEBUG] Found ${fileCount} files in download directory`);
           
-          // When queue is empty, show downloaded files as "queued" in the detailed view
+          // FORCE the queued count to show downloaded files when queue is empty
           if (fileCount > 0) {
             displayTotal = fileCount;
             displayCompleted = 0;
-            displayQueued = fileCount; // Show downloaded files as "queued" in detailed view
+            displayQueued = fileCount; // FORCE queued to show downloaded files count
             
-            console.log(`📊 [DEBUG] Queue is empty, showing downloaded files count - Total: ${displayTotal}, Queued: ${displayQueued}`);
+            console.log(`📊 [DEBUG] FORCING queue display - Total: ${displayTotal}, Queued: ${displayQueued}`);
           }
         } else {
           console.log(`📊 [DEBUG] Download directory does not exist`);
@@ -862,7 +862,7 @@ router.get('/queue/status', async (req, res) => {
     }
 
     console.log(`📊 [DEBUG] Final queue status being returned:`);
-    console.log(`📊 [DEBUG] - Queued: ${displayQueued}`);
+    console.log(`📊 [DEBUG] - Queued: ${displayQueued} (SHOULD BE 88 WHEN QUEUE IS EMPTY)`);
     console.log(`📊 [DEBUG] - Processing: ${processingCount}`);
     console.log(`📊 [DEBUG] - Completed: ${displayCompleted}`);
     console.log(`📊 [DEBUG] - Failed: ${failedCount}`);
@@ -874,8 +874,8 @@ router.get('/queue/status', async (req, res) => {
       success: true,
       timestamp: new Date().toISOString(),
       queue_status: {
-        // Main counters - when queue is empty, total shows downloaded files count
-        queued: displayQueued,
+        // FORCE queued to show downloaded files count when queue is empty
+        queued: displayQueued, // This MUST be 88 when queue is empty
         processing: processingCount,
         completed: displayCompleted,
         failed: failedCount,
