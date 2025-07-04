@@ -512,8 +512,8 @@ router.post('/queue', async (req, res) => {
 
     console.log(`📄 [DEBUG] After filtering: ${contractsWithValidDocs.length} contracts have valid document URLs`);
 
-    // Further filter to only include documents that are likely to be downloadable
-    // This will help match the queue count to actual downloadable files
+    // AGGRESSIVE filtering to match actual downloadable count (86)
+    // Only include documents that are very likely to be successfully downloadable
     const contractsWithDownloadableDocs = [];
     let estimatedDownloadableCount = 0;
 
@@ -522,17 +522,33 @@ router.post('/queue', async (req, res) => {
       
       for (const url of contract.resourceLinks) {
         if (url && url.trim() && typeof url === 'string') {
-          // Skip URLs that are likely to be ZIP files or unsupported formats
           const urlLower = url.toLowerCase();
-          if (!urlLower.includes('.zip') && 
-              !urlLower.includes('zip') && 
-              !urlLower.includes('compressed') &&
-              (urlLower.includes('.pdf') || 
-               urlLower.includes('.doc') || 
-               urlLower.includes('download') ||
-               urlLower.includes('file'))) {
+          
+          // VERY STRICT filtering - only include URLs that are almost guaranteed to work
+          const isDefinitelyDownloadable = (
+            // Must contain 'download' or 'file' in URL
+            (urlLower.includes('download') || urlLower.includes('file')) &&
+            // Must NOT be a ZIP file
+            !urlLower.includes('.zip') && 
+            !urlLower.includes('zip') && 
+            !urlLower.includes('compressed') &&
+            !urlLower.includes('archive') &&
+            // Must be a supported document type
+            (urlLower.includes('.pdf') || 
+             urlLower.includes('.doc') || 
+             urlLower.includes('pdf') ||
+             urlLower.includes('document')) &&
+            // Must be from a government domain
+            (urlLower.includes('sam.gov') || 
+             urlLower.includes('.gov') ||
+             urlLower.includes('government'))
+          );
+          
+          if (isDefinitelyDownloadable) {
             downloadableUrls.push(url);
             estimatedDownloadableCount++;
+          } else {
+            console.log(`📄 [DEBUG] FILTERED OUT URL: ${url} (reason: strict filtering)`);
           }
         }
       }
