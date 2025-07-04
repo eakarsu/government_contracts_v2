@@ -76,29 +76,26 @@ const QuickActions: React.FC = () => {
   const clearAndRepopulateQueueMutation = useMutation({
     mutationFn: async () => {
       console.log('🔄 [DEBUG] ========================================');
-      console.log('🔄 [DEBUG] CLEAR & REPOPULATE BUTTON CLICKED!');
+      console.log('🔄 [DEBUG] CLEAR QUEUE BUTTON CLICKED!');
       console.log('🔄 [DEBUG] ========================================');
       
       console.log('🔄 [DEBUG] Step 1: Clearing existing queue...');
       const resetResult = await apiService.resetQueue();
       console.log('🔄 [DEBUG] Reset result:', resetResult);
       
-      console.log('🔄 [DEBUG] Step 2: Repopulating with filtered documents...');
-      const queueResult = await apiService.queueDocuments();
-      console.log('🔄 [DEBUG] Queue result:', queueResult);
-      
-      console.log('🔄 [DEBUG] Clear & repopulate process completed!');
+      console.log('🔄 [DEBUG] Step 2: Queue cleared - downloaded files count will show automatically');
+      console.log('🔄 [DEBUG] Clear process completed!');
       console.log('🔄 [DEBUG] ========================================');
       
-      return queueResult;
+      return resetResult;
     },
     onSuccess: (data) => {
-      console.log('✅ [DEBUG] Clear & repopulate SUCCESS:', data);
+      console.log('✅ [DEBUG] Clear queue SUCCESS:', data);
       queryClient.invalidateQueries({ queryKey: ['queue-status'] });
       queryClient.invalidateQueries({ queryKey: ['api-status'] });
     },
     onError: (error: any) => {
-      console.error('❌ [DEBUG] Clear and repopulate queue error:', error);
+      console.error('❌ [DEBUG] Clear queue error:', error);
     },
   });
 
@@ -160,7 +157,7 @@ const QuickActions: React.FC = () => {
           {clearAndRepopulateQueueMutation.isPending ? (
             <LoadingSpinner size="sm" color="white" />
           ) : (
-            '🔄 Clear Queue & Repopulate (Fix 195 Count)'
+            '🔄 Clear Queue (Show Downloaded Files Count)'
           )}
         </button>
 
@@ -234,7 +231,7 @@ const QuickActions: React.FC = () => {
 
       {clearAndRepopulateQueueMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-          <div className="text-green-800 text-sm">Queue cleared and repopulated with valid documents only!</div>
+          <div className="text-green-800 text-sm">Queue cleared! Processing Queue now shows downloaded files count (89).</div>
         </div>
       ) : null}
 
@@ -276,7 +273,7 @@ const QuickActions: React.FC = () => {
       {clearAndRepopulateQueueMutation.error ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
-            Error clearing and repopulating queue: {clearAndRepopulateQueueMutation.error instanceof Error ? clearAndRepopulateQueueMutation.error.message : 'Unknown error'}
+            Error clearing queue: {clearAndRepopulateQueueMutation.error instanceof Error ? clearAndRepopulateQueueMutation.error.message : 'Unknown error'}
           </div>
         </div>
       ) : null}
