@@ -94,6 +94,7 @@ export interface ApiStatus {
     contracts_in_db: number;
     contracts_indexed: number;
     documents_indexed: number;
+    downloaded_files: number;
   };
   recent_jobs: IndexingJob[];
 }

@@ -133,13 +133,26 @@ app.get('/api/status', async (req, res) => {
     // Get vector database stats
     const vectorStats = await vectorService.getCollectionStats();
 
+    // Count downloaded files in the downloaded_documents folder
+    let downloadedFilesCount = 0;
+    try {
+      const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+      if (await fs.pathExists(downloadPath)) {
+        const files = await fs.readdir(downloadPath);
+        downloadedFilesCount = files.length;
+      }
+    } catch (downloadError) {
+      console.warn('Could not count downloaded files:', downloadError.message);
+    }
+
     res.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
       database_stats: {
         contracts_in_db: contractsCount,
         contracts_indexed: indexedContractsCount,
-        documents_indexed: vectorStats.documents
+        documents_indexed: vectorStats.documents,
+        downloaded_files: downloadedFilesCount
       },
       vector_stats: vectorStats,
       norshin_api: config.norshinApiUrl

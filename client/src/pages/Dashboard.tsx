@@ -94,7 +94,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatsCard
           title="Total Contracts"
           value={stats?.contracts_in_db || 0}
@@ -112,6 +112,12 @@ const Dashboard: React.FC = () => {
           value={stats?.documents_indexed || 0}
           icon={<Zap className="h-6 w-6" />}
           color="purple"
+        />
+        <StatsCard
+          title="Downloaded Files"
+          value={stats?.downloaded_files || 0}
+          icon={<TrendingUp className="h-6 w-6" />}
+          color="orange"
         />
         <StatsCard
           title="Processing Queue"
