@@ -824,12 +824,30 @@ router.get('/queue/status', async (req, res) => {
 
     const processingSpeed = Math.round(recentCompletions); // per hour
 
+    // When queue is empty, show downloaded files count as queued
+    let displayQueued = queuedCount;
+    let displayTotal = totalDocuments;
+    
+    if (totalDocuments === 0) {
+      try {
+        const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+        if (await fs.pathExists(downloadPath)) {
+          const files = await fs.readdir(downloadPath);
+          displayQueued = files.length;
+          displayTotal = files.length;
+          console.log(`📊 [DEBUG] Queue is empty, showing downloaded files count as queued: ${files.length}`);
+        }
+      } catch (error) {
+        console.warn('📊 [DEBUG] Could not count downloaded files:', error.message);
+      }
+    }
+
     console.log(`📊 [DEBUG] Final queue status being returned:`);
-    console.log(`📊 [DEBUG] - Queued: ${queuedCount}`);
+    console.log(`📊 [DEBUG] - Queued: ${displayQueued}`);
     console.log(`📊 [DEBUG] - Processing: ${processingCount}`);
     console.log(`📊 [DEBUG] - Completed: ${completedCount}`);
     console.log(`📊 [DEBUG] - Failed: ${failedCount}`);
-    console.log(`📊 [DEBUG] - Total: ${totalDocuments}`);
+    console.log(`📊 [DEBUG] - Total: ${displayTotal}`);
     console.log('📊 [DEBUG] ========================================');
 
     res.json({
@@ -837,11 +855,11 @@ router.get('/queue/status', async (req, res) => {
       timestamp: new Date().toISOString(),
       queue_status: {
         // Main counters
-        queued: queuedCount,
+        queued: displayQueued,
         processing: processingCount,
         completed: completedCount,
         failed: failedCount,
-        total: totalDocuments,
+        total: displayTotal,
         
         // Processing state
         is_processing: processingCount > 0 || activeJobs.length > 0,
