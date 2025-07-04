@@ -829,33 +829,36 @@ router.get('/queue/status', async (req, res) => {
     let displayCompleted = completedCount;
     let displayTotal = totalDocuments;
     
-    // ALWAYS prioritize downloaded files count over queue count
-    try {
-      const downloadPath = path.join(process.cwd(), 'downloaded_documents');
-      console.log(`📊 [DEBUG] Checking download path: ${downloadPath}`);
-      
-      const pathExists = await fs.pathExists(downloadPath);
-      console.log(`📊 [DEBUG] Download path exists: ${pathExists}`);
-      
-      if (pathExists) {
-        const files = await fs.readdir(downloadPath);
-        const fileCount = files.length;
-        console.log(`📊 [DEBUG] Found ${fileCount} files in download directory`);
+    // Only show downloaded files count when queue is completely empty
+    if (totalDocuments === 0) {
+      try {
+        const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+        console.log(`📊 [DEBUG] Queue is empty, checking download path: ${downloadPath}`);
         
-        // ALWAYS use downloaded files count as the total, regardless of queue status
-        if (fileCount > 0) {
-          displayTotal = fileCount;
-          displayCompleted = 0; // Keep completed as 0 since these aren't queue completions
-          displayQueued = 0;    // Keep queued as 0 since nothing is queued
+        const pathExists = await fs.pathExists(downloadPath);
+        console.log(`📊 [DEBUG] Download path exists: ${pathExists}`);
+        
+        if (pathExists) {
+          const files = await fs.readdir(downloadPath);
+          const fileCount = files.length;
+          console.log(`📊 [DEBUG] Found ${fileCount} files in download directory`);
           
-          console.log(`📊 [DEBUG] OVERRIDING queue count with downloaded files count - Total: ${displayTotal}`);
-          console.log(`📊 [DEBUG] Original queue total was: ${totalDocuments}, now showing: ${displayTotal}`);
+          // Only override when queue is empty AND there are downloaded files
+          if (fileCount > 0) {
+            displayTotal = fileCount;
+            displayCompleted = 0;
+            displayQueued = 0;
+            
+            console.log(`📊 [DEBUG] Queue is empty, showing downloaded files count as total: ${displayTotal}`);
+          }
+        } else {
+          console.log(`📊 [DEBUG] Download directory does not exist`);
         }
-      } else {
-        console.log(`📊 [DEBUG] Download directory does not exist`);
+      } catch (error) {
+        console.error('📊 [DEBUG] Error counting downloaded files:', error.message);
       }
-    } catch (error) {
-      console.error('📊 [DEBUG] Error counting downloaded files:', error.message);
+    } else {
+      console.log(`📊 [DEBUG] Queue has ${totalDocuments} documents, showing actual queue status`);
     }
 
     console.log(`📊 [DEBUG] Final queue status being returned:`);
