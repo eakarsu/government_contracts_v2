@@ -734,27 +734,18 @@ router.post('/queue', async (req, res) => {
 // Get detailed queue status with real-time counters
 router.get('/queue/status', async (req, res) => {
   try {
-    console.log('📊 [DEBUG] ========================================');
-    console.log('📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED');
-    console.log('📊 [DEBUG] ========================================');
-
     // Get status counts
     const queueStatus = await prisma.documentProcessingQueue.groupBy({
       by: ['status'],
       _count: { id: true }
     });
 
-    console.log('📊 [DEBUG] Raw queue status from database:', queueStatus);
-
     const statusCounts = {};
     queueStatus.forEach(item => {
       statusCounts[item.status] = item._count.id;
-      console.log(`📊 [DEBUG] Status "${item.status}": ${item._count.id} documents`);
     });
 
     const totalInQueue = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
-    console.log('📊 [DEBUG] Total documents in queue:', totalInQueue);
-    console.log('📊 [DEBUG] Status breakdown:', statusCounts);
 
     // Get recent completed documents
     const recentCompleted = await prisma.documentProcessingQueue.findMany({
@@ -833,41 +824,23 @@ router.get('/queue/status', async (req, res) => {
     if (totalDocuments === 0) {
       try {
         const downloadPath = path.join(process.cwd(), 'downloaded_documents');
-        console.log(`📊 [DEBUG] Queue is empty, checking download path: ${downloadPath}`);
-        
         const pathExists = await fs.pathExists(downloadPath);
-        console.log(`📊 [DEBUG] Download path exists: ${pathExists}`);
         
         if (pathExists) {
           const files = await fs.readdir(downloadPath);
           const fileCount = files.length;
-          console.log(`📊 [DEBUG] Found ${fileCount} files in download directory`);
           
           // FORCE the queued count to show downloaded files when queue is empty
           if (fileCount > 0) {
             displayTotal = fileCount;
             displayCompleted = 0;
             displayQueued = fileCount; // FORCE queued to show downloaded files count
-            
-            console.log(`📊 [DEBUG] FORCING queue display - Total: ${displayTotal}, Queued: ${displayQueued}`);
           }
-        } else {
-          console.log(`📊 [DEBUG] Download directory does not exist`);
         }
       } catch (error) {
-        console.error('📊 [DEBUG] Error counting downloaded files:', error.message);
+        console.error('Error counting downloaded files:', error.message);
       }
-    } else {
-      console.log(`📊 [DEBUG] Queue has ${totalDocuments} documents, showing actual queue status`);
     }
-
-    console.log(`📊 [DEBUG] Final queue status being returned:`);
-    console.log(`📊 [DEBUG] - Queued: ${displayQueued} (SHOULD BE 88 WHEN QUEUE IS EMPTY)`);
-    console.log(`📊 [DEBUG] - Processing: ${processingCount}`);
-    console.log(`📊 [DEBUG] - Completed: ${displayCompleted}`);
-    console.log(`📊 [DEBUG] - Failed: ${failedCount}`);
-    console.log(`📊 [DEBUG] - Total: ${displayTotal}`);
-    console.log('📊 [DEBUG] ========================================');
 
     // Force the response to show downloaded files count when queue is empty
     const finalResponse = {
@@ -875,11 +848,11 @@ router.get('/queue/status', async (req, res) => {
       timestamp: new Date().toISOString(),
       queue_status: {
         // FORCE queued to show downloaded files count when queue is empty
-        queued: displayQueued, // This MUST be 88 when queue is empty
+        queued: displayQueued,
         processing: processingCount,
         completed: displayCompleted,
         failed: failedCount,
-        total: displayTotal, // This will be the downloaded files count when queue is empty
+        total: displayTotal,
         
         // Processing state
         is_processing: processingCount > 0 || activeJobs.length > 0,
@@ -920,7 +893,6 @@ router.get('/queue/status', async (req, res) => {
       }
     };
 
-    console.log(`📊 [DEBUG] SENDING FINAL RESPONSE:`, JSON.stringify(finalResponse.queue_status, null, 2));
     res.json(finalResponse);
 
   } catch (error) {
