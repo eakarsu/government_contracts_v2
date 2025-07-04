@@ -871,7 +871,8 @@ router.get('/queue/status', async (req, res) => {
     console.log(`📊 [DEBUG] - Total: ${displayTotal}`);
     console.log('📊 [DEBUG] ========================================');
 
-    res.json({
+    // Force the response to show downloaded files count when queue is empty
+    const finalResponse = {
       success: true,
       timestamp: new Date().toISOString(),
       queue_status: {
@@ -919,7 +920,10 @@ router.get('/queue/status', async (req, res) => {
           duration_minutes: Math.round((Date.now() - job.createdAt.getTime()) / 60000)
         }))
       }
-    });
+    };
+
+    console.log(`📊 [DEBUG] SENDING FINAL RESPONSE:`, JSON.stringify(finalResponse.queue_status, null, 2));
+    res.json(finalResponse);
 
   } catch (error) {
     console.error('❌ [DEBUG] Error getting queue status:', error);
