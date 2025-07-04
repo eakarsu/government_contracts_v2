@@ -146,7 +146,7 @@ const QuickActions: React.FC = () => {
           {clearAndRepopulateQueueMutation.isPending ? (
             <LoadingSpinner size="sm" color="white" />
           ) : (
-            'Clear & Queue Valid Docs'
+            'Clear & Queue Valid Docs Only'
           )}
         </button>
 
