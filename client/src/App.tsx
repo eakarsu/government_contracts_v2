@@ -9,7 +9,6 @@ import Layout from './components/Layout/Layout';
 // Pages
 import Dashboard from './pages/Dashboard';
 import Search from './pages/Search';
-import Contracts from './pages/Contracts';
 import ContractDetail from './pages/ContractDetail';
 import Jobs from './pages/Jobs';
 import Documents from './pages/Documents';
@@ -36,7 +35,6 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/search" element={<Search />} />
-              <Route path="/contracts" element={<Contracts />} />
               <Route path="/contracts/:noticeId" element={<ContractDetail />} />
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/documents" element={<Documents />} />

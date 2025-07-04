@@ -22,7 +22,6 @@ interface SidebarProps {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Search', href: '/search', icon: Search },
-  { name: 'Contracts', href: '/contracts', icon: FileText },
   { name: 'Jobs', href: '/jobs', icon: BarChart3 },
   { name: 'Documents', href: '/documents', icon: Upload },
   { name: 'API Docs', href: '/api-docs', icon: Database },
