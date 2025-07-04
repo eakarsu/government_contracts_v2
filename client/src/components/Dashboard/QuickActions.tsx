@@ -74,17 +74,30 @@ const QuickActions: React.FC = () => {
 
   const clearAndRepopulateQueueMutation = useMutation({
     mutationFn: async () => {
-      // First clear the queue
-      await apiService.resetQueue();
-      // Then repopulate with filtered documents
-      return apiService.queueDocuments();
+      console.log('🔄 [DEBUG] ========================================');
+      console.log('🔄 [DEBUG] CLEAR & REPOPULATE BUTTON CLICKED!');
+      console.log('🔄 [DEBUG] ========================================');
+      
+      console.log('🔄 [DEBUG] Step 1: Clearing existing queue...');
+      const resetResult = await apiService.resetQueue();
+      console.log('🔄 [DEBUG] Reset result:', resetResult);
+      
+      console.log('🔄 [DEBUG] Step 2: Repopulating with filtered documents...');
+      const queueResult = await apiService.queueDocuments();
+      console.log('🔄 [DEBUG] Queue result:', queueResult);
+      
+      console.log('🔄 [DEBUG] Clear & repopulate process completed!');
+      console.log('🔄 [DEBUG] ========================================');
+      
+      return queueResult;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('✅ [DEBUG] Clear & repopulate SUCCESS:', data);
       queryClient.invalidateQueries({ queryKey: ['queue-status'] });
       queryClient.invalidateQueries({ queryKey: ['api-status'] });
     },
     onError: (error: any) => {
-      console.error('Clear and repopulate queue error:', error);
+      console.error('❌ [DEBUG] Clear and repopulate queue error:', error);
     },
   });
 

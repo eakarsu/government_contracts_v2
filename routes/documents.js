@@ -740,7 +740,9 @@ router.post('/queue', async (req, res) => {
 // Get detailed queue status with real-time counters
 router.get('/queue/status', async (req, res) => {
   try {
-    // console.log('📊 [DEBUG] Getting queue status...');
+    console.log('📊 [DEBUG] ========================================');
+    console.log('📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED');
+    console.log('📊 [DEBUG] ========================================');
 
     // Get status counts
     const queueStatus = await prisma.documentProcessingQueue.groupBy({
@@ -748,10 +750,17 @@ router.get('/queue/status', async (req, res) => {
       _count: { id: true }
     });
 
+    console.log('📊 [DEBUG] Raw queue status from database:', queueStatus);
+
     const statusCounts = {};
     queueStatus.forEach(item => {
       statusCounts[item.status] = item._count.id;
+      console.log(`📊 [DEBUG] Status "${item.status}": ${item._count.id} documents`);
     });
+
+    const totalInQueue = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+    console.log('📊 [DEBUG] Total documents in queue:', totalInQueue);
+    console.log('📊 [DEBUG] Status breakdown:', statusCounts);
 
     // Get recent completed documents
     const recentCompleted = await prisma.documentProcessingQueue.findMany({
@@ -821,7 +830,13 @@ router.get('/queue/status', async (req, res) => {
 
     const processingSpeed = Math.round(recentCompletions); // per hour
 
-    // console.log(`📊 [DEBUG] Queue status: ${queuedCount} queued, ${processingCount} processing, ${completedCount} completed, ${failedCount} failed`);
+    console.log(`📊 [DEBUG] Final queue status being returned:`);
+    console.log(`📊 [DEBUG] - Queued: ${queuedCount}`);
+    console.log(`📊 [DEBUG] - Processing: ${processingCount}`);
+    console.log(`📊 [DEBUG] - Completed: ${completedCount}`);
+    console.log(`📊 [DEBUG] - Failed: ${failedCount}`);
+    console.log(`📊 [DEBUG] - Total: ${totalDocuments}`);
+    console.log('📊 [DEBUG] ========================================');
 
     res.json({
       success: true,
@@ -1354,7 +1369,17 @@ router.post('/queue/reset-to-processing', async (req, res) => {
 // Reset entire queue system (documents + jobs)
 router.post('/queue/reset', async (req, res) => {
   try {
-    console.log('🔄 [DEBUG] Resetting entire queue system...');
+    console.log('🔄 [DEBUG] ========================================');
+    console.log('🔄 [DEBUG] QUEUE RESET ENDPOINT CALLED!');
+    console.log('🔄 [DEBUG] ========================================');
+    
+    // Check current queue status before reset
+    const beforeReset = await prisma.documentProcessingQueue.groupBy({
+      by: ['status'],
+      _count: { id: true }
+    });
+    
+    console.log('🔄 [DEBUG] Queue status BEFORE reset:', beforeReset);
     
     // 1. Stop all running jobs by marking them as failed
     const runningJobs = await prisma.indexingJob.updateMany({
@@ -1380,8 +1405,28 @@ router.post('/queue/reset', async (req, res) => {
     const remainingCount = await prisma.documentProcessingQueue.count();
     console.log(`📊 [DEBUG] Remaining documents in queue after reset: ${remainingCount}`);
     
+    // 4. Double-check with groupBy query
+    const afterReset = await prisma.documentProcessingQueue.groupBy({
+      by: ['status'],
+      _count: { id: true }
+    });
+    
+    console.log('🔄 [DEBUG] Queue status AFTER reset:', afterReset);
+    
     if (remainingCount > 0) {
       console.error(`❌ [DEBUG] WARNING: ${remainingCount} documents still remain in queue after reset!`);
+      
+      // List some remaining documents for debugging
+      const remainingDocs = await prisma.documentProcessingQueue.findMany({
+        take: 5,
+        select: {
+          id: true,
+          status: true,
+          contractNoticeId: true,
+          filename: true
+        }
+      });
+      console.error(`❌ [DEBUG] Sample remaining documents:`, remainingDocs);
     }
     
     res.json({

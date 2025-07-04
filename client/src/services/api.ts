@@ -210,14 +210,18 @@ class ApiService {
   }
 
   async queueDocuments(): Promise<ApiResponse> {
+    console.log('🔄 [DEBUG] API Service: Calling queueDocuments endpoint...');
     const response = await api.post<ApiResponse>('/documents/queue', {}, {
       timeout: 3600000 // 1 hour timeout
     });
+    console.log('🔄 [DEBUG] API Service: queueDocuments response:', response.data);
     return response.data;
   }
 
   async getQueueStatus(): Promise<{ success: boolean; queue_status: QueueStatus }> {
+    console.log('📊 [DEBUG] API Service: Calling getQueueStatus endpoint...');
     const response = await api.get<{ success: boolean; queue_status: QueueStatus }>('/documents/queue/status');
+    console.log('📊 [DEBUG] API Service: getQueueStatus response:', response.data);
     return response.data;
   }
 
@@ -268,7 +272,9 @@ class ApiService {
   }
 
   async resetQueue(): Promise<ApiResponse> {
+    console.log('🔄 [DEBUG] API Service: Calling resetQueue endpoint...');
     const response = await api.post<ApiResponse>('/documents/queue/reset');
+    console.log('🔄 [DEBUG] API Service: resetQueue response:', response.data);
     return response.data;
   }
 
