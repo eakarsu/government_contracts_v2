@@ -824,26 +824,42 @@ router.get('/queue/status', async (req, res) => {
 
     const processingSpeed = Math.round(recentCompletions); // per hour
 
-    // When queue is empty, show downloaded files count
+    // When queue is empty, show downloaded files count as total
     let displayQueued = queuedCount;
     let displayCompleted = completedCount;
     let displayTotal = totalDocuments;
     
+    // ALWAYS check for downloaded files when queue is empty
     if (totalDocuments === 0) {
       try {
         const downloadPath = path.join(process.cwd(), 'downloaded_documents');
-        if (await fs.pathExists(downloadPath)) {
+        console.log(`📊 [DEBUG] Checking download path: ${downloadPath}`);
+        
+        const pathExists = await fs.pathExists(downloadPath);
+        console.log(`📊 [DEBUG] Download path exists: ${pathExists}`);
+        
+        if (pathExists) {
           const files = await fs.readdir(downloadPath);
-          // Show downloaded files as total (this is what shows in the dashboard)
-          displayTotal = files.length;
-          displayCompleted = files.length;
+          const fileCount = files.length;
+          console.log(`📊 [DEBUG] Found ${fileCount} files in download directory`);
+          
+          // Set the total to the number of downloaded files
+          displayTotal = fileCount;
+          displayCompleted = 0; // Keep completed as 0 since these aren't queue completions
+          displayQueued = 0;    // Keep queued as 0 since nothing is queued
+          
+          console.log(`📊 [DEBUG] Updated display values - Total: ${displayTotal}, Completed: ${displayCompleted}, Queued: ${displayQueued}`);
+        } else {
+          console.log(`📊 [DEBUG] Download directory does not exist`);
+          displayTotal = 0;
+          displayCompleted = 0;
           displayQueued = 0;
-          console.log(`📊 [DEBUG] Queue is empty, showing downloaded files count as total: ${files.length}`);
         }
       } catch (error) {
-        console.warn('📊 [DEBUG] Could not count downloaded files:', error.message);
+        console.error('📊 [DEBUG] Error counting downloaded files:', error.message);
         displayTotal = 0;
         displayCompleted = 0;
+        displayQueued = 0;
       }
     }
 
@@ -859,12 +875,12 @@ router.get('/queue/status', async (req, res) => {
       success: true,
       timestamp: new Date().toISOString(),
       queue_status: {
-        // Main counters
+        // Main counters - when queue is empty, total shows downloaded files count
         queued: displayQueued,
         processing: processingCount,
         completed: displayCompleted,
         failed: failedCount,
-        total: displayTotal,
+        total: displayTotal, // This will be the downloaded files count when queue is empty
         
         // Processing state
         is_processing: processingCount > 0 || activeJobs.length > 0,
