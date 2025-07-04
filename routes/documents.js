@@ -824,8 +824,9 @@ router.get('/queue/status', async (req, res) => {
 
     const processingSpeed = Math.round(recentCompletions); // per hour
 
-    // When queue is empty, show downloaded files count as queued
+    // When queue is empty, show downloaded files count
     let displayQueued = queuedCount;
+    let displayCompleted = completedCount;
     let displayTotal = totalDocuments;
     
     if (totalDocuments === 0) {
@@ -833,9 +834,11 @@ router.get('/queue/status', async (req, res) => {
         const downloadPath = path.join(process.cwd(), 'downloaded_documents');
         if (await fs.pathExists(downloadPath)) {
           const files = await fs.readdir(downloadPath);
-          displayQueued = files.length;
+          // Show downloaded files as completed and total
+          displayCompleted = files.length;
           displayTotal = files.length;
-          console.log(`📊 [DEBUG] Queue is empty, showing downloaded files count as queued: ${files.length}`);
+          displayQueued = 0; // Keep queued as 0 since nothing is actually queued
+          console.log(`📊 [DEBUG] Queue is empty, showing downloaded files count as completed/total: ${files.length}`);
         }
       } catch (error) {
         console.warn('📊 [DEBUG] Could not count downloaded files:', error.message);
@@ -845,7 +848,7 @@ router.get('/queue/status', async (req, res) => {
     console.log(`📊 [DEBUG] Final queue status being returned:`);
     console.log(`📊 [DEBUG] - Queued: ${displayQueued}`);
     console.log(`📊 [DEBUG] - Processing: ${processingCount}`);
-    console.log(`📊 [DEBUG] - Completed: ${completedCount}`);
+    console.log(`📊 [DEBUG] - Completed: ${displayCompleted}`);
     console.log(`📊 [DEBUG] - Failed: ${failedCount}`);
     console.log(`📊 [DEBUG] - Total: ${displayTotal}`);
     console.log('📊 [DEBUG] ========================================');
@@ -857,7 +860,7 @@ router.get('/queue/status', async (req, res) => {
         // Main counters
         queued: displayQueued,
         processing: processingCount,
-        completed: completedCount,
+        completed: displayCompleted,
         failed: failedCount,
         total: displayTotal,
         
