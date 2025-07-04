@@ -105,6 +105,26 @@ class DocumentQueueManager:
         queue_item.updated_at = datetime.utcnow()
         db.session.commit()
     
+    def clear_queue_to_pending(self) -> int:
+        """Reset all processing/completed/failed documents back to pending status"""
+        non_pending_docs = DocumentQueue.query.filter(
+            DocumentQueue.status.in_(['processing', 'completed', 'failed'])
+        ).all()
+        
+        cleared_count = 0
+        for doc in non_pending_docs:
+            doc.status = 'pending'
+            doc.norshin_request_sent_at = None
+            doc.norshin_response_received_at = None
+            doc.processing_time_seconds = None
+            doc.error_message = None
+            doc.retry_count = 0
+            doc.updated_at = datetime.utcnow()
+            cleared_count += 1
+        
+        db.session.commit()
+        return cleared_count
+    
     def mark_completed(self, queue_item: DocumentQueue, processed_data: Dict) -> None:
         """Mark a document as completed with results"""
         queue_item.status = 'completed'
