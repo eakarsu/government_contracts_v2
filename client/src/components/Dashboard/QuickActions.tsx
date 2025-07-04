@@ -73,31 +73,6 @@ const QuickActions: React.FC = () => {
     },
   });
 
-  const clearAndRepopulateQueueMutation = useMutation({
-    mutationFn: async () => {
-      console.log('🔄 [DEBUG] ========================================');
-      console.log('🔄 [DEBUG] CLEAR QUEUE BUTTON CLICKED!');
-      console.log('🔄 [DEBUG] ========================================');
-      
-      console.log('🔄 [DEBUG] Step 1: Clearing existing queue...');
-      const resetResult = await apiService.resetQueue();
-      console.log('🔄 [DEBUG] Reset result:', resetResult);
-      
-      console.log('🔄 [DEBUG] Step 2: Queue cleared - downloaded files count will show automatically');
-      console.log('🔄 [DEBUG] Clear process completed!');
-      console.log('🔄 [DEBUG] ========================================');
-      
-      return resetResult;
-    },
-    onSuccess: (data) => {
-      console.log('✅ [DEBUG] Clear queue SUCCESS:', data);
-      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
-      queryClient.invalidateQueries({ queryKey: ['api-status'] });
-    },
-    onError: (error: any) => {
-      console.error('❌ [DEBUG] Clear queue error:', error);
-    },
-  });
 
   const stopQueueMutation = useMutation({
     mutationFn: () => apiService.stopQueue(),
@@ -149,17 +124,6 @@ const QuickActions: React.FC = () => {
           )}
         </button>
 
-        <button
-          onClick={() => clearAndRepopulateQueueMutation.mutate()}
-          disabled={clearAndRepopulateQueueMutation.isPending}
-          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 transition-colors"
-        >
-          {clearAndRepopulateQueueMutation.isPending ? (
-            <LoadingSpinner size="sm" color="white" />
-          ) : (
-            '🔄 Clear Queue (Show Downloaded Files Count)'
-          )}
-        </button>
 
         <button
           onClick={() => processQueueMutation.mutate()}
@@ -229,11 +193,6 @@ const QuickActions: React.FC = () => {
         </div>
       ) : null}
 
-      {clearAndRepopulateQueueMutation.isSuccess ? (
-        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-          <div className="text-green-800 text-sm">Queue cleared! Processing Queue now shows downloaded files count.</div>
-        </div>
-      ) : null}
 
       {processQueueMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
@@ -270,13 +229,6 @@ const QuickActions: React.FC = () => {
         </div>
       ) : null}
 
-      {clearAndRepopulateQueueMutation.error ? (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <div className="text-red-800 text-sm">
-            Error clearing queue: {clearAndRepopulateQueueMutation.error instanceof Error ? clearAndRepopulateQueueMutation.error.message : 'Unknown error'}
-          </div>
-        </div>
-      ) : null}
 
       {processQueueMutation.error ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
