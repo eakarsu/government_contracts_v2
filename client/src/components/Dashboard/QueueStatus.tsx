@@ -50,7 +50,7 @@ const QueueStatus: React.FC = () => {
   return (
     <div className="bg-white shadow rounded-lg p-6 h-fit">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-medium text-gray-900">Processing Queue</h3>
+        <h3 className="text-lg font-medium text-gray-900">Document Processing Status</h3>
         {queueStatus.is_processing && (
           <div className="flex items-center text-sm text-yellow-600">
             <LoadingSpinner size="sm" />
