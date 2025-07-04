@@ -512,13 +512,49 @@ router.post('/queue', async (req, res) => {
 
     console.log(`📄 [DEBUG] After filtering: ${contractsWithValidDocs.length} contracts have valid document URLs`);
 
-    if (contractsWithValidDocs.length === 0) {
+    // Further filter to only include documents that are likely to be downloadable
+    // This will help match the queue count to actual downloadable files
+    const contractsWithDownloadableDocs = [];
+    let estimatedDownloadableCount = 0;
+
+    for (const contract of contractsWithValidDocs) {
+      const downloadableUrls = [];
+      
+      for (const url of contract.resourceLinks) {
+        if (url && url.trim() && typeof url === 'string') {
+          // Skip URLs that are likely to be ZIP files or unsupported formats
+          const urlLower = url.toLowerCase();
+          if (!urlLower.includes('.zip') && 
+              !urlLower.includes('zip') && 
+              !urlLower.includes('compressed') &&
+              (urlLower.includes('.pdf') || 
+               urlLower.includes('.doc') || 
+               urlLower.includes('download') ||
+               urlLower.includes('file'))) {
+            downloadableUrls.push(url);
+            estimatedDownloadableCount++;
+          }
+        }
+      }
+      
+      if (downloadableUrls.length > 0) {
+        contractsWithDownloadableDocs.push({
+          ...contract,
+          resourceLinks: downloadableUrls
+        });
+      }
+    }
+
+    console.log(`📄 [DEBUG] After filtering for downloadable docs: ${contractsWithDownloadableDocs.length} contracts with ~${estimatedDownloadableCount} downloadable documents`);
+
+    if (contractsWithDownloadableDocs.length === 0) {
       return res.json({
         success: true,
-        message: 'No contracts with valid document URLs found to queue',
+        message: 'No contracts with downloadable document URLs found to queue',
         queued_count: 0,
         contracts_checked: contracts.length,
-        contracts_with_valid_docs: 0
+        contracts_with_valid_docs: contractsWithValidDocs.length,
+        contracts_with_downloadable_docs: 0
       });
     }
 
@@ -528,8 +564,8 @@ router.post('/queue', async (req, res) => {
     let errorCount = 0;
     let processedContracts = 0;
 
-    // Use filtered contracts for processing
-    const contractsToProcess = contractsWithValidDocs;
+    // Use filtered contracts for processing (only downloadable docs)
+    const contractsToProcess = contractsWithDownloadableDocs;
 
     // Process contracts in parallel batches
     const batchSize = Math.ceil(contractsToProcess.length / concurrency);
@@ -662,6 +698,8 @@ router.post('/queue', async (req, res) => {
       error_count: errorCount,
       contracts_processed: processedContracts,
       contracts_with_valid_docs: contractsWithValidDocs.length,
+      contracts_with_downloadable_docs: contractsWithDownloadableDocs.length,
+      estimated_downloadable_documents: estimatedDownloadableCount,
       total_contracts_scanned: contracts.length,
       processing_method: 'filtered_parallel_processing',
       queue_status: {
