@@ -843,13 +843,13 @@ router.get('/queue/status', async (req, res) => {
           const fileCount = files.length;
           console.log(`📊 [DEBUG] Found ${fileCount} files in download directory`);
           
-          // Only override when queue is empty AND there are downloaded files
+          // When queue is empty, show downloaded files as "queued" in the detailed view
           if (fileCount > 0) {
             displayTotal = fileCount;
             displayCompleted = 0;
-            displayQueued = 0;
+            displayQueued = fileCount; // Show downloaded files as "queued" in detailed view
             
-            console.log(`📊 [DEBUG] Queue is empty, showing downloaded files count as total: ${displayTotal}`);
+            console.log(`📊 [DEBUG] Queue is empty, showing downloaded files count - Total: ${displayTotal}, Queued: ${displayQueued}`);
           }
         } else {
           console.log(`📊 [DEBUG] Download directory does not exist`);
