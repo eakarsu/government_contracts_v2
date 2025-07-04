@@ -146,7 +146,7 @@ const QuickActions: React.FC = () => {
           {clearAndRepopulateQueueMutation.isPending ? (
             <LoadingSpinner size="sm" color="white" />
           ) : (
-            '🔄 Fix Queue Count (Clear & Repopulate)'
+            '🔄 Clear Queue & Repopulate (Fix 195 Count)'
           )}
         </button>
 
