@@ -16,6 +16,7 @@ import StatsCard from '../components/Dashboard/StatsCard';
 import RecentJobs from '../components/Dashboard/RecentJobs';
 import QueueStatus from '../components/Dashboard/QueueStatus';
 import QuickActions from '../components/Dashboard/QuickActions';
+import DocumentDownload from '../components/Dashboard/DocumentDownload';
 
 const Dashboard: React.FC = () => {
   // Fetch API status
@@ -136,6 +137,11 @@ const Dashboard: React.FC = () => {
         <div className="xl:col-span-1">
           <QuickActions />
         </div>
+      </div>
+
+      {/* Document Download Section */}
+      <div className="mt-8">
+        <DocumentDownload />
       </div>
     </div>
   );
