@@ -47,6 +47,20 @@ const QuickActions: React.FC = () => {
     },
   });
 
+  const downloadDocumentsMutation = useMutation({
+    mutationFn: () => apiService.downloadAllDocuments({
+      limit: 50,
+      download_folder: 'downloaded_documents'
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+      queryClient.invalidateQueries({ queryKey: ['api-status'] });
+    },
+    onError: (error: any) => {
+      console.error('Download documents error:', error);
+    },
+  });
+
   const resetQueueMutation = useMutation({
     mutationFn: () => apiService.resetQueue(),
     onSuccess: () => {
@@ -93,6 +107,18 @@ const QuickActions: React.FC = () => {
             <LoadingSpinner size="sm" color="white" />
           ) : (
             'Index Contracts'
+          )}
+        </button>
+
+        <button
+          onClick={() => downloadDocumentsMutation.mutate()}
+          disabled={downloadDocumentsMutation.isPending}
+          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
+        >
+          {downloadDocumentsMutation.isPending ? (
+            <LoadingSpinner size="sm" color="white" />
+          ) : (
+            'Download Documents'
           )}
         </button>
 
@@ -188,6 +214,12 @@ const QuickActions: React.FC = () => {
         </div>
       ) : null}
 
+      {downloadDocumentsMutation.isSuccess ? (
+        <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-md">
+          <div className="text-purple-800 text-sm">Documents download started! Check the downloaded_documents folder.</div>
+        </div>
+      ) : null}
+
       {processDocumentsMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
           <div className="text-green-800 text-sm">Auto queue & process started!</div>
@@ -223,6 +255,14 @@ const QuickActions: React.FC = () => {
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
             Error processing queue: {processQueueMutation.error instanceof Error ? processQueueMutation.error.message : 'Unknown error'}
+          </div>
+        </div>
+      ) : null}
+
+      {downloadDocumentsMutation.error ? (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-red-800 text-sm">
+            Error downloading documents: {downloadDocumentsMutation.error instanceof Error ? downloadDocumentsMutation.error.message : 'Unknown error'}
           </div>
         </div>
       ) : null}
