@@ -1355,53 +1355,33 @@ router.post('/queue/reset', async (req, res) => {
     
     console.log(`🛑 [DEBUG] Stopped ${runningJobs.count} running jobs`);
     
-    // 2. Reset all processing documents to queued
-    const processingDocs = await prisma.documentProcessingQueue.updateMany({
-      where: { status: 'processing' },
-      data: {
-        status: 'queued',
-        startedAt: null,
-        errorMessage: null
-      }
-    });
-    
-    console.log(`🔄 [DEBUG] Reset ${processingDocs.count} processing documents to queued`);
-    
-    // 3. Clear ALL documents from queue (including queued ones)
+    // 2. FORCE DELETE ALL QUEUE ENTRIES - no conditions
     const clearedDocs = await prisma.documentProcessingQueue.deleteMany({});
     
-    console.log(`🗑️ [DEBUG] Cleared ${clearedDocs.count} documents from queue (all statuses)`);
+    console.log(`🗑️ [DEBUG] FORCE CLEARED ${clearedDocs.count} documents from queue (ALL ENTRIES)`);
     
-    // 4. Get final status
-    const queueStatus = await prisma.documentProcessingQueue.groupBy({
-      by: ['status'],
-      _count: { id: true }
-    });
-
-    const statusCounts = {};
-    queueStatus.forEach(item => {
-      statusCounts[item.status] = item._count.id;
-    });
-
-    const totalInQueue = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+    // 3. Verify queue is actually empty
+    const remainingCount = await prisma.documentProcessingQueue.count();
+    console.log(`📊 [DEBUG] Remaining documents in queue after reset: ${remainingCount}`);
     
-    console.log(`✅ [DEBUG] Queue system reset completed`);
-    console.log(`📊 [DEBUG] Final queue status: ${totalInQueue} total documents`);
-
+    if (remainingCount > 0) {
+      console.error(`❌ [DEBUG] WARNING: ${remainingCount} documents still remain in queue after reset!`);
+    }
+    
     res.json({
       success: true,
-      message: 'Queue system has been completely reset',
+      message: `Queue system completely reset - removed ${clearedDocs.count} entries`,
       actions_taken: {
         stopped_jobs: runningJobs.count,
-        reset_processing_docs: processingDocs.count,
-        cleared_completed_failed: clearedDocs.count
+        force_cleared_all_docs: clearedDocs.count,
+        remaining_docs_after_reset: remainingCount
       },
       final_queue_status: {
-        queued: statusCounts.queued || 0,
-        processing: statusCounts.processing || 0,
-        completed: statusCounts.completed || 0,
-        failed: statusCounts.failed || 0,
-        total: totalInQueue,
+        queued: 0,
+        processing: 0,
+        completed: 0,
+        failed: 0,
+        total: remainingCount,
         is_processing: false
       }
     });
