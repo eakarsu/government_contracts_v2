@@ -72,6 +72,22 @@ const QuickActions: React.FC = () => {
     },
   });
 
+  const clearAndRepopulateQueueMutation = useMutation({
+    mutationFn: async () => {
+      // First clear the queue
+      await apiService.resetQueue();
+      // Then repopulate with filtered documents
+      return apiService.queueDocuments();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+      queryClient.invalidateQueries({ queryKey: ['api-status'] });
+    },
+    onError: (error: any) => {
+      console.error('Clear and repopulate queue error:', error);
+    },
+  });
+
   const stopQueueMutation = useMutation({
     mutationFn: () => apiService.stopQueue(),
     onSuccess: () => {
@@ -123,14 +139,14 @@ const QuickActions: React.FC = () => {
         </button>
 
         <button
-          onClick={() => queueDocumentsMutation.mutate()}
-          disabled={queueDocumentsMutation.isPending}
+          onClick={() => clearAndRepopulateQueueMutation.mutate()}
+          disabled={clearAndRepopulateQueueMutation.isPending}
           className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 transition-colors"
         >
-          {queueDocumentsMutation.isPending ? (
+          {clearAndRepopulateQueueMutation.isPending ? (
             <LoadingSpinner size="sm" color="white" />
           ) : (
-            'Queue Documents'
+            'Clear & Queue Valid Docs'
           )}
         </button>
 
@@ -202,9 +218,9 @@ const QuickActions: React.FC = () => {
         </div>
       ) : null}
 
-      {queueDocumentsMutation.isSuccess ? (
+      {clearAndRepopulateQueueMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-          <div className="text-green-800 text-sm">Documents queued successfully!</div>
+          <div className="text-green-800 text-sm">Queue cleared and repopulated with valid documents only!</div>
         </div>
       ) : null}
 
@@ -243,10 +259,10 @@ const QuickActions: React.FC = () => {
         </div>
       ) : null}
 
-      {queueDocumentsMutation.error ? (
+      {clearAndRepopulateQueueMutation.error ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
-            Error queueing documents: {queueDocumentsMutation.error instanceof Error ? queueDocumentsMutation.error.message : 'Unknown error'}
+            Error clearing and repopulating queue: {clearAndRepopulateQueueMutation.error instanceof Error ? clearAndRepopulateQueueMutation.error.message : 'Unknown error'}
           </div>
         </div>
       ) : null}
