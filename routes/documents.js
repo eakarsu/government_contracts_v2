@@ -524,24 +524,18 @@ router.post('/queue', async (req, res) => {
         if (url && url.trim() && typeof url === 'string') {
           const urlLower = url.toLowerCase();
           
-          // VERY STRICT filtering - only include URLs that are almost guaranteed to work
+          // REASONABLE filtering - include URLs that are likely to be downloadable documents
           const isDefinitelyDownloadable = (
-            // Must contain 'download' or 'file' in URL
-            (urlLower.includes('download') || urlLower.includes('file')) &&
-            // Must NOT be a ZIP file
+            // Must be from SAM.gov API (these are the actual document download URLs)
+            urlLower.includes('sam.gov') &&
+            urlLower.includes('download') &&
+            // Must NOT be a ZIP file (these cause issues)
             !urlLower.includes('.zip') && 
             !urlLower.includes('zip') && 
             !urlLower.includes('compressed') &&
-            !urlLower.includes('archive') &&
-            // Must be a supported document type
-            (urlLower.includes('.pdf') || 
-             urlLower.includes('.doc') || 
-             urlLower.includes('pdf') ||
-             urlLower.includes('document')) &&
-            // Must be from a government domain
-            (urlLower.includes('sam.gov') || 
-             urlLower.includes('.gov') ||
-             urlLower.includes('government'))
+            !urlLower.includes('archive')
+            // Note: We don't require PDF/DOC in URL because SAM.gov URLs don't show file type
+            // The actual file type is determined when we download the file
           );
           
           if (isDefinitelyDownloadable) {
