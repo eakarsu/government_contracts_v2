@@ -8,7 +8,7 @@ interface StatsCardProps {
     value: number;
     isPositive: boolean;
   };
-  color?: 'blue' | 'green' | 'purple' | 'yellow' | 'red' | 'gray';
+  color?: 'blue' | 'green' | 'purple' | 'yellow' | 'red' | 'gray' | 'orange';
 }
 
 const StatsCard: React.FC<StatsCardProps> = ({
@@ -25,6 +25,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
     yellow: 'bg-yellow-50 text-yellow-600',
     red: 'bg-red-50 text-red-600',
     gray: 'bg-gray-50 text-gray-600',
+    orange: 'bg-orange-50 text-orange-600',
   };
 
   const formatValue = (val: string | number) => {
