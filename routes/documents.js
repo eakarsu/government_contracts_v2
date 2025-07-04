@@ -501,12 +501,24 @@ router.post('/queue', async (req, res) => {
 
     console.log(`📄 [DEBUG] Found ${contracts.length} contracts with resourceLinks to scan`);
 
-    if (contracts.length === 0) {
+    // Filter contracts to only include those with valid document URLs
+    const contractsWithValidDocs = contracts.filter(contract => {
+      if (!contract.resourceLinks || !Array.isArray(contract.resourceLinks)) {
+        return false;
+      }
+      // Check if at least one URL is valid
+      return contract.resourceLinks.some(url => url && url.trim() && typeof url === 'string');
+    });
+
+    console.log(`📄 [DEBUG] After filtering: ${contractsWithValidDocs.length} contracts have valid document URLs`);
+
+    if (contractsWithValidDocs.length === 0) {
       return res.json({
         success: true,
-        message: 'No contracts with documents found to queue',
+        message: 'No contracts with valid document URLs found to queue',
         queued_count: 0,
-        contracts_checked: 0
+        contracts_checked: contracts.length,
+        contracts_with_valid_docs: 0
       });
     }
 
@@ -516,15 +528,18 @@ router.post('/queue', async (req, res) => {
     let errorCount = 0;
     let processedContracts = 0;
 
+    // Use filtered contracts for processing
+    const contractsToProcess = contractsWithValidDocs;
+
     // Process contracts in parallel batches
-    const batchSize = Math.ceil(contracts.length / concurrency);
+    const batchSize = Math.ceil(contractsToProcess.length / concurrency);
     const batches = [];
     
-    for (let i = 0; i < contracts.length; i += batchSize) {
-      batches.push(contracts.slice(i, i + batchSize));
+    for (let i = 0; i < contractsToProcess.length; i += batchSize) {
+      batches.push(contractsToProcess.slice(i, i + batchSize));
     }
 
-    console.log(`🔄 [DEBUG] Processing ${contracts.length} contracts in ${batches.length} parallel batches`);
+    console.log(`🔄 [DEBUG] Processing ${contractsToProcess.length} contracts with valid docs in ${batches.length} parallel batches`);
 
     // Process each batch in parallel
     const processPromises = batches.map(async (batch, batchIndex) => {
@@ -593,7 +608,7 @@ router.post('/queue', async (req, res) => {
           
           // Log progress every 10 contracts
           if (processedContracts % 10 === 0) {
-            console.log(`📊 [DEBUG] Progress: ${processedContracts}/${contracts.length} contracts processed`);
+            console.log(`📊 [DEBUG] Progress: ${processedContracts}/${contractsToProcess.length} contracts processed`);
           }
 
         } catch (contractError) {
@@ -635,18 +650,20 @@ router.post('/queue', async (req, res) => {
     console.log(`📊 [DEBUG] - Skipped: ${skippedCount} documents`);
     console.log(`📊 [DEBUG] - Errors: ${errorCount} documents`);
     console.log(`📊 [DEBUG] - Total in queue: ${totalInQueue} individual document URLs`);
-    console.log(`📊 [DEBUG] - Contracts processed: ${processedContracts}/${contracts.length}`);
+    console.log(`📊 [DEBUG] - Contracts processed: ${processedContracts}/${contractsToProcess.length}`);
+    console.log(`📊 [DEBUG] - Contracts with valid docs: ${contractsWithValidDocs.length}/${contracts.length}`);
     console.log(`📊 [DEBUG] - Average documents per contract: ${(queuedCount / processedContracts).toFixed(1)}`);
 
     res.json({
       success: true,
-      message: `Successfully queued ${queuedCount} individual documents from ${processedContracts} contracts using parallel processing`,
+      message: `Successfully queued ${queuedCount} individual documents from ${processedContracts} contracts with valid document URLs`,
       queued_count: queuedCount,
       skipped_count: skippedCount,
       error_count: errorCount,
       contracts_processed: processedContracts,
-      total_contracts: contracts.length,
-      processing_method: 'promise_based_parallel',
+      contracts_with_valid_docs: contractsWithValidDocs.length,
+      total_contracts_scanned: contracts.length,
+      processing_method: 'filtered_parallel_processing',
       queue_status: {
         queued: statusCounts.queued || 0,
         processing: statusCounts.processing || 0,
@@ -1551,7 +1568,25 @@ router.post('/download-all', async (req, res) => {
       });
     }
 
-    console.log(`📄 [DEBUG] Found ${contracts.length} contracts with documents`);
+    // Filter contracts to only include those with valid document URLs
+    const contractsWithValidDocs = contracts.filter(contract => {
+      if (!contract.resourceLinks || !Array.isArray(contract.resourceLinks)) {
+        return false;
+      }
+      return contract.resourceLinks.some(url => url && url.trim() && typeof url === 'string');
+    });
+
+    console.log(`📄 [DEBUG] Found ${contracts.length} contracts with resourceLinks`);
+    console.log(`📄 [DEBUG] After filtering: ${contractsWithValidDocs.length} contracts have valid document URLs`);
+
+    if (contractsWithValidDocs.length === 0) {
+      return res.json({
+        success: false,
+        message: 'No contracts with valid document URLs found to download',
+        downloaded_count: 0,
+        contracts_scanned: contracts.length
+      });
+    }
 
     // Create download job for tracking
     const job = await prisma.indexingJob.create({
@@ -1565,16 +1600,17 @@ router.post('/download-all', async (req, res) => {
     // Respond immediately and start background downloading
     res.json({
       success: true,
-      message: `Started downloading documents from ${contracts.length} contracts to folder: ${download_folder}`,
+      message: `Started downloading documents from ${contractsWithValidDocs.length} contracts with valid document URLs to folder: ${download_folder}`,
       job_id: job.id,
-      contracts_count: contracts.length,
+      contracts_with_valid_docs: contractsWithValidDocs.length,
+      contracts_scanned: contracts.length,
       download_folder: download_folder,
       download_path: downloadPath
     });
 
     // Start background download process
     console.log(`🚀 [DEBUG] Starting background download process for job ${job.id}`);
-    downloadDocumentsInParallel(contracts, downloadPath, concurrency, job.id);
+    downloadDocumentsInParallel(contractsWithValidDocs, downloadPath, concurrency, job.id);
 
   } catch (error) {
     console.error('❌ [DEBUG] Error starting document download:', error);
