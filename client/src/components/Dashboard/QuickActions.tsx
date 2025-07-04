@@ -231,7 +231,7 @@ const QuickActions: React.FC = () => {
 
       {clearAndRepopulateQueueMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-          <div className="text-green-800 text-sm">Queue cleared! Processing Queue now shows downloaded files count (89).</div>
+          <div className="text-green-800 text-sm">Queue cleared! Processing Queue now shows downloaded files count.</div>
         </div>
       ) : null}
 
