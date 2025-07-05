@@ -7,7 +7,8 @@ const axios = require('axios');
 const fs = require('fs-extra');
 const path = require('path');
 const documentAnalyzer = require('../utils/documentAnalyzer');
-const pdfConversionService = require('../services/pdfConversionService');
+const LibreOfficeService = require('../services/libreoffice.service');
+const libreOfficeService = new LibreOfficeService();
 
 const router = express.Router();
 
@@ -38,9 +39,8 @@ router.get('/test', async (req, res) => {
   console.log('🧪 ==========================================');
   console.log('');
   
-  // Check PDF conversion service status
-  const pdfServiceAvailable = await pdfConversionService.isServiceAvailable();
-  const pdfServiceInfo = pdfConversionService.getServiceInfo();
+  // Check LibreOffice service status
+  const libreOfficeStatus = libreOfficeService.getStatus();
   
   res.json({ 
     message: 'Documents router is working!', 
@@ -57,31 +57,28 @@ router.get('/test', async (req, res) => {
       '/fetch-contracts',
       '/pdf-service/status'
     ],
-    pdf_conversion_service: {
-      available: pdfServiceAvailable,
-      endpoint: pdfServiceInfo.endpoint,
-      configured: pdfServiceInfo.isConfigured,
-      timeout: pdfServiceInfo.timeout
+    libreoffice_service: {
+      status: libreOfficeStatus,
+      method: 'libreoffice'
     }
   });
 });
 
-// PDF conversion service status endpoint
+// LibreOffice service status endpoint
 router.get('/pdf-service/status', async (req, res) => {
   try {
-    console.log('📄➡️📄 [STATUS] Checking PDF conversion service status...');
+    console.log('📄➡️📄 [STATUS] Checking LibreOffice service status...');
     
-    const isAvailable = await pdfConversionService.isServiceAvailable();
-    const serviceInfo = pdfConversionService.getServiceInfo();
+    const serviceStatus = libreOfficeService.getStatus();
     
     res.json({
       success: true,
-      service_available: isAvailable,
-      service_info: serviceInfo,
+      service_available: true,
+      service_info: serviceStatus,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('📄➡️📄 [STATUS] Error checking PDF service status:', error);
+    console.error('📄➡️📄 [STATUS] Error checking LibreOffice service status:', error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -314,13 +311,59 @@ router.post('/process', async (req, res) => {
               continue;
             }
 
-            // 🆕 CALL PDF CONVERSION SERVICE BEFORE QUEUEING
+            // 🆕 CALL LIBREOFFICE CONVERSION SERVICE BEFORE QUEUEING
             console.log(`📄➡️📄 [PROCESS] 🔄 Attempting PDF conversion before queueing: ${filename}`);
-            const conversionResult = await pdfConversionService.convertToPdfSingle(
-              docUrl, 
-              originalFilename, 
-              contract.noticeId
-            );
+            
+            // Create temporary directory for conversion
+            const tempDir = path.join(process.cwd(), 'temp_conversions', Date.now().toString());
+            await fs.ensureDir(tempDir);
+            
+            // Download the document first
+            let conversionResult;
+            try {
+              const response = await axios.get(docUrl, {
+                responseType: 'arraybuffer',
+                timeout: 120000,
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)',
+                  'Accept': '*/*'
+                }
+              });
+
+              const fileBuffer = Buffer.from(response.data);
+              const fileExt = path.extname(originalFilename).toLowerCase();
+              const tempInputPath = path.join(tempDir, `input${fileExt}`);
+              await fs.writeFile(tempInputPath, fileBuffer);
+              
+              // Convert using LibreOffice
+              await libreOfficeService.convertToPdfWithRetry(tempInputPath, tempDir);
+              
+              conversionResult = {
+                success: true,
+                isPdf: fileExt === '.pdf',
+                wasConverted: fileExt !== '.pdf',
+                originalUrl: docUrl,
+                originalFilename: originalFilename,
+                message: fileExt === '.pdf' ? 'Document is already a PDF' : 'Document successfully converted to PDF'
+              };
+            } catch (error) {
+              conversionResult = {
+                success: false,
+                isPdf: false,
+                wasConverted: false,
+                originalUrl: docUrl,
+                originalFilename: originalFilename,
+                error: error.message,
+                message: `PDF conversion failed: ${error.message}`
+              };
+            } finally {
+              // Clean up temp directory
+              try {
+                await fs.remove(tempDir);
+              } catch (cleanupError) {
+                console.warn(`⚠️ [DEBUG] Could not clean up temp directory: ${cleanupError.message}`);
+              }
+            }
 
             console.log(`📄➡️📄 [PROCESS] PDF conversion result:`, {
               success: conversionResult.success,
@@ -720,13 +763,59 @@ router.post('/queue', async (req, res) => {
                 continue;
               }
 
-              // 🆕 CALL PDF CONVERSION SERVICE BEFORE QUEUEING
+              // 🆕 CALL LIBREOFFICE CONVERSION SERVICE BEFORE QUEUEING
               console.log(`📄➡️📄 [QUEUE] 🔄 Attempting PDF conversion before queueing: ${filename}`);
-              const conversionResult = await pdfConversionService.convertToPdfSingle(
-                docUrl, 
-                originalFilename, 
-                contract.noticeId
-              );
+              
+              // Create temporary directory for conversion
+              const tempDir = path.join(process.cwd(), 'temp_conversions', Date.now().toString());
+              await fs.ensureDir(tempDir);
+              
+              // Download the document first
+              let conversionResult;
+              try {
+                const response = await axios.get(docUrl, {
+                  responseType: 'arraybuffer',
+                  timeout: 120000,
+                  headers: {
+                    'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)',
+                    'Accept': '*/*'
+                  }
+                });
+
+                const fileBuffer = Buffer.from(response.data);
+                const fileExt = path.extname(originalFilename).toLowerCase();
+                const tempInputPath = path.join(tempDir, `input${fileExt}`);
+                await fs.writeFile(tempInputPath, fileBuffer);
+                
+                // Convert using LibreOffice
+                await libreOfficeService.convertToPdfWithRetry(tempInputPath, tempDir);
+                
+                conversionResult = {
+                  success: true,
+                  isPdf: fileExt === '.pdf',
+                  wasConverted: fileExt !== '.pdf',
+                  originalUrl: docUrl,
+                  originalFilename: originalFilename,
+                  message: fileExt === '.pdf' ? 'Document is already a PDF' : 'Document successfully converted to PDF'
+                };
+              } catch (error) {
+                conversionResult = {
+                  success: false,
+                  isPdf: false,
+                  wasConverted: false,
+                  originalUrl: docUrl,
+                  originalFilename: originalFilename,
+                  error: error.message,
+                  message: `PDF conversion failed: ${error.message}`
+                };
+              } finally {
+                // Clean up temp directory
+                try {
+                  await fs.remove(tempDir);
+                } catch (cleanupError) {
+                  console.warn(`⚠️ [DEBUG] Could not clean up temp directory: ${cleanupError.message}`);
+                }
+              }
 
               console.log(`📄➡️📄 [QUEUE] PDF conversion result:`, {
                 success: conversionResult.success,
