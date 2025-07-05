@@ -1,0 +1,3582 @@
+
+# 2025-07-02 10:12:35.867699
++N
+
+# 2025-07-02 10:15:04.070675
++why we developed this in python? what is reason? there must be some reason. may I said do this in python? I am looking flexibility to write evryhting in react. What is your thougth on this? Analyze app and give me rough idea on this can be transaformed full to react? give asnwer yes or not
+
+# 2025-07-02 10:16:37.301425
++No We will rewrite service endpoints in nodejs and impklenent UI in react. what do you think?
+
+# 2025-07-02 10:19:02.492636
++can we write translating from  edndpoints from python to nodejs? how many endppints can you see in code? list all
+
+# 2025-07-02 10:22:52.385628
++yes go ahead
+
+# 2025-07-02 10:26:38.028539
++/run npm install
+
+# 2025-07-02 10:26:38.028884
++/run npm install
+
+# 2025-07-02 10:26:52.552625
++/run npx prisma generate
+
+# 2025-07-02 10:26:52.552907
++/run npx prisma generate
+
+# 2025-07-02 10:26:54.166609
++/run npx prisma migrate dev --name init
+
+# 2025-07-02 10:26:54.166720
++/run npx prisma migrate dev --name init
+
+# 2025-07-02 10:26:57.067898
++/run npm run dev
+
+# 2025-07-02 10:26:57.067975
++/run npm run dev
+
+# 2025-07-02 10:27:13.890898
++N
+
+# 2025-07-02 10:27:36.600146
++have you finished all endpoints migration to nodejs?
+
+# 2025-07-02 10:32:15.094335
++/run npm install
+
+# 2025-07-02 10:32:15.094921
++/run npm install
+
+# 2025-07-02 10:32:16.604348
++/run npx prisma generate
+
+# 2025-07-02 10:32:16.604453
++/run npx prisma generate
+
+# 2025-07-02 10:32:18.016934
++/run npx prisma migrate dev --name complete_migration
+
+# 2025-07-02 10:32:18.017052
++/run npx prisma migrate dev --name complete_migration
+
+# 2025-07-02 10:32:20.593191
++/run npm run dev
+
+# 2025-07-02 10:32:20.593393
++/run npm run dev
+
+# 2025-07-02 10:38:01.358886
++N
+
+# 2025-07-02 10:39:51.999451
++have you migrating all endpoints yet?
+
+# 2025-07-02 10:41:30.573581
++/run npm run dev
+
+# 2025-07-02 10:41:30.573779
++/run npm run dev
+
+# 2025-07-02 10:41:43.646552
++N
+
+# 2025-07-02 10:43:57.257321
++can define enviromnent variable of express server that will be called from ui?
+
+# 2025-07-02 10:51:53.722980
++go ahead migrating ui elements to react but think about these elements as well:You are an expert full-stack web developer helping me build a complete website from scratch. I want to create a professional, modern website with the following requirements:
++
++FRONTEND REQUIREMENTS:
++- Modern, responsive design that works on desktop, tablet, and mobile
++- Clean, intuitive user interface with smooth animations
++- Semantic HTML5 structure
++- CSS3 with modern features (Grid, Flexbox, custom properties)
++- JavaScript for interactivity and dynamic content
++- Consider using a modern framework (React, Vue, or vanilla JS based on project needs)
++
++BACKEND REQUIREMENTS:
++- RESTful API architecture
++- Database integration (specify your preferred database)
++- User authentication and authorization
++- File upload capabilities
++- Error handling and logging
++- API documentation
++
++DEVELOPMENT WORKFLOW:
++1. Start with project structure and configuration files
++2. Create the database schema and models
++3. Build the backend API endpoints
++4. Develop the frontend components
++5. Implement authentication and user management
++6. Add file upload and processing features
++7. Create responsive layouts and styling
++8. Add error handling and validation
++9. Write tests for critical functionality
++10. Prepare for deployment
++
++TECHNICAL SPECIFICATIONS:
++- Use TypeScript for better code quality and maintainability
++- Implement proper error handling throughout the application
++- Follow security best practices
++- Optimize for performance and SEO
++- Include proper documentation and comments
++
++Please help me build this step by step, creating all necessary files, explaining your decisions, and ensuring the code follows best practices. Start by asking me about the specific type of website I want to build and any particular features or technologies I prefer.
++
+
+# 2025-07-02 10:58:11.394312
++/run cd client && npm install
+
+# 2025-07-02 10:58:11.394733
++/run cd client && npm install
+
+# 2025-07-02 10:58:21.459532
++/run npm run client:install
+
+# 2025-07-02 10:58:21.459867
++/run npm run client:install
+
+# 2025-07-02 10:58:43.733746
++N
+
+# 2025-07-02 11:05:34.678103
++did you finished web site? Can I run it?  can you write start script to start everything db, vector dabase and express wever and web server?
+
+# 2025-07-02 11:13:48.265176
++/run chmod +x start.sh stop.sh
+
+# 2025-07-02 11:13:48.265516
++/run chmod +x start.sh stop.sh
+
+# 2025-07-02 11:13:48.919690
++/run ./start.sh
+
+# 2025-07-02 11:13:48.919783
++/run ./start.sh
+
+# 2025-07-02 11:15:18.820623
++You forgot to commit all these files because they are missing. Please regenarate them :ls client/src/pages/NotFound.tsx
++ls: client/src/pages/NotFound.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/ApiDocs.tsx
++ls: client/src/pages/ApiDocs.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/Documents.tsx
++ls: client/src/pages/Documents.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/Jobs.tsx
++ls: client/src/pages/Jobs.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/ContractDetail.tsx
++ls: client/src/pages/ContractDetail.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/Contracts.tsx
++ls: client/src/pages/Contracts.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/Search.tsx
++ls: client/src/pages/Search.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/Dashboard/QuickActions.tsx
++ls: client/src/components/Dashboard/QuickActions.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/Dashboard/QueueStatus.tsx
++ls: client/src/components/Dashboard/QueueStatus.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/Dashboard/RecentJobs.tsx
++ls: client/src/components/Dashboard/RecentJobs.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/Dashboard/StatsCard.tsx
++ls: client/src/components/Dashboard/StatsCard.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/UI/LoadingSpinner.tsx
++ls: client/src/components/UI/LoadingSpinner.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/UI/LoadingSpinner.tsx
++ls: client/src/components/UI/LoadingSpinner.tsx: No such file or directory
+
+# 2025-07-02 11:15:38.739181
++N
+
+# 2025-07-02 11:15:41.631257
++You forgot to commit all these files because they are missing. Please regenarate them :ls client/src/pages/NotFound.tsx
++ls: client/src/pages/NotFound.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/ApiDocs.tsx
++ls: client/src/pages/ApiDocs.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/Documents.tsx
++ls: client/src/pages/Documents.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/Jobs.tsx
++ls: client/src/pages/Jobs.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/ContractDetail.tsx
++ls: client/src/pages/ContractDetail.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/Contracts.tsx
++ls: client/src/pages/Contracts.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/Search.tsx
++ls: client/src/pages/Search.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/Dashboard/QuickActions.tsx
++ls: client/src/components/Dashboard/QuickActions.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/Dashboard/QueueStatus.tsx
++ls: client/src/components/Dashboard/QueueStatus.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/Dashboard/RecentJobs.tsx
++ls: client/src/components/Dashboard/RecentJobs.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/Dashboard/StatsCard.tsx
++ls: client/src/components/Dashboard/StatsCard.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/UI/LoadingSpinner.tsx
++ls: client/src/components/UI/LoadingSpinner.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/UI/LoadingSpinner.tsx
++ls: client/src/components/UI/LoadingSpinner.tsx: No such file or directory
+
+# 2025-07-02 11:22:05.978419
++yes proceed
+
+# 2025-07-02 11:23:41.770945
++/run cd client && npm run build
+
+# 2025-07-02 11:23:41.771467
++/run cd client && npm run build
+
+# 2025-07-02 11:24:24.530630
++All missing files of these are complete now?  ls client/src/pages/NotFound.tsx
++ls: client/src/pages/NotFound.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/ApiDocs.tsx
++ls: client/src/pages/ApiDocs.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/Documents.tsx
++ls: client/src/pages/Documents.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/Jobs.tsx
++ls: client/src/pages/Jobs.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/ContractDetail.tsx
++ls: client/src/pages/ContractDetail.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/Contracts.tsx
++ls: client/src/pages/Contracts.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/pages/Search.tsx
++ls: client/src/pages/Search.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/Dashboard/QuickActions.tsx
++ls: client/src/components/Dashboard/QuickActions.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/Dashboard/QueueStatus.tsx
++ls: client/src/components/Dashboard/QueueStatus.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/Dashboard/RecentJobs.tsx
++ls: client/src/components/Dashboard/RecentJobs.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/Dashboard/StatsCard.tsx
++ls: client/src/components/Dashboard/StatsCard.tsx: No such file or directory
++erolakarsu@Mac government_contracts_v2 % ls client/src/components/UI/LoadingSpinner.tsx
++ls: client/src/components/UI/LoadingSpinner.tsx: No such file or directory
+
+# 2025-07-02 11:28:11.047171
++/run cd client && npm run build
+
+# 2025-07-02 11:28:11.047641
++/run cd client && npm run build
+
+# 2025-07-02 11:29:02.128222
++pwd
++/Users/erolakarsu/projects/government_contracts_v2/client
++erolakarsu@Mac client % npm run build
++
++> contract-indexer-client@1.0.0 build
++> react-scripts build
++
++Could not find a required file.
++  Name: index.html
++  Searched in: /Users/erolakarsu/projects/government_contracts_v2/client/public
+
+# 2025-07-02 11:29:05.820456
++N
+
+# 2025-07-02 11:29:23.472627
++/run cd client && npm run build
+
+# 2025-07-02 11:29:23.473091
++/run cd client && npm run build
+
+# 2025-07-02 11:30:25.368783
++pwd
++/Users/erolakarsu/projects/government_contracts_v2/client
++erolakarsu@Mac client % npm run build
++
++> contract-indexer-client@1.0.0 build
++> react-scripts build
++
++(node:15791) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
++(Use `node --trace-deprecation ...` to show where the warning was created)
++Creating an optimized production build...
++Failed to compile.
++
++Module not found: Error: Can't resolve '@/pages/ContractDetail' in '/Users/erolakarsu/projects/government_contracts_v2/client/src'
++
+
+# 2025-07-02 11:32:17.023981
++/run cd client && npm run build
+
+# 2025-07-02 11:32:17.024292
++/run cd client && npm run build
+
+# 2025-07-02 11:32:45.123982
++pwd
++/Users/erolakarsu/projects/government_contracts_v2/client
++erolakarsu@Mac client % npm run build
++
++> contract-indexer-client@1.0.0 build
++> react-scripts build
++
++(node:17642) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
++(Use `node --trace-deprecation ...` to show where the warning was created)
++Creating an optimized production build...
++Failed to compile.
++
++Module not found: Error: Can't resolve '@tanstack/react-query' in '/Users/erolakarsu/projects/government_contracts_v2/client/src'
+
+# 2025-07-02 11:34:07.792859
++N
+
+# 2025-07-02 11:34:11.525333
++pwd
++/Users/erolakarsu/projects/government_contracts_v2/client
++erolakarsu@Mac client % npm run build
++
++> contract-indexer-client@1.0.0 build
++> react-scripts build
++
++(node:17642) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
++(Use `node --trace-deprecation ...` to show where the warning was created)
++Creating an optimized production build...
++Failed to compile.
++
++Module not found: Error: Can't resolve '@tanstack/react-query' in '/Users/erolakarsu/projects/government_contracts_v2/client/src'
+
+# 2025-07-02 11:34:47.097706
++/run cd client && npm install
+
+# 2025-07-02 11:34:47.098191
++/run cd client && npm install
+
+# 2025-07-02 11:34:57.444812
++N
+
+# 2025-07-02 11:34:59.847289
++/run cd client && npm run build
+
+# 2025-07-02 11:34:59.847386
++/run cd client && npm run build
+
+# 2025-07-02 11:35:17.054508
++Running cd client && npm run build
++
++> contract-indexer-client@1.0.0 build
++> react-scripts build
++
++(node:19916) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
++(Use `node --trace-deprecation ...` to show where the warning was created)
++Creating an optimized production build...
++Failed to compile.
++
++Module not found: Error: Can't resolve '@/services/api' in '/Users/erolakarsu/projects/government_contracts_v2/client/src/components/Layout'
++
++
+
+# 2025-07-02 11:35:48.676138
++/run cd client && npm install
+
+# 2025-07-02 11:35:48.676585
++/run cd client && npm install
+
+# 2025-07-02 11:35:54.314036
++/run cd client && npm run build
+
+# 2025-07-02 11:35:54.314170
++/run cd client && npm run build
+
+# 2025-07-02 11:36:13.471469
++Running cd client && npm run build
++
++> contract-indexer-client@1.0.0 build
++> craco build
++
++(node:21084) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
++(Use `node --trace-deprecation ...` to show where the warning was created)
++Creating an optimized production build...
++Failed to compile.
++
++Module not found: Error: You attempted to import /Users/erolakarsu/projects/government_contracts_v2/src/services/api which falls outside of the project src/ directory. Relative imports outside of src/ are not supported.
++You can either move it inside src/, or add a symlink to it from project's node_modules/.
+
+# 2025-07-02 11:38:23.994967
++/run cd client && npm run build
+
+# 2025-07-02 11:38:23.995095
++/run cd client && npm run build
+
+# 2025-07-02 11:38:39.536396
++Running cd client && npm run build
++
++> contract-indexer-client@1.0.0 build
++> craco build
++
++(node:22919) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
++(Use `node --trace-deprecation ...` to show where the warning was created)
++Creating an optimized production build...
++Failed to compile.
++
++Module not found: Error: You attempted to import /Users/erolakarsu/projects/government_contracts_v2/src/services/api which falls outside of the project src/ directory. Relative imports outside of src/ are not supported.
++You can either move it inside src/, or add a symlink to it from project's node_modules/.
+
+# 2025-07-02 11:38:57.778145
++/run cd client && npm run build
+
+# 2025-07-02 11:38:57.778307
++/run cd client && npm run build
+
+# 2025-07-02 11:39:08.437279
++Running cd client && npm run build
++
++> contract-indexer-client@1.0.0 build
++> craco build
++
++(node:23595) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
++(Use `node --trace-deprecation ...` to show where the warning was created)
++Creating an optimized production build...
++Failed to compile.
++
++Module not found: Error: You attempted to import /Users/erolakarsu/projects/government_contracts_v2/src/services/api which falls outside of the project src/ directory. Relative imports outside of src/ are not supported.
++You can either move it inside src/, or add a symlink to it from project's node_modules/.
+
+# 2025-07-02 11:39:14.898572
++N
+
+# 2025-07-02 11:39:18.850748
++Running cd client && npm run build
++
++> contract-indexer-client@1.0.0 build
++> craco build
++
++(node:23595) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
++(Use `node --trace-deprecation ...` to show where the warning was created)
++Creating an optimized production build...
++Failed to compile.
++
++Module not found: Error: You attempted to import /Users/erolakarsu/projects/government_contracts_v2/src/services/api which falls outside of the project src/ directory. Relative imports outside of src/ are not supported.
++You can either move it inside src/, or add a symlink to it from project's node_modules/.
+
+# 2025-07-02 11:39:40.623430
++/run cd client && npm run build
+
+# 2025-07-02 11:39:40.623634
++/run cd client && npm run build
+
+# 2025-07-02 11:40:52.224043
++why did you add craco here? we should solve witout it. Please remove it. what was original problem? Explain first
+
+# 2025-07-02 11:42:38.685022
++/run rm craco.config.js
+
+# 2025-07-02 11:42:38.685443
++/run rm craco.config.js
+
+# 2025-07-02 11:42:40.924322
++/run cd client && npm install
+
+# 2025-07-02 11:42:40.924531
++/run cd client && npm install
+
+# 2025-07-02 11:42:46.361781
++N
+
+# 2025-07-02 11:42:47.715109
++/run cd client && npm run build
+
+# 2025-07-02 11:42:47.715187
++/run cd client && npm run build
+
+# 2025-07-02 11:43:40.982366
++please use relative url not @ symbol to fix this. still you are suing that symbol: Running cd client && npm run build
++
++> contract-indexer-client@1.0.0 build
++> react-scripts build
++
++(node:27125) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
++(Use `node --trace-deprecation ...` to show where the warning was created)
++Creating an optimized production build...
++Failed to compile.
++
++Module not found: Error: Can't resolve '@/services/api' in '/Users/erolakarsu/projects/government_contracts_v2/client/src/components/Layout'
+
+# 2025-07-02 11:44:12.746793
++/run cd client && npm run build
+
+# 2025-07-02 11:44:12.746878
++/run cd client && npm run build
+
+# 2025-07-02 11:44:47.583182
++Running cd client && npm run build
++
++> contract-indexer-client@1.0.0 build
++> react-scripts build
++
++(node:28285) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
++(Use `node --trace-deprecation ...` to show where the warning was created)
++Creating an optimized production build...
++=============
++
++WARNING: You are currently running a version of TypeScript which is not officially supported by @typescript-eslint/typescript-estree.
++
++You may find that it works just fine, or you may not.
++
++SUPPORTED TYPESCRIPT VERSIONS: >=3.3.1 <5.2.0
++
++YOUR TYPESCRIPT VERSION: 5.8.3
++
++Please only submit bug reports when using the officially supported version.
++
++=============
++Failed to compile.
++
++SyntaxError: /Users/erolakarsu/projects/government_contracts_v2/client/src/components/Dashboard/QueueStatus.tsx: Identifier 'React' has already been declared. (119:7)
++  117 |
++  118 | export default QueueStatus;
++> 119 | import React from 'react';
++      |        ^
++  120 | import { useQuery } from '@tanstack/react-query';
++  121 | import { apiService } from '../../services/api';
++  122 | import LoadingSpinner from '../UI/LoadingSpinner';
++    at parser.next (<anonymous>)
++    at normalizeFile.next (<anonymous>)
++    at run.next (<anonymous>)
++    at transform.next (<anonymous>)
+
+# 2025-07-02 11:45:36.202535
++/run cd client && npm run build
+
+# 2025-07-02 11:45:36.202825
++/run cd client && npm run build
+
+# 2025-07-02 11:46:48.305301
++SyntaxError: /Users/erolakarsu/projects/government_contracts_v2/client/src/components/Dashboard/QuickActions.tsx: Identifier 'React' has already been declared. (152:7)
++  150 |
++  151 | export default QuickActions;
++> 152 | import React from 'react';
++      |        ^
++  153 | import { useMutation, useQueryClient } from '@tanstack/react-query';
++  154 | import { apiService } from '../../services/api';
++  155 | import LoadingSpinner from '../UI/LoadingSpinner';
++    at parser.next (<anonymous>)
++    at normalizeFile.next (<anonymous>)
++    at run.next (<anonymous>)
++    at transform.next (<anonymous>)
+
+# 2025-07-02 11:47:36.582742
++/run cd client && npm run build
+
+# 2025-07-02 11:47:36.583144
++/run cd client && npm run build
+
+# 2025-07-02 11:48:05.512756
++SyntaxError: /Users/erolakarsu/projects/government_contracts_v2/client/src/components/Dashboard/RecentJobs.tsx: Identifier 'React' has already been declared. (112:7)
++  110 |
++  111 | export default RecentJobs;
++> 112 | import React from 'react';
++      |        ^
++  113 | import { useQuery } from '@tanstack/react-query';
++  114 | import { Link } from 'react-router-dom';
++  115 | import { apiService } from '../../services/api';
++    at parser.next (<anonymous>)
++    at normalizeFile.next (<anonymous>)
++    at run.next (<anonymous>)
++    at transform.next (<anonymous>)
+
+# 2025-07-02 11:48:39.986381
++/run cd client && npm run build
+
+# 2025-07-02 11:48:39.986737
++/run cd client && npm run build
+
+# 2025-07-02 11:48:52.062089
++SyntaxError: /Users/erolakarsu/projects/government_contracts_v2/client/src/components/Dashboard/StatsCard.tsx: Identifier 'React' has already been declared. (69:7)
++  67 |
++  68 | export default StatsCard;
++> 69 | import React from 'react';
++     |        ^
++  70 |
++  71 | interface StatsCardProps {
++  72 |   title: string;
++    at parser.next (<anonymous>)
++    at normalizeFile.next (<anonymous>)
++    at run.next (<anonymous>)
++    at transform.next (<anonymous>)
+
+# 2025-07-02 11:49:29.927475
++/run cd client && npm run build
+
+# 2025-07-02 11:49:29.927615
++/run cd client && npm run build
+
+# 2025-07-02 11:50:20.101261
++explain me first why this error occurs :/Users/erolakarsu/projects/government_contracts_v2/client/src/components/UI/LoadingSpinner.tsx: Identifier 'React' has already been declared. explain me first please
+
+# 2025-07-02 11:53:45.144179
++N
+
+# 2025-07-02 11:53:47.597294
++cd client
++erolakarsu@Mac client % npm run build
++
++> contract-indexer-client@1.0.0 build
++> react-scripts build
++
++(node:35505) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
++(Use `node --trace-deprecation ...` to show where the warning was created)
++Creating an optimized production build...
++=============
++
++WARNING: You are currently running a version of TypeScript which is not officially supported by @typescript-eslint/typescript-estree.
++
++You may find that it works just fine, or you may not.
++
++SUPPORTED TYPESCRIPT VERSIONS: >=3.3.1 <5.2.0
++
++YOUR TYPESCRIPT VERSION: 5.8.3
++
++Please only submit bug reports when using the officially supported version.
++
++=============
++Failed to compile.
++
++TS7006: Parameter 'doc' implicitly has an 'any' type.
++    101 |           <h4 className="text-sm font-medium text-gray-700 mb-2">Recent Completions</h4>
++    102 |           <div className="space-y-2">
++  > 103 |             {queueStatus.recent_documents.slice(0, 3).map((doc, index) => (
++        |                                                            ^^^
++    104 |               <div key={index} className="flex justify-between items-center text-xs">
++    105 |                 <span className="text-gray-600 truncate">{doc.filename}</span>
++    106 |                 <span className="text-gray-500">
+
+# 2025-07-02 11:54:07.412463
++/run cd client && npm run build
+
+# 2025-07-02 11:54:07.412632
++/run cd client && npm run build
+
+# 2025-07-02 11:54:29.379583
++same error TS7006: Parameter 'index' implicitly has an 'any' type.
++    101 |           <h4 className="text-sm font-medium text-gray-700 mb-2">Recent Completions</h4>
++    102 |           <div className="space-y-2">
++  > 103 |             {queueStatus.recent_documents.slice(0, 3).map((doc: { filename: string; completed_at: string }, index) => (
++        |                                                                                                             ^^^^^
++    104 |               <div key={index} className="flex justify-between items-center text-xs">
++    105 |                 <span className="text-gray-600 truncate">{doc.filename}</span>
++    106 |                 <span className="text-gray-500">
+
+# 2025-07-02 11:54:38.001161
++/run cd client && npm run build
+
+# 2025-07-02 11:54:38.001249
++/run cd client && npm run build
+
+# 2025-07-02 11:55:12.833525
++TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
++    107 |       )}
++    108 |
++  > 109 |       {queueDocumentsMutation.isSuccess && (
++        |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 110 |         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 111 |           <div className="text-green-800 text-sm">Documents queued successfully!</div>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 112 |         </div>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 113 |       )}
++        | ^^^^^^^^^
++    114 |
++    115 |       {/* Error Messages */}
++    116 |       {fetchContractsMutation.error && (
+
+# 2025-07-02 11:55:38.998633
++/run cd client && npm run build
+
+# 2025-07-02 11:55:38.998842
++/run cd client && npm run build
+
+# 2025-07-02 11:55:55.551565
++TS2551: Property 'started_at' does not exist on type 'IndexingJob'. Did you mean 'start_date'?
++    86 |                   {job.records_processed?.toLocaleString() || 0} records processed
++    87 |                 </div>
++  > 88 |                 {job.started_at && (
++       |                      ^^^^^^^^^^
++    89 |                   <div className="text-xs text-gray-400">
++    90 |                     Started: {formatDate(job.started_at)}
++    91 |                   </div>
+
+# 2025-07-02 11:56:14.552509
++/run cd client && npm run build
+
+# 2025-07-02 11:56:14.552631
++/run cd client && npm run build
+
+# 2025-07-02 11:56:31.152116
++N
+
+# 2025-07-02 11:56:42.901933
++please use relative url, please: TS2307: Cannot find module '@/types' or its corresponding type declarations.
++    1 | import React from 'react';
++    2 | import { Menu, Bell, Search, Settings } from 'lucide-react';
++  > 3 | import { AppConfig } from '@/types';
++      |                           ^^^^^^^^^
++    4 |
++    5 | interface HeaderProps {
++    6 |   onMenuClick: () => void;
+
+# 2025-07-02 11:56:59.407318
++/run cd client && npm run build
+
+# 2025-07-02 11:56:59.407460
++/run cd client && npm run build
+
+# 2025-07-02 11:57:17.058875
++TS2769: No overload matches this call.
++  Overload 1 of 9, '(queryKey: QueryKey, queryFn: QueryFunction<AppConfig, QueryKey>, options?: (OmitKeyof<UseQueryOptions<AppConfig, unknown, AppConfig, QueryKey>, "initialData" | "queryFn" | "queryKey"> & { ...; }) | undefined): UseQueryResult<...>', gave the following error.
++    Argument of type 'string' is not assignable to parameter of type 'QueryKey'.
++  Overload 2 of 9, '(queryKey: QueryKey, queryFn: QueryFunction<AppConfig, QueryKey>, options?: (OmitKeyof<UseQueryOptions<AppConfig, unknown, AppConfig, QueryKey>, "initialData" | "queryFn" | "queryKey"> & { ...; }) | undefined): DefinedUseQueryResult<...>', gave the following error.
++    Argument of type 'string' is not assignable to parameter of type 'QueryKey'.
++  Overload 3 of 9, '(queryKey: QueryKey, queryFn: QueryFunction<AppConfig, QueryKey>, options?: OmitKeyof<UseQueryOptions<AppConfig, unknown, AppConfig, QueryKey>, "queryFn" | "queryKey"> | undefined): UseQueryResult<...>', gave the following error.
++    Argument of type 'string' is not assignable to parameter of type 'QueryKey'.
++    14 |
++    15 |   // Fetch app configuration
++  > 16 |   const { data: config } = useQuery('config', apiService.getConfig, {
++       |                                     ^^^^^^^^
++    17 |     staleTime: 10 * 60 * 1000, // 10 minutes
++    18 |   });
++    19 |
+
+# 2025-07-02 12:09:46.274824
++/add client/src/components/Layout/Layout.tsx
+
+# 2025-07-02 12:09:50.508331
++continue
+
+# 2025-07-02 12:10:36.041207
++TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
++    166 |           )}
++    167 |
++  > 168 |           {analyzeMutation.error && (
++        |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 169 |             <div className="mt-8 p-4 bg-red-50 border border-red-200 rounded-md">
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 170 |               <div className="text-red-800">
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 171 |                 Error analyzing contract: {analyzeMutation.error instanceof Error ? analyzeMutation.error.message : 'Unknown error'}
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 172 |               </div>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 173 |             </div>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 174 |           )}
++        | ^^^^^^^^^^^^^
++    175 |         </div>
++    176 |       </div>
++    177 |     </div>
+
+# 2025-07-02 12:11:43.227876
++/add client/src/pages/ContractDetail.tsx
+
+# 2025-07-02 12:11:47.679319
++go ahead
+
+# 2025-07-02 12:12:29.537413
++TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
++    166 |           )}
++    167 |
++  > 168 |           {analyzeMutation.error && (
++        |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 169 |             <div className="mt-8 p-4 bg-red-50 border border-red-200 rounded-md">
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 170 |               <div className="text-red-800">
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 171 |                 Error analyzing contract: {analyzeMutation.error instanceof Error ? analyzeMutation.error.message : String(analyzeMutation.error)}
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 172 |               </div>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 173 |             </div>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 174 |           )}
++        | ^^^^^^^^^^^^^
++    175 |         </div>
++    176 |       </div>
++    177 |     </div>
+
+# 2025-07-02 12:13:04.727395
++TS2551: Property 'started_at' does not exist on type 'IndexingJob'. Did you mean 'start_date'?
++    109 |                     </td>
++    110 |                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
++  > 111 |                       {job.started_at ? formatDate(job.started_at) : '-'}
++        |                            ^^^^^^^^^^
++    112 |                     </td>
++    113 |                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
++    114 |                       {job.completed_at ? formatDate(job.completed_at) : '-'}
+
+# 2025-07-02 12:14:03.152074
++/add client/src/pages/Jobs.tsx
+
+# 2025-07-02 12:14:10.021322
++go ahead
+
+# 2025-07-02 12:14:54.512079
++TS2339: Property 'error_message' does not exist on type 'IndexingJob'.
++    115 |                     </td>
++    116 |                     <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
++  > 117 |                       {job.error_message || '-'}
++        |                            ^^^^^^^^^^^^^
++    118 |                     </td>
++    119 |                   </tr>
++    120 |                 ))}
+
+# 2025-07-02 12:15:39.668969
++Failed to compile.
++
++TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
++     43 |
++     44 |       {/* Search Form */}
++  >  45 |       <div className="bg-white shadow rounded-lg p-6 mb-8">
++        |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  46 |         <form onSubmit={handleSearch} className="space-y-4">
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  47 |           <div>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  48 |             <label htmlFor="query" className="block text-sm font-medium text-gray-700 mb-2">
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  49 |               Search Query
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  50 |             </label>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  51 |             <input
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  52 |               type="text"
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  53 |               id="query"
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  54 |               value={searchForm.query}
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  55 |               onChange={(e) => setSearchForm({ ...searchForm, query: e.target.value })}
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  56 |               className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  57 |               placeholder="Enter your search query..."
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  58 |               required
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  59 |             />
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  60 |           </div>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  61 |
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  62 |           <div className="flex items-center space-x-4">
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  63 |             <div>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  64 |               <label htmlFor="limit" className="block text-sm font-medium text-gray-700 mb-1">
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  65 |                 Results Limit
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  66 |               </label>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  67 |               <input
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  68 |                 type="number"
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  69 |                 id="limit"
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  70 |                 value={searchForm.limit}
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  71 |                 onChange={(e) => setSearchForm({ ...searchForm, limit: parseInt(e.target.value) || 20 })}
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  72 |                 className="block w-24 border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  73 |                 min="1"
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  74 |                 max="100"
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  75 |               />
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  76 |             </div>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  77 |
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  78 |             <div className="flex items-center">
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  79 |               <input
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  80 |                 type="checkbox"
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  81 |                 id="include_analysis"
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  82 |                 checked={searchForm.include_analysis}
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  83 |                 onChange={(e) => setSearchForm({ ...searchForm, include_analysis: e.target.checked })}
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  84 |                 className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  85 |               />
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  86 |               <label htmlFor="include_analysis" className="ml-2 block text-sm text-gray-900">
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  87 |                 Include AI Analysis
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  88 |               </label>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  89 |             </div>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  90 |           </div>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  91 |
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  92 |           <button
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  93 |             type="submit"
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  94 |             disabled={searchMutation.isPending || !searchForm.query.trim()}
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  95 |             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  96 |           >
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  97 |             {searchMutation.isPending ? <LoadingSpinner size="sm" /> : 'Search'}
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  98 |           </button>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  >  99 |         </form>
++        | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++  > 100 |       </div>
++        | ^^^^^^^^^^^^^
++    101 |
++    102 |       {/* Search Results */}
++    103 |       {searchMutation.error && (
+
+# 2025-07-02 12:16:31.772713
++/add src/pages/Search.tsx
+
+# 2025-07-02 12:16:51.407823
++/add client/src/pages/Search.tsx
+
+# 2025-07-02 12:16:56.870446
++go ahead
+
+# 2025-07-02 12:18:12.806131
++please use relative import TS2307: Cannot find module '@/types' or its corresponding type declarations.
++    11 |   ContractFetchForm,
++    12 |   SearchForm,
++  > 13 | } from '@/types';
++       |        ^^^^^^^^^
++    14 |
++    15 | // Create axios instance with default config
++    16 | const api = axios.create({
+
+# 2025-07-02 12:19:44.068021
++what is startup script you have prepared so I can start express server and web server and DBs?
+
+# 2025-07-02 12:23:40.836373
++/run chmod +x setup.sh
+
+# 2025-07-02 12:23:40.836662
++/run chmod +x setup.sh
+
+# 2025-07-02 12:23:41.502891
++/run ./setup.sh
+
+# 2025-07-02 12:23:41.502992
++/run ./setup.sh
+
+# 2025-07-02 12:24:37.461466
++/run ./start.sh
+
+# 2025-07-02 12:24:37.462015
++/run ./start.sh
+
+# 2025-07-02 12:25:32.583343
++Did I ask you start pythpn packages? I am converting python projetc to nodejs. why you did it? explain me
+
+# 2025-07-02 12:27:28.674914
++\
+
+# 2025-07-02 12:31:10.444407
++Did I ask you start pythpn packages? I am converting python projetc to nodejs. why you did it? explain me. Please revert it back what you have changed
+
+# 2025-07-02 12:31:26.295912
++exit
+
+# 2025-07-02 12:32:10.586403
++Did I ask you start pythpn packages? I am converting python projetc to nodejs. why you did it? explain me. Please revert it back what you have changed
+
+# 2025-07-02 12:33:23.969571
++you made changes start.sh and some files I do not remember. rever it back
+
+# 2025-07-02 12:34:07.165174
++Did I ask you start pythpn packages? I am converting python projetc to nodejs. why you did it? explain me. Please revert it back what you have changed. revert start.sh back 
+
+# 2025-07-02 12:35:03.219430
++you have it but you messed up wity opython
+
+# 2025-07-02 12:39:48.845090
++/run rm app.py main.py requirements.txt
+
+# 2025-07-02 12:39:48.845513
++/run rm app.py main.py requirements.txt
+
+# 2025-07-02 12:39:50.648355
++/run rm -rf attached_assets
+
+# 2025-07-02 12:39:50.648493
++/run rm -rf attached_assets
+
+# 2025-07-02 12:39:53.481354
++/run npm install
+
+# 2025-07-02 12:39:53.481461
++/run npm install
+
+# 2025-07-02 12:41:45.941062
++N
+
+# 2025-07-02 12:41:48.707080
++/run npx prisma generate
+
+# 2025-07-02 12:41:48.707166
++/run npx prisma generate
+
+# 2025-07-02 12:41:55.824748
++/run npm run dev
+
+# 2025-07-02 12:41:55.824878
++/run npm run dev
+
+# 2025-07-02 12:55:20.034716
++Please focus on only nodejs. Look at start.sh script that is startting postgress, vector database, express server, web seb server. It is too much coding , simolify it.
+
+# 2025-07-02 12:56:12.946947
++/run chmod +x start.sh
+
+# 2025-07-02 12:56:12.947297
++/run chmod +x start.sh
+
+# 2025-07-02 12:56:13.592342
++/run ./start.sh
+
+# 2025-07-02 12:56:13.592454
++/run ./start.sh
+
+# 2025-07-02 12:56:50.778048
++why start.sh gives error "[nodemon] Internal watch failed: EMFILE: too many open files, watch"
+
+# 2025-07-02 12:57:14.073445
++/run ulimit -n 4096
+
+# 2025-07-02 12:57:14.073984
++/run ulimit -n 4096
+
+# 2025-07-02 12:58:28.892507
++Unhandled error: [Error: ENOENT: no such file or directory, stat '/Users/erolakarsu/projects/government_contracts_v2/public/index.html'] {
++  errno: -2,
++  code: 'ENOENT',
++  syscall: 'stat',
++  path: '/Users/erolakarsu/projects/government_contracts_v2/public/index.html',
++  expose: false,
++  statusCode: 404,
++  status: 404
++} in browser console, GET http://localhost:3000/ 500 (Internal Server Error)
+
+# 2025-07-02 12:58:32.340735
++N
+
+# 2025-07-02 12:59:12.789929
++/run mkdir -p public
+
+# 2025-07-02 12:59:12.790306
++/run mkdir -p public
+
+# 2025-07-02 13:02:09.787873
++/add test.png
+
+# 2025-07-02 13:02:43.297910
++where is nice full web site? attached picture. you created index.html and result is this
+
+# 2025-07-02 13:05:23.400214
++stop. You already created in client folder. Stop creating
+
+# 2025-07-02 13:09:08.700175
++Here is client folder files, which one you like it? it is ready web server. I need to show it, but start.sh does not show it: ls -latrR client
++total 1552
++drwxr-xr-x@  9 erolakarsu  staff     288 Jul  2 10:57 src
++-rw-r--r--@  1 erolakarsu  staff    1297 Jul  2 10:57 tailwind.config.js
++-rw-r--r--@  1 erolakarsu  staff      82 Jul  2 10:57 postcss.config.js
++-rw-r--r--@  1 erolakarsu  staff    1439 Jul  2 11:41 package.json
++-rw-r--r--@  1 erolakarsu  staff     532 Jul  2 11:42 tsconfig.json
++-rw-r--r--@  1 erolakarsu  staff  776399 Jul  2 12:24 package-lock.json
++drwxr-xr-x@  5 erolakarsu  staff     160 Jul  2 12:51 build
++drwxr-xr-x@ 78 erolakarsu  staff    2496 Jul  2 13:02 ..
++drwxr-xr-x@  3 erolakarsu  staff      96 Jul  2 13:06 public
++drwxr-xr-x@ 10 erolakarsu  staff     320 Jul  2 13:07 .
++
++client/src:
++total 24
++drwxr-xr-x@  3 erolakarsu  staff    96 Jul  2 10:57 types
++drwxr-xr-x@  3 erolakarsu  staff    96 Jul  2 10:57 services
++drwxr-xr-x@  9 erolakarsu  staff   288 Jul  2 10:57 .
++-rw-r--r--@  1 erolakarsu  staff   274 Jul  2 10:57 index.tsx
++-rw-r--r--@  1 erolakarsu  staff  2613 Jul  2 10:57 index.css
++drwxr-xr-x@  5 erolakarsu  staff   160 Jul  2 11:23 components
++drwxr-xr-x@ 10 erolakarsu  staff   320 Jul  2 11:27 pages
++-rw-r--r--@  1 erolakarsu  staff  2291 Jul  2 11:32 App.tsx
++drwxr-xr-x@ 10 erolakarsu  staff   320 Jul  2 13:07 ..
++
++client/src/types:
++total 8
++drwxr-xr-x@ 3 erolakarsu  staff    96 Jul  2 10:57 .
++drwxr-xr-x@ 9 erolakarsu  staff   288 Jul  2 10:57 ..
++-rw-r--r--@ 1 erolakarsu  staff  3133 Jul  2 10:57 index.ts
++
++client/src/services:
++total 24
++drwxr-xr-x@ 3 erolakarsu  staff    96 Jul  2 10:57 .
++drwxr-xr-x@ 9 erolakarsu  staff   288 Jul  2 10:57 ..
++-rw-r--r--@ 1 erolakarsu  staff  8299 Jul  2 12:18 api.ts
++
++client/src/components:
++total 0
++drwxr-xr-x@ 5 erolakarsu  staff  160 Jul  2 10:57 Layout
++drwxr-xr-x@ 9 erolakarsu  staff  288 Jul  2 10:57 ..
++drwxr-xr-x@ 5 erolakarsu  staff  160 Jul  2 11:23 .
++drwxr-xr-x@ 6 erolakarsu  staff  192 Jul  2 11:50 Dashboard
++drwxr-xr-x@ 3 erolakarsu  staff   96 Jul  2 11:52 UI
++
++client/src/components/Layout:
++total 24
++drwxr-xr-x@ 5 erolakarsu  staff   160 Jul  2 10:57 .
++-rw-r--r--@ 1 erolakarsu  staff  3451 Jul  2 10:57 Sidebar.tsx
++drwxr-xr-x@ 5 erolakarsu  staff   160 Jul  2 11:23 ..
++-rw-r--r--@ 1 erolakarsu  staff  3034 Jul  2 11:56 Header.tsx
++-rw-r--r--@ 1 erolakarsu  staff  1209 Jul  2 12:09 Layout.tsx
++
++client/src/components/Dashboard:
++total 48
++drwxr-xr-x@ 5 erolakarsu  staff   160 Jul  2 11:23 ..
++-rw-r--r--@ 1 erolakarsu  staff  1802 Jul  2 11:49 StatsCard.tsx
++drwxr-xr-x@ 6 erolakarsu  staff   192 Jul  2 11:50 .
++-rw-r--r--@ 1 erolakarsu  staff  4348 Jul  2 11:54 QueueStatus.tsx
++-rw-r--r--@ 1 erolakarsu  staff  6232 Jul  2 11:55 QuickActions.tsx
++-rw-r--r--@ 1 erolakarsu  staff  3528 Jul  2 11:56 RecentJobs.tsx
++
++client/src/components/UI:
++total 8
++drwxr-xr-x@ 5 erolakarsu  staff   160 Jul  2 11:23 ..
++-rw-r--r--@ 1 erolakarsu  staff  1177 Jul  2 11:52 LoadingSpinner.tsx
++drwxr-xr-x@ 3 erolakarsu  staff    96 Jul  2 11:52 .
++
++client/src/pages:
++total 128
++drwxr-xr-x@  9 erolakarsu  staff   288 Jul  2 10:57 ..
++-rw-r--r--@  1 erolakarsu  staff  4306 Jul  2 11:21 Dashboard.tsx
++drwxr-xr-x@ 10 erolakarsu  staff   320 Jul  2 11:27 .
++-rw-r--r--@  1 erolakarsu  staff  1058 Jul  2 11:27 NotFound.tsx
++-rw-r--r--@  1 erolakarsu  staff  3099 Jul  2 11:27 ApiDocs.tsx
++-rw-r--r--@  1 erolakarsu  staff  7852 Jul  2 11:27 Documents.tsx
++-rw-r--r--@  1 erolakarsu  staff  9517 Jul  2 11:27 Contracts.tsx
++-rw-r--r--@  1 erolakarsu  staff  6771 Jul  2 12:12 ContractDetail.tsx
++-rw-r--r--@  1 erolakarsu  staff  5367 Jul  2 12:15 Jobs.tsx
++-rw-r--r--@  1 erolakarsu  staff  9983 Jul  2 12:17 Search.tsx
++
++client/build:
++total 16
++drwxr-xr-x@  5 erolakarsu  staff  160 Jul  2 12:51 .
++drwxr-xr-x@  4 erolakarsu  staff  128 Jul  2 12:51 static
++-rw-r--r--@  1 erolakarsu  staff  702 Jul  2 12:51 index.html
++-rw-r--r--@  1 erolakarsu  staff  369 Jul  2 12:51 asset-manifest.json
++drwxr-xr-x@ 10 erolakarsu  staff  320 Jul  2 13:07 ..
++
++client/build/static:
++total 0
++drwxr-xr-x@ 5 erolakarsu  staff  160 Jul  2 12:51 ..
++drwxr-xr-x@ 4 erolakarsu  staff  128 Jul  2 12:51 .
++drwxr-xr-x@ 5 erolakarsu  staff  160 Jul  2 12:51 js
++drwxr-xr-x@ 4 erolakarsu  staff  128 Jul  2 12:51 css
++
++client/build/static/js:
++total 3344
++drwxr-xr-x@ 4 erolakarsu  staff      128 Jul  2 12:51 ..
++drwxr-xr-x@ 5 erolakarsu  staff      160 Jul  2 12:51 .
++-rw-r--r--@ 1 erolakarsu  staff   317182 Jul  2 12:51 main.428cc7c5.js
++-rw-r--r--@ 1 erolakarsu  staff  1385960 Jul  2 12:51 main.428cc7c5.js.map
++-rw-r--r--@ 1 erolakarsu  staff     2085 Jul  2 12:51 main.428cc7c5.js.LICENSE.txt
++
++client/build/static/css:
++total 80
++drwxr-xr-x@ 4 erolakarsu  staff    128 Jul  2 12:51 ..
++drwxr-xr-x@ 4 erolakarsu  staff    128 Jul  2 12:51 .
++-rw-r--r--@ 1 erolakarsu  staff  11767 Jul  2 12:51 main.cacf6a39.css.map
++-rw-r--r--@ 1 erolakarsu  staff  26426 Jul  2 12:51 main.cacf6a39.css
++
++client/public:
++total 8
++-rw-r--r--@  1 erolakarsu  staff  702 Jul  2 11:29 index.html
++drwxr-xr-x@  3 erolakarsu  staff   96 Jul  2 13:06 .
++drwxr-xr-x@ 10 erolakarsu  staff  320 Jul  2 13:07 ..
+
+# 2025-07-02 13:09:13.564035
++S
+
+# 2025-07-02 13:09:48.299213
++/run ./start.sh
+
+# 2025-07-02 13:09:48.299661
++/run ./start.sh
+
+# 2025-07-02 13:10:25.623853
++N
+
+# 2025-07-02 13:11:49.958777
++are you starting web server on 3000 2 times in start.sh? can you check it?
+
+# 2025-07-02 13:17:18.153237
++/add test.png
+
+# 2025-07-02 13:19:10.060879
++It does not look good to me. Quick actions are left buttoms, I could not read one. what Do you think ? Shall we make dashboard better?
+
+# 2025-07-02 13:20:03.431120
++/add client/src/pages/Dashboard.tsx client/src/components/Dashboard/QuickActions.tsx client/src/components/Dashboard/StatsCard.tsx client/src/components/Dashboard/QueueStatus.tsx
+
+# 2025-07-02 13:20:13.818541
++go ahead
+
+# 2025-07-02 13:27:21.337447
++server.js is too big . we need refactor it. Also we need to read DATABASE_URL, SESSION_SECRET SAM_GOV_API_KEY NORSHIN_API_KEY DATABASE_URL from .env file automatically. Also we need to use chrome vector database to index . whihc DBs are we using?
+
+# 2025-07-02 13:29:28.510072
++/run npm install chromadb
+
+# 2025-07-02 13:29:28.510408
++/run npm install chromadb
+
+# 2025-07-02 13:29:36.911133
++N
+
+# 2025-07-02 13:29:38.579618
++/run npm install
+
+# 2025-07-02 13:29:38.579780
++/run npm install
+
+# 2025-07-02 13:29:41.998821
++N
+
+# 2025-07-02 13:32:21.854879
++you can do more? api_routes.py is too big.split it in sych a way meneingfull apis are located in seperate files
+
+# 2025-07-02 13:35:00.401068
++/run npm run dev
+
+# 2025-07-02 13:35:00.401371
++/run npm run dev
+
+# 2025-07-02 13:36:54.806228
++N
+
+# 2025-07-02 13:36:56.709426
++/Users/erolakarsu/projects/government_contracts_v2/node_modules/express/lib/router/index.js:469
++      throw new TypeError('Router.use() requires a middleware function but got a ' + gettype(fn))
++      ^
++
++TypeError: Router.use() requires a middleware function but got a Object
++    at router.use (/Users/erolakarsu/projects/government_contracts_v2/node_modules/express/lib/router/index.js:469:13)
++    at app.<anonymous> (/Users/erolakarsu/projects/government_contracts_v2/node_modules/express/lib/application.js:227:21)
++    at Array.forEach (<anonymous>)
++    at app.use (/Users/erolakarsu/projects/government_contracts_v2/node_modules/express/lib/application.js:224:7)
++    at Object.<anonymous> (/Users/erolakarsu/projects/government_contracts_v2/server.js:39:5)
++    at Module._compile (node:internal/modules/cjs/loader:1734:14)
++    at Object..js (node:internal/modules/cjs/loader:1899:10)
++    at Module.load (node:internal/modules/cjs/loader:1469:32)
++    at Module._load (node:internal/modules/cjs/loader:1286:12)
++    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
++
++Node.js v24.1.0
+
+# 2025-07-02 13:37:22.319043
++express/lib/router/index.js:469
++      throw new TypeError('Router.use() requires a middleware function but got a ' + gettype(fn))
++      ^
++
++TypeError: Router.use() requires a middleware function but got a Object
++    at router.use (/Users/erolakarsu/projects/government_contracts_v2/node_modules/express/lib/router/index.js:469:13)
++    at app.<anonymous> (/Users/erolakarsu/projects/government_contracts_v2/node_modules/express/lib/application.js:227:21)
++    at Array.forEach (<anonymous>)
++    at app.use (/Users/erolakarsu/projects/government_contracts_v2/node_modules/express/lib/application.js:224:7)
++    at Object.<anonymous> (/Users/erolakarsu/projects/government_contracts_v2/server.js:39:5)
++    at Module._compile (node:internal/modules/cjs/loader:1734:14)
++    at Object..js (node:internal/modules/cjs/loader:1899:10)
++    at Module.load (node:internal/modules/cjs/loader:1469:32)
++    at Module._load (node:internal/modules/cjs/loader:1286:12)
++    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
++
+
+# 2025-07-02 13:40:38.790632
++/run npm run dev
+
+# 2025-07-02 13:40:38.791181
++/run npm run dev
+
+# 2025-07-02 13:41:31.490810
++N
+
+# 2025-07-02 13:41:48.197993
++Vector database initialization failed: ChromaConnectionError: Failed to connect to chromadb. Make sure your server is running and try again. If you are running from a browser, make sure that your chromadb instance is configured to allow requests from the current origin using the CHROMA_SERVER_CORS_ALLOW_ORIGINS environment variable.
++    at chromaFetch (/Users/erolakarsu/projects/government_contracts_v2/node_modules/chromadb/dist/cjs/chromadb.cjs:4139:13)
++    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
++    at async AdminClient.getTenant (/Users/erolakarsu/projects/government_contracts_v2/node_modules/chromadb/dist/cjs/chromadb.cjs:4274:23)
++    ... 3 lines matching cause stack trace ...
++    at async startServer (/Users/erolakarsu/projects/government_contracts_v2/server.js:249:5) {
++  cause: TypeError: fetch failed
++      at node:internal/deps/undici/undici:15363:13
++      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
++      at async chromaFetch (/Users/erolakarsu/projects/government_contracts_v2/node_modules/chromadb/dist/cjs/chromadb.cjs:4095:18)
++      at async AdminClient.getTenant (/Users/erolakarsu/projects/government_contracts_v2/node_modules/chromadb/dist/cjs/chromadb.cjs:4274:23)
++      at async validateTenantDatabase (/Users/erolakarsu/projects/government_contracts_v2/node_modules/chromadb/dist/cjs/chromadb.cjs:3920:5)
++      at async ChromaClient.getOrCreateCollection (/Users/erolakarsu/projects/government_contracts_v2/node_modules/chromadb/dist/cjs/chromadb.cjs:4652:5)
++      at async VectorService.initialize (/Users/erolakarsu/projects/government_contracts_v2/services/vectorService.js:17:34)
++      at async startServer (/Users/erolakarsu/projects/government_contracts_v2/server.js:249:5) {
++    [cause]: AggregateError [ECONNREFUSED]:
++        at internalConnectMultiple (node:net:1139:18)
++        at afterConnectMultiple (node:net:1714:7) {
++      code: 'ECONNREFUSED',
++      [errors]: [Array]
++    }
++  }
++}
++Failed to start server: ChromaConnectionError: Failed to connect to chromadb. Make sure your server is running and try again. If you are running from a browser, make sure that your chromadb instance is configured to allow requests from the current origin using the CHROMA_SERVER_CORS_ALLOW_ORIGINS environment variabl when npm run dev executed
+
+# 2025-07-02 13:42:51.066210
++/run docker run -p 8000:8000 chromadb/chroma
+
+# 2025-07-02 13:42:51.066687
++/run docker run -p 8000:8000 chromadb/chroma
+
+# 2025-07-02 13:43:24.243869
++N
+
+# 2025-07-02 13:43:28.227819
++/run pip install chromadb
+
+# 2025-07-02 13:43:28.228004
++/run pip install chromadb
+
+# 2025-07-02 13:43:32.563211
++/run chroma run --host localhost --port 8000
+
+# 2025-07-02 13:43:32.563568
++/run chroma run --host localhost --port 8000
+
+# 2025-07-02 13:43:52.132007
++N
+
+# 2025-07-02 13:45:35.560925
++we have warning when we chart chrome vector db "OpenTelemetry is not enabled because it is missing from the config.". why python packaged installed? I want all only nodejs servers. why? chroma does not have nodejs therefore you insatlled python version?
+
+# 2025-07-02 13:46:46.894424
++/run npm uninstall chromadb
+
+# 2025-07-02 13:46:46.895557
++/run npm uninstall chromadb
+
+# 2025-07-02 13:46:58.752935
++/run npm install vectra @xenova/transformers
+
+# 2025-07-02 13:46:58.753144
++/run npm install vectra @xenova/transformers
+
+# 2025-07-02 13:47:04.138894
++N
+
+# 2025-07-02 13:47:29.850153
++have you updated start.sh to start vector db?
+
+# 2025-07-02 13:48:16.571404
++update it please
+
+# 2025-07-02 13:55:53.935962
++you are sending incorrect format when you get contra ts from govenment :curl "https://api.sam.gov/opportunities/v2/search?api_key=8fvkSRtpKdn0kX0VtfDQ0oGfCoMYNYKuDGhzMFo7&limit=100&offset=0&postedFrom=05-03-2025&postedTo=07-02-2025"
++{"errorCode":"400","errorMessage":"Invalid Date Entered. Expected date format is MM/dd/yyyy"}. fix date
+
+# 2025-07-02 13:55:56.705977
++N
+
+# 2025-07-02 14:09:15.676122
++when I click process documents action, I am gettting error in console "Uncaught (in promise) SyntaxError: "[object Object]" is not valid JSON
++    at JSON.parse (<anonymous>)
++    at l._storageChangeDispatcher (content.js:2:898238)
++    at _storageChangeDispatcherCallback (content.js:2:897686)"
+
+# 2025-07-02 14:13:19.514821
++Nothing happened, no error happened
+
+# 2025-07-02 14:17:01.101303
++Compiled with problems:
++×
++ERROR in ./src/components/Dashboard/RecentJobs.tsx 277:7
++Module parse failed: Duplicate export 'default' (277:7)
++File was processed with these loaders:
++ * ./node_modules/@pmmmwh/react-refresh-webpack-plugin/loader/index.js
++ * ./node_modules/babel-loader/lib/index.js
++ * ./node_modules/source-map-loader/dist/cjs.js
++You may need an additional loader to handle the result of these loaders.
++| });
++| _c = RecentJobs;
++> export default RecentJobs;
++| var _c;
++| $RefreshReg$(_c, "RecentJobs");
++ERROR
++[eslint] 
++src/components/Dashboard/RecentJobs.tsx
++  Line 2:1:  Import in body of module; reorder to top  import/first
++  Line 3:1:  Import in body of module; reorder to top  import/first
++  Line 4:1:  Import in body of module; reorder to top  import/first
++  Line 5:1:  Import in body of module; reorder to top  import/first
++  Line 6:1:  Import in body of module; reorder to top  import/first
++
++Search for the keywords to learn more about each error.
++ERROR in src/components/Dashboard/RecentJobs.tsx:1:16
++TS2448: Block-scoped variable 'RecentJobs' used before its declaration.
++  > 1 | export default RecentJobs;
++      |                ^^^^^^^^^^
++    2 | import React from 'react';
++    3 | import { useQuery } from '@tanstack/react-query';
++    4 | import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
++ERROR in src/components/Dashboard/RecentJobs.tsx:1:16
++TS2454: Variable 'RecentJobs' is used before being assigned.
++  > 1 | export default RecentJobs;
++      |                ^^^^^^^^^^
++    2 | import React from 'react';
++    3 | import { useQuery } from '@tanstack/react-query';
++    4 | import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
++ERROR in src/components/Dashboard/RecentJobs.tsx:1:16
++TS2528: A module cannot have multiple default exports.
++  > 1 | export default RecentJobs;
++      |                ^^^^^^^^^^
++    2 | import React from 'react';
++    3 | import { useQuery } from '@tanstack/react-query';
++    4 | import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
++ERROR in src/components/Dashboard/RecentJobs.tsx:134:16
++TS2528: A module cannot have multiple default exports.
++    132 | };
++    133 |
++  > 134 | export default RecentJobs;
++        |                ^^^^^^^^^^
++    135 |
+
+# 2025-07-02 14:40:39.566637
++explain me in details, when I click fetch documents, how will call flow will go  form where to where? explain me in details
+
+# 2025-07-02 14:59:42.250177
++ just give me explanation of this error? Is it clicking on process documents or something else? please explain me clerarly first "Norshin API Error: ENOENT: no such file or directory, open 'https://sam.gov/api/prod/opps/v3/opportunities/resources/files/363634ea3cd8499b8c2ac8980011e801/download'
++Error processing document https://sam.gov/api/prod/opps/v3/opportunities/resources/files/363634ea3cd8499b8c2ac8980011e801/download: Error: ENOENT: no such file or directory, open 'https://sam.gov/api/prod/opps/v3/opportunities/resources/files/363634ea3cd8499b8c2ac8980011e801/download'
++    at Object.openSync (node:fs:553:18)
++    at Object.readFileSync (node:fs:437:35)
++    at sendToNorshinAPI (/Users/erolakarsu/projects/government_contracts_v2/services/norshinService.js:9:27)
++    at /Users/erolakarsu/projects/government_contracts_v2/routes/documents.js:49:34 {
++  errno: -2,
++  code: 'ENOENT',
++  syscall: 'open',
++  path: 'https://sam.gov/api/prod/opps/v3/opportunities/resources/files/363634ea3cd8499b8c2ac8980011e801/download'
++}
++Norshin API Error: ENOENT: no such file or directory, open 'https://sam.gov/api/prod/opps/v3/opportunities/resources/files/6842c0e38c8e4e4eb1e6029629cd570f/download'
++Error processing document https://sam.gov/api/prod/opps/v3/opportunities/resources/files/6842c0e38c8e4e4eb1e6029629cd570f/download: Error: ENOENT: no such file or directory, open 'https://sam.gov/api/prod/opps/v3/opportunities/resources/files/6842c0e38c8e4e4eb1e6029629cd570f/download'
++    at Object.openSync (node:fs:553:18)
++    at Object.readFileSync (node:fs:437:35)
++    at sendToNorshinAPI (/Users/erolakarsu/projects/government_contracts_v2/services/norshinService.js:9:27)
++    at /Users/erolakarsu/projects/government_contracts_v2/routes/documents.js:49:34 {
++  errno: -2,
++  code: 'ENOENT',
++  syscall: 'open',
++  path: 'https://sam.gov/api/prod/opps/v3/opportunities/resources/files/6842c0e38c8e4e4eb1e6029629cd570f/download'
++}"
+
+# 2025-07-02 14:59:45.113879
++S
+
+# 2025-07-02 15:01:15.112868
++Don't fix issue yet. please I will tell you fix it later
+
+# 2025-07-02 15:02:32.526730
++why it will download from goverment document, it is already indexed in local vector database? why it is not using vector db? explain me first before imeplementing it
+
+# 2025-07-02 15:03:41.842005
++N
+
+# 2025-07-02 15:05:43.270325
++/add routes/documents.js client/src/components/Dashboard/QuickActions.tsx 
+
+# 2025-07-02 15:05:51.866095
++Is this eenough?
+
+# 2025-07-02 15:07:19.942927
++N
+
+# 2025-07-02 15:20:28.758248
++How did you implement fucntionality of process documents? Please explain me please. are you fetching each goverment document and see it has attachment? If it has attachmentd, it will call norshin to get translkation of pdf document through ai? Is it implementing it or not? Also, process documents clik is still fetching docuyment from goverment. IOt should not fetch from goverment but process already in vector document. please explain me process you do first
+
+# 2025-07-02 15:25:04.488015
++/run npx prisma db push
+
+# 2025-07-02 15:25:04.488444
++/run npx prisma db push
+
+# 2025-07-02 15:27:14.700945
++I have indexed documents showing 38 documents . How can reset databases completely? can you write scripts to reset all databases? are you using postgress?
+
+# 2025-07-02 15:28:04.504340
++/run node scripts/reset-databases.js
+
+# 2025-07-02 15:28:04.504718
++/run node scripts/reset-databases.js
+
+# 2025-07-02 15:28:28.321056
++/run psql -d db -f scripts/reset-postgres-only.sql
+
+# 2025-07-02 15:28:28.321620
++/run psql -d db -f scripts/reset-postgres-only.sql
+
+# 2025-07-02 15:28:45.860250
++node scripts/reset-databases.js
++Run shell command? (Y)es/(N)o/(S)kip all/(D)on't ask again [Yes]:
++
++Running node scripts/reset-databases.js
++🔄 Starting complete database reset...
++📊 Resetting PostgreSQL database...
++❌ Error during database reset: TypeError: Cannot read properties of undefined (reading 'deleteMany')
++    at resetDatabases (/Users/erolakarsu/projects/government_contracts_v2/scripts/reset-databases.js:14:35)
++    at Object.<anonymous> (/Users/erolakarsu/projects/government_contracts_v2/scripts/reset-databases.js:80:3)
++    at Module._compile (node:internal/modules/cjs/loader:1734:14)
++    at Object..js (node:internal/modules/cjs/loader:1899:10)
++    at Module.load (node:internal/modules/cjs/loader:1469:32)
++    at Module._load (node:internal/modules/cjs/loader:1286:12)
++    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
++    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
++    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:152:5)
++    at node:internal/main/run_main_module:33:47
++💥 Reset script failed: TypeError: Cannot read properties of undefined (reading 'deleteMany')
++    at resetDatabases (/Users/erolakarsu/projects/government_contracts_v2/scripts/reset-databases.js:14:35)
++    at Object.<anonymous> (/Users/erolakarsu/projects/government_contracts_v2/scripts/reset-databases.js:80:3)
++    at Module._compile (node:internal/modules/cjs/loader:1734:14)
++    at Object..js (node:internal/modules/cjs/loader:1899:10)
++    at Module.load (node:internal/modules/cjs/loader:1469:32)
++    at Module._load (node:internal/modules/cjs/loader:1286:12)
++    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
++    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
++    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:152:5)
++    at node:internal/main/run_main_module:33:47  Run shell command? (Y)es/(N)o/(S)kip all/(D)on't ask again [Yes]:
++
++Running psql -d db -f scripts/reset-postgres-only.sql
++SET
++psql:scripts/reset-postgres-only.sql:8: ERROR:  relation "DocumentAnalysis" does not exist
++LINE 1: DELETE FROM "DocumentAnalysis";
++                    ^
++psql:scripts/reset-postgres-only.sql:9: ERROR:  relation "DocumentProcessingQueue" does not exist
++LINE 1: DELETE FROM "DocumentProcessingQueue";
++                    ^
++psql:scripts/reset-postgres-only.sql:10: ERROR:  relation "IndexingJob" does not exist
++LINE 1: DELETE FROM "IndexingJob";
++                    ^
++psql:scripts/reset-postgres-only.sql:11: ERROR:  relation "Contract" does not exist
++LINE 1: DELETE FROM "Contract";
++                    ^
++SET
++psql:scripts/reset-postgres-only.sql:17: ERROR:  relation "DocumentAnalysis_id_seq" does not exist
++psql:scripts/reset-postgres-only.sql:18: ERROR:  relation "DocumentProcessingQueue_id_seq" does not exist
++psql:scripts/reset-postgres-only.sql:19: ERROR:  relation "IndexingJob_id_seq" does not exist
++psql:scripts/reset-postgres-only.sql:28: ERROR:  relation "Contract" does not exist
++LINE 1: ...'Contracts' as table_name, COUNT(*) as count FROM "Contract"
+
+# 2025-07-02 15:28:52.009086
++N
+
+# 2025-07-02 15:28:58.457738
++S
+
+# 2025-07-02 15:29:03.300023
++node scripts/reset-databases.js
++Run shell command? (Y)es/(N)o/(S)kip all/(D)on't ask again [Yes]:
++
++Running node scripts/reset-databases.js
++🔄 Starting complete database reset...
++📊 Resetting PostgreSQL database...
++❌ Error during database reset: TypeError: Cannot read properties of undefined (reading 'deleteMany')
++    at resetDatabases (/Users/erolakarsu/projects/government_contracts_v2/scripts/reset-databases.js:14:35)
++    at Object.<anonymous> (/Users/erolakarsu/projects/government_contracts_v2/scripts/reset-databases.js:80:3)
++    at Module._compile (node:internal/modules/cjs/loader:1734:14)
++    at Object..js (node:internal/modules/cjs/loader:1899:10)
++    at Module.load (node:internal/modules/cjs/loader:1469:32)
++    at Module._load (node:internal/modules/cjs/loader:1286:12)
++    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
++    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
++    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:152:5)
++    at node:internal/main/run_main_module:33:47
++💥 Reset script failed: TypeError: Cannot read properties of undefined (reading 'deleteMany')
++    at resetDatabases (/Users/erolakarsu/projects/government_contracts_v2/scripts/reset-databases.js:14:35)
++    at Object.<anonymous> (/Users/erolakarsu/projects/government_contracts_v2/scripts/reset-databases.js:80:3)
++    at Module._compile (node:internal/modules/cjs/loader:1734:14)
++    at Object..js (node:internal/modules/cjs/loader:1899:10)
++    at Module.load (node:internal/modules/cjs/loader:1469:32)
++    at Module._load (node:internal/modules/cjs/loader:1286:12)
++    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
++    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
++    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:152:5)
++    at node:internal/main/run_main_module:33:47  Run shell command? (Y)es/(N)o/(S)kip all/(D)on't ask again [Yes]:
++
++Running psql -d db -f scripts/reset-postgres-only.sql
++SET
++psql:scripts/reset-postgres-only.sql:8: ERROR:  relation "DocumentAnalysis" does not exist
++LINE 1: DELETE FROM "DocumentAnalysis";
++                    ^
++psql:scripts/reset-postgres-only.sql:9: ERROR:  relation "DocumentProcessingQueue" does not exist
++LINE 1: DELETE FROM "DocumentProcessingQueue";
++                    ^
++psql:scripts/reset-postgres-only.sql:10: ERROR:  relation "IndexingJob" does not exist
++LINE 1: DELETE FROM "IndexingJob";
++                    ^
++psql:scripts/reset-postgres-only.sql:11: ERROR:  relation "Contract" does not exist
++LINE 1: DELETE FROM "Contract";
++                    ^
++SET
++psql:scripts/reset-postgres-only.sql:17: ERROR:  relation "DocumentAnalysis_id_seq" does not exist
++psql:scripts/reset-postgres-only.sql:18: ERROR:  relation "DocumentProcessingQueue_id_seq" does not exist
++psql:scripts/reset-postgres-only.sql:19: ERROR:  relation "IndexingJob_id_seq" does not exist
++psql:scripts/reset-postgres-only.sql:28: ERROR:  relation "Contract" does not exist
++LINE 1: ...'Contracts' as table_name, COUNT(*) as count FROM "Contract"
+
+# 2025-07-02 15:38:34.094304
++N
+
+# 2025-07-02 15:38:41.338855
++/run node scripts/reset-vector-only.js
+
+# 2025-07-02 15:38:41.339329
++/run node scripts/reset-vector-only.js
+
+# 2025-07-02 15:38:54.140043
++/run psql -d db -f scripts/reset-postgres-only.sql
+
+# 2025-07-02 15:38:54.140470
++/run psql -d db -f scripts/reset-postgres-only.sql
+
+# 2025-07-02 15:39:06.214854
++/run rm -rf vector_indexes
+
+# 2025-07-02 15:39:06.215176
++/run rm -rf vector_indexes
+
+# 2025-07-02 15:41:08.331756
++why I am getting lint errors on file scripts/rest-postgres-only.sql file but I am getting response of running like this: why you attemepted so many times and are not able to fix it: node scripts/reset-vector-only.js
++Run shell command? (Y)es/(N)o/(S)kip all/(D)on't ask again [Yes]:
++
++Running node scripts/reset-vector-only.js
++🔄 Starting vector database reset...
++🔍 Resetting Vector database...
++✅ Removed vector indexes directory
++✅ Recreated vector indexes directory
++🔄 Loading embedding model...
++✅ Vector database (Vectra) initialized - Pure Node.js solution
++✅ Reinitialized vector service
++🔍 Verifying reset...
++📊 Vector database counts after reset:
++   - Vector Contracts: 0
++   - Vector Documents: 0
++   - Status: connected
++✅ Vector database reset completed successfully!
++🎉 Vector database is now empty and ready for fresh data.
++🏁 Vector reset script completed
++Add command output to the chat? (Y)es/(N)o/(D)on't ask again [Yes]:
++Added 16 lines of output to the chat.
++
++psql -d db -f scripts/reset-postgres-only.sql
++Run shell command? (Y)es/(N)o/(S)kip all/(D)on't ask again [Yes]:
++
++Running psql -d db -f scripts/reset-postgres-only.sql
++SET
++psql:scripts/reset-postgres-only.sql:23: NOTICE:  DocumentAnalysis table does not exist
++DO
++psql:scripts/reset-postgres-only.sql:38: NOTICE:  DocumentProcessingQueue table does not exist
++DO
++psql:scripts/reset-postgres-only.sql:53: NOTICE:  IndexingJob table does not exist
++DO
++psql:scripts/reset-postgres-only.sql:68: NOTICE:  Cleared contract table
++DO
++SET
++DO
++DO
++DO
++          info
++------------------------
++ Database Reset Summary
++(1 row)
++
++psql:scripts/reset-postgres-only.sql:158: NOTICE:  Contracts: 0
++DO
++Add command output to the chat? (Y)es/(N)o/(D)on't ask again [Yes]:
++Added 21 lines of output to the chat.
++
++rm -rf vector_indexes
++Run shell command? (Y)es/(N)o/(S)kip all/(D)on't ask again [Yes]:
++
++Running rm -rf vector_indexes
++You can use /undo to undo and discard each aider commit.. Pleasse do not fix it again
+
+# 2025-07-02 15:43:41.372701
++I have a lot of stuff printing "prisma:query SELECT "public"."document_processing_queue"."id", "public"."document_processing_queue"."contract_notice_id", "public"."document_processing_queue"."document_url", "public"."document_processing_queue"."description", "public"."document_processing_queue"."local_file_path", "public"."document_processing_queue"."filename", "public"."document_processing_queue"."status",", please uncomment line
+
+# 2025-07-02 15:44:06.827056
++/run npm restart
+
+# 2025-07-02 15:44:06.827427
++/run npm restart
+
+# 2025-07-02 15:50:03.581655
++I click process document nothing happened, no error happened as well. Can you put debug statements I know where it is failing?
+
+# 2025-07-02 15:51:54.171255
++N
+
+# 2025-07-02 15:53:51.914257
++ [DEBUG] Process documents endpoint called
++🔄 [DEBUG] Request body: { limit: 50 }
++🔄 [DEBUG] Parsed parameters: { contract_id: undefined, limit: 50, analysis_type: 'summary' }
++🔄 [DEBUG] Getting vector database stats...
++🔄 [DEBUG] Vector stats: { contracts: 100, documents: 0, status: 'connected' }
++⚠️ [DEBUG] No documents in vector database Why no vector in database? we have it? Indexed documents are showing 100 documents indexed 100 total contracts
+
+# 2025-07-02 16:02:50.038395
++you need to read vector documents if there is  [DEBUG] Process documents endpoint called
++🔄 [DEBUG] Request body: { limit: 50 }
++🔄 [DEBUG] Parsed parameters: { contract_id: undefined, limit: 50, analysis_type: 'summary' }
++🔄 [DEBUG] Getting vector database stats...
++🔄 [DEBUG] Vector stats: { contracts: 100, documents: 0, status: 'connected' }
++🔄 [DEBUG] Note: contracts are different from documents. You have contracts indexed but need to download/index the actual document files.
++🔄 [DEBUG] Contracts with document links available: 100
++⚠️ [DEBUG] No documents in vector database. Read vector database for each document, If it has resourceLinks field, download each document in that link and send it to norhsin
+
+# 2025-07-02 16:03:28.151519
++N
+
+# 2025-07-02 16:11:46.732216
++Probably, when we send documents to norshin, we are waiting some time. I am getting "Error processing documents: timeout of 30000ms exceeded". can we increase it to 1 hour?
+
+# 2025-07-02 16:21:24.142959
++Once we wondload link document in process document click, we will learn which document it is, .pdf, or any microsoft document, or excell or any microsoft types  but not zip files will excluds zip file. once we have type info, we calculate how mnay pages it is, we will print it number of pages in debug. can we do it?
+
+# 2025-07-02 16:25:24.688423
++N
+
+# 2025-07-02 16:37:28.821259
++we implemented simple queue system for norshin docment processing. What we do is that we llok for all documents of indexed ones, we first see it has resourceLinks field. If it does, we will fetch every documents in array if it not null, we will downlaod thant documents and put into queue system. Once we have all documents in queue, we have asyncronous application to pull each document from queue and send it to norshin at the same time, all documents at once. Once we receieve producment processing from norshin, we will get it. Once we have result, we will pull result from queue and update counters. Becasue we are using queue system, we may show counters, how many is waiting and how many processed, how many it has result. Design su a way that. Please explain me what you  understand from my message before implementation
+
+# 2025-07-02 16:42:05.805900
++ I am still getting timeout error "Error processing documents: timeout of 30000ms exceeded"
+
+# 2025-07-02 16:44:33.046313
++You are still processing document one by one based on log. It is not usisng queue system. Because it would pull document and insert them to queue:  Getting queue status...
++📊 [DEBUG] Queue status: 0 queued, 0 processing, 0 completed, 0 failed
++📥 [DEBUG] Downloaded 1990242 bytes
++📄 [DEBUG] Analyzing document: doc_ff856adb3f23477590a162e253ae17b4
++📄 [DEBUG] Content-Type: application/octet-stream
++📄 [DEBUG] Buffer size: 1990242 bytes
++📄 [DEBUG] Document type: PDF
++📄 [DEBUG] Estimated pages: 22
++📄 [DEBUG] Document Analysis:
++📄 [DEBUG] - Type: PDF
++📄 [DEBUG] - Size: 1990242 bytes
++📄 [DEBUG] - Extension:
++📄 [DEBUG] - Estimated Pages: 22
++📄 [DEBUG] - Supported: true
++📄 [DEBUG] - Is ZIP: false
++📊 [DEBUG] Getting queue status...
++📊 [DEBUG] Queue status: 0 queued, 0 processing, 0 completed, 0 failed
++📊 [DEBUG] Getting queue status...
++📊 [DEBUG] Queue status: 0 queued, 0 processing, 0 completed, 0 failed
++📊 [DEBUG] Getting queue status...
+
+# 2025-07-02 16:49:59.070377
++/add test.png
+
+# 2025-07-02 16:50:05.797464
++/drop test.png
+
+# 2025-07-02 16:50:10.410896
++/add test.png
+
+# 2025-07-02 16:51:37.672045
++As you it it test image, parallel processing is not running efficiently. I should all documents are processing state. I have pull and indexed only 100 odcuments and why queing system is using 242 documents.
+
+# 2025-07-02 16:54:37.484489
++please comment it out "[DEBUG] Queue status: 232 queued" line, because counters updated immediately.also , What should I do? click loading queues and process queue click, 2 times?
+
+# 2025-07-02 17:01:32.258736
++comment this out "[DEBUG] Getting queue status". YOu did not understand what I am saying.process each document and if a docjment has resourceLinks fileds and fetch from goverment for each document in array, put inti queue. Do not put whole document into queue and precess it. use nodejs paralle library to scan whole database to find resourceLinks fields in each document. In recent jobs, I have 2 "Queue processing Job #18 and #17. I pressed "Queue Documents" and then "Process queue" . fix issue
+
+# 2025-07-02 17:09:02.125486
++/run npm install worker_threads
+
+# 2025-07-02 17:09:02.126029
++/run npm install worker_threads
+
+# 2025-07-02 17:09:47.863762
++Running npm install worker_threads
++npm error code E404
++npm error 404 Not Found - GET https://registry.npmjs.org/worker_threads - Not found
++npm error 404
++npm error 404  'worker_threads@*' is not in this registry.
++npm error 404 This package name is not valid, because
++npm error 404  1. worker_threads is a core module name
++npm error 404
++npm error 404 Note that you can also install from a
++npm error 404 tarball, folder, http url, or git url.
+
+# 2025-07-02 17:09:51.116204
++N
+
+# 2025-07-02 17:18:16.479361
++Are cliking queue documents  then process queue does equal to "Auto Queuue & Process"? This I clicked Auto one  and at least processing . It is saving old system for queu system. Is threre a way to clean queu system so I clean queue counters? Why I am having 3 queue processing jobs and it should be one only. Can you design queue reset system?
+
+# 2025-07-02 17:21:52.170327
++ reset queue system did not delete counters for queued 
+
+# 2025-07-02 17:24:50.420503
++you are still adding whole conttract document not only attached documents in resourceLinks field. why are you doing that? whihc calculations are you makeing to get 242 number? we have only 100 docuemnts indexed. explain me how to get 242 number
+
+# 2025-07-02 17:35:01.129633
++we missed one point. Based on type of downloaded document, we need to save it with document type: say i fit is pdf  document, we need save like .pdf extension, if it is word, .doc or docx,, if it is excell, it will be saved in xlsx etc. Oplesase send correctly saved extension file to norshin.
+
+# 2025-07-02 20:34:14.564324
++ok what norshin endpoint are you sending documents? give me norshin url
+
+# 2025-07-02 20:38:51.274804
++I have 71 queued 10 processing 7 comoleted 5 failed for queue in dashboard. Why we are not sending al documents once  so that we are processing 87? why we do not push all documents at once
+
+# 2025-07-02 20:41:27.920886
++still we don't push all documentd once. we have 42 queued     14    processing 21 complted 15 failed  
+
+# 2025-07-02 20:56:29.024456
++we have 42 queued 0 processing 15 completed  35 ffailed. Put all doccument 42+15+35 processing state at once
+
+# 2025-07-02 21:00:23.861141
++ /add routes/documents.js  services/norshinService.js scripts/reset-databases.js services/vectorService.js utils/documentAnalyzer.js client/src/services/api.ts config/database.js
+
+# 2025-07-02 21:01:04.934888
++N
+
+# 2025-07-02 21:07:44.596278
++I am getting this error: An operation failed because it depends on one or more records that were required but not found. Record to update not found.
++❌ [DEBUG] Error processing f8b5069fb6374b53ba0c45c31d218a91_download:
++Invalid `prisma.documentProcessingQueue.update()` invocation in
++/Users/erolakarsu/projects/government_contracts_v2/routes/documents.js:772:48
++
++  769 // Update the queue entry with the corrected filename if it changed
++  770 if (finalFilename !== doc.filename) {
++  771   console.log(`📄 [DEBUG] Updating filename from ${doc.filename} to ${finalFilename}`);
++→ 772   await prisma.documentProcessingQueue.update(
++An operation failed because it depends on one or more records that were required but not found. Record to update not found.
++prisma:error
++Invalid `prisma.documentProcessingQueue.update()` invocation in
++/Users/erolakarsu/projects/government_contracts_v2/routes/documents.js:806:44
++
++  803 console.error(`❌ [DEBUG] Error processing ${doc.filename}:`, error.message);
++  804
++  805 // Update status to failed
++→ 806 await prisma.documentProcessingQueue.update(
++An operation failed because it depends on one or more records that were required but not found. Record to update not found.
+
+# 2025-07-02 21:11:51.416916
++I like to download all documents for norshin and store it in one folder. Please don't call ai model for processing because it is costly. Just download it and put them into folder. Create ui element for this
+
+# 2025-07-02 21:14:00.474240
++/run mkdir -p downloaded_documents
+
+# 2025-07-02 21:14:00.474520
++/run mkdir -p downloaded_documents
+
+# 2025-07-02 21:14:27.243597
++Are they printing number of pages of documents when it is downloading?
+
+# 2025-07-02 21:15:37.703662
++Compiled with problems:
++×
++ERROR in src/components/Dashboard/DocumentDownload.tsx:3:10
++TS2614: Module '"../UI/LoadingSpinner"' has no exported member 'LoadingSpinner'. Did you mean to use 'import LoadingSpinner from "../UI/LoadingSpinner"' instead?
++    1 | import React, { useState, useEffect } from 'react';
++    2 | import { apiService } from '../../services/api';
++  > 3 | import { LoadingSpinner } from '../UI/LoadingSpinner';
++      |          ^^^^^^^^^^^^^^
++    4 | import { StatsCard } from './StatsCard';
++    5 | import toast from 'react-hot-toast';
++    6 |
++ERROR in src/components/Dashboard/DocumentDownload.tsx:4:10
++TS2614: Module '"./StatsCard"' has no exported member 'StatsCard'. Did you mean to use 'import StatsCard from "./StatsCard"' instead?
++    2 | import { apiService } from '../../services/api';
++    3 | import { LoadingSpinner } from '../UI/LoadingSpinner';
++  > 4 | import { StatsCard } from './StatsCard';
++      |          ^^^^^^^^^
++    5 | import toast from 'react-hot-toast';
++    6 |
++    7 | interface DownloadJob {
+
+# 2025-07-02 21:18:18.164922
++ls downloaded_documents
++erolakarsu@Mac government_contracts_v2 % this folder is empty
+
+# 2025-07-02 21:18:57.676276
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 5, "download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-02 21:18:57.676784
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 5, "download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-02 21:19:06.377519
++/run curl -X GET http://localhost:3000/api/status
+
+# 2025-07-02 21:19:06.377966
++/run curl -X GET http://localhost:3000/api/status
+
+# 2025-07-02 21:19:39.036506
++It downloaded 1 document
+
+# 2025-07-02 21:19:56.101319
++/run ls -la downloaded_documents/
+
+# 2025-07-02 21:19:56.101446
++/run ls -la downloaded_documents/
+
+# 2025-07-02 21:20:01.010217
++/run curl -X GET http://localhost:3000/api/documents/download/status
+
+# 2025-07-02 21:20:01.010305
++/run curl -X GET http://localhost:3000/api/documents/download/status
+
+# 2025-07-02 21:22:09.384233
++pelase fix this issue: ERROR in src/components/Dashboard/DocumentDownload.tsx:33:16
++TS2448: Block-scoped variable 'DocumentDownload' used before its declaration.
++    31 | }
++    32 |
++  > 33 | export default DocumentDownload;
++       |                ^^^^^^^^^^^^^^^^
++    34 |
++    35 | export const DocumentDownload: React.FC = () => {
++    36 |   const [isDownloading, setIsDownloading] = useState(false);
++
++ERROR in src/components/Dashboard/DocumentDownload.tsx:33:16
++TS2454: Variable 'DocumentDownload' is used before being assigned.
++    31 | }
++    32 |
++  > 33 | export default DocumentDownload;
++       |                ^^^^^^^^^^^^^^^^
++    34 |
++    35 | export const DocumentDownload: React.FC = () => {
++    36 |   const [isDownloading, setIsDownloading] = useState(false);
++
+
+# 2025-07-02 21:23:01.015153
++Onle one document downloaded. why all documents are not downloaded
+
+# 2025-07-02 21:23:58.003800
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 50, "download_folder": "downloaded_documents", "concurrency": 5}'
+
+# 2025-07-02 21:23:58.004521
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 50, "download_folder": "downloaded_documents", "concurrency": 5}'
+
+# 2025-07-02 21:25:32.341607
++only 15 documents are downloaded? I saw around 80 documents are queued intoo system.ls downloaded_documents
++f615e2212d294383a052c16303ff3d74_download.pdf	fa4e081934b24ad89be6944221f8cf41_download.pdf
++f6fda8724d8242d19d672d5c80c3c6f4_download.pdf	fba41c545177411ab5660682b15f1234_download.pdf
++f77e233abe2240f1b037a31cad68c3b6_download.pdf	fc96711603664e3faf5af1f2f5e0debc_download.pdf
++f8ab241baf104f01972280038eac5939_download.pdf	fdebe45b03d242aa9ba18bff639b19ba_download.pdf
++f8b5069fb6374b53ba0c45c31d218a91_download.pdf	fdf7876405794e9cbaeb87be09353358_download.pdf
++f8fe94673d7e4569bac59761863c9d48_download.pdf	fe0c4c362b7844cda18790dd03401f67_download.pdf
++fa0646f3a4f44537b123ef1f6a4d3ce1_download.pdf	ff856adb3f23477590a162e253ae17b4_download.pdf
++fa0a3f6ad04c449c81fab79092b11b71_download.pdf
+
+# 2025-07-02 21:27:00.446231
++/run curl -X GET http://localhost:3000/api/documents/download/status
+
+# 2025-07-02 21:27:00.446808
++/run curl -X GET http://localhost:3000/api/documents/download/status
+
+# 2025-07-02 21:27:07.119324
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 100, "download_folder": "downloaded_documents", "concurrency": 3}'
+
+# 2025-07-02 21:27:07.119431
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 100, "download_folder": "downloaded_documents", "concurrency": 3}'
+
+# 2025-07-02 21:39:38.004003
++ls downloaded_documents is empty after fetch documents click. It was downbloading odcuments. what happenedned?
+
+# 2025-07-02 21:40:09.140746
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 20, "download_folder": "downloaded_documents", "concurrency": 3}'
+
+# 2025-07-02 21:40:09.141116
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 20, "download_folder": "downloaded_documents", "concurrency": 3}'
+
+# 2025-07-02 21:41:42.918954
++I see this  [DEBUG] Download completed!
++📊 [DEBUG] Final stats: 35 downloaded, 0 errors, 11 skipped but emptyt folder
+
+# 2025-07-02 21:54:05.521002
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 5, "download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-02 21:54:05.521661
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 5, "download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-02 21:55:27.857095
++super dump kid. no log is written on screen . please have some logs written
+
+# 2025-07-02 21:56:36.958066
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 5, "download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-02 21:56:36.958709
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 5, "download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-02 21:57:23.763925
++curl downloaded 2 documents . thi scommand isued curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 5,
++"download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-02 21:57:26.913209
++N
+
+# 2025-07-02 21:58:18.124270
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 5, "download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-02 21:58:18.124804
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 5, "download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-02 21:58:42.876902
++only 2 documents downloaded
+
+# 2025-07-02 21:59:26.484997
++/run curl -X GET "http://localhost:3000/api/documents/download/debug?limit=5"
+
+# 2025-07-02 21:59:26.485385
++/run curl -X GET "http://localhost:3000/api/documents/download/debug?limit=5"
+
+# 2025-07-02 21:59:45.212413
++Running curl -X GET "http://localhost:3000/api/documents/download/debug?limit=5"
++<!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/documents/download/debug</pre>
++</body>
++</html>
+
+# 2025-07-02 21:59:49.297790
++N
+
+# 2025-07-02 22:00:54.334302
++/run curl -X GET "http://localhost:3000/api/documents/download/debug?limit=5"
+
+# 2025-07-02 22:00:54.334797
++/run curl -X GET "http://localhost:3000/api/documents/download/debug?limit=5"
+
+# 2025-07-02 22:01:06.058216
++/run curl -X GET "http://localhost:3000/api/documents/test"
+
+# 2025-07-02 22:01:06.058295
++/run curl -X GET "http://localhost:3000/api/documents/test"
+
+# 2025-07-03 05:48:36.767135
++Are you sure Fetch Contracts button linked to this action?
+
+# 2025-07-03 05:49:11.389756
++/run curl -X GET "http://localhost:3000/api/documents/test"
+
+# 2025-07-03 05:49:11.390319
++/run curl -X GET "http://localhost:3000/api/documents/test"
+
+# 2025-07-03 05:49:44.957095
++have you seen result?
+
+# 2025-07-03 05:50:12.242852
++/run curl -X GET "http://localhost:3000/api/documents/download/debug?limit=5"
+
+# 2025-07-03 05:50:12.243283
++/run curl -X GET "http://localhost:3000/api/documents/download/debug?limit=5"
+
+# 2025-07-03 05:52:42.010675
++but when I click on fetch contract button, Nothin is printed on server log :webpack compiled successfully
++(node:35997) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
++Files successfully emitted, waiting for typecheck results...
++Issues checking in progress...
++No issues found.
++[SUCCESS] 🎉 Both servers are running!
++
++📊 Services:
++  • Node.js API Server:  http://localhost:3000
++  • React Client:        http://localhost:3001
++  • Vector Database:     Vectra (embedded in Node.js)
++
++📁 Data Storage:
++  • Vector Indexes:      ./vector_indexes/
++  • Uploaded Files:      ./uploads/
++  • Documents:           ./documents/
++
++🌐 Open your browser to: http://localhost:3001
++. but why?
+
+# 2025-07-03 05:52:44.443460
++N
+
+# 2025-07-03 05:53:13.807094
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 5, "download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-03 05:53:13.807443
++/run curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d '{"limit": 5, "download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-03 05:53:54.235473
++curl -X POST http://localhost:3000/api/documents/download-all -H "Content-Type: application/json" -d
++'{"limit": 5, "download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-03 05:55:29.071145
++Fetch contracts button click is not linked to action to fetch contracts sorry
+
+# 2025-07-03 05:59:00.019742
++You put a lot of debug statetments thousands but when I click on fetch contracts button, I do not see any on serverr log. why?
+
+# 2025-07-03 06:01:34.126153
++have you linked fetch contracts button linked to action? are this handler doing any action? can you click action ?
+
+# 2025-07-03 06:03:44.767827
++you are super dump kind. you can not link action for fetch contracts button
+
+# 2025-07-03 06:10:57.673563
++When I click on fetch contracts button,dahsboard total contracts changing but I have empty documents saved in downloaded_documents. Also, no debug is printed on server logs
+
+# 2025-07-03 06:13:57.089480
++/run curl -X GET "http://localhost:3000/api/documents/ping"
+
+# 2025-07-03 06:13:57.090130
++/run curl -X GET "http://localhost:3000/api/documents/ping"
+
+# 2025-07-03 06:13:57.747595
++/run curl -X GET "http://localhost:3000/api/documents/test"
+
+# 2025-07-03 06:13:57.747689
++/run curl -X GET "http://localhost:3000/api/documents/test"
+
+# 2025-07-03 06:13:58.350657
++/run curl -X POST "http://localhost:3000/api/documents/fetch-contracts" -H "Content-Type: application/json" -d '{"limit": 2}'
+
+# 2025-07-03 06:13:58.350744
++/run curl -X POST "http://localhost:3000/api/documents/fetch-contracts" -H "Content-Type: application/json" -d '{"limit": 2}'
+
+# 2025-07-03 06:14:14.619594
++you you seen result?
+
+# 2025-07-03 06:15:03.182211
++/run curl -X GET "http://localhost:3000/api/documents/ping"
+
+# 2025-07-03 06:15:03.182577
++/run curl -X GET "http://localhost:3000/api/documents/ping"
+
+# 2025-07-03 06:15:03.818854
++/run curl -X GET "http://localhost:3000/api/documents/download/debug?limit=5"
+
+# 2025-07-03 06:15:03.818944
++/run curl -X GET "http://localhost:3000/api/documents/download/debug?limit=5"
+
+# 2025-07-03 06:15:47.074212
++  have you seen result? I have emty documents saved in folder downloaded_documents
+
+# 2025-07-03 06:16:27.379931
++/run curl -X POST "http://localhost:3000/api/documents/download-test"
+
+# 2025-07-03 06:16:27.380391
++/run curl -X POST "http://localhost:3000/api/documents/download-test"
+
+# 2025-07-03 06:16:34.563631
++/run curl -X POST "http://localhost:3000/api/documents/download-all" -H "Content-Type: application/json" -d '{"limit": 1, "contract_id": "ff856adb3f23477590a162e253ae17b4", "download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-03 06:16:34.563781
++/run curl -X POST "http://localhost:3000/api/documents/download-all" -H "Content-Type: application/json" -d '{"limit": 1, "contract_id": "ff856adb3f23477590a162e253ae17b4", "download_folder": "downloaded_documents", "concurrency": 2}'
+
+# 2025-07-03 06:17:40.919504
++have you seen result?
+
+# 2025-07-03 06:18:08.960110
++/run curl -X POST "http://localhost:3000/api/documents/download-test"
+
+# 2025-07-03 06:18:08.960383
++/run curl -X POST "http://localhost:3000/api/documents/download-test"
+
+# 2025-07-03 06:18:12.618293
++/run ls -la downloaded_documents/
+
+# 2025-07-03 06:18:12.618396
++/run ls -la downloaded_documents/
+
+# 2025-07-03 06:18:23.642824
++seen result?
+
+# 2025-07-03 06:19:03.171252
++/run curl -X GET "http://localhost:3000/api/test-routes"
+
+# 2025-07-03 06:19:03.171945
++/run curl -X GET "http://localhost:3000/api/test-routes"
+
+# 2025-07-03 06:19:03.804326
++/run ls -la downloaded_documents/
+
+# 2025-07-03 06:19:03.804432
++/run ls -la downloaded_documents/
+
+# 2025-07-03 06:19:04.401835
++/run file downloaded_documents/*.pdf
+
+# 2025-07-03 06:19:04.401925
++/run file downloaded_documents/*.pdf
+
+# 2025-07-03 06:19:29.752641
++seen result? did you attach button click to action?
+
+# 2025-07-03 08:11:04.790997
++can explain me when I click button fetch documents in detail? explain me please only
+
+# 2025-07-03 08:15:16.665367
++can explain me when I click button index  documents in detail? explain me please only
+
+# 2025-07-03 08:59:40.533925
++ you did not render any place DocumentDownload page in any place? have you used it in home page or dashborad? I don't see that file isredered
+
+# 2025-07-03 09:06:11.228746
++I select Contracts in main page, I clicked Fetch Conttracts button  get error: Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++
++(anonymous) @ api.ts:72
++api/contracts?page=1&limit=20:1   Failed to load resource: the server responded with a status of 404 (Not Found)
++api.ts:72  Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++
++(anonymous) @ api.ts:72
++query.ts:446  AxiosError
++onError @ query.ts:446
++api.ts:95 🔄 [DEBUG] API Service fetchContracts called with: Object
++api.ts:99 ✅ [DEBUG] API Service fetchContracts response: Object
++api/contracts?page=1&limit=20:1   Failed to load resource: the server responded with a status of 404 (Not Found)
++api.ts:72  Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++
++(anonymous) @ api.ts:72
++api/contracts?page=1&limit=20:1   Failed to load resource: the server responded with a status of 404 (Not Found)
++api.ts:72  Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++
++(anonymous) @ api.ts:72
++query.ts:446  AxiosErrorcode: "ERR_BAD_REQUEST"config: {transitional: {…}, adapter: Array(3), transformRequest: Array(1), transformResponse: Array(1), timeout: 3600000, …}message: "Request failed with status code 404"name: "AxiosError"request: XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 3600000, withCredentials: false, upload: XMLHttpRequestUpload, …}response: {data: '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta char…>Cannot GET /api/contracts</pre>\n</body>\n</html>\n', status: 404, statusText: 'Not Found', headers: AxiosHeaders, config: {…}, …}status: 404stack: "AxiosError: Request failed with status code 404\n    at settle (http://localhost:3001/static/js/bundle.js:10678:12)\n    at XMLHttpRequest.onloadend (http://localhost:3001/static/js/bundle.js:9305:66)\n    at Axios.request (http://localhost:3001/static/js/bundle.js:9804:41)\n    at async ApiService.getContracts (http://localhost:3001/static/js/bundle.js:62100:22)"[[Prototype]]: Error
++onError @ query.ts:446
++[NEW] Explain Console errors by using Copilot in Edge: click
++         
++         to explain an error. 
++        Learn more
+
+# 2025-07-03 09:06:16.492245
++S
+
+# 2025-07-03 09:10:44.505122
++did you commit everything?
+
+# 2025-07-03 09:19:55.508599
++stupit same error continues: 29[Deprecation] -ms-high-contrast is in the process of being deprecated. Please see <URL> for tips on updating to the new Forced Colors Mode standard.
++api/contracts?page=1&limit=20:1   Failed to load resource: the server responded with a status of 404 (Not Found)
++api.ts:72  Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++
++(anonymous) @ api.ts:72
++api/contracts?page=1&limit=20:1   Failed to load resource: the server responded with a status of 404 (Not Found)
++api.ts:72  Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++
++(anonymous) @ api.ts:72
++query.ts:446  AxiosError
++onError @ query.ts:446
++api.ts:95 🔄 [DEBUG] API Service fetchContracts called with: Objectlimit: 100offset: 0[[Prototype]]: Object
++api.ts:99 ✅ [DEBUG] API Service fetchContracts response: Object
++api/contracts?page=1&limit=20:1   Failed to load resource: the server responded with a status of 404 (Not Found)
++api.ts:72  Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++
++(anonymous) @ api.ts:72
++api/contracts?page=1&limit=20:1   Failed to load resource: the server responded with a status of 404 (Not Found)
++api.ts:72  Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++
++(anonymous) @ api.ts:72
++query.ts:446  AxiosError
++onError @ query.ts:446
++[NEW] Explain Console errors by using Copilot in Edge: click
++         
++         to explain an error. 
++        Learn more
++        Don't show again
++manifest.json:1   Failed to load resource: the server responded with a status of 404 (Not Found)
+
+# 2025-07-03 09:22:47.512535
++Failed to load resource: the server responded with a status of 404 (Not Found)
++api.ts:72  Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++
++(anonymous) @ api.ts:72
++api/contracts?page=1&limit=20:1   api.ts:72 
++ Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++query.ts:446 
++ 
++AxiosError
++api.ts:95 🔄 [DEBUG] API Service fetchContracts called with: 
++Object
++api.ts:99 ✅ [DEBUG] API Service fetchContracts response: 
++Object Failed to load resource: the server responded with a status of 404 (Not Found)
++api.ts:72  Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++
++(anonymous) @ api.ts:72
++api/contracts?page=1&limit=20:1   Failed to load resource: the server responded with a status of 404 (Not Found)
++api.ts:72 
++ Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++query.ts:446 
++ 
++AxiosError
++[NEW] Explain Console errors by using Copilot in Edge: click 
++ to explain an error. Learn more
++Don't show again
++manifest.json:1 
++ 
++ Failed to load resource: the server responded with a status of 404 (Not Found)
+
+# 2025-07-03 09:24:06.769551
++N
+
+# 2025-07-03 09:24:12.359576
++Failed to load resource: the server responded with a status of 404 (Not Found)
++api.ts:72  Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++
++(anonymous) @ api.ts:72
++api/contracts?page=1&limit=20:1   api.ts:72 
++ Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++query.ts:446 
++ 
++AxiosError
++api.ts:95 🔄 [DEBUG] API Service fetchContracts called with: 
++Object
++api.ts:99 ✅ [DEBUG] API Service fetchContracts response: 
++Object Failed to load resource: the server responded with a status of 404 (Not Found)
++api.ts:72  Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++
++(anonymous) @ api.ts:72
++api/contracts?page=1&limit=20:1   Failed to load resource: the server responded with a status of 404 (Not Found)
++api.ts:72 
++ Error response is not valid JSON: <!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="utf-8">
++<title>Error</title>
++</head>
++<body>
++<pre>Cannot GET /api/contracts</pre>
++</body>
++</html>
++query.ts:446 
++ 
++AxiosError
++[NEW] Explain Console errors by using Copilot in Edge: click 
++ to explain an error. Learn more
++Don't show again
++manifest.json:1 
++ 
++ Failed to load resource: the server responded with a status of 404 (Not Found)
+
+# 2025-07-03 09:24:55.706244
++/run curl http://localhost:3000/api/contracts?page=1&limit=20
+
+# 2025-07-03 09:24:55.706778
++/run curl http://localhost:3000/api/contracts?page=1&limit=20
+
+# 2025-07-03 09:25:10.355646
++have you seen result?
+
+# 2025-07-03 09:26:01.563604
++/run curl "http://localhost:3000/api/contracts?page=1&limit=20"
+
+# 2025-07-03 09:26:01.563694
++/run curl "http://localhost:3000/api/contracts?page=1&limit=20"
+
+# 2025-07-03 09:26:06.255053
++/run curl -v "http://localhost:3000/api/contracts?page=1&limit=20"
+
+# 2025-07-03 09:26:06.255168
++/run curl -v "http://localhost:3000/api/contracts?page=1&limit=20"
+
+# 2025-07-03 09:26:14.947623
++now see?
+
+# 2025-07-03 09:26:54.098637
++/run node server.js
+
+# 2025-07-03 09:26:54.099112
++/run node server.js
+
+# 2025-07-03 11:30:23.768428
++ We debug these: [DEBUG] API Service fetchContracts called with: 
++{limit: 100, offset: 0}
++limit
++: 
++100
++offset
++: 
++0
++[[Prototype]]
++: 
++Object
++api.ts:99 ✅ [DEBUG] API Service fetchContracts response: 
++{success: true, job_id: 60, contracts_processed: 100, errors: 0, total_available: 1644}
++contracts_processed
++: 
++100
++errors
++: 
++0
++job_id
++: 
++60
++success
++: 
++true
++total_available
++: 
++1644
++[[Prototype]]
++: 
++Object But We don't call this endpojnt. Maybe it is one hour causing issue. Maybe we need to decrease it to half hour. const response = await api.post<ApiResponse>('/contracts/fetch', data, {
++      timeout: 3600000 // 1 hour timeout
++    });
+
+# 2025-07-03 11:31:56.359181
++ Property 'total' does not exist on type '{ success: boolean; data: Contract[]; pagination: { page: number; limit: number; total: number; totalPages: number; }; }'.
++    46 |   };
++    47 |
++  > 48 |   const totalPages = contractsData?.total ? Math.ceil(contractsData.total / 20) : 1;
++       |                                     ^^^^^
++    49 |
++    50 |   return (
++    51 |     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
++
++ERROR in src/pages/Contracts.tsx:48:69
++TS2339: Property 'total' does not exist on type '{ success: boolean; data: Contract[]; pagination: { page: number; limit: number; total: number; totalPages: number; }; }'.
++    46 |   };
++    47 |
++  > 48 |   const totalPages = contractsData?.total ? Math.ceil(contractsData.total / 20) : 1;
++       |                                                                     ^^^^^
++    49 |
++    50 |   return (
++    51 |     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
++
++ERROR in src/pages/Contracts.tsx:140:28
++TS2339: Property 'contracts' does not exist on type '{ success: boolean; data: Contract[]; pagination: { page: number; limit: number; total: number; totalPages: number; }; }'.
++    138 |             </div>
++    139 |           </div>
++  > 140 |         ) : contractsData?.contracts && contractsData.contracts.length > 0 ? (
++        |                            ^^^^^^^^^
++    141 |           <>
++    142 |             <div className="overflow-x-auto">
++    143 |               <table className="min-w-full divide-y divide-gray-200">
++
++ERROR in src/pages/Contracts.tsx:140:55
++TS2339: Property 'contracts' does not exist on type '{ success: boolean; data: Contract[]; pagination: { page: number; limit: number; total: number; totalPages: number; }; }'.
++    138 |             </div>
++    139 |           </div>
++  > 140 |         ) : contractsData?.contracts && contractsData.contracts.length > 0 ? (
++        |                                                       ^^^^^^^^^
++    141 |           <>
++    142 |             <div className="overflow-x-auto">
++    143 |               <table className="min-w-full divide-y divide-gray-200">
++
++ERROR in src/pages/Contracts.tsx:164:34
++TS2339: Property 'contracts' does not exist on type '{ success: boolean; data: Contract[]; pagination: { page: number; limit: number; total: number; totalPages: number; }; }'.
++    162 |                 </thead>
++    163 |                 <tbody className="bg-white divide-y divide-gray-200">
++  > 164 |                   {contractsData.contracts.map((contract: Contract) => (
++        |                                  ^^^^^^^^^
++    165 |                     <tr key={contract.id} className="hover:bg-gray-50">
++    166 |                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
++    167 |                         {contract.noticeId}
++
++ERROR in src/pages/Contracts.tsx:197:73
++TS2339: Property 'total' does not exist on type '{ success: boolean; data: Contract[]; pagination: { page: number; limit: number; total: number; totalPages: number; }; }'.
++    195 |                 <div className="flex items-center justify-between">
++    196 |                   <div className="text-sm text-gray-600">
++  > 197 |                     Showing page {page} of {totalPages} ({contractsData.total} total contracts)
++        |                                                                         ^^^^^
++    198 |                   </div>
++    199 |                   <div className="flex space-x-2">
++    200 |                     <button
++
+
+# 2025-07-03 11:35:19.272644
++/add test.png
+
+# 2025-07-03 11:36:32.655649
++It just this pop up. Are saving  atached documents into downloaded_documents folder? it is empty when I click fetch documents button click after it is empty
+
+# 2025-07-04 09:17:05.270673
++when we click on queue documents button, we need to save into downloaded_documents folder just like you did in dashboard contacts/Download Documents button click. Please add some logs as well
+
+# 2025-07-04 09:21:01.368350
++I do not see Download to Folder button on dashboard
+
+# 2025-07-04 09:23:09.338139
++/add test.png
+
+# 2025-07-04 09:23:33.015598
++I do not see 
+
+# 2025-07-04 09:24:32.211375
++I do not see Download Documents button. I attached last dashboard you can see it
+
+# 2025-07-04 09:30:01.643542
++I am sorry  still same I don't see it. I attached graph home page. I don't see Download Documents button. You have to add in section of Quick Actions not in Actions page of dahsboard
+
+# 2025-07-04 09:34:59.736772
++now I can see, I downloaded pages.But It downloaded only 86 pages. When I click Queue documents, 195 queued. It should be 112 because OVERALL PROGRESS: 112/112 (100%)
++📊 [DEBUG] 📥 Downloaded: 86
++📊 [DEBUG] ❌ Errors: 2
++📊 [DEBUG] ⏭️  Skipped: 24
++📁 [DEBUG] Actual files in directory: 86.  why it shows 195
+
+# 2025-07-04 09:37:34.284891
++No it still show 195 queued 
+
+# 2025-07-04 09:39:16.447785
++still see 195
+
+# 2025-07-04 09:40:30.362196
++you can not fix it man. why it is difficult for you
+
+# 2025-07-04 09:41:40.694686
++still 195
+
+# 2025-07-04 09:42:53.871807
++[DEBUG] Queueing document 4/5: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f7ef46f215db4e0bae8c7426272bcafe/download
++✅ [DEBUG] Queued individual document: f914916569314b149b4f031b43884f5d_download from contract f914916569314b149b4f031b43884f5d
++📄 [DEBUG] Queueing document 5/5: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/fa74715ac060478982304699058f7c4e/download
++✅ [DEBUG] Queued individual document: f914916569314b149b4f031b43884f5d_download from contract f914916569314b149b4f031b43884f5d
++📊 [DEBUG] Parallel queue population completed:
++📊 [DEBUG] - Queued: 195 new INDIVIDUAL DOCUMENTS (not contracts)
++📊 [DEBUG] - Skipped: 0 documents
++📊 [DEBUG] - Errors: 0 documents
++📊 [DEBUG] - Total in queue: 195 individual document URLs
++📊 [DEBUG] - Contracts processed: 48/48
++📊 [DEBUG] - Contracts with valid docs: 48/100
++📊 [DEBUG] - Average documents per contract: 4.1
+
+# 2025-07-04 09:42:58.307711
++S
+
+# 2025-07-04 09:43:46.611162
++you are not counting dumber of donwloaded files. are you?
+
+# 2025-07-04 09:45:57.192440
++Compiled with problems:
++×
++ERROR in src/pages/Dashboard.tsx:120:11
++TS2322: Type '"orange"' is not assignable to type '"blue" | "green" | "purple" | "yellow" | "red" | "gray" | undefined'.
++    118 |           value={stats?.downloaded_files || 0}
++    119 |           icon={<TrendingUp className="h-6 w-6" />}
++  > 120 |           color="orange"
++        |           ^^^^^
++    121 |         />
++    122 |         <StatsCard
++    123 |           title="Processing Queue"
+
+# 2025-07-04 09:48:28.889841
++/drop test.png 
+
+# 2025-07-04 09:48:34.889999
++/add test.png 
+
+# 2025-07-04 09:49:18.285592
++you see it in test.png image. Why you are not able to calculate downlaoded files? that is simple operation man
+
+# 2025-07-04 09:51:18.597549
++I want queued dashboard number same as 86 not 195
+
+# 2025-07-04 09:52:22.545504
++damn. you arre not able to fix it masmnn
+
+# 2025-07-04 09:53:27.341241
++why is to diccult man? still 195
+
+# 2025-07-04 09:55:03.297149
++put debug statements to ssolve it. you can not fix withput debug
+
+# 2025-07-04 09:57:44.987629
++queued is 0 : 
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: [ { _count: { id: 195 }, status: 'queued' } ]
++📊 [DEBUG] Status "queued": 195 documents
++📊 [DEBUG] Total documents in queue: 195
++📊 [DEBUG] Status breakdown: { queued: 195 }
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 195
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 195
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: [ { _count: { id: 195 }, status: 'queued' } ]
++📊 [DEBUG] Status "queued": 195 documents
++📊 [DEBUG] Total documents in queue: 195
++📊 [DEBUG] Status breakdown: { queued: 195 }
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 195
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 195
++📊 [DEBUG] ========================================
++🔄 [DEBUG] ========================================
++🔄 [DEBUG] QUEUE RESET ENDPOINT CALLED!
++🔄 [DEBUG] ========================================
++🔄 [DEBUG] Queue status BEFORE reset: [ { _count: { id: 195 }, status: 'queued' } ]
++🛑 [DEBUG] Stopped 0 running jobs
++🗑️ [DEBUG] FORCE CLEARED 195 documents from queue (ALL ENTRIES)
++📊 [DEBUG] Remaining documents in queue after reset: 0
++🔄 [DEBUG] Queue status AFTER reset: []
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++🔄 [DEBUG] ========================================
++🔄 [DEBUG] QUEUE RESET ENDPOINT CALLED!
++🔄 [DEBUG] ========================================
++🔄 [DEBUG] Queue status BEFORE reset: []
++🛑 [DEBUG] Stopped 0 running jobs
++🗑️ [DEBUG] FORCE CLEARED 0 documents from queue (ALL ENTRIES)
++📊 [DEBUG] Remaining documents in queue after reset: 0
++🔄 [DEBUG] Queue status AFTER reset: []
++🔄 [DEBUG] Starting parallel document queue population...
++🔄 [DEBUG] Parameters: limit=1000, clear_existing=true, concurrency=10
++🗑️ [DEBUG] Cleared 0 existing queue entries
++📄 [DEBUG] Found 100 contracts with resourceLinks to scan
++📄 [DEBUG] After filtering: 48 contracts have valid document URLs
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/149909e74b23465a9ebe938dcfcc738b/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/6ad3a30390a54ea7a8ff2c17762dc03e/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/c92ec817c6d14af389fb58da00a3bb8c/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/d14c6f97cab94ed38373bab2b6886344/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/a3277581263a4e3d883cdc7f13c699c1/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/d297b36b02d64b69994249969b36a818/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/438f53de959c4cef862f641bb26f8272/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/db16d8ed9ee2474f8e5f64f621ed70ef/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/be9744c349f2443dbd14ad828ae80ebe/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/66aa6012030d45468129f3fad70fd1a1/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/06e6dcd172374f2cb7a9c4254d8ca17b/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/13d9eab1cc0144769daace1f81ab1d32/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/50311f493ec24b8d8eb647b6eb44fda4/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/5e99f07de9ec4a2c9e35f88f8c41edb8/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/133085f5ba3b4ec48c80ffdc37e4ee5d/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/79206233029d4db383d1e55e89bd67f5/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/0903b89074a0425591edb89b49df86a2/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/0f32769031924f7782a04a5eead5354d/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/c0c9a78c25fa4ae3a1c9123da2a2ec76/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f6653d4fb5b145c9a372a7a6a5d56e47/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/58d8f50185b84f0c87d40e2ddaa9559b/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/37127ec5ca4744d4ad55dfc8101ed162/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/c2004f9bed3b46fd9b870cd4bcda9729/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f1f71376cdeb47789daac62322ddffaf/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f754c8b8126e4bac8dbd12855a756593/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/08322b8641b5445c83ebd815ed4398c7/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/1111e601ddf847349e8faa91087d6d88/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/3654a236660f4fc98b74758b6640939f/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/6418500492294e4c9afc5a76f52ebb47/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/6d2b77f445c0412fabaf1de2af2ab4ab/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/8df5f01bcf3a40fc8d051788d1790f0d/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/9af7f4e5f5e040ddb3b996b57b3b2b05/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/b9f29b7413504663aeed7062e927b811/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/fee155f86ac74a47863a47904a5baac3/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/e940c92262984831a9b0309e4c51d6de/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f2ffae6052444276a50d877bbde81027/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/cdd562362dcc4ca3bc54b620b1e3557f/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/14e7f3fe12614638ab40982397d0e51a/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/1e5d9eb91d19475c8f2e565d63ac41aa/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/4ab450ce529e4076891a79f478c0362a/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/60dd630f04a242379ee1503ed9fe5d5b/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f8f6b284a2f148db9450ecd139c6dc44/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/1d04ef162172480eb0dc6251908aa2aa/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/754a81deac24479ba873bd6a1cab0a70/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/a422bde8e2964f16b7da7085fb530e20/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/3136838e701446beb849fd2b27177b9b/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/7db3d6efbac34e579078f2cac7b98dd1/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/839bd880470f47868c676817dddbb6cc/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/57c79041cc494339815ce72e43d01003/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/4bb8e4d911c44c12ad7389b5651c64c5/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/64c7a099502d42e3a0ae8a5b4c9da451/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/db2f7cc77b5c48fdab63ea1a227e64a0/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/fe10ca8091024be298e9d392ebb1e70d/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/1fe8bd13105c482a8b64ca93fcf2363e/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/2e8e1c42e25c4125868dc21c5bd8d9b2/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/54a97a939e9845429384b7a85ad3d7f0/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/8ff3b99e92cf48d0bb60950848b00cbc/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/95b3b66b7c064fd4a3067a63b8f9c0d8/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/a2433dd0c6a34763bb86c5f2337b3e24/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/b4ef797a122d43828d7673423d9fc41b/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/e3303c87b2df465989da6f7d64494269/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/3424de3da46e40298b95a42e0b07ede1/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/66b24b30fa104aecae19ab0ce54fb6f6/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/77802ea1ddf842e787077feff9bdf9a4/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/7a084ebaf0174d8b8f3ba91eb4647863/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/7ff3b24e2424412b8110107a9a745438/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/a4f7559f329e4dd1a6b6b405cbd95250/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/c39efb6850094527af546f7036a2981a/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/d1ff2e35664f4ffc95fa899eccfdb958/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/e36a8f6f94d74692a3affba7dd8e2659/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/9988c440052e4044a3b8966c9a41f75c/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/75bf991fd6c14bd8bd4c710d4b5bc8b0/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/ba00d7462aed440a831404faf9c5e839/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/e4d4548564dc4ca88994ee9f50781992/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/9057f5c5eb644f568dad5af22c7b3827/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/960c654bff854182a2dc1009a888b97b/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/d8737c51a75648f8bc39c9e130f4be45/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/d9f96db9a588477cb52e46aebb0ca02e/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/2cbd67539fd34cf7a5d251dd61b795b7/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/5b1732526589401e83f13f7b0fd44a9e/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/77e56731d6fd4e69996b3ef7f16dda7f/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/b41b465624834d8da55fed0823dde4e2/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/bd95f183a4654bfca7583723e82f3d8f/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/a0ee7d0a1de444a883bc7e9bcd945ed6/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/36b851a2083a468c807982d3398f31ed/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/701bae472e50450eb734dea4656b4752/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/0a7cd6181d204c37a7f7b8a92fd6a935/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/0c2db88faefb4c9a8d38c2b82e2e9d17/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/19b0e04e7f204c98bd504a9cf07d2890/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/66a39ea295f64e85ac36c99086ba3011/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/82db651fe4fd47b7aebe0b35c22781b9/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/8e401105b2314eecb747f261048d3782/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/c92f55e9266742de837a341c7a651cab/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f39bfc44a180493d8b98f266580b5b64/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/03f78bba66d248e08d3a4398efab7dfc/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/0a30bfc76c9949a9a15e027f574de0f5/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/0e465a426ab84f84a12135cdee2571db/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/2bcfaa60d69a46a181a2ccdb3242e420/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/372dc5a7ccf34d00927cf13f4bc0b1b6/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/44fcfc19e4c34404b4eb501bce4d201b/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/550ebff916d742318100649cd7a169c2/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/834c15d8346d4c6b80b66e2e61d77341/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/a9b53dc95c564752b616d1238403c137/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/b605607691924e63b828198b6e85675e/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/bce8fb2948f9412e816d2aaddc8ee93c/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/c6b1c6ad77d4413e9e504e1c99344c14/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/cea4e81574f8497496efb52ee51305e1/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/d495ede7821b4dad8952e601f1ae5a75/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/e2be6873ec2147a48d1bb0d53c1072c3/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/0af0fb9ac08e40e7a24c3a316f99edca/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/1bc1408aea0c49f1bc8352c02ebc4d2e/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/2e275638f126456e829d5de5b59ddb2f/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/7fbe087ba45f4b419b3ae0214573ac87/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/8693527ae47e47e3a0a3d9da2e237bcb/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/956b9a8fc6044146968b149be81e33e2/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/9689827f063b45b1932d0c37c3ccee32/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/a4400161e4e0421db16472506b2bf033/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/ece4939e77c94bd39495a6548d770c23/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/fe80e0d6c0c34e81bab61072e9782a37/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/d3b8fad203924176912460c98b1fb99b/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/d6a0eb805b394b439a936d8a0e64d11d/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/105ec43c3a58459590c732fc20fa13d9/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/21e0f80c719b46af88061be1a700a232/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/228139c0f0c04715a1578c2071bdb5a4/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/2bf853e38b92401a8e558aeb09f84f44/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/35e3c94d00584c30a98bc9c2b6141531/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/37a3c297b9e04613997ed017a70ff13b/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/5596749ca48a42e68125a0e556de5125/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/6044e0ff505e4eecbe7f66cbed95638c/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/6079a02fd9de4f35b72df2e1ab7e8d7f/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/6ce9875fe9e84f679acb4a6e6b507aa3/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/741ad6c5fc7d44d7849e7923d402ae0b/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/78ad0763edb041ceb00ddadf8ad3fa5a/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/7bae0b0db16743ff9c28e826f4a85177/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/7c89d23691d347f7a15078ea739c8bcf/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/895dd5e18a1c4aa1a3bfeef1ed5337c3/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/ab8a1948ac4448daabe6b17c1ef52620/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/b4f104d79d524f6095e03bca2687625b/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/b6b856ee2e1c47f1b9d42fe870086dc2/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/d735740da2ec423b964b1f507c16c037/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/e0c61833fabc454b97b7feab0e9dcc2a/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/e15ea07cb54b465ba41e4738d17db865/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/e204e28185d148319cb49e2694fdab69/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f79e39d8fb9c4060bab95872acbe3326/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/60271da6cbf947129bc58ca8f7e5ac18/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/b48ada92a612467dbadaef89842a1cff/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/b64fc67a2c0841878a6d0d17b044f043/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f7ef46f215db4e0bae8c7426272bcafe/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/fa74715ac060478982304699058f7c4e/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/19e40fa176d6426391fe3e026f9723b7/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/24199a74ed1c4ae39eeadf73fbd12a1a/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/341ec3783e034aec9280c1c11d447bba/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/5397b82b8f1a4f8fb0c11ee07b855603/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/740c5852dffe4ad8be675e68654cff20/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/ae541d912bd44cafbfe7201f6a928abc/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/c73d810c5b49404a9818f980c4b34be5/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/d595cca40a8d407aa87758dcd18ec69b/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/ea37aaf40259412eb0f0e994b6f9dfc1/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/e1c663536db94ec19d91b33714b4dae7/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/b653660d496a42f2ab2db1fb047000dc/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/78db1875f46a4b3e984a68f862d56a4a/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/888094ec723341638937b3b1984b8243/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/9369bd1f7e3a47cb8fcd056ad712a995/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/bef7e4bd3fce4511ba04af5b9d3de718/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/cb7d036232d2403a848019e58a5c95bb/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/0038dfe118304a40a417458613d6efc2/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/0a42cfdb5ca64e178bbea37c47e48f65/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/0df35dade29b4b49b1c32d43b97357e4/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/56b3af442aca4f8aa33372d1684caff1/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/908aed602c0d45ccae8446f2b53f7752/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/e17b1db1e76a495691f193e624dded46/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/07329ea9e2ac4d2ca6135efc19569115/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/18f921b0b4214c0eb9e5620f1337537c/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/55759ee3026243ce971104d8a5681400/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/5632f1c12c764743a3da61c6e433eabf/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/a98df08719bf43d1983903ced0e5e2c6/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/b51dd00dafb44cd483d38a9699b8f1ad/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/c9932041127c44b081071b458bf21258/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f50da4ec5e0c48f4a7cb57d905b57f53/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/07eb4a3592564260b550950d8fb6ce87/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/962797b13d0c4e41891b3bfa74bfd80c/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/ebf84f02508043f9b25b80005b27212e/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/03c39b1cd32548bc9b824aa356000f3c/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/167c8109394c4e73a0f74532bdc6f304/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/26b50433234343e981e975614e1ed54f/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/2e9a1dc257824ce585b0e03389c625ba/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/574dfccc120b423fb689e1792a17a861/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/5dc38b29433e47a5b7a69a7eb41fd554/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/7fe59eef45ac441681ffc0f472ebbcbf/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/902c16c06aa344d8900eb1f52be8f28e/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/aa981066b7b0471a94a1d83f23c10b9e/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/de43d9240c0542bebe54e182539ccc02/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/e31f9e1e35e941648b86c3c6a5ffa5a4/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/f4e6c92903a94ad7936c19783c3c2f94/download (reason: strict filtering)
++📄 [DEBUG] FILTERED OUT URL: https://sam.gov/api/prod/opps/v3/opportunities/resources/files/fa8a03100c054188a9dfdc04af43f25e/download (reason: strict filtering)
++📄 [DEBUG] After filtering for downloadable docs: 0 contracts with ~0 downloadable documents
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
++📊 [DEBUG] ========================================
+
+# 2025-07-04 09:57:47.928084
++S
+
+# 2025-07-04 10:01:20.398896
++ /drop test.png 
+
+# 2025-07-04 10:01:27.414153
++ /drop test.png
+
+# 2025-07-04 10:01:34.233486
++/drop test.png
+
+# 2025-07-04 10:01:40.633234
++/add test.png
+
+# 2025-07-04 10:01:55.498883
++see latest test png file. you can not fix it
+
+# 2025-07-04 10:05:29.137116
++still 0. but think about you can not put 86 queued dashboard counter there. files are downloaded and it takes time. then  you calculate sum of downloaded files and put there. is it so diffcult?
+
+# 2025-07-04 10:09:08.234714
++you can not put downlaoded files in queues counter : [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
+
+# 2025-07-04 10:25:25.985247
++still 0. When I click downloaded documents, it calculates downloaded number. You need to give that process to access to dashboard and change Queued number. is that simple?
+
+# 2025-07-04 10:28:21.500059
++afer it donlowaded all files, you need set queued dashboard counter. But it is still 0:📊 [DEBUG] 🎯 OVERALL PROGRESS: 112/112 (100%)
++📊 [DEBUG] 📥 Downloaded: 87
++📊 [DEBUG] ❌ Errors: 1
++📊 [DEBUG] ⏭️  Skipped: 24
++📁 [DEBUG] Actual files in directory: 174
++❌ [DEBUG] File count mismatch! Expected: 87, Actual: 174
++📁 [DEBUG] Files found: 65bb233ab4bf43cb9f0c3ad1d77483d9_download_1751638064817.pdf, 65bb233ab4bf43cb9f0c3ad1d77483d9_download_1751638064955.pdf, 65bb233ab4bf43cb9f0c3ad1d77483d9_download_1751639174235.pdf, 65bb233ab4bf43cb9f0c3ad1d77483d9_download_1751639174268.pdf, 8d10df5110c14614a10ac067ba954528_download_1751638064755.pdf, 8d10df5110c14614a10ac067ba954528_download_1751638064791.pdf, 8d10df5110c14614a10ac067ba954528_download_1751638064819.pdf, 8d10df5110c14614a10ac067ba954528_download_1751638064823.pdf, 8d10df5110c14614a10ac067ba954528_download_1751639174169.pdf, 8d10df5110c14614a10ac067ba954528_download_1751639174196.pdf
++🎉 [DEBUG] ========================================
++🎉 [DEBUG] DOWNLOAD PROCESS COMPLETED!
++🎉 [DEBUG] ========================================
++📊 [DEBUG] 📥 Downloads attempted: 87
++📊 [DEBUG] 💾 Files actually saved: 174
++📊 [DEBUG] ❌ Errors encountered: 1
++📊 [DEBUG] ⏭️  Files skipped: 24
++📊 [DEBUG] 📁 Download directory: /Users/erolakarsu/projects/government_contracts_v2/downloaded_documents
++🎉 [DEBUG] ========================================
++📊 [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 0
+
+# 2025-07-04 10:30:21.413895
++why we jumped from 86 to 174?
+
+# 2025-07-04 10:35:42.093463
++No. 87*2 = 174, clicked 2 times on download documents and it did not overwrite exisiting ones and created new ones. thst is why we have 174. Still see 0 after ddownload documents click. you are stupid kid, tyou can noit fux one issue
+
+# 2025-07-04 10:37:20.600907
++still zero. you are joiking with me. why you are not able to fix with severeal attemeltpgt
+
+# 2025-07-04 10:40:38.220014
++you are helping companies like anthropic to make more money by using system much therefor you can not fix it. ha
+
+# 2025-07-04 10:43:08.653767
++pleae explain me hwat you did to fix issue. I told you when I click download documents,  it downloaded and claculated total downloadeded files. then you goa ahed and update queued dahsboard counter. explain me as yoiu are sepaking dump person
+
+# 2025-07-04 10:47:28.192707
++you are doing wrong. whatever handle I click downloaded documents button, that handle need to change dashboard queued number. If possible, you need to give permission to that handler to change that number. yoiu are doing completely wropng and complex
+
+# 2025-07-04 10:48:02.257751
++ERROR in src/components/Dashboard/QuickActions.tsx:64:27
++TS2339: Property 'downloaded_count' does not exist on type 'ApiResponse<any>'.
++    62 |           completed: 0,
++    63 |           failed: 0,
++  > 64 |           total: response.downloaded_count || 174, // Use actual downloaded count
++       |                           ^^^^^^^^^^^^^^^^
++    65 |           is_processing: false
++    66 |         }
++    67 |       });
+
+# 2025-07-04 11:02:54.779003
++/drop test.png
+
+# 2025-07-04 11:03:02.191410
++/add test.png
+
+# 2025-07-04 11:03:06.285793
++/add test2.png
+
+# 2025-07-04 11:04:37.520420
++ I click fetch contracts adn index contracts. Then cliekd on dowload documents. I got this image test.png .Then c
++> lick Clear queue and repopulate button and got image test2.png.  why you are not copyhing Downlaoded files or processing queeu count that was 89 to queued number. how are you getting that number? stupid
+
+# 2025-07-04 11:07:58.822570
++first time ever, queued number went to 87 and then went 199. downlaoded files: 89 and processing queue is 199
+
+# 2025-07-04 11:10:59.235575
++man processing queue ueued number is 199 after click on clar wque. smae error
+
+# 2025-07-04 11:16:31.659011
++/drop test.png
+
+# 2025-07-04 11:16:36.237850
++/drop test2.png
+
+# 2025-07-04 11:16:42.102770
++/add test2.png
+
+# 2025-07-04 11:16:45.524123
++/add test.png
+
+# 2025-07-04 11:17:56.882621
++I attached 2 picture test and test2 after clicking on clear queue. but second image claims that queued should 88 but it is zero. look at images
+
+# 2025-07-04 11:25:21.900955
++After click on clear queue, it is written "Queue cleared! Processing Queue now shows downloaded files count (89)." on left button in quikc actions, but we have dowloaded 88 files. In counters, we have on dashboard we have queued, processing, completed and failed counters. in that section, we have 0 queued. At the top,Processing queue is 88. We have 2 Proecsssing Queue section, one is top counter and Other section of processin queue has qu
++> eued, processing, completed and failed counters
+
+# 2025-07-04 11:26:20.794103
++Have you fixed my real issue? queueed counter is 0
+
+# 2025-07-04 11:28:39.611929
++still queued is zero msan. you are rewlly stupid
+
+# 2025-07-04 11:29:38.336125
++can you remove this debug ? is it irritating? [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Checking download path: /Users/erolakarsu/projects/government_contracts_v2/downloaded_documents
++📊 [DEBUG] Download path exists: true
++📊 [DEBUG] Found 88 files in download directory
++📊 [DEBUG] Updated display values - Total: 88, Completed: 0, Queued: 0
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 88
++📊 [DEBUG] ========================================
++📊 [DEBUG] SENDING FINAL RESPONSE: {
++  "queued": 0,
++  "processing": 0,
++  "completed": 0,
++  "failed": 0,
++  "total": 88,
++  "is_processing": false,
++  "active_jobs": 0,
++  "completion_rate": 0,
++  "failure_rate": 0,
++  "processing_speed_per_hour": 0,
++  "recent_completed": [],
++  "recent_failed": [],
++  "currently_processing": [],
++  "active_processing_jobs": []
++}
+
+# 2025-07-04 11:33:07.596031
++qnyway, you can not fix queued 0 issue. I told you how to do it. but ouare are niot listening to me
+
+# 2025-07-04 11:33:47.406514
++N
+
+# 2025-07-04 11:33:51.339814
++qnyway, you can not fix queued 0 issue. I told you how to do it. but ouare are niot listening to me
+
+# 2025-07-04 11:37:27.545209
++I click on downloaded documents button, it downloaded files. And doewnloaeded files and processing queue is 87 or 88. then click on clear queue button. it shoud show downloiaded files number in queued counter. Remember processiong queue counters is consit of queueud, processing, completed and failed counters. OI am not talking about top counter Processing queue. can you change that section name becsause4 it is confusing 
+
+# 2025-07-04 11:42:29.280293
++I told you before can remove this log? it is irriratikng:  [DEBUG] ========================================
++📊 [DEBUG] QUEUE STATUS REQUEST RECEIVED
++📊 [DEBUG] ========================================
++📊 [DEBUG] Raw queue status from database: []
++📊 [DEBUG] Total documents in queue: 0
++📊 [DEBUG] Status breakdown: {}
++📊 [DEBUG] Checking download path: /Users/erolakarsu/projects/government_contracts_v2/downloaded_documents
++📊 [DEBUG] Download path exists: true
++📊 [DEBUG] Found 88 files in download directory
++📊 [DEBUG] Updated display values - Total: 88, Completed: 0, Queued: 0
++📊 [DEBUG] Final queue status being returned:
++📊 [DEBUG] - Queued: 0
++📊 [DEBUG] - Processing: 0
++📊 [DEBUG] - Completed: 0
++📊 [DEBUG] - Failed: 0
++📊 [DEBUG] - Total: 88
++📊 [DEBUG] ========================================
++📊 [DEBUG] SENDING FINAL RESPONSE: {
++  "queued": 0,
++  "processing": 0,
++  "completed": 0,
++  "failed": 0,
++  "total": 88,
++  "is_processing": false,
++  "active_jobs": 0,
++  "completion_rate": 0,
++  "failure_rate": 0,
++  "processing_speed_per_hour": 0,
++  "recent_completed": [],
++  "recent_failed": [],
++  "currently_processing": [],
++  "active_processing_jobs": []
++}
+
+# 2025-07-04 12:01:15.713636
++remove clear queue button becasue you can not implement it
+
+# 2025-07-04 12:04:16.332826
++I told remove dashboard  button "Clear Queue (Show Downloaded Files Count)". why I see it? Remove top processing counter
+
+# 2025-07-04 12:05:52.622779
++I told remove dashboard  button "Clear Queue (Show Downloaded Files Count)". Queue procxessing is gone. but clear queue button is still there
+
+# 2025-07-04 12:07:55.462840
++ remove dashboard Contracts menu. also remove Comntracts page and actions if it is not used somewhere else
+
+# 2025-07-04 12:08:57.973262
++/run rm client/src/pages/Contracts.tsx
+
+# 2025-07-04 12:08:57.973786
++/run rm client/src/pages/Contracts.tsx
