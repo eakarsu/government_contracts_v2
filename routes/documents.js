@@ -7,6 +7,7 @@ const axios = require('axios');
 const fs = require('fs-extra');
 const path = require('path');
 const documentAnalyzer = require('../utils/documentAnalyzer');
+const pdfConversionService = require('../services/pdfConversionService');
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ router.get('/ping', (req, res) => {
 });
 
 // Test route to verify router is working
-router.get('/test', (req, res) => {
+router.get('/test', async (req, res) => {
   console.log('');
   console.log('🧪 ==========================================');
   console.log('🧪 🧪 🧪 TEST ROUTE CALLED! 🧪 🧪 🧪');
@@ -36,6 +37,10 @@ router.get('/test', (req, res) => {
   console.log('🧪 Test route called successfully at:', new Date().toISOString());
   console.log('🧪 ==========================================');
   console.log('');
+  
+  // Check PDF conversion service status
+  const pdfServiceAvailable = await pdfConversionService.isServiceAvailable();
+  const pdfServiceInfo = pdfConversionService.getServiceInfo();
   
   res.json({ 
     message: 'Documents router is working!', 
@@ -49,9 +54,40 @@ router.get('/test', (req, res) => {
       '/process',
       '/queue',
       '/queue/status',
-      '/fetch-contracts'
-    ]
+      '/fetch-contracts',
+      '/pdf-service/status'
+    ],
+    pdf_conversion_service: {
+      available: pdfServiceAvailable,
+      endpoint: pdfServiceInfo.endpoint,
+      configured: pdfServiceInfo.isConfigured,
+      timeout: pdfServiceInfo.timeout
+    }
   });
+});
+
+// PDF conversion service status endpoint
+router.get('/pdf-service/status', async (req, res) => {
+  try {
+    console.log('📄➡️📄 [STATUS] Checking PDF conversion service status...');
+    
+    const isAvailable = await pdfConversionService.isServiceAvailable();
+    const serviceInfo = pdfConversionService.getServiceInfo();
+    
+    res.json({
+      success: true,
+      service_available: isAvailable,
+      service_info: serviceInfo,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('📄➡️📄 [STATUS] Error checking PDF service status:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      service_available: false
+    });
+  }
 });
 
 // Fetch contracts endpoint (temporary - should be in contracts router)
@@ -278,19 +314,73 @@ router.post('/process', async (req, res) => {
               continue;
             }
 
+            // 🆕 CALL PDF CONVERSION SERVICE BEFORE QUEUEING
+            console.log(`📄➡️📄 [PROCESS] 🔄 Attempting PDF conversion before queueing: ${filename}`);
+            const conversionResult = await pdfConversionService.convertToPdfSingle(
+              docUrl, 
+              originalFilename, 
+              contract.noticeId
+            );
+
+            console.log(`📄➡️📄 [PROCESS] PDF conversion result:`, {
+              success: conversionResult.success,
+              isPdf: conversionResult.isPdf,
+              wasConverted: conversionResult.wasConverted,
+              message: conversionResult.message
+            });
+
+            // Determine the final document URL and filename to queue
+            let finalDocUrl = docUrl;
+            let finalFilename = filename;
+            let conversionMetadata = {};
+
+            if (conversionResult.success) {
+              if (conversionResult.wasConverted && conversionResult.pdfUrl) {
+                // Use the converted PDF URL
+                finalDocUrl = conversionResult.pdfUrl;
+                finalFilename = conversionResult.convertedFilename || `${contract.noticeId}_${originalFilename}.pdf`;
+                conversionMetadata = {
+                  originalUrl: docUrl,
+                  convertedToPdf: true,
+                  conversionTime: conversionResult.conversionTime,
+                  pdfSize: conversionResult.pdfSize
+                };
+                console.log(`📄➡️📄 [PROCESS] ✅ Using converted PDF URL: ${finalDocUrl}`);
+              } else if (conversionResult.isPdf) {
+                // Document was already a PDF
+                conversionMetadata = {
+                  originalUrl: docUrl,
+                  convertedToPdf: false,
+                  alreadyPdf: true
+                };
+                console.log(`📄➡️📄 [PROCESS] ✅ Document is already PDF, using original URL: ${finalDocUrl}`);
+              }
+            } else {
+              // Conversion failed, use original URL but log the failure
+              conversionMetadata = {
+                originalUrl: docUrl,
+                convertedToPdf: false,
+                conversionFailed: true,
+                conversionError: conversionResult.error
+              };
+              console.log(`📄➡️📄 [PROCESS] ⚠️ PDF conversion failed, using original URL: ${conversionResult.message}`);
+            }
+
             // Add to queue (filename will be corrected during processing)
             await prisma.documentProcessingQueue.create({
               data: {
                 contractNoticeId: contract.noticeId,
-                documentUrl: docUrl,
+                documentUrl: finalDocUrl, // Use final URL (converted PDF or original)
                 description: `${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
-                filename: filename,
-                status: 'queued'
+                filename: finalFilename, // Use final filename
+                status: 'queued',
+                metadata: JSON.stringify(conversionMetadata) // Store conversion metadata
               }
             });
 
             queuedDocuments++;
-            console.log(`✅ [DEBUG] Queued document: ${filename}`);
+            console.log(`✅ [DEBUG] Queued document: ${finalFilename}`);
+            console.log(`📄➡️📄 [PROCESS] Document URL in queue: ${finalDocUrl}`);
 
           } catch (error) {
             console.error(`❌ [DEBUG] Error queueing document ${docUrl}:`, error.message);
@@ -630,22 +720,77 @@ router.post('/queue', async (req, res) => {
                 continue;
               }
 
+              // 🆕 CALL PDF CONVERSION SERVICE BEFORE QUEUEING
+              console.log(`📄➡️📄 [QUEUE] 🔄 Attempting PDF conversion before queueing: ${filename}`);
+              const conversionResult = await pdfConversionService.convertToPdfSingle(
+                docUrl, 
+                originalFilename, 
+                contract.noticeId
+              );
+
+              console.log(`📄➡️📄 [QUEUE] PDF conversion result:`, {
+                success: conversionResult.success,
+                isPdf: conversionResult.isPdf,
+                wasConverted: conversionResult.wasConverted,
+                message: conversionResult.message
+              });
+
+              // Determine the final document URL and filename to queue
+              let finalDocUrl = docUrl;
+              let finalFilename = filename;
+              let conversionMetadata = {};
+
+              if (conversionResult.success) {
+                if (conversionResult.wasConverted && conversionResult.pdfUrl) {
+                  // Use the converted PDF URL
+                  finalDocUrl = conversionResult.pdfUrl;
+                  finalFilename = conversionResult.convertedFilename || `${contract.noticeId}_${originalFilename}.pdf`;
+                  conversionMetadata = {
+                    originalUrl: docUrl,
+                    convertedToPdf: true,
+                    conversionTime: conversionResult.conversionTime,
+                    pdfSize: conversionResult.pdfSize
+                  };
+                  console.log(`📄➡️📄 [QUEUE] ✅ Using converted PDF URL: ${finalDocUrl}`);
+                } else if (conversionResult.isPdf) {
+                  // Document was already a PDF
+                  conversionMetadata = {
+                    originalUrl: docUrl,
+                    convertedToPdf: false,
+                    alreadyPdf: true
+                  };
+                  console.log(`📄➡️📄 [QUEUE] ✅ Document is already PDF, using original URL: ${finalDocUrl}`);
+                }
+              } else {
+                // Conversion failed, use original URL but log the failure
+                conversionMetadata = {
+                  originalUrl: docUrl,
+                  convertedToPdf: false,
+                  conversionFailed: true,
+                  conversionError: conversionResult.error
+                };
+                console.log(`📄➡️📄 [QUEUE] ⚠️ PDF conversion failed, using original URL: ${conversionResult.message}`);
+              }
+
               // Create queue entry for individual document (NOT the contract)
               await prisma.documentProcessingQueue.create({
                 data: {
                   contractNoticeId: contract.noticeId,
-                  documentUrl: docUrl, // This is the actual document URL from resourceLinks
+                  documentUrl: finalDocUrl, // Use final URL (converted PDF or original)
                   description: `Document from: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
-                  filename: filename, // Will be updated with correct extension during processing
-                  status: 'queued'
+                  filename: finalFilename, // Use final filename
+                  status: 'queued',
+                  metadata: JSON.stringify(conversionMetadata) // Store conversion metadata
                 }
               });
 
               batchQueued++;
-              console.log(`✅ [DEBUG] Queued individual document: ${filename} from contract ${contract.noticeId}`);
+              console.log(`✅ [DEBUG] Queued individual document: ${finalFilename} from contract ${contract.noticeId}`);
+              console.log(`📄➡️📄 [QUEUE] Document URL in queue: ${finalDocUrl}`);
 
             } catch (docError) {
               console.error(`❌ [DEBUG] Error queueing document ${docUrl}:`, docError.message);
+              console.error(`📄➡️📄 [QUEUE] Full error details:`, docError);
               batchErrors++;
             }
           }
