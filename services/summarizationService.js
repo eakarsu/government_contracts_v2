@@ -1,0 +1,144 @@
+const fs = require('fs-extra');
+const path = require('path');
+const config = require('../config/env');
+const documentAnalyzer = require('../utils/documentAnalyzer');
+
+// Import your PDF processing service
+const pdfService = require('./summaryService.js'); // Adjust path as needed
+
+// Utility function to send file to Norshin API (now using local PDF processing)
+const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', model = 'openai/gpt-4o') => {
+  try {
+    console.log(`📤 [DEBUG] Processing document locally: ${originalName}`);
+    
+
+    let fileBuffer;
+    let tempFilePath = null;
+    let pdfPath = filePathOrUrl;
+    
+    // Check if it's a URL or local file path
+    if (filePathOrUrl.startsWith('http://') || filePathOrUrl.startsWith('https://')) {
+      // Download the file from URL
+      console.log(`📥 [DEBUG] Downloading document from: ${filePathOrUrl}`);
+      
+      // Create temp directory
+      const tempDir = './temp_downloads';
+      await fs.ensureDir(tempDir);
+      
+      // Download file using PDF service
+      tempFilePath = path.join(tempDir, `download_${Date.now()}_${originalName}`);
+      await pdfService.downloadFile(filePathOrUrl, tempFilePath);
+      
+      fileBuffer = fs.readFileSync(tempFilePath);
+      console.log(`📥 [DEBUG] Downloaded ${fileBuffer.length} bytes`);
+      
+      // Use the downloaded file path for processing
+      pdfPath = tempFilePath;
+    } else {
+      // Read local file
+      if (!fs.existsSync(filePathOrUrl)) {
+        throw new Error(`File not found: ${filePathOrUrl}`);
+      }
+      fileBuffer = fs.readFileSync(filePathOrUrl);
+    }
+    
+    // Analyze the document (keeping original Norshin logic)
+    const contentType = path.extname(originalName).toLowerCase();
+    const analysis = documentAnalyzer.analyzeDocument(fileBuffer, originalName, contentType);
+    
+    console.log(`📄 [DEBUG] Document Analysis:`);
+    console.log(`📄 [DEBUG] - Type: ${analysis.documentType}`);
+    console.log(`📄 [DEBUG] - Size: ${analysis.size} bytes`);
+    console.log(`📄 [DEBUG] - Original Extension: ${analysis.extension}`);
+    console.log(`📄 [DEBUG] - Estimated Pages: ${analysis.estimatedPages} pages`);
+    console.log(`📄 [DEBUG] - Supported: ${analysis.isSupported}`);
+    console.log(`📄 [DEBUG] - Is ZIP: ${analysis.isZipFile}`);
+    
+    // Skip ZIP files (keeping original Norshin logic)
+    if (analysis.isZipFile) {
+      console.log(`⚠️ [DEBUG] Skipping ZIP file: ${originalName}`);
+      throw new Error(`ZIP files are not supported: ${originalName}`);
+    }
+    
+    // Skip unsupported types (keeping original Norshin logic)
+    if (!analysis.isSupported) {
+      console.log(`⚠️ [DEBUG] Skipping unsupported document type: ${analysis.documentType}`);
+      throw new Error(`Unsupported document type: ${analysis.documentType}`);
+    }
+    
+    // Generate correct filename with proper extension (keeping original Norshin logic)
+    const correctExtension = documentAnalyzer.getCorrectExtension(analysis.documentType, analysis.extension);
+    const properFilename = originalName.includes('_') ?
+      originalName.split('_')[0] + '_' + originalName.split('_').slice(1).join('_').replace(/\.[^/.]+$/, '') + correctExtension :
+      originalName.replace(/\.[^/.]+$/, '') + correctExtension;
+    
+    console.log(`📄 [DEBUG] - Correct Extension: ${correctExtension}`);
+    console.log(`📄 [DEBUG] - Proper Filename: ${properFilename}`);
+    
+    // Update originalName to use the correct extension
+    originalName = properFilename;
+    
+    console.log(`🔄 [DEBUG] Processing PDF with local service...`);
+    
+    // ALWAYS call processPDF before summarization
+    const extractResult = await pdfService.processPDF(pdfPath, {
+      apiKey: process.env.REACT_APP_OPENROUTER_KEY,
+      saveExtracted: false,
+      outputDir: null
+    });
+    
+    if (!extractResult.success) {
+      throw new Error(`PDF extraction failed: ${extractResult.error}`);
+    }
+    
+    console.log(`✅ Extraction completed: ${extractResult.method}, ${extractResult.wordCount} words`);
+    
+    // Create enhanced prompt if custom prompt provided (keeping original Norshin logic)
+    let contentToSummarize = extractResult.extractedContent;
+    if (customPrompt) {
+      contentToSummarize = `${customPrompt}\n\nDocument Content:\n${extractResult.extractedContent}`;
+    }
+    
+    // Summarize content using your local service
+    const summaryResult = await pdfService.summarizeContent(
+      contentToSummarize,
+      process.env.REACT_APP_OPENROUTER_KEY
+    );
+    
+    if (!summaryResult.success) {
+      throw new Error(`Local summarization failed: ${summaryResult.error}`);
+    }
+    
+    console.log(`✅ [DEBUG] Local analysis completed successfully`);
+    
+    // Clean up temp file if it was downloaded (keeping original Norshin logic)
+    if (tempFilePath) {
+      try {
+        await fs.remove(tempFilePath);
+        console.log(`🗑️ [DEBUG] Cleaned up temp file: ${tempFilePath}`);
+      } catch (cleanupError) {
+        console.warn(`⚠️ [DEBUG] Failed to clean up temp file: ${cleanupError.message}`);
+      }
+    }
+    
+    // Return the response data in the same format as original Norshin service
+    const responseData = summaryResult.result;
+    
+    // Add corrected filename if needed (keeping original Norshin logic)
+    if (originalName !== (filePathOrUrl.startsWith('http') ? filePathOrUrl.split('/').pop() : filePathOrUrl)) {
+      responseData.correctedFilename = originalName;
+    }
+    
+    return responseData;
+    
+  } catch (error) {
+    console.error('Norshin API Error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+
+module.exports = {
+  sendToNorshinAPI
+};
+
