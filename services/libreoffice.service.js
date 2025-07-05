@@ -3,7 +3,7 @@ const { exec } = require('child_process');
 const util = require('util');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs-extra');
 const execPromise = util.promisify(exec);
 
 class LibreOfficeSemaphore {
@@ -123,91 +123,97 @@ class LibreOfficeService {
         }
     }
 
-    async cleanupFiles (filePaths)  {
-        filePaths.forEach(filePath => {
-                if (fs.existsSync(filePath)) {
-                    try {
-                        if (fs.statSync(filePath).isDirectory()) {
-                            fs.rmSync(filePath, { recursive: true, force: true });
-                        } else {
-                            fs.unlinkSync(filePath);
-                        }
-                    } catch (error) {
-                        console.error(`Error cleaning up ${filePath}:`, error);
+    async cleanupFiles(filePaths) {
+        for (const filePath of filePaths) {
+            try {
+                if (await fs.pathExists(filePath)) {
+                    const stat = await fs.stat(filePath);
+                    if (stat.isDirectory()) {
+                        await fs.remove(filePath);
+                    } else {
+                        await fs.unlink(filePath);
                     }
+                    console.log(`📄➡️📄 [PDF-CONVERT] Cleaned up: ${filePath}`);
 
                     // Clean up files with same base name but different extensions
                     try {
                         const dir = path.dirname(filePath);
                         const baseName = path.basename(filePath, path.extname(filePath));
                         
-                        if (fs.existsSync(dir)) {
-                            const files = fs.readdirSync(dir);
-                            files.forEach(file => {
+                        if (await fs.pathExists(dir)) {
+                            const files = await fs.readdir(dir);
+                            for (const file of files) {
                                 const fullPath = path.join(dir, file);
                                 const fileBaseName = path.basename(file, path.extname(file));
                                 
-                                if (fileBaseName === baseName && fs.statSync(fullPath).isFile()) {
+                                if (fileBaseName === baseName && (await fs.stat(fullPath)).isFile()) {
                                     try {
-                                        fs.unlinkSync(fullPath);
-                                        console.log(`Cleaned up related file: ${fullPath}`);
+                                        await fs.unlink(fullPath);
+                                        console.log(`📄➡️📄 [PDF-CONVERT] Cleaned up related file: ${fullPath}`);
                                     } catch (error) {
-                                        console.error(`Error cleaning up related file ${fullPath}:`, error);
+                                        console.error(`📄➡️📄 [PDF-CONVERT] Error cleaning up related file ${fullPath}:`, error);
                                     }
                                 }
-                            });
+                            }
                         }
                     } catch (error) {
-                        console.error(`Error during extended cleanup for ${filePath}:`, error);
+                        console.error(`📄➡️📄 [PDF-CONVERT] Error during extended cleanup for ${filePath}:`, error);
                     }
                 }
-            });
-        };
+            } catch (error) {
+                console.error(`📄➡️📄 [PDF-CONVERT] Error cleaning up ${filePath}:`, error);
+            }
+        }
+    }
 
     async convertToPdfWithRetry(inputPath, outputDir, maxRetries = 3) {
         const fileExt = path.extname(inputPath).toLowerCase();
         if (fileExt === '.pdf') {
             return { success: true };
         }
+        
         await this.acquireSemaphore();
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-                const result = await this.convertToPdfSingle(inputPath, outputDir);
+        
+        try {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    const result = await this.convertToPdfSingle(inputPath, outputDir);
 
-                const  allFiles = fs.readdirSync(outputDir);
-                // Check if the specific input file has a PDF counterpart
-                const inputBaseName = path.basename(inputPath, path.extname(inputPath));
-                const hasPDFCounterpart = allFiles.some(f => 
-                    f.toLowerCase().endsWith('.pdf') && 
-                    path.basename(f, '.pdf') === inputBaseName
-                );
+                    const allFiles = await fs.readdir(outputDir);
+                    // Check if the specific input file has a PDF counterpart
+                    const inputBaseName = path.basename(inputPath, path.extname(inputPath));
+                    const hasPDFCounterpart = allFiles.some(f => 
+                        f.toLowerCase().endsWith('.pdf') && 
+                        path.basename(f, '.pdf') === inputBaseName
+                    );
 
-                if (!hasPDFCounterpart) {
-                    throw new Error('No PDF files found after LibreOffice conversion');
-                }else {
-                    console.log (` ${inputPath} is ssuccesfully translated to pdf`)
-                }
-                return result;
-            } catch (error) {
-                console.error(`LibreOffice conversion attempt ${attempt} failed:`, error.message);
-                
-                if (error.message.includes('javaldx') || 
-                    error.message.includes('Java Runtime Environment') ||
-                    error.message.includes('UserInstallation')) {
-                    
-                    if (attempt < maxRetries) {
-                        const backoffDelay = 1000 * Math.pow(2, attempt - 1);
-                        console.log(`Retrying LibreOffice conversion in ${backoffDelay}ms... (attempt ${attempt + 1}/${maxRetries})`);
-                        
-                        this.cleanupProcesses();
-                        await new Promise(resolve => setTimeout(resolve, backoffDelay));
-                        continue;
+                    if (!hasPDFCounterpart) {
+                        throw new Error('No PDF files found after LibreOffice conversion');
+                    } else {
+                        console.log(`📄➡️📄 [PDF-CONVERT] ${inputPath} is successfully translated to pdf`);
                     }
+                    return result;
+                } catch (error) {
+                    console.error(`📄➡️📄 [PDF-CONVERT] LibreOffice conversion attempt ${attempt} failed:`, error.message);
+                    
+                    if (error.message.includes('javaldx') || 
+                        error.message.includes('Java Runtime Environment') ||
+                        error.message.includes('UserInstallation')) {
+                        
+                        if (attempt < maxRetries) {
+                            const backoffDelay = 1000 * Math.pow(2, attempt - 1);
+                            console.log(`📄➡️📄 [PDF-CONVERT] Retrying LibreOffice conversion in ${backoffDelay}ms... (attempt ${attempt + 1}/${maxRetries})`);
+                            
+                            this.cleanupProcesses();
+                            await new Promise(resolve => setTimeout(resolve, backoffDelay));
+                            continue;
+                        }
+                    }
+                    throw error;
                 }
-                throw error;
-            } finally {
-                this.releaseSemaphore();
             }
+        } finally {
+            this.releaseSemaphore();
         }
     }
 

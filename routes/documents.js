@@ -420,7 +420,9 @@ router.post('/process', async (req, res) => {
                 filename: finalFilename, // Use final filename
                 status: 'queued',
                 metadata: JSON.stringify(conversionMetadata), // Store conversion metadata
-                queuedAt: new Date()
+                queuedAt: new Date(),
+                retryCount: 0,
+                maxRetries: 3
               }
             });
 
@@ -785,7 +787,9 @@ router.post('/queue/test', async (req, res) => {
               filename: finalFilename,
               status: 'queued',
               metadata: JSON.stringify(conversionMetadata),
-              queuedAt: new Date()
+              queuedAt: new Date(),
+              retryCount: 0,
+              maxRetries: 3
             }
           });
 
@@ -1113,7 +1117,9 @@ router.post('/queue', async (req, res) => {
                   filename: finalFilename, // Use final filename
                   status: 'queued',
                   metadata: JSON.stringify(conversionMetadata), // Store conversion metadata
-                  queuedAt: new Date()
+                  queuedAt: new Date(),
+                  retryCount: 0,
+                  maxRetries: 3
                 }
               });
 
