@@ -2,6 +2,8 @@
 const { exec } = require('child_process');
 const util = require('util');
 const { v4: uuidv4 } = require('uuid');
+const path = require('path');
+const fs = require('fs');
 const execPromise = util.promisify(exec);
 
 class LibreOfficeSemaphore {
@@ -164,9 +166,10 @@ class LibreOfficeService {
 
     async convertToPdfWithRetry(inputPath, outputDir, maxRetries = 3) {
         const fileExt = path.extname(inputPath).toLowerCase();
-        if (fileExt === '.pdf') 
-            return 
-        await  this.acquireSemaphore()
+        if (fileExt === '.pdf') {
+            return { success: true };
+        }
+        await this.acquireSemaphore();
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 const result = await this.convertToPdfSingle(inputPath, outputDir);
@@ -202,9 +205,8 @@ class LibreOfficeService {
                     }
                 }
                 throw error;
-            }
-            finally {
-                this.libreOfficeService.releaseSemaphore();
+            } finally {
+                this.releaseSemaphore();
             }
         }
     }
