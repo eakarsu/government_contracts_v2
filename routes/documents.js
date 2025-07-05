@@ -393,11 +393,26 @@ router.post('/process', async (req, res) => {
               console.log(`📄➡️📄 [PROCESS] ⚠️ PDF conversion failed, using original URL: ${conversionResult.message}`);
             }
 
+            // Check if document was already downloaded locally
+            const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+            const possibleLocalFiles = await fs.readdir(downloadPath).catch(() => []);
+            const localFile = possibleLocalFiles.find(file => 
+              file.includes(contract.noticeId) && 
+              (file.includes(originalFilename.replace(/\.[^/.]+$/, '')) || file.includes('document'))
+            );
+            
+            const localFilePath = localFile ? path.join(downloadPath, localFile) : null;
+            
+            if (localFilePath) {
+              console.log(`📁 [DEBUG] Found local file for document: ${localFile}`);
+            }
+
             // Add to queue (filename will be corrected during processing)
             await prisma.documentProcessingQueue.create({
               data: {
                 contractNoticeId: contract.noticeId,
                 documentUrl: finalDocUrl, // Use final URL (converted PDF or original)
+                localFilePath: localFilePath,
                 description: `${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
                 filename: finalFilename, // Use final filename
                 status: 'queued',
@@ -750,11 +765,26 @@ router.post('/queue/test', async (req, res) => {
             console.log(`📄➡️📄 [TEST] ⚠️ PDF conversion failed: ${conversionResult.message}`);
           }
 
+          // Check if document was already downloaded locally
+          const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+          const possibleLocalFiles = await fs.readdir(downloadPath).catch(() => []);
+          const localFile = possibleLocalFiles.find(file => 
+            file.includes(contract.noticeId) && 
+            (file.includes(originalFilename.replace(/\.[^/.]+$/, '')) || file.includes('document'))
+          );
+          
+          const localFilePath = localFile ? path.join(downloadPath, localFile) : null;
+          
+          if (localFilePath) {
+            console.log(`📁 [DEBUG] Found local file for test document: ${localFile}`);
+          }
+
           // Create queue entry for test document
           await prisma.documentProcessingQueue.create({
             data: {
               contractNoticeId: contract.noticeId,
               documentUrl: finalDocUrl,
+              localFilePath: localFilePath,
               description: `TEST DOCUMENT ${queuedCount + 1}/${test_limit}: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
               filename: finalFilename,
               status: 'queued',
@@ -1061,11 +1091,26 @@ router.post('/queue', async (req, res) => {
                 console.log(`📄➡️📄 [QUEUE] ⚠️ PDF conversion failed, using original URL: ${conversionResult.message}`);
               }
 
+              // Check if document was already downloaded locally
+              const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+              const possibleLocalFiles = await fs.readdir(downloadPath).catch(() => []);
+              const localFile = possibleLocalFiles.find(file => 
+                file.includes(contract.noticeId) && 
+                (file.includes(originalFilename.replace(/\.[^/.]+$/, '')) || file.includes('document'))
+              );
+              
+              const localFilePath = localFile ? path.join(downloadPath, localFile) : null;
+              
+              if (localFilePath) {
+                console.log(`📁 [DEBUG] Found local file for document: ${localFile}`);
+              }
+
               // Create queue entry for individual document (NOT the contract)
               await prisma.documentProcessingQueue.create({
                 data: {
                   contractNoticeId: contract.noticeId,
                   documentUrl: finalDocUrl, // Use final URL (converted PDF or original)
+                  localFilePath: localFilePath,
                   description: `Document from: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
                   filename: finalFilename, // Use final filename
                   status: 'queued',
@@ -1540,8 +1585,18 @@ async function processTestDocumentsSequentially(documents, jobId) {
       } else {
         // Process document via summarization service
         console.log(`🧪 [DEBUG] 💰 COST ALERT: Sending test document to summarization service: ${doc.documentUrl}`);
+        
+        // Check if we have a local file path instead of URL
+        let filePathToProcess = doc.documentUrl;
+        if (doc.localFilePath && await fs.pathExists(doc.localFilePath)) {
+          console.log(`🧪 [DEBUG] Using local file path: ${doc.localFilePath}`);
+          filePathToProcess = doc.localFilePath;
+        } else {
+          console.log(`🧪 [DEBUG] Using URL (no local file found): ${doc.documentUrl}`);
+        }
+        
         const result = await summarizeContent(
-          doc.documentUrl,
+          filePathToProcess,
           doc.filename || 'test_document',
           '',
           'openai/gpt-4o'
@@ -1731,8 +1786,18 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
 
       // Process document via summarization service
       console.log(`📥 [DEBUG] Sending to summarization service: ${doc.documentUrl}`);
+      
+      // Check if we have a local file path instead of URL
+      let filePathToProcess = doc.documentUrl;
+      if (doc.localFilePath && await fs.pathExists(doc.localFilePath)) {
+        console.log(`📥 [DEBUG] Using local file path: ${doc.localFilePath}`);
+        filePathToProcess = doc.localFilePath;
+      } else {
+        console.log(`📥 [DEBUG] Using URL (no local file found): ${doc.documentUrl}`);
+      }
+      
       const result = await summarizeContent(
-        doc.documentUrl,
+        filePathToProcess,
         doc.filename || 'document',
         '',
         'openai/gpt-4o'
