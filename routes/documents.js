@@ -419,7 +419,6 @@ router.post('/process', async (req, res) => {
                 description: `${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
                 filename: finalFilename, // Use final filename
                 status: 'queued',
-                metadata: JSON.stringify(conversionMetadata), // Store conversion metadata
                 queuedAt: new Date(),
                 retryCount: 0,
                 maxRetries: 3
@@ -786,7 +785,6 @@ router.post('/queue/test', async (req, res) => {
               description: `TEST DOCUMENT ${queuedCount + 1}/${test_limit}: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
               filename: finalFilename,
               status: 'queued',
-              metadata: JSON.stringify(conversionMetadata),
               queuedAt: new Date(),
               retryCount: 0,
               maxRetries: 3
@@ -1116,7 +1114,6 @@ router.post('/queue', async (req, res) => {
                   description: `Document from: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
                   filename: finalFilename, // Use final filename
                   status: 'queued',
-                  metadata: JSON.stringify(conversionMetadata), // Store conversion metadata
                   queuedAt: new Date(),
                   retryCount: 0,
                   maxRetries: 3
