@@ -2044,12 +2044,62 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       const contentType = response.headers['content-type'] || '';
       const analysis = documentAnalyzer.analyzeDocument(fileBuffer, originalFilename, contentType);
       
-      // Skip ZIP files but allow all Microsoft Office documents and PDFs
+      // Handle ZIP files by extracting them
       if (analysis.isZipFile && !analysis.documentType.includes('Microsoft Office') && !analysis.documentType.includes('Word') && !analysis.documentType.includes('Excel') && !analysis.documentType.includes('PowerPoint')) {
-        console.log(`⚠️ [DEBUG] [${documentId}] SKIPPED - ZIP file (not Office document): ${originalFilename}`);
-        console.log(`⚠️ [DEBUG] [${documentId}] Document type detected: ${analysis.documentType}`);
-        skippedCount++;
-        return { success: false, reason: 'ZIP file' };
+        console.log(`📦 [DEBUG] [${documentId}] Processing ZIP file: ${originalFilename}`);
+        
+        try {
+          // Create extraction directory
+          const extractPath = path.join(downloadPath, `extracted_${contract.noticeId}_${Date.now()}`);
+          
+          // Extract ZIP files
+          const extractedFiles = await documentAnalyzer.extractZipFiles(fileBuffer, extractPath);
+          
+          if (extractedFiles.length === 0) {
+            console.log(`⚠️ [DEBUG] [${documentId}] No supported files found in ZIP: ${originalFilename}`);
+            skippedCount++;
+            return { success: false, reason: 'No supported files in ZIP' };
+          }
+
+          // Process each extracted file
+          let extractedCount = 0;
+          for (const extractedFile of extractedFiles) {
+            if (extractedFile.isSupported) {
+              // Move the extracted file to the main download directory with proper naming
+              const timestamp = Date.now();
+              const finalFilename = `${contract.noticeId}_${extractedFile.fileName.replace(/\.[^/.]+$/, '')}_${timestamp}${path.extname(extractedFile.fileName)}`;
+              const finalPath = path.join(downloadPath, finalFilename);
+              
+              try {
+                await fs.move(extractedFile.extractedPath, finalPath);
+                extractedCount++;
+                console.log(`✅ [DEBUG] [${documentId}] Extracted and saved: ${finalFilename} (${extractedFile.documentType})`);
+              } catch (moveError) {
+                console.error(`❌ [DEBUG] [${documentId}] Error moving extracted file:`, moveError.message);
+              }
+            }
+          }
+
+          // Clean up extraction directory
+          try {
+            await fs.remove(extractPath);
+          } catch (cleanupError) {
+            console.warn(`⚠️ [DEBUG] [${documentId}] Could not clean up extraction directory:`, cleanupError.message);
+          }
+
+          if (extractedCount > 0) {
+            downloadedCount += extractedCount;
+            console.log(`✅ [DEBUG] [${documentId}] Successfully extracted ${extractedCount} files from ZIP: ${originalFilename}`);
+            return { success: true, extractedFiles: extractedCount, type: 'ZIP Archive' };
+          } else {
+            skippedCount++;
+            return { success: false, reason: 'No files could be extracted from ZIP' };
+          }
+        } catch (zipError) {
+          console.error(`❌ [DEBUG] [${documentId}] Error processing ZIP file:`, zipError.message);
+          errorCount++;
+          return { success: false, error: zipError.message };
+        }
       }
 
       // Only skip if it's truly unsupported (not Microsoft Office or PDF)

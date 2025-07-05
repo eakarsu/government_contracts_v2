@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const AdmZip = require('adm-zip');
 
 class DocumentAnalyzer {
   constructor() {
@@ -121,12 +122,27 @@ class DocumentAnalyzer {
       return true;
     }
 
-    // Check ZIP file signature (magic bytes)
+    // Check ZIP file signature (magic bytes) but exclude Office documents
     if (buffer.length >= 4) {
       const signature = buffer.slice(0, 4);
       // ZIP file starts with "PK" (0x504B)
       if (signature[0] === 0x50 && signature[1] === 0x4B) {
-        return true;
+        // Check if it's an Office document by looking for Office-specific content
+        try {
+          const content = buffer.toString('binary', 0, Math.min(buffer.length, 1024));
+          
+          // If it contains Office-specific markers, it's an Office document, not a ZIP
+          if (content.includes('word/') || content.includes('xl/') || content.includes('ppt/') || 
+              content.includes('document.xml') || content.includes('workbook.xml') || 
+              content.includes('presentation.xml') || content.includes('_rels/') || 
+              content.includes('[Content_Types].xml')) {
+            return false; // It's an Office document
+          }
+        } catch (error) {
+          // If we can't parse the content, assume it's a regular ZIP
+        }
+        
+        return true; // It's a regular ZIP file
       }
     }
 
@@ -300,6 +316,89 @@ class DocumentAnalyzer {
   isSupportedType(contentType, filename) {
     const analysis = this.analyzeDocument(Buffer.alloc(0), filename, contentType);
     return analysis.isSupported && !analysis.isZipFile;
+  }
+
+  /**
+   * Extract files from ZIP archive
+   * @param {Buffer} zipBuffer - ZIP file buffer
+   * @param {string} extractPath - Path to extract files to
+   * @returns {Array} Array of extracted file info
+   */
+  async extractZipFiles(zipBuffer, extractPath) {
+    try {
+      console.log(`📦 [DEBUG] Extracting ZIP file to: ${extractPath}`);
+      
+      const zip = new AdmZip(zipBuffer);
+      const zipEntries = zip.getEntries();
+      const extractedFiles = [];
+
+      // Ensure extract directory exists
+      await fs.promises.mkdir(extractPath, { recursive: true });
+
+      for (const entry of zipEntries) {
+        // Skip directories and hidden files
+        if (entry.isDirectory || entry.entryName.startsWith('.') || entry.entryName.includes('__MACOSX')) {
+          console.log(`📦 [DEBUG] Skipping: ${entry.entryName} (directory or hidden file)`);
+          continue;
+        }
+
+        // Check if the file is a supported document type
+        const entryName = entry.entryName;
+        const entryExt = path.extname(entryName).toLowerCase();
+        
+        // Only extract supported document types
+        const supportedExtensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', 
+                                   '.docm', '.xlsm', '.pptm', '.dotx', '.dotm', '.xltx', '.xltm',
+                                   '.potx', '.potm', '.ppsx', '.ppsm', '.txt', '.rtf', '.csv'];
+        
+        if (!supportedExtensions.includes(entryExt)) {
+          console.log(`📦 [DEBUG] Skipping unsupported file type: ${entryName}`);
+          continue;
+        }
+
+        try {
+          // Extract the file
+          const fileBuffer = entry.getData();
+          const fileName = path.basename(entryName);
+          const filePath = path.join(extractPath, fileName);
+          
+          // Avoid filename conflicts
+          let finalFilePath = filePath;
+          let counter = 1;
+          while (await fs.promises.access(finalFilePath).then(() => true).catch(() => false)) {
+            const ext = path.extname(fileName);
+            const baseName = path.basename(fileName, ext);
+            finalFilePath = path.join(extractPath, `${baseName}_${counter}${ext}`);
+            counter++;
+          }
+
+          await fs.promises.writeFile(finalFilePath, fileBuffer);
+          
+          // Analyze the extracted file
+          const analysis = this.analyzeDocument(fileBuffer, fileName, '');
+          
+          extractedFiles.push({
+            originalPath: entryName,
+            extractedPath: finalFilePath,
+            fileName: path.basename(finalFilePath),
+            size: fileBuffer.length,
+            documentType: analysis.documentType,
+            isSupported: analysis.isSupported,
+            estimatedPages: analysis.estimatedPages
+          });
+
+          console.log(`📦 [DEBUG] Extracted: ${entryName} -> ${path.basename(finalFilePath)} (${analysis.documentType})`);
+        } catch (extractError) {
+          console.error(`❌ [DEBUG] Error extracting ${entryName}:`, extractError.message);
+        }
+      }
+
+      console.log(`📦 [DEBUG] Successfully extracted ${extractedFiles.length} supported files from ZIP`);
+      return extractedFiles;
+    } catch (error) {
+      console.error(`❌ [DEBUG] Error extracting ZIP file:`, error.message);
+      throw error;
+    }
   }
 
   /**
