@@ -54,6 +54,8 @@ router.get('/test', async (req, res) => {
       '/process',
       '/queue',
       '/queue/status',
+      '/queue/test',
+      '/queue/process-test',
       '/fetch-contracts',
       '/pdf-service/status'
     ],
@@ -605,6 +607,245 @@ router.post('/download', async (req, res) => {
   }
 });
 
+// Test bed endpoint - process only 3-5 documents for cost-effective testing
+router.post('/queue/test', async (req, res) => {
+  try {
+    const { test_limit = 3, clear_existing = true } = req.body;
+    
+    console.log('🧪 [DEBUG] Starting TEST BED document queue population...');
+    console.log(`🧪 [DEBUG] TEST MODE: Processing only ${test_limit} documents to minimize costs`);
+
+    // Clear existing queue if requested
+    if (clear_existing) {
+      const deletedCount = await prisma.documentProcessingQueue.deleteMany({});
+      console.log(`🗑️ [DEBUG] Cleared ${deletedCount.count} existing queue entries`);
+    }
+
+    // Get contracts with resourceLinks (limit to first few for testing)
+    const contracts = await prisma.contract.findMany({
+      where: { 
+        resourceLinks: { not: null }
+      },
+      take: 5, // Only get first 5 contracts for testing
+      select: {
+        noticeId: true,
+        title: true,
+        resourceLinks: true,
+        agency: true
+      }
+    });
+
+    console.log(`📄 [DEBUG] Found ${contracts.length} contracts for testing`);
+
+    if (contracts.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No contracts with document URLs found for testing',
+        queued_count: 0,
+        test_mode: true
+      });
+    }
+
+    let queuedCount = 0;
+    let skippedCount = 0;
+    let errorCount = 0;
+
+    // Process contracts but limit total documents to test_limit
+    for (const contract of contracts) {
+      if (queuedCount >= test_limit) {
+        console.log(`🧪 [DEBUG] Reached test limit of ${test_limit} documents, stopping`);
+        break;
+      }
+
+      try {
+        const resourceLinks = contract.resourceLinks;
+        
+        if (!resourceLinks || !Array.isArray(resourceLinks) || resourceLinks.length === 0) {
+          skippedCount++;
+          continue;
+        }
+
+        // Process only first document from each contract for testing
+        const docUrl = resourceLinks[0]; // Only take first document
+        
+        try {
+          const urlParts = docUrl.split('/');
+          const originalFilename = urlParts[urlParts.length - 1] || `test_document_${queuedCount + 1}`;
+          const filename = `TEST_${contract.noticeId}_${originalFilename}`;
+
+          console.log(`🧪 [DEBUG] TEST DOCUMENT ${queuedCount + 1}/${test_limit}: ${docUrl}`);
+
+          // Check if already queued
+          const existing = await prisma.documentProcessingQueue.findFirst({
+            where: {
+              contractNoticeId: contract.noticeId,
+              documentUrl: docUrl
+            }
+          });
+
+          if (existing) {
+            console.log(`⚠️ [DEBUG] Document already queued: ${filename}`);
+            skippedCount++;
+            continue;
+          }
+
+          // 🧪 CALL LIBREOFFICE CONVERSION SERVICE BEFORE TEST QUEUEING
+          console.log(`📄➡️📄 [TEST] 🔄 Attempting PDF conversion for test document: ${filename}`);
+          
+          // Create temporary directory for conversion
+          const tempDir = path.join(process.cwd(), 'temp_conversions', `test_${Date.now()}`);
+          await fs.ensureDir(tempDir);
+          
+          // Download the document first
+          let conversionResult;
+          try {
+            const response = await axios.get(docUrl, {
+              responseType: 'arraybuffer',
+              timeout: 120000,
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)',
+                'Accept': '*/*'
+              }
+            });
+
+            const fileBuffer = Buffer.from(response.data);
+            const fileExt = path.extname(originalFilename).toLowerCase();
+            const tempInputPath = path.join(tempDir, `input${fileExt}`);
+            await fs.writeFile(tempInputPath, fileBuffer);
+            
+            // Convert using LibreOffice
+            await libreOfficeService.convertToPdfWithRetry(tempInputPath, tempDir);
+            
+            conversionResult = {
+              success: true,
+              isPdf: fileExt === '.pdf',
+              wasConverted: fileExt !== '.pdf',
+              originalUrl: docUrl,
+              originalFilename: originalFilename,
+              message: fileExt === '.pdf' ? 'Document is already a PDF' : 'Document successfully converted to PDF'
+            };
+          } catch (error) {
+            conversionResult = {
+              success: false,
+              isPdf: false,
+              wasConverted: false,
+              originalUrl: docUrl,
+              originalFilename: originalFilename,
+              error: error.message,
+              message: `PDF conversion failed: ${error.message}`
+            };
+          } finally {
+            // Clean up temp directory
+            try {
+              await fs.remove(tempDir);
+            } catch (cleanupError) {
+              console.warn(`⚠️ [DEBUG] Could not clean up temp directory: ${cleanupError.message}`);
+            }
+          }
+
+          console.log(`📄➡️📄 [TEST] PDF conversion result:`, {
+            success: conversionResult.success,
+            isPdf: conversionResult.isPdf,
+            wasConverted: conversionResult.wasConverted,
+            message: conversionResult.message
+          });
+
+          // Determine the final document URL and filename to queue
+          let finalDocUrl = docUrl;
+          let finalFilename = filename;
+          let conversionMetadata = {
+            testMode: true,
+            testDocument: queuedCount + 1,
+            totalTestDocuments: test_limit
+          };
+
+          if (conversionResult.success) {
+            if (conversionResult.wasConverted && conversionResult.pdfUrl) {
+              finalDocUrl = conversionResult.pdfUrl;
+              finalFilename = conversionResult.convertedFilename || `TEST_${contract.noticeId}_${originalFilename}.pdf`;
+              conversionMetadata.convertedToPdf = true;
+              console.log(`📄➡️📄 [TEST] ✅ Using converted PDF URL: ${finalDocUrl}`);
+            } else if (conversionResult.isPdf) {
+              conversionMetadata.alreadyPdf = true;
+              console.log(`📄➡️📄 [TEST] ✅ Document is already PDF: ${finalDocUrl}`);
+            }
+          } else {
+            conversionMetadata.conversionFailed = true;
+            conversionMetadata.conversionError = conversionResult.error;
+            console.log(`📄➡️📄 [TEST] ⚠️ PDF conversion failed: ${conversionResult.message}`);
+          }
+
+          // Create queue entry for test document
+          await prisma.documentProcessingQueue.create({
+            data: {
+              contractNoticeId: contract.noticeId,
+              documentUrl: finalDocUrl,
+              description: `TEST DOCUMENT ${queuedCount + 1}/${test_limit}: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
+              filename: finalFilename,
+              status: 'queued',
+              metadata: JSON.stringify(conversionMetadata)
+            }
+          });
+
+          queuedCount++;
+          console.log(`🧪 [DEBUG] ✅ Queued TEST document ${queuedCount}/${test_limit}: ${finalFilename}`);
+
+        } catch (docError) {
+          console.error(`❌ [DEBUG] Error queueing test document ${docUrl}:`, docError.message);
+          errorCount++;
+        }
+      } catch (contractError) {
+        console.error(`❌ [DEBUG] Error processing test contract ${contract.noticeId}:`, contractError.message);
+        errorCount++;
+      }
+    }
+
+    // Get final queue status
+    const queueStatus = await prisma.documentProcessingQueue.groupBy({
+      by: ['status'],
+      _count: { id: true }
+    });
+
+    const statusCounts = {};
+    queueStatus.forEach(item => {
+      statusCounts[item.status] = item._count.id;
+    });
+
+    console.log(`🧪 [DEBUG] TEST BED queue population completed:`);
+    console.log(`🧪 [DEBUG] - Queued: ${queuedCount} TEST documents`);
+    console.log(`🧪 [DEBUG] - Skipped: ${skippedCount} documents`);
+    console.log(`🧪 [DEBUG] - Errors: ${errorCount} documents`);
+    console.log(`🧪 [DEBUG] - Cost impact: MINIMAL (only ${queuedCount} documents)`);
+
+    res.json({
+      success: true,
+      message: `🧪 TEST BED: Successfully queued ${queuedCount} documents for cost-effective testing`,
+      test_mode: true,
+      queued_count: queuedCount,
+      test_limit: test_limit,
+      skipped_count: skippedCount,
+      error_count: errorCount,
+      cost_impact: 'MINIMAL',
+      queue_status: {
+        queued: statusCounts.queued || 0,
+        processing: statusCounts.processing || 0,
+        completed: statusCounts.completed || 0,
+        failed: statusCounts.failed || 0,
+        total: Object.values(statusCounts).reduce((sum, count) => sum + count, 0),
+        is_processing: (statusCounts.processing || 0) > 0
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error in test bed queueing:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      test_mode: true
+    });
+  }
+});
+
 // Queue documents for processing from all indexed contracts using parallel processing
 router.post('/queue', async (req, res) => {
   try {
@@ -1138,6 +1379,85 @@ router.get('/queue/status', async (req, res) => {
   }
 });
 
+// Test bed processing endpoint - process only test documents
+router.post('/queue/process-test', async (req, res) => {
+  try {
+    console.log('🧪 [DEBUG] Starting TEST BED document processing...');
+    console.log('🧪 [DEBUG] TEST MODE: Processing only test documents to minimize costs');
+
+    // Check if there's already a running job
+    const existingJob = await prisma.indexingJob.findFirst({
+      where: { 
+        status: 'running',
+        jobType: { in: ['queue_processing', 'document_processing'] }
+      }
+    });
+
+    if (existingJob) {
+      return res.json({
+        success: false,
+        message: `Queue processing is already running (Job #${existingJob.id}). Please wait for it to complete or stop it first.`,
+        existing_job_id: existingJob.id,
+        started_at: existingJob.createdAt,
+        test_mode: true
+      });
+    }
+
+    // Get only TEST documents from queue
+    const testDocs = await prisma.documentProcessingQueue.findMany({
+      where: { 
+        status: 'queued',
+        filename: { startsWith: 'TEST_' } // Only process test documents
+      },
+      orderBy: { queuedAt: 'asc' }
+    });
+
+    if (testDocs.length === 0) {
+      return res.json({
+        success: true,
+        message: '🧪 No test documents currently queued for processing. Use /queue/test first.',
+        queued_count: 0,
+        test_mode: true
+      });
+    }
+
+    console.log(`🧪 [DEBUG] Found ${testDocs.length} TEST documents to process`);
+
+    // Create processing job for tracking
+    const job = await prisma.indexingJob.create({
+      data: {
+        jobType: 'queue_processing',
+        status: 'running',
+        startDate: new Date()
+      }
+    });
+
+    console.log(`✅ [DEBUG] Created TEST processing job: ${job.id}`);
+
+    // Respond immediately with job info
+    res.json({
+      success: true,
+      message: `🧪 TEST BED: Started processing ${testDocs.length} test documents (cost-effective mode)`,
+      job_id: job.id,
+      documents_count: testDocs.length,
+      test_mode: true,
+      cost_impact: 'MINIMAL',
+      processing_method: 'test_bed_sequential'
+    });
+
+    // Process test documents sequentially (not in parallel) to minimize costs
+    processTestDocumentsSequentially(testDocs, job.id);
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error starting test document processing:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      test_mode: true
+    });
+  }
+});
+
 // Process queued documents with parallel processing and real-time updates
 router.post('/queue/process', async (req, res) => {
   try {
@@ -1217,6 +1537,196 @@ router.post('/queue/process', async (req, res) => {
     });
   }
 });
+
+// Helper function to process test documents sequentially (cost-effective)
+async function processTestDocumentsSequentially(documents, jobId) {
+  console.log(`🧪 [DEBUG] Processing ${documents.length} TEST documents SEQUENTIALLY (cost-effective mode)`);
+  
+  let processedCount = 0;
+  let successCount = 0;
+  let errorCount = 0;
+  let skippedCount = 0;
+
+  // Process documents one by one to minimize costs
+  for (const doc of documents) {
+    try {
+      console.log(`🧪 [DEBUG] Processing TEST document ${processedCount + 1}/${documents.length}: ${doc.filename}`);
+      
+      // Update status to processing
+      try {
+        await prisma.documentProcessingQueue.update({
+          where: { id: doc.id },
+          data: { 
+            status: 'processing',
+            startedAt: new Date()
+          }
+        });
+      } catch (updateError) {
+        if (updateError.code === 'P2025') {
+          console.log(`⚠️ [DEBUG] Test document record ${doc.id} no longer exists, skipping`);
+          continue;
+        }
+        throw updateError;
+      }
+
+      const documentId = `${doc.contractNoticeId}_${doc.filename}`;
+      
+      // Check if document is already indexed in vector database
+      const existingDocs = await vectorService.searchDocuments(documentId, 1);
+      
+      if (existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) {
+        console.log(`🧪 [DEBUG] Test document already indexed, using cached: ${documentId}`);
+        
+        try {
+          await prisma.documentProcessingQueue.update({
+            where: { id: doc.id },
+            data: {
+              status: 'completed',
+              processedData: JSON.stringify({ 
+                cached: true, 
+                content: existingDocs[0].document,
+                source: 'vector_database',
+                testMode: true
+              }),
+              completedAt: new Date()
+            }
+          });
+        } catch (updateError) {
+          if (updateError.code === 'P2025') {
+            console.log(`⚠️ [DEBUG] Test document record ${doc.id} was deleted`);
+            continue;
+          }
+          throw updateError;
+        }
+
+        skippedCount++;
+        console.log(`🧪 [DEBUG] ✅ Test document ${processedCount + 1} cached successfully`);
+      } else {
+        // Process document via summarization service
+        console.log(`🧪 [DEBUG] 💰 COST ALERT: Sending test document to summarization service: ${doc.documentUrl}`);
+        const result = await summarizeContent(
+          doc.documentUrl,
+          doc.filename || 'test_document',
+          '',
+          'openai/gpt-4o'
+        );
+
+        if (result) {
+          const finalFilename = result.correctedFilename || doc.filename;
+          
+          // Check if record still exists
+          const existingRecord = await prisma.documentProcessingQueue.findUnique({
+            where: { id: doc.id }
+          });
+
+          if (!existingRecord) {
+            console.log(`⚠️ [DEBUG] Test document record ${doc.id} no longer exists`);
+            continue;
+          }
+
+          // Update filename if changed
+          if (finalFilename !== doc.filename) {
+            console.log(`🧪 [DEBUG] Updating test filename from ${doc.filename} to ${finalFilename}`);
+            try {
+              await prisma.documentProcessingQueue.update({
+                where: { id: doc.id },
+                data: { filename: finalFilename }
+              });
+            } catch (updateError) {
+              console.log(`⚠️ [DEBUG] Failed to update test filename: ${updateError.message}`);
+            }
+          }
+
+          // Index the processed document
+          await vectorService.indexDocument({
+            filename: finalFilename,
+            content: result.content || result.text || JSON.stringify(result),
+            processedData: { ...result, testMode: true }
+          }, doc.contractNoticeId);
+
+          // Update status to completed
+          try {
+            await prisma.documentProcessingQueue.update({
+              where: { id: doc.id },
+              data: {
+                status: 'completed',
+                processedData: JSON.stringify({ ...result, testMode: true }),
+                completedAt: new Date()
+              }
+            });
+          } catch (updateError) {
+            if (updateError.code === 'P2025') {
+              console.log(`⚠️ [DEBUG] Test document record ${doc.id} was deleted during processing`);
+              continue;
+            }
+            throw updateError;
+          }
+
+          successCount++;
+          console.log(`🧪 [DEBUG] ✅ Test document ${processedCount + 1} processed successfully`);
+        } else {
+          throw new Error('No result from summarization service');
+        }
+      }
+
+    } catch (error) {
+      console.error(`🧪 [DEBUG] ❌ Error processing test document ${doc.filename}:`, error.message);
+      
+      // Update status to failed
+      try {
+        await prisma.documentProcessingQueue.update({
+          where: { id: doc.id },
+          data: {
+            status: 'failed',
+            errorMessage: error.message,
+            failedAt: new Date()
+          }
+        });
+      } catch (updateError) {
+        if (updateError.code === 'P2025') {
+          console.log(`⚠️ [DEBUG] Test document record ${doc.id} was deleted`);
+        }
+      }
+
+      errorCount++;
+    } finally {
+      processedCount++;
+      
+      console.log(`🧪 [DEBUG] Test progress: ${processedCount}/${documents.length} - Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}`);
+      
+      // Add delay between documents to be gentle on the API
+      if (processedCount < documents.length) {
+        console.log(`🧪 [DEBUG] Waiting 2 seconds before next test document...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+  }
+
+  // Update job status
+  try {
+    await prisma.indexingJob.update({
+      where: { id: jobId },
+      data: {
+        status: 'completed',
+        recordsProcessed: successCount,
+        errorsCount: errorCount,
+        completedAt: new Date()
+      }
+    });
+
+    console.log(`🧪 [DEBUG] ========================================`);
+    console.log(`🧪 [DEBUG] TEST BED PROCESSING COMPLETED!`);
+    console.log(`🧪 [DEBUG] ========================================`);
+    console.log(`🧪 [DEBUG] 📊 Total processed: ${processedCount}`);
+    console.log(`🧪 [DEBUG] ✅ Success: ${successCount}`);
+    console.log(`🧪 [DEBUG] ❌ Errors: ${errorCount}`);
+    console.log(`🧪 [DEBUG] ⏭️  Skipped: ${skippedCount}`);
+    console.log(`🧪 [DEBUG] 💰 Cost impact: MINIMAL (only ${successCount} API calls)`);
+    console.log(`🧪 [DEBUG] ========================================`);
+  } catch (updateError) {
+    console.error('🧪 [DEBUG] Error updating test job status:', updateError);
+  }
+}
 
 // Helper function to process ALL documents simultaneously (no concurrency limits)
 async function processDocumentsInParallel(documents, concurrency, jobId) {

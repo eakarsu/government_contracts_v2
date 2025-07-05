@@ -139,6 +139,6 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
 
 
 module.exports = {
-  sendToNorshinAPI
+  summarizeContent
 };
 
