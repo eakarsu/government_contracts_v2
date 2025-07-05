@@ -84,6 +84,27 @@ const QuickActions: React.FC = () => {
     },
   });
 
+  // Test bed mutations for cost-effective testing
+  const queueTestDocumentsMutation = useMutation({
+    mutationFn: () => apiService.queueTestDocuments({ test_limit: 3, clear_existing: true }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+    },
+    onError: (error: any) => {
+      console.error('Queue test documents error:', error);
+    },
+  });
+
+  const processTestDocumentsMutation = useMutation({
+    mutationFn: () => apiService.processTestDocuments(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+    },
+    onError: (error: any) => {
+      console.error('Process test documents error:', error);
+    },
+  });
+
   return (
     <div className="bg-white shadow rounded-lg p-6 h-fit">
       <h3 className="text-lg font-medium text-gray-900 mb-6">Quick Actions</h3>
@@ -149,6 +170,36 @@ const QuickActions: React.FC = () => {
           )}
         </button>
 
+        {/* Test Bed Section */}
+        <div className="border-t pt-4 mt-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">🧪 Test Bed (Cost-Effective)</h4>
+          <div className="space-y-2">
+            <button
+              onClick={() => queueTestDocumentsMutation.mutate()}
+              disabled={queueTestDocumentsMutation.isPending}
+              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 transition-colors"
+            >
+              {queueTestDocumentsMutation.isPending ? (
+                <LoadingSpinner size="sm" color="white" />
+              ) : (
+                '🧪 Queue 3 Test Documents'
+              )}
+            </button>
+
+            <button
+              onClick={() => processTestDocumentsMutation.mutate()}
+              disabled={processTestDocumentsMutation.isPending}
+              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 transition-colors"
+            >
+              {processTestDocumentsMutation.isPending ? (
+                <LoadingSpinner size="sm" color="white" />
+              ) : (
+                '🧪 Process Test Documents'
+              )}
+            </button>
+          </div>
+        </div>
+
         {/* Queue Management Section */}
         <div className="border-t pt-4 mt-4">
           <h4 className="text-sm font-medium text-gray-700 mb-3">Queue Management</h4>
@@ -212,6 +263,19 @@ const QuickActions: React.FC = () => {
         </div>
       ) : null}
 
+      {/* Test Bed Success Messages */}
+      {queueTestDocumentsMutation.isSuccess ? (
+        <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
+          <div className="text-orange-800 text-sm">🧪 Test documents queued successfully! (Minimal cost impact)</div>
+        </div>
+      ) : null}
+
+      {processTestDocumentsMutation.isSuccess ? (
+        <div className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-md">
+          <div className="text-teal-800 text-sm">🧪 Test document processing started! (Cost-effective mode)</div>
+        </div>
+      ) : null}
+
       {/* Error Messages */}
       {fetchContractsMutation.error ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
@@ -250,6 +314,23 @@ const QuickActions: React.FC = () => {
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
             Error with auto process: {processDocumentsMutation.error instanceof Error ? processDocumentsMutation.error.message : 'Unknown error'}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Test Bed Error Messages */}
+      {queueTestDocumentsMutation.error ? (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-red-800 text-sm">
+            🧪 Error queueing test documents: {queueTestDocumentsMutation.error instanceof Error ? queueTestDocumentsMutation.error.message : 'Unknown error'}
+          </div>
+        </div>
+      ) : null}
+
+      {processTestDocumentsMutation.error ? (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-red-800 text-sm">
+            🧪 Error processing test documents: {processTestDocumentsMutation.error instanceof Error ? processTestDocumentsMutation.error.message : 'Unknown error'}
           </div>
         </div>
       ) : null}
