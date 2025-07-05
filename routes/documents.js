@@ -234,8 +234,246 @@ router.post('/process', async (req, res) => {
   console.log('🔄 [DEBUG] Request body:', req.body);
   
   try {
-    const { contract_id, limit = 50, auto_queue = true, concurrency = 5 } = req.body;
-    console.log('🔄 [DEBUG] Parsed parameters:', { contract_id, limit, auto_queue, concurrency });
+    const { contract_id, limit = 50, auto_queue = true, concurrency = 5, test_mode = false } = req.body;
+    console.log('🔄 [DEBUG] Parsed parameters:', { contract_id, limit, auto_queue, concurrency, test_mode });
+
+    // If limit is small (≤ 5), automatically enable test mode for cost-effectiveness
+    const shouldUseTestMode = test_mode || limit <= 5;
+    
+    if (shouldUseTestMode) {
+      console.log('🧪 [DEBUG] Using TEST MODE for cost-effective processing (limit ≤ 5 or test_mode enabled)');
+      
+      // Clear existing queue if in test mode
+      const deletedCount = await prisma.documentProcessingQueue.deleteMany({});
+      console.log(`🗑️ [DEBUG] Cleared ${deletedCount.count} existing queue entries for test mode`);
+
+      // Get contracts with resourceLinks (limit to first few for testing)
+      const contracts = await prisma.contract.findMany({
+        where: { 
+          resourceLinks: { not: null },
+          ...(contract_id ? { noticeId: contract_id } : {})
+        },
+        take: Math.min(limit, 5), // Maximum 5 contracts for test mode
+        select: {
+          noticeId: true,
+          title: true,
+          resourceLinks: true,
+          agency: true
+        }
+      });
+
+      console.log(`📄 [DEBUG] Found ${contracts.length} contracts for test processing`);
+
+      if (contracts.length === 0) {
+        return res.json({
+          success: false,
+          message: 'No contracts with document URLs found for test processing',
+          processed_count: 0,
+          test_mode: true
+        });
+      }
+
+      let queuedCount = 0;
+      let skippedCount = 0;
+      let errorCount = 0;
+
+      // Process contracts but limit total documents to test_limit
+      for (const contract of contracts) {
+        if (queuedCount >= limit) {
+          console.log(`🧪 [DEBUG] Reached test limit of ${limit} documents, stopping`);
+          break;
+        }
+
+        try {
+          const resourceLinks = contract.resourceLinks;
+          
+          if (!resourceLinks || !Array.isArray(resourceLinks) || resourceLinks.length === 0) {
+            skippedCount++;
+            continue;
+          }
+
+          // Process only first document from each contract for testing
+          const docUrl = resourceLinks[0]; // Only take first document
+          
+          try {
+            const urlParts = docUrl.split('/');
+            const originalFilename = urlParts[urlParts.length - 1] || `test_document_${queuedCount + 1}`;
+            const filename = `TEST_${contract.noticeId}_${originalFilename}`;
+
+            console.log(`🧪 [DEBUG] TEST DOCUMENT ${queuedCount + 1}/${limit}: ${docUrl}`);
+
+            // Check if already queued
+            const existing = await prisma.documentProcessingQueue.findFirst({
+              where: {
+                contractNoticeId: contract.noticeId,
+                documentUrl: docUrl
+              }
+            });
+
+            if (existing) {
+              console.log(`⚠️ [DEBUG] Document already queued: ${filename}`);
+              skippedCount++;
+              continue;
+            }
+
+            // 🧪 CALL LIBREOFFICE CONVERSION SERVICE BEFORE TEST QUEUEING
+            console.log(`📄➡️📄 [TEST] 🔄 Attempting PDF conversion for test document: ${filename}`);
+            
+            // Create temporary directory for conversion
+            const tempDir = path.join(process.cwd(), 'temp_conversions', `test_${Date.now()}`);
+            await fs.ensureDir(tempDir);
+            
+            // Download the document first
+            let conversionResult;
+            try {
+              const response = await axios.get(docUrl, {
+                responseType: 'arraybuffer',
+                timeout: 120000,
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)',
+                  'Accept': '*/*'
+                }
+              });
+
+              const fileBuffer = Buffer.from(response.data);
+              const fileExt = path.extname(originalFilename).toLowerCase();
+              const tempInputPath = path.join(tempDir, `input${fileExt}`);
+              await fs.writeFile(tempInputPath, fileBuffer);
+              
+              // Convert using LibreOffice
+              await libreOfficeService.convertToPdfWithRetry(tempInputPath, tempDir);
+              
+              conversionResult = {
+                success: true,
+                isPdf: fileExt === '.pdf',
+                wasConverted: fileExt !== '.pdf',
+                originalUrl: docUrl,
+                originalFilename: originalFilename,
+                message: fileExt === '.pdf' ? 'Document is already a PDF' : 'Document successfully converted to PDF'
+              };
+            } catch (error) {
+              conversionResult = {
+                success: false,
+                isPdf: false,
+                wasConverted: false,
+                originalUrl: docUrl,
+                originalFilename: originalFilename,
+                error: error.message,
+                message: `PDF conversion failed: ${error.message}`
+              };
+            } finally {
+              // Clean up temp directory
+              try {
+                await fs.remove(tempDir);
+              } catch (cleanupError) {
+                console.warn(`⚠️ [DEBUG] Could not clean up temp directory: ${cleanupError.message}`);
+              }
+            }
+
+            console.log(`📄➡️📄 [TEST] PDF conversion result:`, {
+              success: conversionResult.success,
+              isPdf: conversionResult.isPdf,
+              wasConverted: conversionResult.wasConverted,
+              message: conversionResult.message
+            });
+
+            // Determine the final document URL and filename to queue
+            let finalDocUrl = docUrl;
+            let finalFilename = filename;
+
+            if (conversionResult.success) {
+              if (conversionResult.wasConverted && conversionResult.pdfUrl) {
+                finalDocUrl = conversionResult.pdfUrl;
+                finalFilename = conversionResult.convertedFilename || `TEST_${contract.noticeId}_${originalFilename}.pdf`;
+                console.log(`📄➡️📄 [TEST] ✅ Using converted PDF URL: ${finalDocUrl}`);
+              } else if (conversionResult.isPdf) {
+                console.log(`📄➡️📄 [TEST] ✅ Document is already PDF: ${finalDocUrl}`);
+              }
+            } else {
+              console.log(`📄➡️📄 [TEST] ⚠️ PDF conversion failed: ${conversionResult.message}`);
+            }
+
+            // Check if document was already downloaded locally
+            const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+            const possibleLocalFiles = await fs.readdir(downloadPath).catch(() => []);
+            const localFile = possibleLocalFiles.find(file => 
+              file.includes(contract.noticeId) && 
+              (file.includes(originalFilename.replace(/\.[^/.]+$/, '')) || file.includes('document'))
+            );
+            
+            const localFilePath = localFile ? path.join(downloadPath, localFile) : null;
+            
+            if (localFilePath) {
+              console.log(`📁 [DEBUG] Found local file for test document: ${localFile}`);
+            }
+
+            // Create queue entry for test document
+            await prisma.documentProcessingQueue.create({
+              data: {
+                contractNoticeId: contract.noticeId,
+                documentUrl: finalDocUrl,
+                localFilePath: localFilePath,
+                description: `TEST DOCUMENT ${queuedCount + 1}/${limit}: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
+                filename: finalFilename,
+                status: 'queued',
+                queuedAt: new Date(),
+                retryCount: 0,
+                maxRetries: 3
+              }
+            });
+
+            queuedCount++;
+            console.log(`🧪 [DEBUG] ✅ Queued TEST document ${queuedCount}/${limit}: ${finalFilename}`);
+
+          } catch (docError) {
+            console.error(`❌ [DEBUG] Error queueing test document ${docUrl}:`, docError.message);
+            errorCount++;
+          }
+        } catch (contractError) {
+          console.error(`❌ [DEBUG] Error processing test contract ${contract.noticeId}:`, contractError.message);
+          errorCount++;
+        }
+      }
+
+      // Create processing job for tracking
+      const job = await prisma.indexingJob.create({
+        data: {
+          jobType: 'queue_processing',
+          status: 'running',
+          startDate: new Date()
+        }
+      });
+
+      console.log(`✅ [DEBUG] Created TEST processing job: ${job.id}`);
+
+      // Respond immediately with job info
+      res.json({
+        success: true,
+        message: `🧪 TEST MODE: Started processing ${queuedCount} test documents (cost-effective mode)`,
+        job_id: job.id,
+        documents_count: queuedCount,
+        test_mode: true,
+        cost_impact: 'MINIMAL',
+        processing_method: 'test_mode_sequential',
+        queued_count: queuedCount,
+        skipped_count: skippedCount,
+        error_count: errorCount
+      });
+
+      // Process test documents sequentially (not in parallel) to minimize costs
+      processTestDocumentsSequentially(await prisma.documentProcessingQueue.findMany({
+        where: { 
+          status: 'queued',
+          filename: { startsWith: 'TEST_' }
+        },
+        orderBy: { queuedAt: 'asc' }
+      }), job.id);
+
+      return; // Exit early for test mode
+    }
+
+    // REGULAR PROCESSING MODE (for larger limits)
+    console.log('🔄 [DEBUG] Using REGULAR PROCESSING MODE for large-scale processing');
 
     // Step 1: Check if there are documents in queue or if we need to populate it
     const queueStatus = await prisma.documentProcessingQueue.groupBy({
@@ -313,86 +551,6 @@ router.post('/process', async (req, res) => {
               continue;
             }
 
-            // 🆕 CALL LIBREOFFICE CONVERSION SERVICE BEFORE PROCESSING
-            console.log(`📄➡️📄 [PROCESS] 🔄 Attempting PDF conversion before queueing: ${filename}`);
-            
-            // Create temporary directory for conversion
-            const tempDir = path.join(process.cwd(), 'temp_conversions', Date.now().toString());
-            await fs.ensureDir(tempDir);
-            
-            // Download the document first
-            let conversionResult;
-            try {
-              const response = await axios.get(docUrl, {
-                responseType: 'arraybuffer',
-                timeout: 120000,
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)',
-                  'Accept': '*/*'
-                }
-              });
-
-              const fileBuffer = Buffer.from(response.data);
-              const fileExt = path.extname(originalFilename).toLowerCase();
-              const tempInputPath = path.join(tempDir, `input${fileExt}`);
-              await fs.writeFile(tempInputPath, fileBuffer);
-              
-              // Convert using LibreOffice
-              await libreOfficeService.convertToPdfWithRetry(tempInputPath, tempDir);
-              
-              conversionResult = {
-                success: true,
-                isPdf: fileExt === '.pdf',
-                wasConverted: fileExt !== '.pdf',
-                originalUrl: docUrl,
-                originalFilename: originalFilename,
-                message: fileExt === '.pdf' ? 'Document is already a PDF' : 'Document successfully converted to PDF'
-              };
-            } catch (error) {
-              conversionResult = {
-                success: false,
-                isPdf: false,
-                wasConverted: false,
-                originalUrl: docUrl,
-                originalFilename: originalFilename,
-                error: error.message,
-                message: `PDF conversion failed: ${error.message}`
-              };
-            } finally {
-              // Clean up temp directory
-              try {
-                await fs.remove(tempDir);
-              } catch (cleanupError) {
-                console.warn(`⚠️ [DEBUG] Could not clean up temp directory: ${cleanupError.message}`);
-              }
-            }
-
-            console.log(`📄➡️📄 [PROCESS] PDF conversion result:`, {
-              success: conversionResult.success,
-              isPdf: conversionResult.isPdf,
-              wasConverted: conversionResult.wasConverted,
-              message: conversionResult.message
-            });
-
-            // Determine the final document URL and filename to queue
-            let finalDocUrl = docUrl;
-            let finalFilename = filename;
-
-            if (conversionResult.success) {
-              if (conversionResult.wasConverted && conversionResult.pdfUrl) {
-                // Use the converted PDF URL
-                finalDocUrl = conversionResult.pdfUrl;
-                finalFilename = conversionResult.convertedFilename || `${contract.noticeId}_${originalFilename}.pdf`;
-                console.log(`📄➡️📄 [PROCESS] ✅ Using converted PDF URL: ${finalDocUrl}`);
-              } else if (conversionResult.isPdf) {
-                // Document was already a PDF
-                console.log(`📄➡️📄 [PROCESS] ✅ Document is already PDF, using original URL: ${finalDocUrl}`);
-              }
-            } else {
-              // Conversion failed, use original URL but log the failure
-              console.log(`📄➡️📄 [PROCESS] ⚠️ PDF conversion failed, using original URL: ${conversionResult.message}`);
-            }
-
             // Check if document was already downloaded locally
             const downloadPath = path.join(process.cwd(), 'downloaded_documents');
             const possibleLocalFiles = await fs.readdir(downloadPath).catch(() => []);
@@ -411,10 +569,10 @@ router.post('/process', async (req, res) => {
             await prisma.documentProcessingQueue.create({
               data: {
                 contractNoticeId: contract.noticeId,
-                documentUrl: finalDocUrl, // Use final URL (converted PDF or original)
+                documentUrl: docUrl,
                 localFilePath: localFilePath,
                 description: `${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
-                filename: finalFilename, // Use final filename
+                filename: filename,
                 status: 'queued',
                 queuedAt: new Date(),
                 retryCount: 0,
@@ -423,8 +581,7 @@ router.post('/process', async (req, res) => {
             });
 
             queuedDocuments++;
-            console.log(`✅ [DEBUG] Queued document: ${finalFilename}`);
-            console.log(`📄➡️📄 [PROCESS] Document URL in queue: ${finalDocUrl}`);
+            console.log(`✅ [DEBUG] Queued document: ${filename}`);
 
           } catch (error) {
             console.error(`❌ [DEBUG] Error queueing document ${docUrl}:`, error.message);

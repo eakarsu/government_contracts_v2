@@ -21,7 +21,7 @@ const QuickActions: React.FC = () => {
   });
 
   const processDocumentsMutation = useMutation({
-    mutationFn: () => apiService.processDocuments(undefined, 50),
+    mutationFn: () => apiService.processDocuments(undefined, 3), // Use limit of 3 to trigger test mode
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queue-status'] });
     },
