@@ -1,9 +1,0 @@
-# Build locally first to verify
-docker buildx build \
-  --platform linux/amd64,linux/arm64 \
-  -t eakarsun4/government_contracts:latest \
-  --load .
-
-# Then push separately
-docker push eakarsun4/government_contracts:latest
-
