@@ -377,37 +377,19 @@ router.post('/process', async (req, res) => {
             // Determine the final document URL and filename to queue
             let finalDocUrl = docUrl;
             let finalFilename = filename;
-            let conversionMetadata = {};
 
             if (conversionResult.success) {
               if (conversionResult.wasConverted && conversionResult.pdfUrl) {
                 // Use the converted PDF URL
                 finalDocUrl = conversionResult.pdfUrl;
                 finalFilename = conversionResult.convertedFilename || `${contract.noticeId}_${originalFilename}.pdf`;
-                conversionMetadata = {
-                  originalUrl: docUrl,
-                  convertedToPdf: true,
-                  conversionTime: conversionResult.conversionTime,
-                  pdfSize: conversionResult.pdfSize
-                };
                 console.log(`📄➡️📄 [PROCESS] ✅ Using converted PDF URL: ${finalDocUrl}`);
               } else if (conversionResult.isPdf) {
                 // Document was already a PDF
-                conversionMetadata = {
-                  originalUrl: docUrl,
-                  convertedToPdf: false,
-                  alreadyPdf: true
-                };
                 console.log(`📄➡️📄 [PROCESS] ✅ Document is already PDF, using original URL: ${finalDocUrl}`);
               }
             } else {
               // Conversion failed, use original URL but log the failure
-              conversionMetadata = {
-                originalUrl: docUrl,
-                convertedToPdf: false,
-                conversionFailed: true,
-                conversionError: conversionResult.error
-              };
               console.log(`📄➡️📄 [PROCESS] ⚠️ PDF conversion failed, using original URL: ${conversionResult.message}`);
             }
 
@@ -755,25 +737,16 @@ router.post('/queue/test', async (req, res) => {
           // Determine the final document URL and filename to queue
           let finalDocUrl = docUrl;
           let finalFilename = filename;
-          let conversionMetadata = {
-            testMode: true,
-            testDocument: queuedCount + 1,
-            totalTestDocuments: test_limit
-          };
 
           if (conversionResult.success) {
             if (conversionResult.wasConverted && conversionResult.pdfUrl) {
               finalDocUrl = conversionResult.pdfUrl;
               finalFilename = conversionResult.convertedFilename || `TEST_${contract.noticeId}_${originalFilename}.pdf`;
-              conversionMetadata.convertedToPdf = true;
               console.log(`📄➡️📄 [TEST] ✅ Using converted PDF URL: ${finalDocUrl}`);
             } else if (conversionResult.isPdf) {
-              conversionMetadata.alreadyPdf = true;
               console.log(`📄➡️📄 [TEST] ✅ Document is already PDF: ${finalDocUrl}`);
             }
           } else {
-            conversionMetadata.conversionFailed = true;
-            conversionMetadata.conversionError = conversionResult.error;
             console.log(`📄➡️📄 [TEST] ⚠️ PDF conversion failed: ${conversionResult.message}`);
           }
 
@@ -1072,37 +1045,19 @@ router.post('/queue', async (req, res) => {
               // Determine the final document URL and filename to queue
               let finalDocUrl = docUrl;
               let finalFilename = filename;
-              let conversionMetadata = {};
 
               if (conversionResult.success) {
                 if (conversionResult.wasConverted && conversionResult.pdfUrl) {
                   // Use the converted PDF URL
                   finalDocUrl = conversionResult.pdfUrl;
                   finalFilename = conversionResult.convertedFilename || `${contract.noticeId}_${originalFilename}.pdf`;
-                  conversionMetadata = {
-                    originalUrl: docUrl,
-                    convertedToPdf: true,
-                    conversionTime: conversionResult.conversionTime,
-                    pdfSize: conversionResult.pdfSize
-                  };
                   console.log(`📄➡️📄 [QUEUE] ✅ Using converted PDF URL: ${finalDocUrl}`);
                 } else if (conversionResult.isPdf) {
                   // Document was already a PDF
-                  conversionMetadata = {
-                    originalUrl: docUrl,
-                    convertedToPdf: false,
-                    alreadyPdf: true
-                  };
                   console.log(`📄➡️📄 [QUEUE] ✅ Document is already PDF, using original URL: ${finalDocUrl}`);
                 }
               } else {
                 // Conversion failed, use original URL but log the failure
-                conversionMetadata = {
-                  originalUrl: docUrl,
-                  convertedToPdf: false,
-                  conversionFailed: true,
-                  conversionError: conversionResult.error
-                };
                 console.log(`📄➡️📄 [QUEUE] ⚠️ PDF conversion failed, using original URL: ${conversionResult.message}`);
               }
 
