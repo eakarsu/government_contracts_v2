@@ -311,7 +311,7 @@ router.post('/process', async (req, res) => {
               continue;
             }
 
-            // 🆕 CALL LIBREOFFICE CONVERSION SERVICE BEFORE QUEUEING
+            // 🆕 CALL LIBREOFFICE CONVERSION SERVICE BEFORE PROCESSING
             console.log(`📄➡️📄 [PROCESS] 🔄 Attempting PDF conversion before queueing: ${filename}`);
             
             // Create temporary directory for conversion
@@ -763,7 +763,7 @@ router.post('/queue', async (req, res) => {
                 continue;
               }
 
-              // 🆕 CALL LIBREOFFICE CONVERSION SERVICE BEFORE QUEUEING
+              // 🆕 CALL LIBREOFFICE CONVERSION SERVICE BEFORE QUEUE INSERTION
               console.log(`📄➡️📄 [QUEUE] 🔄 Attempting PDF conversion before queueing: ${filename}`);
               
               // Create temporary directory for conversion
