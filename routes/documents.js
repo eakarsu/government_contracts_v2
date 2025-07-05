@@ -1586,14 +1586,43 @@ async function processTestDocumentsSequentially(documents, jobId) {
         // Process document via summarization service
         console.log(`🧪 [DEBUG] 💰 COST ALERT: Sending test document to summarization service`);
         
-        // Check if we have a local file path instead of URL
-        let filePathToProcess = doc.documentUrl;
-        if (doc.localFilePath && await fs.pathExists(doc.localFilePath)) {
-          console.log(`🧪 [DEBUG] ✅ Using local file path: ${doc.localFilePath}`);
+        // First, try to find the downloaded file in the downloaded_documents folder
+        const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+        let localFilePath = null;
+        
+        try {
+          const downloadedFiles = await fs.readdir(downloadPath);
+          // Look for files that match this contract ID
+          const matchingFile = downloadedFiles.find(file => 
+            file.includes(doc.contractNoticeId) && 
+            (file.toLowerCase().endsWith('.pdf') || 
+             file.toLowerCase().endsWith('.doc') || 
+             file.toLowerCase().endsWith('.docx') ||
+             file.toLowerCase().endsWith('.xls') ||
+             file.toLowerCase().endsWith('.xlsx') ||
+             file.toLowerCase().endsWith('.ppt') ||
+             file.toLowerCase().endsWith('.pptx'))
+          );
+          
+          if (matchingFile) {
+            localFilePath = path.join(downloadPath, matchingFile);
+            console.log(`🧪 [DEBUG] ✅ Found downloaded file: ${matchingFile}`);
+          }
+        } catch (error) {
+          console.log(`🧪 [DEBUG] ⚠️ Could not check downloaded files: ${error.message}`);
+        }
+        
+        // Use local file if found, otherwise use the stored localFilePath, otherwise use URL
+        let filePathToProcess;
+        if (localFilePath && await fs.pathExists(localFilePath)) {
+          filePathToProcess = localFilePath;
+          console.log(`🧪 [DEBUG] ✅ Using found local file: ${localFilePath}`);
+        } else if (doc.localFilePath && await fs.pathExists(doc.localFilePath)) {
           filePathToProcess = doc.localFilePath;
+          console.log(`🧪 [DEBUG] ✅ Using stored local file path: ${doc.localFilePath}`);
         } else {
-          console.log(`🧪 [DEBUG] ⚠️ No local file found, will download from URL: ${doc.documentUrl}`);
           filePathToProcess = doc.documentUrl;
+          console.log(`🧪 [DEBUG] ⚠️ No local file found, will download from URL: ${doc.documentUrl}`);
         }
         
         console.log(`🧪 [DEBUG] Processing file: ${filePathToProcess}`);
@@ -1790,14 +1819,43 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       // Process document via summarization service
       console.log(`📥 [DEBUG] Sending to summarization service`);
       
-      // Check if we have a local file path instead of URL
-      let filePathToProcess = doc.documentUrl;
-      if (doc.localFilePath && await fs.pathExists(doc.localFilePath)) {
-        console.log(`📥 [DEBUG] ✅ Using local file path: ${doc.localFilePath}`);
+      // First, try to find the downloaded file in the downloaded_documents folder
+      const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+      let localFilePath = null;
+      
+      try {
+        const downloadedFiles = await fs.readdir(downloadPath);
+        // Look for files that match this contract ID
+        const matchingFile = downloadedFiles.find(file => 
+          file.includes(doc.contractNoticeId) && 
+          (file.toLowerCase().endsWith('.pdf') || 
+           file.toLowerCase().endsWith('.doc') || 
+           file.toLowerCase().endsWith('.docx') ||
+           file.toLowerCase().endsWith('.xls') ||
+           file.toLowerCase().endsWith('.xlsx') ||
+           file.toLowerCase().endsWith('.ppt') ||
+           file.toLowerCase().endsWith('.pptx'))
+        );
+        
+        if (matchingFile) {
+          localFilePath = path.join(downloadPath, matchingFile);
+          console.log(`📥 [DEBUG] ✅ Found downloaded file: ${matchingFile}`);
+        }
+      } catch (error) {
+        console.log(`📥 [DEBUG] ⚠️ Could not check downloaded files: ${error.message}`);
+      }
+      
+      // Use local file if found, otherwise use the stored localFilePath, otherwise use URL
+      let filePathToProcess;
+      if (localFilePath && await fs.pathExists(localFilePath)) {
+        filePathToProcess = localFilePath;
+        console.log(`📥 [DEBUG] ✅ Using found local file: ${localFilePath}`);
+      } else if (doc.localFilePath && await fs.pathExists(doc.localFilePath)) {
         filePathToProcess = doc.localFilePath;
+        console.log(`📥 [DEBUG] ✅ Using stored local file path: ${doc.localFilePath}`);
       } else {
-        console.log(`📥 [DEBUG] ⚠️ No local file found, will download from URL: ${doc.documentUrl}`);
         filePathToProcess = doc.documentUrl;
+        console.log(`📥 [DEBUG] ⚠️ No local file found, will download from URL: ${doc.documentUrl}`);
       }
       
       console.log(`📥 [DEBUG] Processing file: ${filePathToProcess}`);
