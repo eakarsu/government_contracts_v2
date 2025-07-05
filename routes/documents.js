@@ -1,7 +1,7 @@
 const express = require('express');
 const { prisma } = require('../config/database');
 const vectorService = require('../services/vectorService');
-const { sendToNorshinAPI, processTextWithAI } = require('../services/norshinService');
+const { summarizeContent } = require('../services/summarizationService');
 const config = require('../config/env');
 const axios = require('axios');
 const fs = require('fs-extra');
@@ -543,7 +543,7 @@ router.post('/download', async (req, res) => {
             // Document not found in vector DB, download and process it
             console.log(`📥 [DEBUG] Downloading document from government: ${docUrl}`);
             try {
-              const result = await sendToNorshinAPI(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4.1');
+              const result = await summarizeContent(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4o');
               
               if (result) {
                 // Index the processed document in vector database
@@ -1283,13 +1283,13 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         return { success: true, filename: doc.filename, cached: true };
       }
 
-      // Process document via Norshin API
-      console.log(`📥 [DEBUG] Sending to Norshin API: ${doc.documentUrl}`);
-      const result = await sendToNorshinAPI(
+      // Process document via summarization service
+      console.log(`📥 [DEBUG] Sending to summarization service: ${doc.documentUrl}`);
+      const result = await summarizeContent(
         doc.documentUrl,
         doc.filename || 'document',
         '',
-        'openai/gpt-4.1'
+        'openai/gpt-4o'
       );
 
       if (result) {
