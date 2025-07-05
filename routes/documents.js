@@ -1584,16 +1584,19 @@ async function processTestDocumentsSequentially(documents, jobId) {
         console.log(`🧪 [DEBUG] ✅ Test document ${processedCount + 1} cached successfully`);
       } else {
         // Process document via summarization service
-        console.log(`🧪 [DEBUG] 💰 COST ALERT: Sending test document to summarization service: ${doc.documentUrl}`);
+        console.log(`🧪 [DEBUG] 💰 COST ALERT: Sending test document to summarization service`);
         
         // Check if we have a local file path instead of URL
         let filePathToProcess = doc.documentUrl;
         if (doc.localFilePath && await fs.pathExists(doc.localFilePath)) {
-          console.log(`🧪 [DEBUG] Using local file path: ${doc.localFilePath}`);
+          console.log(`🧪 [DEBUG] ✅ Using local file path: ${doc.localFilePath}`);
           filePathToProcess = doc.localFilePath;
         } else {
-          console.log(`🧪 [DEBUG] Using URL (no local file found): ${doc.documentUrl}`);
+          console.log(`🧪 [DEBUG] ⚠️ No local file found, will download from URL: ${doc.documentUrl}`);
+          filePathToProcess = doc.documentUrl;
         }
+        
+        console.log(`🧪 [DEBUG] Processing file: ${filePathToProcess}`);
         
         const result = await summarizeContent(
           filePathToProcess,
@@ -1785,16 +1788,19 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       }
 
       // Process document via summarization service
-      console.log(`📥 [DEBUG] Sending to summarization service: ${doc.documentUrl}`);
+      console.log(`📥 [DEBUG] Sending to summarization service`);
       
       // Check if we have a local file path instead of URL
       let filePathToProcess = doc.documentUrl;
       if (doc.localFilePath && await fs.pathExists(doc.localFilePath)) {
-        console.log(`📥 [DEBUG] Using local file path: ${doc.localFilePath}`);
+        console.log(`📥 [DEBUG] ✅ Using local file path: ${doc.localFilePath}`);
         filePathToProcess = doc.localFilePath;
       } else {
-        console.log(`📥 [DEBUG] Using URL (no local file found): ${doc.documentUrl}`);
+        console.log(`📥 [DEBUG] ⚠️ No local file found, will download from URL: ${doc.documentUrl}`);
+        filePathToProcess = doc.documentUrl;
       }
+      
+      console.log(`📥 [DEBUG] Processing file: ${filePathToProcess}`);
       
       const result = await summarizeContent(
         filePathToProcess,

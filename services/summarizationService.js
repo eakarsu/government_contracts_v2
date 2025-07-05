@@ -5,6 +5,7 @@ const documentAnalyzer = require('../utils/documentAnalyzer');
 
 // Import your PDF processing service
 const pdfService = require('./summaryService.js'); // Adjust path as needed
+const axios = require('axios');
 
 // Utility function to send file to Norshin API (now using local PDF processing)
 const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', model = 'openai/gpt-4o') => {
@@ -25,11 +26,20 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
       const tempDir = './temp_downloads';
       await fs.ensureDir(tempDir);
       
-      // Download file using PDF service
+      // Download file manually using axios
       tempFilePath = path.join(tempDir, `download_${Date.now()}_${originalName}`);
-      await pdfService.downloadFile(filePathOrUrl, tempFilePath);
       
-      fileBuffer = fs.readFileSync(tempFilePath);
+      const response = await axios.get(filePathOrUrl, {
+        responseType: 'arraybuffer',
+        timeout: 120000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)',
+          'Accept': '*/*'
+        }
+      });
+
+      fileBuffer = Buffer.from(response.data);
+      await fs.writeFile(tempFilePath, fileBuffer);
       console.log(`📥 [DEBUG] Downloaded ${fileBuffer.length} bytes`);
       
       // Use the downloaded file path for processing
