@@ -1290,44 +1290,17 @@ router.get('/queue/status', async (req, res) => {
 
     const processingSpeed = Math.round(recentCompletions); // per hour
 
-    // When queue is empty, show downloaded files count as total
-    let displayQueued = queuedCount;
-    let displayCompleted = completedCount;
-    let displayTotal = totalDocuments;
-    
-    // ALWAYS show downloaded files count when queue is empty
-    if (totalDocuments === 0) {
-      try {
-        const downloadPath = path.join(process.cwd(), 'downloaded_documents');
-        const pathExists = await fs.pathExists(downloadPath);
-        
-        if (pathExists) {
-          const files = await fs.readdir(downloadPath);
-          const fileCount = files.length;
-          
-          // FORCE the queued count to show downloaded files when queue is empty
-          if (fileCount > 0) {
-            displayTotal = fileCount;
-            displayCompleted = 0;
-            displayQueued = fileCount; // FORCE queued to show downloaded files count
-          }
-        }
-      } catch (error) {
-        console.error('Error counting downloaded files:', error.message);
-      }
-    }
-
-    // Force the response to show downloaded files count when queue is empty
+    // Use actual database counts - no fallback to downloaded files
     const finalResponse = {
       success: true,
       timestamp: new Date().toISOString(),
       queue_status: {
-        // FORCE queued to show downloaded files count when queue is empty
-        queued: displayQueued,
+        // Use actual database counts only
+        queued: queuedCount,
         processing: processingCount,
-        completed: displayCompleted,
+        completed: completedCount,
         failed: failedCount,
-        total: displayTotal,
+        total: totalDocuments,
         
         // Processing state
         is_processing: processingCount > 0 || activeJobs.length > 0,
@@ -1368,6 +1341,8 @@ router.get('/queue/status', async (req, res) => {
       }
     };
 
+    console.log(`📊 [DEBUG] Queue status response: queued=${queuedCount}, processing=${processingCount}, completed=${completedCount}, failed=${failedCount}, total=${totalDocuments}`);
+    
     res.json(finalResponse);
 
   } catch (error) {
