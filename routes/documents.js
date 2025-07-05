@@ -609,7 +609,7 @@ router.post('/download', async (req, res) => {
 // Test bed endpoint - process only 3-5 documents for cost-effective testing
 router.post('/queue/test', async (req, res) => {
   try {
-    const { test_limit = 3, clear_existing = true } = req.body;
+    const { test_limit = 5, clear_existing = true } = req.body;
     
     console.log('🧪 [DEBUG] Starting TEST BED document queue population...');
     console.log(`🧪 [DEBUG] TEST MODE: Processing only ${test_limit} documents to minimize costs`);
