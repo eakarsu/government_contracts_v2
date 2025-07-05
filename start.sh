@@ -1,5 +1,6 @@
 #!/bin/bash
 
+#test
 # Simple Node.js Development Starter
 # Just starts the Node.js server in development mode
 
