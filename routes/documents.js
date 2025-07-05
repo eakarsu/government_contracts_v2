@@ -1344,7 +1344,7 @@ router.get('/queue/status', async (req, res) => {
       }
     };
 
-    console.log(`📊 [DEBUG] Queue status response: queued=${queuedCount}, processing=${processingCount}, completed=${completedCount}, failed=${failedCount}, total=${totalDocuments}`);
+    // console.log(`📊 [DEBUG] Queue status response: queued=${queuedCount}, processing=${processingCount}, completed=${completedCount}, failed=${failedCount}, total=${totalDocuments}`);
     
     res.json(finalResponse);
 
