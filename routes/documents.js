@@ -2044,20 +2044,27 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       const contentType = response.headers['content-type'] || '';
       const analysis = documentAnalyzer.analyzeDocument(fileBuffer, originalFilename, contentType);
       
-      // Skip ZIP files and unsupported types
-      if (analysis.isZipFile) {
-        console.log(`⚠️ [DEBUG] [${documentId}] SKIPPED - ZIP file: ${originalFilename}`);
+      // Skip ZIP files but allow all Microsoft Office documents and PDFs
+      if (analysis.isZipFile && !analysis.documentType.includes('Microsoft Office') && !analysis.documentType.includes('Word') && !analysis.documentType.includes('Excel') && !analysis.documentType.includes('PowerPoint')) {
+        console.log(`⚠️ [DEBUG] [${documentId}] SKIPPED - ZIP file (not Office document): ${originalFilename}`);
         console.log(`⚠️ [DEBUG] [${documentId}] Document type detected: ${analysis.documentType}`);
         skippedCount++;
         return { success: false, reason: 'ZIP file' };
       }
 
-      if (!analysis.isSupported) {
+      // Only skip if it's truly unsupported (not Microsoft Office or PDF)
+      if (!analysis.isSupported && !analysis.documentType.includes('PDF') && !analysis.documentType.includes('Microsoft Office') && !analysis.documentType.includes('Word') && !analysis.documentType.includes('Excel') && !analysis.documentType.includes('PowerPoint')) {
         console.log(`⚠️ [DEBUG] [${documentId}] SKIPPED - Unsupported document type: ${analysis.documentType}`);
         console.log(`⚠️ [DEBUG] [${documentId}] Content-Type: ${contentType}`);
         console.log(`⚠️ [DEBUG] [${documentId}] File extension: ${analysis.extension}`);
         skippedCount++;
         return { success: false, reason: 'Unsupported type' };
+      }
+
+      // Force support for Microsoft Office documents and PDFs even if not detected as supported
+      if (analysis.documentType.includes('PDF') || analysis.documentType.includes('Microsoft Office') || analysis.documentType.includes('Word') || analysis.documentType.includes('Excel') || analysis.documentType.includes('PowerPoint')) {
+        analysis.isSupported = true;
+        console.log(`✅ [DEBUG] [${documentId}] FORCED SUPPORT for Microsoft/PDF document: ${analysis.documentType}`);
       }
 
       // Generate proper filename with correct extension and timestamp to ensure uniqueness

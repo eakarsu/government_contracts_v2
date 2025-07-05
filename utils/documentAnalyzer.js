@@ -4,15 +4,52 @@ const path = require('path');
 class DocumentAnalyzer {
   constructor() {
     this.supportedTypes = {
+      // PDF Documents
       'application/pdf': { extension: '.pdf', type: 'PDF' },
+      
+      // Microsoft Word Documents
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { extension: '.docx', type: 'Word Document' },
       'application/msword': { extension: '.doc', type: 'Word Document (Legacy)' },
+      'application/vnd.ms-word': { extension: '.doc', type: 'Word Document (Legacy)' },
+      'application/vnd.ms-word.document.macroEnabled.12': { extension: '.docm', type: 'Word Document (Macro-Enabled)' },
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.template': { extension: '.dotx', type: 'Word Template' },
+      'application/vnd.ms-word.template.macroEnabled.12': { extension: '.dotm', type: 'Word Template (Macro-Enabled)' },
+      
+      // Microsoft Excel Documents
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { extension: '.xlsx', type: 'Excel Spreadsheet' },
       'application/vnd.ms-excel': { extension: '.xls', type: 'Excel Spreadsheet (Legacy)' },
+      'application/vnd.ms-excel.sheet.macroEnabled.12': { extension: '.xlsm', type: 'Excel Spreadsheet (Macro-Enabled)' },
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.template': { extension: '.xltx', type: 'Excel Template' },
+      'application/vnd.ms-excel.template.macroEnabled.12': { extension: '.xltm', type: 'Excel Template (Macro-Enabled)' },
+      'application/vnd.ms-excel.addin.macroEnabled.12': { extension: '.xlam', type: 'Excel Add-In' },
+      'application/vnd.ms-excel.sheet.binary.macroEnabled.12': { extension: '.xlsb', type: 'Excel Binary Spreadsheet' },
+      
+      // Microsoft PowerPoint Documents
       'application/vnd.openxmlformats-officedocument.presentationml.presentation': { extension: '.pptx', type: 'PowerPoint Presentation' },
       'application/vnd.ms-powerpoint': { extension: '.ppt', type: 'PowerPoint Presentation (Legacy)' },
+      'application/vnd.ms-powerpoint.presentation.macroEnabled.12': { extension: '.pptm', type: 'PowerPoint Presentation (Macro-Enabled)' },
+      'application/vnd.openxmlformats-officedocument.presentationml.template': { extension: '.potx', type: 'PowerPoint Template' },
+      'application/vnd.ms-powerpoint.template.macroEnabled.12': { extension: '.potm', type: 'PowerPoint Template (Macro-Enabled)' },
+      'application/vnd.ms-powerpoint.slideshow.macroEnabled.12': { extension: '.ppsm', type: 'PowerPoint Slideshow (Macro-Enabled)' },
+      'application/vnd.openxmlformats-officedocument.presentationml.slideshow': { extension: '.ppsx', type: 'PowerPoint Slideshow' },
+      
+      // Microsoft Access and Other Office Documents
+      'application/vnd.ms-access': { extension: '.mdb', type: 'Access Database (Legacy)' },
+      'application/vnd.ms-access.database': { extension: '.accdb', type: 'Access Database' },
+      'application/vnd.ms-project': { extension: '.mpp', type: 'Microsoft Project' },
+      'application/vnd.visio': { extension: '.vsd', type: 'Visio Drawing (Legacy)' },
+      'application/vnd.ms-visio.drawing': { extension: '.vsdx', type: 'Visio Drawing' },
+      'application/vnd.ms-publisher': { extension: '.pub', type: 'Publisher Document' },
+      
+      // Text and CSV Files
       'text/plain': { extension: '.txt', type: 'Text Document' },
-      'text/csv': { extension: '.csv', type: 'CSV File' }
+      'text/csv': { extension: '.csv', type: 'CSV File' },
+      'application/rtf': { extension: '.rtf', type: 'Rich Text Format' },
+      
+      // Additional common document types
+      'application/vnd.oasis.opendocument.text': { extension: '.odt', type: 'OpenDocument Text' },
+      'application/vnd.oasis.opendocument.spreadsheet': { extension: '.ods', type: 'OpenDocument Spreadsheet' },
+      'application/vnd.oasis.opendocument.presentation': { extension: '.odp', type: 'OpenDocument Presentation' }
     };
   }
 
@@ -148,16 +185,45 @@ class DocumentAnalyzer {
       return 'PDF';
     }
 
-    // Office documents (ZIP-based): PK (then look for specific files)
+    // Modern Office documents (ZIP-based): PK
     if (header[0] === 0x50 && header[1] === 0x4B) {
-      // This could be a modern Office document (.docx, .xlsx, .pptx)
-      // We'd need to examine the ZIP contents to be sure, but for now assume Office
-      return 'Microsoft Office Document';
+      // Check for Office Open XML signatures in ZIP
+      try {
+        const content = buffer.toString('binary', 0, Math.min(buffer.length, 1024));
+        
+        // Word documents
+        if (content.includes('word/') || content.includes('document.xml')) {
+          return 'Word Document';
+        }
+        
+        // Excel documents
+        if (content.includes('xl/') || content.includes('workbook.xml')) {
+          return 'Excel Spreadsheet';
+        }
+        
+        // PowerPoint documents
+        if (content.includes('ppt/') || content.includes('presentation.xml')) {
+          return 'PowerPoint Presentation';
+        }
+        
+        // Generic Office document if we can't determine specific type
+        if (content.includes('_rels/') || content.includes('[Content_Types].xml')) {
+          return 'Microsoft Office Document';
+        }
+      } catch (error) {
+        // If we can't parse the ZIP content, assume it's an Office document
+        return 'Microsoft Office Document';
+      }
     }
 
-    // Legacy Office documents
+    // Legacy Office documents (OLE2/Compound Document)
     if (header[0] === 0xD0 && header[1] === 0xCF && header[2] === 0x11 && header[3] === 0xE0) {
       return 'Microsoft Office Document (Legacy)';
+    }
+
+    // RTF documents
+    if (header[0] === 0x7B && header[1] === 0x5C && header[2] === 0x72 && header[3] === 0x74) {
+      return 'Rich Text Format';
     }
 
     return null;
@@ -241,15 +307,51 @@ class DocumentAnalyzer {
    */
   getCorrectExtension(documentType, originalExtension) {
     const typeToExtension = {
+      // PDF
       'PDF': '.pdf',
+      
+      // Word Documents
       'Word Document': '.docx',
       'Word Document (Legacy)': '.doc',
+      'Word Document (Macro-Enabled)': '.docm',
+      'Word Template': '.dotx',
+      'Word Template (Macro-Enabled)': '.dotm',
+      
+      // Excel Documents
       'Excel Spreadsheet': '.xlsx',
       'Excel Spreadsheet (Legacy)': '.xls',
+      'Excel Spreadsheet (Macro-Enabled)': '.xlsm',
+      'Excel Template': '.xltx',
+      'Excel Template (Macro-Enabled)': '.xltm',
+      'Excel Add-In': '.xlam',
+      'Excel Binary Spreadsheet': '.xlsb',
+      
+      // PowerPoint Documents
       'PowerPoint Presentation': '.pptx',
       'PowerPoint Presentation (Legacy)': '.ppt',
+      'PowerPoint Presentation (Macro-Enabled)': '.pptm',
+      'PowerPoint Template': '.potx',
+      'PowerPoint Template (Macro-Enabled)': '.potm',
+      'PowerPoint Slideshow': '.ppsx',
+      'PowerPoint Slideshow (Macro-Enabled)': '.ppsm',
+      
+      // Other Microsoft Office
+      'Access Database': '.accdb',
+      'Access Database (Legacy)': '.mdb',
+      'Microsoft Project': '.mpp',
+      'Visio Drawing': '.vsdx',
+      'Visio Drawing (Legacy)': '.vsd',
+      'Publisher Document': '.pub',
+      
+      // Text and Other
       'Text Document': '.txt',
       'CSV File': '.csv',
+      'Rich Text Format': '.rtf',
+      'OpenDocument Text': '.odt',
+      'OpenDocument Spreadsheet': '.ods',
+      'OpenDocument Presentation': '.odp',
+      
+      // Generic fallbacks
       'Microsoft Office Document': '.docx', // Default for modern Office
       'Microsoft Office Document (Legacy)': '.doc' // Default for legacy Office
     };
