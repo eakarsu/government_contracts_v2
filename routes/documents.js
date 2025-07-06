@@ -2150,6 +2150,14 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       console.log(`📁 [DEBUG] Processing queue entry ${doc.id}: ${doc.filename}`);
       console.log(`📁 [DEBUG] Expected file path: ${filePath}`);
       
+      // Add file hash to detect duplicates
+      if (filePath && await fs.pathExists(filePath)) {
+        const crypto = require('crypto');
+        const fileBuffer = await fs.readFile(filePath);
+        const fileHash = crypto.createHash('md5').update(fileBuffer).digest('hex');
+        console.log(`📁 [DEBUG] File hash: ${fileHash.substring(0, 8)}... (size: ${fileBuffer.length} bytes)`);
+      }
+      
       // Verify the file exists at the specified path
       if (!filePath || !await fs.pathExists(filePath)) {
         console.error(`❌ [DEBUG] File not found at expected path: ${filePath}`);
@@ -2222,15 +2230,21 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         // Step 2: Wait for conversion to complete, then start extraction and summarization in parallel
         const pdfPath = await conversionPromise;
         console.log(`📄 PDF ready, starting parallel extraction and analysis: ${doc.filename}`);
+        console.log(`📄 [DEBUG] Processing PDF file: ${pdfPath}`);
+        console.log(`📄 [DEBUG] Original file: ${filePath}`);
+        console.log(`📄 [DEBUG] Queue entry ID: ${doc.id}`);
         
         // Start extraction immediately
         const extractionPromise = (async () => {
           const pdfService = require('../services/summaryService.js');
-          return await pdfService.processPDF(pdfPath, {
+          console.log(`📄 [DEBUG] Starting PDF extraction for queue ID ${doc.id}: ${path.basename(pdfPath)}`);
+          const result = await pdfService.processPDF(pdfPath, {
             apiKey: process.env.REACT_APP_OPENROUTER_KEY,
             saveExtracted: false,
             outputDir: null
           });
+          console.log(`📄 [DEBUG] PDF extraction completed for queue ID ${doc.id}: ${result.wordCount} words`);
+          return result;
         })();
         
         // Wait for extraction, then start summarization

@@ -391,6 +391,9 @@ async function processPDF(pdfPath, options = {}) {
   }
 
   console.log(`📄 Processing PDF: ${path.basename(pdfPath)}`);
+  console.log(`📄 [DEBUG] Full PDF path: ${pdfPath}`);
+  console.log(`📄 [DEBUG] File size: ${fs.statSync(pdfPath).size} bytes`);
+  console.log(`📄 [DEBUG] File modified: ${fs.statSync(pdfPath).mtime}`);
   const startTime = Date.now();
   
   try {

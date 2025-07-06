@@ -247,7 +247,18 @@ class LibreOfficeService {
             ].join(' ');
 
             console.log(`Converting with unique installation: ${userInstallDir}`);
+            console.log(`📄➡️📄 [DEBUG] Converting file: ${inputPath} -> ${outputDir}`);
+            console.log(`📄➡️📄 [DEBUG] Input file size: ${fs.statSync(inputPath).size} bytes`);
             await execPromise(command, { timeout: 60000 });
+            
+            // Log output files created
+            const outputFiles = await fs.readdir(outputDir);
+            console.log(`📄➡️📄 [DEBUG] Output files created: ${outputFiles.join(', ')}`);
+            outputFiles.forEach(file => {
+                const filePath = path.join(outputDir, file);
+                const stats = fs.statSync(filePath);
+                console.log(`📄➡️📄 [DEBUG] - ${file}: ${stats.size} bytes`);
+            });
             
             return { success: true, userInstallDir };
             
