@@ -101,7 +101,7 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
       throw new Error(`PDF extraction failed: ${extractResult.error}`);
     }
     
-    console.log(`✅ Extraction completed: ${extractResult.method}, ${extractResult.wordCount} words`);
+    console.log(`✅ Extraction completed: ${extractResult.method}, ${extractResult.wordCount} words content`);
     
     // Create enhanced prompt if custom prompt provided (keeping original Norshin logic)
     let contentToSummarize = extractResult.extractedContent;
