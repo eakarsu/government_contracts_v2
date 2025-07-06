@@ -88,14 +88,70 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
     // Update originalName to use the correct extension
     originalName = properFilename;
     
-    console.log(`🔄 [DEBUG] Processing PDF with local service...`);
+    console.log(`🔄 [DEBUG] Processing document with local service...`);
     
-    // ALWAYS call processPDF before summarization
-    const extractResult = await pdfService.processPDF(pdfPath, {
+    // Check if document needs PDF conversion first
+    const fileExt = path.extname(pdfPath).toLowerCase();
+    let finalPdfPath = pdfPath;
+    
+    if (fileExt !== '.pdf') {
+      console.log(`📄➡️📄 [CONVERT] Document needs PDF conversion: ${originalName} (${fileExt})`);
+      
+      // Import LibreOffice service
+      const LibreOfficeService = require('./libreoffice.service');
+      const libreOfficeService = new LibreOfficeService();
+      
+      // Create temp directory for conversion
+      const tempDir = path.join(process.cwd(), 'temp_summarization', `${Date.now()}_${path.basename(originalName, fileExt)}`);
+      await fs.ensureDir(tempDir);
+      
+      try {
+        // Convert to PDF using LibreOffice
+        console.log(`📄➡️📄 [CONVERT] Converting ${fileExt} to PDF: ${pdfPath}`);
+        await libreOfficeService.convertToPdfWithRetry(pdfPath, tempDir);
+        
+        // Find the converted PDF
+        const files = await fs.readdir(tempDir);
+        const pdfFile = files.find(file => file.toLowerCase().endsWith('.pdf'));
+        
+        if (pdfFile) {
+          finalPdfPath = path.join(tempDir, pdfFile);
+          console.log(`📄➡️📄 [CONVERT] ✅ Conversion successful: ${finalPdfPath}`);
+        } else {
+          throw new Error('No PDF file found after LibreOffice conversion');
+        }
+        
+      } catch (conversionError) {
+        console.error(`📄➡️📄 [CONVERT] ❌ Conversion failed: ${conversionError.message}`);
+        // Clean up temp directory
+        try {
+          await fs.remove(tempDir);
+        } catch (cleanupError) {
+          console.warn(`⚠️ [DEBUG] Could not clean up temp directory: ${cleanupError.message}`);
+        }
+        throw new Error(`PDF conversion failed: ${conversionError.message}`);
+      }
+    } else {
+      console.log(`📄➡️📄 [CONVERT] Document is already PDF: ${originalName}`);
+    }
+    
+    // Now call processPDF on the PDF file (either original or converted)
+    const extractResult = await pdfService.processPDF(finalPdfPath, {
       apiKey: process.env.REACT_APP_OPENROUTER_KEY,
       saveExtracted: false,
       outputDir: null
     });
+    
+    // Clean up temp conversion directory if it was created
+    if (fileExt !== '.pdf' && finalPdfPath.includes('temp_summarization')) {
+      try {
+        const tempDir = path.dirname(finalPdfPath);
+        await fs.remove(tempDir);
+        console.log(`🗑️ [DEBUG] Cleaned up temp conversion directory: ${tempDir}`);
+      } catch (cleanupError) {
+        console.warn(`⚠️ [DEBUG] Could not clean up temp conversion directory: ${cleanupError.message}`);
+      }
+    }
     
     if (!extractResult.success) {
       throw new Error(`PDF extraction failed: ${extractResult.error}`);
