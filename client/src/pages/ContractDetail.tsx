@@ -266,121 +266,210 @@ const ContractDetail: React.FC = () => {
           )}
 
           {/* Analysis Results */}
-          {analysisResults && analysisResults.analysis && (
+          {analysisResults && (
             <div className="mt-8 bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">🔍 Contract Analysis Results</h2>
               
-              {/* Contract Overview */}
-              <div className="mb-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Contract Overview</h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">NAICS Code:</span>
-                      <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview.naics_code || 'N/A'}</div>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Classification:</span>
-                      <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview.classification || 'N/A'}</div>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Set Aside:</span>
-                      <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview.set_aside || 'N/A'}</div>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Description Length:</span>
-                      <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview.description_length} characters</div>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Has Description:</span>
-                      <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview.has_description ? 'Yes' : 'No'}</div>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Posted Date:</span>
-                      <div className="text-sm text-gray-900">
-                        {analysisResults.analysis.contract_overview.posted_date 
-                          ? new Date(analysisResults.analysis.contract_overview.posted_date).toLocaleDateString()
-                          : 'N/A'
-                        }
-                      </div>
-                    </div>
-                  </div>
+              {/* Debug Section - Always Show */}
+              <div className="mb-6 p-4 bg-gray-100 rounded-lg">
+                <h3 className="text-md font-medium text-gray-700 mb-2">Debug Information</h3>
+                <div className="text-xs text-gray-600 space-y-1">
+                  <div>Analysis Results Received: {analysisResults ? 'Yes' : 'No'}</div>
+                  <div>Analysis Object Keys: {analysisResults ? Object.keys(analysisResults).join(', ') : 'None'}</div>
+                  <div>Has Analysis Property: {analysisResults?.analysis ? 'Yes' : 'No'}</div>
+                  <div>Success Property: {analysisResults?.success ? 'Yes' : 'No'}</div>
+                  {analysisResults?.analysis && (
+                    <div>Analysis Keys: {Object.keys(analysisResults.analysis).join(', ')}</div>
+                  )}
                 </div>
+                <details className="mt-2">
+                  <summary className="text-xs text-gray-600 cursor-pointer">Raw Analysis Data</summary>
+                  <pre className="text-xs text-gray-700 mt-1 overflow-auto max-h-32 bg-white p-2 rounded">
+                    {JSON.stringify(analysisResults, null, 2)}
+                  </pre>
+                </details>
               </div>
 
-              {/* Document Analysis */}
-              <div className="mb-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Document Analysis</h3>
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <span className="text-sm font-medium text-blue-700">Resource Links:</span>
-                      <div className="text-lg font-bold text-blue-900">{analysisResults.analysis.document_analysis.total_resource_links}</div>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-blue-700">Processed:</span>
-                      <div className="text-lg font-bold text-blue-900">{analysisResults.analysis.document_analysis.documents_processed}</div>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-blue-700">Failed:</span>
-                      <div className="text-lg font-bold text-blue-900">{analysisResults.analysis.document_analysis.documents_failed}</div>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-blue-700">Success Rate:</span>
-                      <div className="text-lg font-bold text-blue-900">{analysisResults.analysis.document_analysis.processing_success_rate}%</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Recommendations */}
-              {analysisResults.analysis.recommendations.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Recommendations</h3>
-                  <div className="space-y-3">
-                    {analysisResults.analysis.recommendations.map((rec, index) => (
-                      <div key={index} className={`p-4 rounded-lg border ${
-                        rec.type === 'success' ? 'bg-green-50 border-green-200' :
-                        rec.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
-                        rec.type === 'error' ? 'bg-red-50 border-red-200' :
-                        'bg-blue-50 border-blue-200'
-                      }`}>
-                        <div className="flex items-start">
-                          <div className={`flex-shrink-0 mr-3 mt-0.5 ${
-                            rec.type === 'success' ? 'text-green-500' :
-                            rec.type === 'warning' ? 'text-yellow-500' :
-                            rec.type === 'error' ? 'text-red-500' :
-                            'text-blue-500'
-                          }`}>
-                            {rec.type === 'success' ? '✅' :
-                             rec.type === 'warning' ? '⚠️' :
-                             rec.type === 'error' ? '❌' :
-                             'ℹ️'}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className={`font-medium ${
-                              rec.type === 'success' ? 'text-green-800' :
-                              rec.type === 'warning' ? 'text-yellow-800' :
-                              rec.type === 'error' ? 'text-red-800' :
-                              'text-blue-800'
-                            }`}>{rec.title}</h4>
-                            <p className={`text-sm mt-1 ${
-                              rec.type === 'success' ? 'text-green-700' :
-                              rec.type === 'warning' ? 'text-yellow-700' :
-                              rec.type === 'error' ? 'text-red-700' :
-                              'text-blue-700'
-                            }`}>{rec.message}</p>
+              {analysisResults.analysis ? (
+                <>
+                  {/* Contract Overview */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">Contract Overview</h3>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">NAICS Code:</span>
+                          <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview?.naics_code || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">Classification:</span>
+                          <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview?.classification || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">Set Aside:</span>
+                          <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview?.set_aside || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">Description Length:</span>
+                          <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview?.description_length || 0} characters</div>
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">Has Description:</span>
+                          <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview?.has_description ? 'Yes' : 'No'}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">Posted Date:</span>
+                          <div className="text-sm text-gray-900">
+                            {analysisResults.analysis.contract_overview?.posted_date 
+                              ? new Date(analysisResults.analysis.contract_overview.posted_date).toLocaleDateString()
+                              : 'N/A'
+                            }
                           </div>
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  </div>
+
+                  {/* Document Analysis */}
+                  {analysisResults.analysis.document_analysis && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-medium text-gray-900 mb-3">Document Analysis</h3>
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div>
+                            <span className="text-sm font-medium text-blue-700">Resource Links:</span>
+                            <div className="text-lg font-bold text-blue-900">{analysisResults.analysis.document_analysis.total_resource_links || 0}</div>
+                          </div>
+                          <div>
+                            <span className="text-sm font-medium text-blue-700">Processed:</span>
+                            <div className="text-lg font-bold text-blue-900">{analysisResults.analysis.document_analysis.documents_processed || 0}</div>
+                          </div>
+                          <div>
+                            <span className="text-sm font-medium text-blue-700">Failed:</span>
+                            <div className="text-lg font-bold text-blue-900">{analysisResults.analysis.document_analysis.documents_failed || 0}</div>
+                          </div>
+                          <div>
+                            <span className="text-sm font-medium text-blue-700">Success Rate:</span>
+                            <div className="text-lg font-bold text-blue-900">{analysisResults.analysis.document_analysis.processing_success_rate || 0}%</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Content Insights */}
+                  {analysisResults.analysis.content_insights && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-medium text-gray-900 mb-3">Content Insights</h3>
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <span className="text-sm font-medium text-green-700">Contract Text Length:</span>
+                            <div className="text-lg font-bold text-green-900">{analysisResults.analysis.content_insights.contract_text_length || 0} characters</div>
+                          </div>
+                          <div>
+                            <span className="text-sm font-medium text-green-700">Sufficient Content:</span>
+                            <div className={`text-lg font-bold ${analysisResults.analysis.content_insights.has_sufficient_content ? 'text-green-900' : 'text-red-600'}`}>
+                              {analysisResults.analysis.content_insights.has_sufficient_content ? 'Yes' : 'No'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Key Terms */}
+                        {analysisResults.analysis.content_insights.key_terms && analysisResults.analysis.content_insights.key_terms.length > 0 && (
+                          <div className="mb-4">
+                            <h4 className="text-md font-medium text-green-700 mb-2">Key Terms:</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {analysisResults.analysis.content_insights.key_terms.map((term, index) => (
+                                <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                  {term.term} ({term.frequency})
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Document Summaries */}
+                        {analysisResults.analysis.content_insights.document_summaries && analysisResults.analysis.content_insights.document_summaries.length > 0 && (
+                          <div>
+                            <h4 className="text-md font-medium text-green-700 mb-2">Document Summaries:</h4>
+                            <div className="space-y-3">
+                              {analysisResults.analysis.content_insights.document_summaries.map((summary, index) => (
+                                <div key={index} className="border border-green-200 rounded-lg p-3 bg-white">
+                                  <h5 className="font-medium text-gray-900">{summary.filename}</h5>
+                                  <p className="text-sm text-gray-600 mt-1">{summary.summary}</p>
+                                  <div className="text-xs text-gray-500 mt-2">
+                                    {summary.word_count} words
+                                    {summary.key_points && summary.key_points.length > 0 && (
+                                      <span className="ml-2">• Key points: {summary.key_points.join(', ')}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recommendations */}
+                  {analysisResults.analysis.recommendations && analysisResults.analysis.recommendations.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-medium text-gray-900 mb-3">Recommendations</h3>
+                      <div className="space-y-3">
+                        {analysisResults.analysis.recommendations.map((rec, index) => (
+                          <div key={index} className={`p-4 rounded-lg border ${
+                            rec.type === 'success' ? 'bg-green-50 border-green-200' :
+                            rec.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
+                            rec.type === 'error' ? 'bg-red-50 border-red-200' :
+                            'bg-blue-50 border-blue-200'
+                          }`}>
+                            <div className="flex items-start">
+                              <div className={`flex-shrink-0 mr-3 mt-0.5 ${
+                                rec.type === 'success' ? 'text-green-500' :
+                                rec.type === 'warning' ? 'text-yellow-500' :
+                                rec.type === 'error' ? 'text-red-500' :
+                                'text-blue-500'
+                              }`}>
+                                {rec.type === 'success' ? '✅' :
+                                 rec.type === 'warning' ? '⚠️' :
+                                 rec.type === 'error' ? '❌' :
+                                 'ℹ️'}
+                              </div>
+                              <div className="flex-1">
+                                <h4 className={`font-medium ${
+                                  rec.type === 'success' ? 'text-green-800' :
+                                  rec.type === 'warning' ? 'text-yellow-800' :
+                                  rec.type === 'error' ? 'text-red-800' :
+                                  'text-blue-800'
+                                }`}>{rec.title}</h4>
+                                <p className={`text-sm mt-1 ${
+                                  rec.type === 'success' ? 'text-green-700' :
+                                  rec.type === 'warning' ? 'text-yellow-700' :
+                                  rec.type === 'error' ? 'text-red-700' :
+                                  'text-blue-700'
+                                }`}>{rec.message}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="mt-6 pt-4 border-t border-gray-200 text-xs text-gray-500">
+                    Analysis completed: {analysisResults.analyzed_at ? new Date(analysisResults.analyzed_at).toLocaleString() : 'Unknown time'}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-gray-500 mb-2">Analysis data structure is unexpected</div>
+                  <div className="text-sm text-gray-400">
+                    Check the debug information above to see what was received.
                   </div>
                 </div>
               )}
-              
-              <div className="mt-6 pt-4 border-t border-gray-200 text-xs text-gray-500">
-                Analysis completed: {new Date(analysisResults.analyzed_at).toLocaleString()}
-              </div>
             </div>
           )}
 
@@ -391,13 +480,11 @@ const ContractDetail: React.FC = () => {
                 Contract analysis completed successfully!
                 {analysisResults && analysisResults.analysis ? ' Analysis results are displayed above.' : ' Waiting for results to load...'}
               </div>
-              {/* Debug info */}
-              <details className="mt-2">
-                <summary className="text-xs text-green-600 cursor-pointer">Debug: Raw Analysis Data</summary>
-                <pre className="text-xs text-green-700 mt-1 overflow-auto max-h-32">
-                  {JSON.stringify(analysisResults, null, 2)}
-                </pre>
-              </details>
+              <div className="mt-2 text-xs text-green-600">
+                <div>Analysis received: {analysisResults ? 'Yes' : 'No'}</div>
+                <div>Analysis structure valid: {analysisResults?.analysis ? 'Yes' : 'No'}</div>
+                <div>Response success: {analyzeMutation.data?.success ? 'Yes' : 'No'}</div>
+              </div>
             </div>
           )}
 
