@@ -10,6 +10,10 @@ import type {
   AppConfig,
   ContractFetchForm,
   SearchForm,
+  DocumentSearchForm,
+  DocumentSearchResponse,
+  DocumentStats,
+  FileTypesResponse,
 } from '../types';
 
 // Create axios instance with default config
@@ -343,6 +347,35 @@ class ApiService {
 
   async getProcessedDocuments(): Promise<ApiResponse> {
     const response = await api.get<ApiResponse>('/documents/processed');
+    return response.data;
+  }
+
+  // Document Search
+  async searchDocuments(searchForm: DocumentSearchForm): Promise<DocumentSearchResponse> {
+    console.log('🔍 [DEBUG] API Service searchDocuments called with:', searchForm);
+    const response = await api.post<DocumentSearchResponse>('/documents/search/advanced', {
+      query: searchForm.query,
+      limit: searchForm.limit,
+      contract_id: searchForm.contract_id,
+      file_type: searchForm.file_type,
+      min_score: searchForm.min_score,
+      include_content: searchForm.include_content
+    });
+    console.log('🔍 [DEBUG] API Service searchDocuments response:', response.data);
+    return response.data;
+  }
+
+  async getDocumentStats(): Promise<DocumentStats> {
+    console.log('📊 [DEBUG] API Service getDocumentStats called');
+    const response = await api.get<DocumentStats>('/documents/stats');
+    console.log('📊 [DEBUG] API Service getDocumentStats response:', response.data);
+    return response.data;
+  }
+
+  async getFileTypes(): Promise<FileTypesResponse> {
+    console.log('📁 [DEBUG] API Service getFileTypes called');
+    const response = await api.get<FileTypesResponse>('/documents/file-types');
+    console.log('📁 [DEBUG] API Service getFileTypes response:', response.data);
     return response.data;
   }
 

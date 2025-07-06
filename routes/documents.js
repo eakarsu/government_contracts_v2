@@ -2432,6 +2432,241 @@ router.post('/search', async (req, res) => {
   }
 });
 
+// Advanced document search with filters
+router.post('/search/advanced', async (req, res) => {
+  try {
+    const { 
+      query, 
+      limit = 20, 
+      contract_id,
+      file_type,
+      min_score = 0.1,
+      include_content = false
+    } = req.body;
+
+    if (!query || query.trim().length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Query parameter is required and cannot be empty' 
+      });
+    }
+
+    console.log(`🔍 [DEBUG] Advanced search endpoint called with query: "${query}"`);
+
+    const startTime = Date.now();
+
+    // Use advanced search from vector service
+    const searchResults = await vectorService.searchDocumentsAdvanced(query, {
+      limit,
+      contractId: contract_id,
+      fileType: file_type,
+      minScore: min_score,
+      includeContent: include_content
+    });
+
+    const responseTime = Date.now() - startTime;
+
+    res.json({
+      success: true,
+      query: query.trim(),
+      results: {
+        documents: searchResults.results,
+        total_results: searchResults.total,
+        source: 'vector_database_advanced'
+      },
+      filters: {
+        contract_id,
+        file_type,
+        min_score,
+        include_content
+      },
+      response_time: responseTime,
+      status: searchResults.status
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Advanced document search failed:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// Get document statistics and analytics
+router.get('/stats', async (req, res) => {
+  try {
+    console.log('📊 [DEBUG] Document stats endpoint called');
+
+    // Get vector database stats
+    const vectorStats = await vectorService.getDetailedDocumentStats();
+    
+    // Get database stats
+    const [
+      totalContracts,
+      contractsWithDocs,
+      queueStats,
+      recentJobs
+    ] = await Promise.all([
+      prisma.contract.count(),
+      prisma.contract.count({ where: { resourceLinks: { not: null } } }),
+      prisma.documentProcessingQueue.groupBy({
+        by: ['status'],
+        _count: { id: true }
+      }),
+      prisma.indexingJob.findMany({
+        where: { jobType: { in: ['document_download', 'queue_processing'] } },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          jobType: true,
+          status: true,
+          recordsProcessed: true,
+          errorsCount: true,
+          createdAt: true,
+          completedAt: true
+        }
+      })
+    ]);
+
+    // Process queue stats
+    const queueStatusCounts = {};
+    queueStats.forEach(item => {
+      queueStatusCounts[item.status] = item._count.id;
+    });
+
+    // Check downloaded files
+    const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+    let downloadedFiles = {
+      total: 0,
+      by_type: {},
+      total_size: 0
+    };
+
+    try {
+      if (await fs.pathExists(downloadPath)) {
+        const files = await fs.readdir(downloadPath);
+        downloadedFiles.total = files.length;
+
+        // Analyze file types and sizes
+        for (const file of files.slice(0, 100)) { // Limit to first 100 for performance
+          const filePath = path.join(downloadPath, file);
+          try {
+            const stats = await fs.stat(filePath);
+            downloadedFiles.total_size += stats.size;
+
+            const extension = path.extname(file).toLowerCase() || 'no_extension';
+            if (!downloadedFiles.by_type[extension]) {
+              downloadedFiles.by_type[extension] = 0;
+            }
+            downloadedFiles.by_type[extension]++;
+          } catch (statError) {
+            // Skip files that can't be stat'd
+          }
+        }
+      }
+    } catch (dirError) {
+      console.warn('Could not read downloaded documents directory:', dirError.message);
+    }
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      stats: {
+        contracts: {
+          total: totalContracts,
+          with_documents: contractsWithDocs,
+          percentage_with_docs: totalContracts > 0 ? Math.round((contractsWithDocs / totalContracts) * 100) : 0
+        },
+        documents: {
+          downloaded: downloadedFiles.total,
+          downloaded_size_mb: Math.round(downloadedFiles.total_size / (1024 * 1024)),
+          downloaded_by_type: downloadedFiles.by_type,
+          indexed_in_vector_db: vectorStats.total_indexed,
+          indexing_rate: contractsWithDocs > 0 ? Math.round((vectorStats.total_indexed / contractsWithDocs) * 100) : 0
+        },
+        processing_queue: {
+          queued: queueStatusCounts.queued || 0,
+          processing: queueStatusCounts.processing || 0,
+          completed: queueStatusCounts.completed || 0,
+          failed: queueStatusCounts.failed || 0,
+          total: Object.values(queueStatusCounts).reduce((sum, count) => sum + count, 0)
+        },
+        vector_database: {
+          status: vectorStats.status,
+          documents_by_contract: vectorStats.by_contract,
+          documents_by_file_type: vectorStats.by_file_type,
+          recent_indexed: vectorStats.recent_indexed
+        },
+        recent_jobs: recentJobs.map(job => ({
+          id: job.id,
+          type: job.jobType,
+          status: job.status,
+          processed: job.recordsProcessed || 0,
+          errors: job.errorsCount || 0,
+          started: job.createdAt,
+          completed: job.completedAt,
+          duration_minutes: job.completedAt 
+            ? Math.round((job.completedAt.getTime() - job.createdAt.getTime()) / 60000)
+            : null
+        }))
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error getting document stats:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// Get available file types for filtering
+router.get('/file-types', async (req, res) => {
+  try {
+    console.log('📁 [DEBUG] File types endpoint called');
+
+    const vectorStats = await vectorService.getDetailedDocumentStats();
+    
+    // Also check downloaded files
+    const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+    const downloadedTypes = {};
+
+    try {
+      if (await fs.pathExists(downloadPath)) {
+        const files = await fs.readdir(downloadPath);
+        files.forEach(file => {
+          const extension = path.extname(file).toLowerCase().replace('.', '') || 'no_extension';
+          if (!downloadedTypes[extension]) {
+            downloadedTypes[extension] = 0;
+          }
+          downloadedTypes[extension]++;
+        });
+      }
+    } catch (dirError) {
+      console.warn('Could not read downloaded documents directory:', dirError.message);
+    }
+
+    res.json({
+      success: true,
+      file_types: {
+        indexed: vectorStats.by_file_type,
+        downloaded: downloadedTypes,
+        available_for_search: Object.keys(vectorStats.by_file_type)
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error getting file types:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
 // Clear queue (remove completed/failed documents)
 router.post('/queue/clear', async (req, res) => {
   try {

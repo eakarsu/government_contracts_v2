@@ -161,3 +161,108 @@ export interface ContractFilters {
   };
   status?: string;
 }
+
+// Document Search Types
+export interface DocumentSearchResult {
+  id: string;
+  score: number;
+  metadata: {
+    id: string;
+    contractId: string;
+    filename: string;
+    processedAt: string;
+    text?: string;
+  };
+  document: string;
+  preview: string;
+  filename: string;
+  contractId: string;
+  processedAt: string;
+}
+
+export interface DocumentSearchResponse {
+  success: boolean;
+  query: string;
+  results: {
+    documents: DocumentSearchResult[];
+    total_results: number;
+    source: string;
+  };
+  filters?: {
+    contract_id?: string;
+    file_type?: string;
+    min_score?: number;
+    include_content?: boolean;
+  };
+  response_time: number;
+  status?: string;
+}
+
+export interface DocumentSearchForm {
+  query: string;
+  limit: number;
+  contract_id?: string;
+  file_type?: string;
+  min_score: number;
+  include_content: boolean;
+}
+
+export interface DocumentStats {
+  success: boolean;
+  timestamp: string;
+  stats: {
+    contracts: {
+      total: number;
+      with_documents: number;
+      percentage_with_docs: number;
+    };
+    documents: {
+      downloaded: number;
+      downloaded_size_mb: number;
+      downloaded_by_type: Record<string, number>;
+      indexed_in_vector_db: number;
+      indexing_rate: number;
+    };
+    processing_queue: {
+      queued: number;
+      processing: number;
+      completed: number;
+      failed: number;
+      total: number;
+    };
+    vector_database: {
+      status: string;
+      documents_by_contract: Array<{
+        contractId: string;
+        documentCount: number;
+      }>;
+      documents_by_file_type: Record<string, number>;
+      recent_indexed: Array<{
+        id: string;
+        filename: string;
+        contractId: string;
+        processedAt: string;
+        textLength: number;
+      }>;
+    };
+    recent_jobs: Array<{
+      id: number;
+      type: string;
+      status: string;
+      processed: number;
+      errors: number;
+      started: string;
+      completed?: string;
+      duration_minutes?: number;
+    }>;
+  };
+}
+
+export interface FileTypesResponse {
+  success: boolean;
+  file_types: {
+    indexed: Record<string, number>;
+    downloaded: Record<string, number>;
+    available_for_search: string[];
+  };
+}

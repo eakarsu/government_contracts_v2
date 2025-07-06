@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
-import { QueueStatus, ApiResponse } from '../types';
+import { QueueStatus, ApiResponse, DocumentSearchForm, DocumentSearchResponse, DocumentStats, FileTypesResponse } from '../types';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 import DocumentDownload from '../components/Dashboard/DocumentDownload';
 
@@ -9,13 +9,39 @@ const Documents: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [customPrompt, setCustomPrompt] = useState('');
   const [model, setModel] = useState('');
-  const [activeTab, setActiveTab] = useState<'download' | 'upload' | 'queue'>('download');
+  const [activeTab, setActiveTab] = useState<'download' | 'search' | 'upload' | 'queue'>('download');
+  
+  // Search state
+  const [searchForm, setSearchForm] = useState<DocumentSearchForm>({
+    query: '',
+    limit: 20,
+    contract_id: '',
+    file_type: '',
+    min_score: 0.1,
+    include_content: false
+  });
+  const [searchResults, setSearchResults] = useState<DocumentSearchResponse | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  
   const queryClient = useQueryClient();
 
   const { data: queueStatus, isLoading: queueLoading } = useQuery({
     queryKey: ['queueStatus'],
     queryFn: () => apiService.getQueueStatus(),
     refetchInterval: 5000,
+  });
+
+  // Document stats query
+  const { data: documentStats, isLoading: statsLoading } = useQuery({
+    queryKey: ['documentStats'],
+    queryFn: () => apiService.getDocumentStats(),
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // File types query
+  const { data: fileTypes } = useQuery({
+    queryKey: ['fileTypes'],
+    queryFn: () => apiService.getFileTypes(),
   });
 
   const uploadMutation = useMutation({
@@ -76,6 +102,39 @@ const Documents: React.FC = () => {
     });
   };
 
+  // Search functionality
+  const handleSearch = async () => {
+    if (!searchForm.query.trim()) {
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const results = await apiService.searchDocuments(searchForm);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search failed:', error);
+      setSearchResults(null);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchFormChange = (field: keyof DocumentSearchForm, value: any) => {
+    setSearchForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const clearSearch = () => {
+    setSearchResults(null);
+    setSearchForm(prev => ({
+      ...prev,
+      query: ''
+    }));
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
@@ -97,6 +156,16 @@ const Documents: React.FC = () => {
             }`}
           >
             📥 Download Documents
+          </button>
+          <button
+            onClick={() => setActiveTab('search')}
+            className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'search'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            🔍 Search Documents
           </button>
           <button
             onClick={() => setActiveTab('upload')}
@@ -124,6 +193,230 @@ const Documents: React.FC = () => {
       {/* Tab Content */}
       {activeTab === 'download' && (
         <DocumentDownload />
+      )}
+
+      {activeTab === 'search' && (
+        <div className="space-y-8">
+          {/* Document Statistics */}
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">📊 Document Statistics</h2>
+            
+            {statsLoading ? (
+              <LoadingSpinner />
+            ) : documentStats ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {documentStats.stats.documents.downloaded}
+                  </div>
+                  <div className="text-sm text-blue-600">Downloaded Files</div>
+                  <div className="text-xs text-gray-500">
+                    {documentStats.stats.documents.downloaded_size_mb} MB total
+                  </div>
+                </div>
+                
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">
+                    {documentStats.stats.documents.indexed_in_vector_db}
+                  </div>
+                  <div className="text-sm text-green-600">Indexed & Searchable</div>
+                  <div className="text-xs text-gray-500">
+                    {documentStats.stats.documents.indexing_rate}% indexed
+                  </div>
+                </div>
+                
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {documentStats.stats.contracts.with_documents}
+                  </div>
+                  <div className="text-sm text-purple-600">Contracts with Docs</div>
+                  <div className="text-xs text-gray-500">
+                    {documentStats.stats.contracts.percentage_with_docs}% of total
+                  </div>
+                </div>
+                
+                <div className="bg-orange-50 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {Object.keys(documentStats.stats.vector_database.documents_by_file_type).length}
+                  </div>
+                  <div className="text-sm text-orange-600">File Types</div>
+                  <div className="text-xs text-gray-500">
+                    PDF, DOC, DOCX, etc.
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-gray-500">Unable to load statistics</div>
+            )}
+          </div>
+
+          {/* Search Interface */}
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">🔍 Search Documents</h2>
+            
+            <div className="space-y-4">
+              {/* Search Query */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Search Query
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={searchForm.query}
+                    onChange={(e) => handleSearchFormChange('query', e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                    className="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Enter search terms (e.g., 'software development', 'cybersecurity', 'data analysis')"
+                  />
+                  <button
+                    onClick={handleSearch}
+                    disabled={isSearching || !searchForm.query.trim()}
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                  >
+                    {isSearching ? <LoadingSpinner size="sm" /> : 'Search'}
+                  </button>
+                  {searchResults && (
+                    <button
+                      onClick={clearSearch}
+                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Search Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Results Limit
+                  </label>
+                  <select
+                    value={searchForm.limit}
+                    onChange={(e) => handleSearchFormChange('limit', parseInt(e.target.value))}
+                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  >
+                    <option value={10}>10 results</option>
+                    <option value={20}>20 results</option>
+                    <option value={50}>50 results</option>
+                    <option value={100}>100 results</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    File Type
+                  </label>
+                  <select
+                    value={searchForm.file_type}
+                    onChange={(e) => handleSearchFormChange('file_type', e.target.value)}
+                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  >
+                    <option value="">All Types</option>
+                    {fileTypes?.file_types.available_for_search.map(type => (
+                      <option key={type} value={type}>
+                        .{type} ({fileTypes.file_types.indexed[type] || 0} files)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Min Relevance Score
+                  </label>
+                  <select
+                    value={searchForm.min_score}
+                    onChange={(e) => handleSearchFormChange('min_score', parseFloat(e.target.value))}
+                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  >
+                    <option value={0.1}>0.1 (Low)</option>
+                    <option value={0.3}>0.3 (Medium)</option>
+                    <option value={0.5}>0.5 (High)</option>
+                    <option value={0.7}>0.7 (Very High)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Content
+                  </label>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <input
+                      type="checkbox"
+                      checked={searchForm.include_content}
+                      onChange={(e) => handleSearchFormChange('include_content', e.target.checked)}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700">Include full content</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Search Results */}
+          {searchResults && (
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Search Results for "{searchResults.query}"
+                </h3>
+                <div className="text-sm text-gray-500">
+                  {searchResults.results.total_results} results in {searchResults.response_time}ms
+                </div>
+              </div>
+
+              {searchResults.results.documents.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-gray-500 mb-2">No documents found matching your search.</div>
+                  <div className="text-sm text-gray-400">
+                    Try adjusting your search terms or filters.
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {searchResults.results.documents.map((doc, index) => (
+                    <div key={doc.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{doc.filename}</h4>
+                          <div className="text-sm text-gray-500">
+                            Contract: {doc.contractId} • 
+                            Relevance: {(doc.score * 100).toFixed(1)}% • 
+                            Processed: {new Date(doc.processedAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="ml-4 flex-shrink-0">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            {(doc.score * 100).toFixed(1)}% match
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
+                        {doc.preview}
+                      </div>
+                      
+                      {searchForm.include_content && doc.document && (
+                        <details className="mt-2">
+                          <summary className="text-sm text-primary-600 cursor-pointer hover:text-primary-800">
+                            View full content
+                          </summary>
+                          <div className="mt-2 text-sm text-gray-600 bg-gray-50 p-3 rounded max-h-64 overflow-y-auto">
+                            {doc.document}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {activeTab === 'upload' && (

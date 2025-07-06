@@ -73,7 +73,6 @@ const QuickActions: React.FC = () => {
     },
   });
 
-
   const stopQueueMutation = useMutation({
     mutationFn: () => apiService.stopQueue(),
     onSuccess: () => {
@@ -81,6 +80,27 @@ const QuickActions: React.FC = () => {
     },
     onError: (error: any) => {
       console.error('Stop queue error:', error);
+    },
+  });
+
+  // Document search mutation
+  const searchDocumentsMutation = useMutation({
+    mutationFn: (query: string) => apiService.searchDocuments({
+      query,
+      limit: 10,
+      min_score: 0.3,
+      include_content: false
+    }),
+    onError: (error: any) => {
+      console.error('Document search error:', error);
+    },
+  });
+
+  // Get document stats mutation
+  const getDocumentStatsMutation = useMutation({
+    mutationFn: () => apiService.getDocumentStats(),
+    onError: (error: any) => {
+      console.error('Get document stats error:', error);
     },
   });
 
@@ -169,6 +189,36 @@ const QuickActions: React.FC = () => {
             'Auto Queue & Process'
           )}
         </button>
+
+        {/* Document Search Section */}
+        <div className="border-t pt-4 mt-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">🔍 Document Search</h4>
+          <div className="space-y-2">
+            <button
+              onClick={() => searchDocumentsMutation.mutate('software development')}
+              disabled={searchDocumentsMutation.isPending}
+              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+            >
+              {searchDocumentsMutation.isPending ? (
+                <LoadingSpinner size="sm" color="white" />
+              ) : (
+                '🔍 Quick Search: Software'
+              )}
+            </button>
+
+            <button
+              onClick={() => getDocumentStatsMutation.mutate()}
+              disabled={getDocumentStatsMutation.isPending}
+              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
+            >
+              {getDocumentStatsMutation.isPending ? (
+                <LoadingSpinner size="sm" color="white" />
+              ) : (
+                '📊 Get Document Stats'
+              )}
+            </button>
+          </div>
+        </div>
 
         {/* Test Bed Section */}
         <div className="border-t pt-4 mt-4">
@@ -263,6 +313,23 @@ const QuickActions: React.FC = () => {
         </div>
       ) : null}
 
+      {/* Document Search Success Messages */}
+      {searchDocumentsMutation.isSuccess && searchDocumentsMutation.data ? (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="text-blue-800 text-sm">
+            🔍 Found {searchDocumentsMutation.data.results.total_results} documents in {searchDocumentsMutation.data.response_time}ms
+          </div>
+        </div>
+      ) : null}
+
+      {getDocumentStatsMutation.isSuccess && getDocumentStatsMutation.data ? (
+        <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-md">
+          <div className="text-purple-800 text-sm">
+            📊 Stats: {getDocumentStatsMutation.data.stats.documents.downloaded} downloaded, {getDocumentStatsMutation.data.stats.documents.indexed_in_vector_db} indexed
+          </div>
+        </div>
+      ) : null}
+
       {/* Test Bed Success Messages */}
       {queueTestDocumentsMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
@@ -314,6 +381,23 @@ const QuickActions: React.FC = () => {
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
             Error with auto process: {processDocumentsMutation.error instanceof Error ? processDocumentsMutation.error.message : 'Unknown error'}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Document Search Error Messages */}
+      {searchDocumentsMutation.error ? (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-red-800 text-sm">
+            🔍 Search error: {searchDocumentsMutation.error instanceof Error ? searchDocumentsMutation.error.message : 'Unknown error'}
+          </div>
+        </div>
+      ) : null}
+
+      {getDocumentStatsMutation.error ? (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-red-800 text-sm">
+            📊 Stats error: {getDocumentStatsMutation.error instanceof Error ? getDocumentStatsMutation.error.message : 'Unknown error'}
           </div>
         </div>
       ) : null}

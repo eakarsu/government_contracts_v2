@@ -209,6 +209,180 @@ class VectorService {
     }
   }
 
+  async getDetailedDocumentStats() {
+    if (!this.isConnected) {
+      return {
+        total_indexed: 0,
+        by_contract: [],
+        by_file_type: {},
+        recent_indexed: [],
+        status: 'disconnected'
+      };
+    }
+
+    try {
+      const allDocuments = await this.documentsIndex.listItems();
+      
+      // Group by contract
+      const byContract = {};
+      const byFileType = {};
+      const recentIndexed = [];
+
+      allDocuments.forEach(item => {
+        const metadata = item.metadata;
+        
+        // Group by contract
+        if (metadata.contractId) {
+          if (!byContract[metadata.contractId]) {
+            byContract[metadata.contractId] = 0;
+          }
+          byContract[metadata.contractId]++;
+        }
+
+        // Group by file type
+        if (metadata.filename) {
+          const extension = metadata.filename.split('.').pop()?.toLowerCase() || 'unknown';
+          if (!byFileType[extension]) {
+            byFileType[extension] = 0;
+          }
+          byFileType[extension]++;
+        }
+
+        // Recent indexed (if has processedAt)
+        if (metadata.processedAt) {
+          recentIndexed.push({
+            id: metadata.id,
+            filename: metadata.filename,
+            contractId: metadata.contractId,
+            processedAt: metadata.processedAt,
+            textLength: metadata.text?.length || 0
+          });
+        }
+      });
+
+      // Sort recent by date
+      recentIndexed.sort((a, b) => new Date(b.processedAt) - new Date(a.processedAt));
+
+      // Convert byContract to array and sort by count
+      const contractStats = Object.entries(byContract)
+        .map(([contractId, count]) => ({ contractId, documentCount: count }))
+        .sort((a, b) => b.documentCount - a.documentCount);
+
+      return {
+        total_indexed: allDocuments.length,
+        by_contract: contractStats.slice(0, 10), // Top 10 contracts
+        by_file_type: byFileType,
+        recent_indexed: recentIndexed.slice(0, 20), // Last 20 indexed
+        status: 'connected'
+      };
+    } catch (error) {
+      console.error('Error getting detailed document stats:', error);
+      return {
+        total_indexed: 0,
+        by_contract: [],
+        by_file_type: {},
+        recent_indexed: [],
+        status: 'error'
+      };
+    }
+  }
+
+  async searchDocumentsAdvanced(query, options = {}) {
+    const {
+      limit = 10,
+      contractId = null,
+      fileType = null,
+      minScore = 0.1,
+      includeContent = false
+    } = options;
+
+    console.log(`🔍 [DEBUG] Advanced search called with query: "${query}"`);
+    console.log(`🔍 [DEBUG] Options:`, { limit, contractId, fileType, minScore, includeContent });
+    
+    if (!this.isConnected) {
+      console.warn('⚠️ [DEBUG] Vector database not connected - cannot perform search');
+      return {
+        results: [],
+        total: 0,
+        query,
+        filters: { contractId, fileType },
+        status: 'disconnected'
+      };
+    }
+
+    try {
+      // Generate embedding for query
+      console.log(`🔍 [DEBUG] Generating embedding for advanced search...`);
+      const queryEmbedding = await this.generateEmbedding(query);
+      
+      // Search in documents index with higher limit for filtering
+      const searchLimit = Math.max(limit * 3, 50); // Get more results for filtering
+      console.log(`🔍 [DEBUG] Searching with limit: ${searchLimit}`);
+      const results = await this.documentsIndex.queryItems(queryEmbedding, searchLimit);
+      
+      console.log(`🔍 [DEBUG] Raw search results: ${results.length}`);
+      
+      // Filter results based on criteria
+      let filteredResults = results.filter(result => {
+        // Score filter
+        if (result.score < minScore) {
+          return false;
+        }
+
+        const metadata = result.item.metadata;
+
+        // Contract filter
+        if (contractId && metadata.contractId !== contractId) {
+          return false;
+        }
+
+        // File type filter
+        if (fileType && metadata.filename) {
+          const extension = metadata.filename.split('.').pop()?.toLowerCase();
+          if (extension !== fileType.toLowerCase()) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      // Limit final results
+      filteredResults = filteredResults.slice(0, limit);
+
+      console.log(`🔍 [DEBUG] Filtered results: ${filteredResults.length}`);
+
+      const mappedResults = filteredResults.map(result => ({
+        id: result.item.metadata.id,
+        score: result.score,
+        metadata: result.item.metadata,
+        document: includeContent ? result.item.metadata.text : result.item.metadata.text?.substring(0, 300) + '...',
+        preview: result.item.metadata.text?.substring(0, 200) + '...',
+        filename: result.item.metadata.filename,
+        contractId: result.item.metadata.contractId,
+        processedAt: result.item.metadata.processedAt
+      }));
+      
+      return {
+        results: mappedResults,
+        total: filteredResults.length,
+        query,
+        filters: { contractId, fileType, minScore },
+        status: 'connected'
+      };
+    } catch (error) {
+      console.error('❌ [DEBUG] Error in advanced document search:', error);
+      return {
+        results: [],
+        total: 0,
+        query,
+        filters: { contractId, fileType },
+        status: 'error',
+        error: error.message
+      };
+    }
+  }
+
   async generateEmbedding(text) {
     if (!this.embedder) {
       throw new Error('Embedding model not initialized');
