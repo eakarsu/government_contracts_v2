@@ -352,15 +352,89 @@ class VectorService {
 
       console.log(`🔍 [DEBUG] Filtered results: ${filteredResults.length}`);
 
-      const mappedResults = filteredResults.map(result => ({
-        id: result.item.metadata.id,
-        score: result.score,
-        metadata: result.item.metadata,
-        document: includeContent ? result.item.metadata.text : result.item.metadata.text?.substring(0, 300) + '...',
-        preview: result.item.metadata.text?.substring(0, 200) + '...',
-        filename: result.item.metadata.filename,
-        contractId: result.item.metadata.contractId,
-        processedAt: result.item.metadata.processedAt
+      // Check for downloaded files and parse processed data
+      const fs = require('fs-extra');
+      const path = require('path');
+      const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+
+      const mappedResults = await Promise.all(filteredResults.map(async (result) => {
+        const metadata = result.item.metadata;
+        
+        // Check if file is downloaded locally
+        let isDownloaded = false;
+        let localFilePath = null;
+        
+        try {
+          if (await fs.pathExists(downloadPath)) {
+            const files = await fs.readdir(downloadPath);
+            const matchingFile = files.find(file => 
+              file.includes(metadata.contractId) && 
+              (file.includes(metadata.filename?.replace(/\.[^/.]+$/, '')) || 
+               file.includes('document'))
+            );
+            
+            if (matchingFile) {
+              isDownloaded = true;
+              localFilePath = path.join(downloadPath, matchingFile);
+            }
+          }
+        } catch (error) {
+          console.warn(`⚠️ [DEBUG] Error checking downloaded files: ${error.message}`);
+        }
+
+        // Parse processed data to extract summarization
+        let summarization = null;
+        let fullContent = metadata.text;
+        
+        try {
+          // Check if there's processed data in the queue
+          const { prisma } = require('../config/database');
+          const queueEntry = await prisma.documentProcessingQueue.findFirst({
+            where: {
+              contractNoticeId: metadata.contractId,
+              filename: metadata.filename,
+              status: 'completed',
+              processedData: { not: null }
+            }
+          });
+
+          if (queueEntry && queueEntry.processedData) {
+            const processedData = JSON.parse(queueEntry.processedData);
+            
+            if (processedData.content) {
+              fullContent = processedData.content;
+            }
+            
+            if (processedData.summary || processedData.analysis) {
+              summarization = {
+                summary: processedData.summary,
+                analysis: processedData.analysis,
+                keyPoints: processedData.keyPoints || processedData.key_points,
+                recommendations: processedData.recommendations,
+                wordCount: processedData.wordCount || processedData.word_count,
+                pageCount: processedData.pageCount || processedData.page_count
+              };
+            }
+          }
+        } catch (error) {
+          console.warn(`⚠️ [DEBUG] Error parsing processed data for ${metadata.filename}: ${error.message}`);
+        }
+
+        return {
+          id: metadata.id,
+          score: result.score,
+          metadata: metadata,
+          document: includeContent ? fullContent : (fullContent?.substring(0, 300) + '...'),
+          preview: fullContent?.substring(0, 200) + '...',
+          filename: metadata.filename,
+          contractId: metadata.contractId,
+          processedAt: metadata.processedAt,
+          isDownloaded: isDownloaded,
+          localFilePath: localFilePath,
+          summarization: summarization,
+          hasFullContent: !!fullContent,
+          hasSummarization: !!summarization
+        };
       }));
       
       return {

@@ -382,11 +382,28 @@ const Documents: React.FC = () => {
                     <div key={doc.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{doc.filename}</h4>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium text-gray-900">{doc.filename}</h4>
+                            {doc.isDownloaded && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                📁 Downloaded
+                              </span>
+                            )}
+                            {doc.hasSummarization && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                📝 Summarized
+                              </span>
+                            )}
+                          </div>
                           <div className="text-sm text-gray-500">
                             Contract: {doc.contractId} • 
                             Relevance: {(doc.score * 100).toFixed(1)}% • 
                             Processed: {new Date(doc.processedAt).toLocaleDateString()}
+                            {doc.isDownloaded && doc.localFilePath && (
+                              <span className="ml-2 text-blue-600">
+                                • Local: {doc.localFilePath.split('/').pop()}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="ml-4 flex-shrink-0">
@@ -399,14 +416,88 @@ const Documents: React.FC = () => {
                       <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
                         {doc.preview}
                       </div>
+
+                      {/* Summarization Section */}
+                      {doc.hasSummarization && doc.summarization && (
+                        <div className="mt-3 border-t pt-3">
+                          <details className="mb-2">
+                            <summary className="text-sm font-medium text-purple-600 cursor-pointer hover:text-purple-800 mb-2">
+                              📝 View AI Summarization
+                            </summary>
+                            <div className="mt-2 space-y-3">
+                              {doc.summarization.summary && (
+                                <div>
+                                  <h5 className="text-sm font-medium text-gray-700 mb-1">Summary:</h5>
+                                  <div className="text-sm text-gray-600 bg-purple-50 p-3 rounded">
+                                    {doc.summarization.summary}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {doc.summarization.keyPoints && doc.summarization.keyPoints.length > 0 && (
+                                <div>
+                                  <h5 className="text-sm font-medium text-gray-700 mb-1">Key Points:</h5>
+                                  <ul className="text-sm text-gray-600 bg-purple-50 p-3 rounded list-disc list-inside space-y-1">
+                                    {doc.summarization.keyPoints.map((point, idx) => (
+                                      <li key={idx}>{point}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {doc.summarization.analysis && (
+                                <div>
+                                  <h5 className="text-sm font-medium text-gray-700 mb-1">Analysis:</h5>
+                                  <div className="text-sm text-gray-600 bg-purple-50 p-3 rounded">
+                                    {doc.summarization.analysis}
+                                  </div>
+                                </div>
+                              )}
+
+                              {doc.summarization.recommendations && doc.summarization.recommendations.length > 0 && (
+                                <div>
+                                  <h5 className="text-sm font-medium text-gray-700 mb-1">Recommendations:</h5>
+                                  <ul className="text-sm text-gray-600 bg-purple-50 p-3 rounded list-disc list-inside space-y-1">
+                                    {doc.summarization.recommendations.map((rec, idx) => (
+                                      <li key={idx}>{rec}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {(doc.summarization.wordCount || doc.summarization.pageCount) && (
+                                <div className="text-xs text-gray-500 pt-2 border-t">
+                                  Document Stats: 
+                                  {doc.summarization.wordCount && ` ${doc.summarization.wordCount} words`}
+                                  {doc.summarization.pageCount && ` • ${doc.summarization.pageCount} pages`}
+                                </div>
+                              )}
+                            </div>
+                          </details>
+                        </div>
+                      )}
                       
-                      {searchForm.include_content && doc.document && (
+                      {/* Full Content Section */}
+                      {doc.hasFullContent && (
                         <details className="mt-2">
                           <summary className="text-sm text-primary-600 cursor-pointer hover:text-primary-800">
-                            View full content
+                            📄 View full document content
                           </summary>
-                          <div className="mt-2 text-sm text-gray-600 bg-gray-50 p-3 rounded max-h-64 overflow-y-auto">
-                            {doc.document}
+                          <div className="mt-2 text-sm text-gray-600 bg-gray-50 p-3 rounded max-h-96 overflow-y-auto">
+                            {searchForm.include_content ? doc.document : (
+                              <div className="text-center py-4">
+                                <p className="text-gray-500 mb-2">Enable "Include full content" to view complete document text</p>
+                                <button
+                                  onClick={() => {
+                                    handleSearchFormChange('include_content', true);
+                                    handleSearch();
+                                  }}
+                                  className="text-primary-600 hover:text-primary-800 text-sm underline"
+                                >
+                                  Enable and search again
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </details>
                       )}

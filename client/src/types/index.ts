@@ -178,6 +178,18 @@ export interface DocumentSearchResult {
   filename: string;
   contractId: string;
   processedAt: string;
+  isDownloaded: boolean;
+  localFilePath?: string;
+  summarization?: {
+    summary?: string;
+    analysis?: string;
+    keyPoints?: string[];
+    recommendations?: string[];
+    wordCount?: number;
+    pageCount?: number;
+  };
+  hasFullContent: boolean;
+  hasSummarization: boolean;
 }
 
 export interface DocumentSearchResponse {

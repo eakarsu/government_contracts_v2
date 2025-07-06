@@ -2466,11 +2466,24 @@ router.post('/search/advanced', async (req, res) => {
 
     const responseTime = Date.now() - startTime;
 
+    // Enhance results with additional metadata
+    const enhancedResults = searchResults.results.map(result => ({
+      ...result,
+      // Add download status indicator
+      download_status: result.isDownloaded ? 'downloaded' : 'not_downloaded',
+      // Add content availability indicators
+      content_available: {
+        has_full_text: result.hasFullContent,
+        has_summarization: result.hasSummarization,
+        has_local_file: result.isDownloaded
+      }
+    }));
+
     res.json({
       success: true,
       query: query.trim(),
       results: {
-        documents: searchResults.results,
+        documents: enhancedResults,
         total_results: searchResults.total,
         source: 'vector_database_advanced'
       },
@@ -2481,7 +2494,12 @@ router.post('/search/advanced', async (req, res) => {
         include_content
       },
       response_time: responseTime,
-      status: searchResults.status
+      status: searchResults.status,
+      metadata: {
+        downloaded_count: enhancedResults.filter(r => r.isDownloaded).length,
+        summarized_count: enhancedResults.filter(r => r.hasSummarization).length,
+        full_content_count: enhancedResults.filter(r => r.hasFullContent).length
+      }
     });
 
   } catch (error) {
