@@ -284,35 +284,15 @@ function splitContentByTokens(content, maxTokens = 100000) {
   return chunks;
 }
 
-// Parallel-optimized summarization function with chunking for large documents
+// Optimized summarization function - sends all content in one request using middle-out transform
 async function summarizeContent(content, apiKey, isMultiPart = false, partInfo = '') {
   const url = 'https://openrouter.ai/api/v1/chat/completions';
   
-  // Check content size and split if too large
+  // Check content size but don't chunk - middle-out transform handles up to 280K tokens
   const contentTokens = estimateTokens(content);
   console.log(`📊 [DEBUG] Content size: ${content.length} chars, ~${contentTokens} tokens`);
+  console.log(`📊 [DEBUG] Sending entire content in one request using middle-out transform (supports up to 280K tokens)`);
   
-  // If content is too large (>15000 tokens), split it into chunks
-  if (contentTokens > 15000) {
-    console.log(`⚠️ [DEBUG] Large document detected (${contentTokens} tokens), splitting into chunks...`);
-    
-    const chunks = splitContentByTokens(content, 12000); // Smaller chunks for API limits
-    console.log(`📝 [DEBUG] Split into ${chunks.length} chunks`);
-    
-    // Process first chunk only for now (to avoid API rate limits)
-    const firstChunk = chunks[0];
-    const firstChunkTokens = estimateTokens(firstChunk);
-    console.log(`📝 [DEBUG] Processing first chunk: ${firstChunkTokens} tokens`);
-    
-    return await processSingleChunk(firstChunk, apiKey, url, true, `Part 1 of ${chunks.length}`);
-  }
-  
-  // Process normal-sized content
-  return await processSingleChunk(content, apiKey, url, isMultiPart, partInfo);
-}
-
-// Helper function to process a single chunk
-async function processSingleChunk(content, apiKey, url, isMultiPart = false, partInfo = '') {
   const prompt = `TASK: Analyze government contract attachment document. Return 10-page equivalent analysis in JSON.
 
 ${isMultiPart ? `SECTION: ${partInfo}` : ''}
@@ -336,7 +316,8 @@ JSON SCHEMA:
 }`;
 
   try {
-    console.log(`🔄 [DEBUG] Sending ${estimateTokens(prompt)} tokens to OpenRouter API...`);
+    const promptTokens = estimateTokens(prompt);
+    console.log(`🔄 [DEBUG] Sending ${promptTokens.toLocaleString()} tokens to OpenRouter API with middle-out transform...`);
     
     const response = await axios.post(url, {
       model: 'openai/gpt-4.1',
@@ -361,7 +342,7 @@ JSON SCHEMA:
         'HTTP-Referer': 'https://your-app.com',
         'X-Title': 'Government Contract Attachment Analyzer'
       },
-      timeout: 120000 // Increased to 2 minutes for large documents
+      timeout: 180000 // Increased to 3 minutes for large documents with middle-out
     });
     
     console.log(`✅ [DEBUG] API response received, status: ${response.status}`);
