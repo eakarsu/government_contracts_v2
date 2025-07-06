@@ -701,7 +701,7 @@ router.post('/download', async (req, res) => {
             // Document not found in vector DB, download and process it
             console.log(`📥 [DEBUG] Downloading document from government: ${docUrl}`);
             try {
-              const result = await summarizeContent(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4o');
+              const result = await summarizeContent(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4.1');
               
               if (result) {
                 // Index the processed document in vector database
@@ -1793,7 +1793,7 @@ async function processTestDocumentsSequentially(documents, jobId) {
           filePathToProcess,
           doc.filename || 'test_document',
           '',
-          'openai/gpt-4o'
+          'openai/gpt-4.1'
         );
 
         if (result) {
@@ -2068,7 +2068,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         filePathToProcess,
         doc.filename || 'document',
         '',
-        'openai/gpt-4o'
+        'openai/gpt-4.1'
       );
 
       if (result) {

@@ -8,7 +8,7 @@ const pdfService = require('./summaryService.js'); // Adjust path as needed
 const axios = require('axios');
 
 // Utility function to send file to Norshin API (now using local PDF processing)
-const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', model = 'openai/gpt-4o') => {
+const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', model = 'openai/gpt-4.1') => {
   try {
     console.log(`📤 [DEBUG] Processing document locally: ${originalName}`);
     
