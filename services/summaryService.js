@@ -348,6 +348,8 @@ JSON SCHEMA:
 
     // Clean the JSON response
     let cleanedResult = response.data.choices[0].message.content;
+    console.log (`Cleaned result: ${cleanedResult}`)
+    
     cleanedResult = cleanedResult
       .replace(/^.*\s*```/,'')
       .replace(/```\s*$/, '')
