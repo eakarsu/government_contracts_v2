@@ -2986,7 +2986,7 @@ router.get('/queue/analytics', async (req, res) => {
   }
 });
 
-// Helper function to download documents in parallel
+// Helper function to download documents in parallel and add to queue
 async function downloadDocumentsInParallel(contracts, downloadPath, concurrency, jobId) {
   console.log(`🚀 [DEBUG] ========================================`);
   console.log(`🚀 [DEBUG] STARTING DOCUMENT DOWNLOAD PROCESS`);
@@ -3140,6 +3140,43 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
           if (extractedCount > 0) {
             downloadedCount += extractedCount;
             console.log(`✅ [DEBUG] [${documentId}] Successfully extracted ${extractedCount} files from ZIP: ${originalFilename}`);
+            
+            // Add extracted files to processing queue
+            try {
+              for (const extractedFile of extractedFiles) {
+                if (extractedFile.isSupported) {
+                  const extractedFilePath = path.join(downloadPath, path.basename(extractedFile.extractedPath));
+                  
+                  // Check if already queued
+                  const existing = await prisma.documentProcessingQueue.findFirst({
+                    where: {
+                      contractNoticeId: contract.noticeId,
+                      filename: extractedFile.fileName
+                    }
+                  });
+
+                  if (!existing) {
+                    await prisma.documentProcessingQueue.create({
+                      data: {
+                        contractNoticeId: contract.noticeId,
+                        documentUrl: docUrl, // Original ZIP URL
+                        localFilePath: extractedFilePath,
+                        description: `Extracted from ZIP: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
+                        filename: extractedFile.fileName,
+                        status: 'queued',
+                        queuedAt: new Date(),
+                        retryCount: 0,
+                        maxRetries: 3
+                      }
+                    });
+                    console.log(`📋 [DEBUG] [${documentId}] Added extracted file to queue: ${extractedFile.fileName}`);
+                  }
+                }
+              }
+            } catch (queueError) {
+              console.error(`❌ [DEBUG] [${documentId}] Error adding extracted files to queue:`, queueError.message);
+            }
+            
             return { success: true, extractedFiles: extractedCount, type: 'ZIP Archive' };
           } else {
             skippedCount++;
@@ -3194,6 +3231,44 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
         console.log(`✅ [DEBUG] [${documentId}] Downloaded: ${properFilename} (${analysis.documentType}, ${fileBuffer.length} bytes, ~${analysis.estimatedPages} pages)`);
         console.log(`📁 [DEBUG] [${documentId}] Saved to: ${filePath}`);
         console.log(`📁 [DEBUG] [${documentId}] File verified: exists=${fileExists}, size=${fileStats.size}`);
+        
+        // Add downloaded document to processing queue
+        try {
+          // Check if already queued
+          const existing = await prisma.documentProcessingQueue.findFirst({
+            where: {
+              contractNoticeId: contract.noticeId,
+              documentUrl: docUrl
+            }
+          });
+
+          if (!existing) {
+            await prisma.documentProcessingQueue.create({
+              data: {
+                contractNoticeId: contract.noticeId,
+                documentUrl: docUrl,
+                localFilePath: filePath,
+                description: `Downloaded: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
+                filename: properFilename,
+                status: 'queued',
+                queuedAt: new Date(),
+                retryCount: 0,
+                maxRetries: 3
+              }
+            });
+            console.log(`📋 [DEBUG] [${documentId}] Added to processing queue: ${properFilename}`);
+          } else {
+            console.log(`📋 [DEBUG] [${documentId}] Already in queue, updating local file path`);
+            // Update the existing queue entry with the local file path
+            await prisma.documentProcessingQueue.update({
+              where: { id: existing.id },
+              data: { localFilePath: filePath }
+            });
+          }
+        } catch (queueError) {
+          console.error(`❌ [DEBUG] [${documentId}] Error adding to queue:`, queueError.message);
+          // Don't fail the download if queue addition fails
+        }
         
       } catch (writeError) {
         console.error(`❌ [DEBUG] [${documentId}] Error writing file to ${filePath}:`, writeError.message);
