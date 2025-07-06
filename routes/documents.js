@@ -3886,5 +3886,107 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
   }
 }
 
+// Get individual contract details (for search result detail view)
+router.get('/contracts/:contractId', async (req, res) => {
+  try {
+    const { contractId } = req.params;
+    console.log(`📄 [DEBUG] Getting contract details for: ${contractId}`);
+
+    // Find the contract in the database
+    const contract = await prisma.contract.findUnique({
+      where: { noticeId: contractId },
+      include: {
+        // Include any related data if needed
+      }
+    });
+
+    if (!contract) {
+      console.log(`❌ [DEBUG] Contract not found: ${contractId}`);
+      return res.status(404).json({
+        success: false,
+        error: 'Contract not found',
+        contractId: contractId
+      });
+    }
+
+    console.log(`✅ [DEBUG] Found contract: ${contract.title || 'Untitled'}`);
+
+    // Get related documents from processing queue if any
+    const relatedDocuments = await prisma.documentProcessingQueue.findMany({
+      where: { contractNoticeId: contractId },
+      select: {
+        id: true,
+        filename: true,
+        status: true,
+        processedData: true,
+        completedAt: true,
+        errorMessage: true
+      },
+      orderBy: { queuedAt: 'desc' }
+    });
+
+    // Get vector database documents for this contract
+    let vectorDocuments = [];
+    try {
+      vectorDocuments = await vectorService.searchDocuments(contractId, 50);
+      vectorDocuments = vectorDocuments.filter(doc => 
+        doc.metadata.contractId === contractId
+      );
+    } catch (vectorError) {
+      console.warn(`⚠️ [DEBUG] Could not fetch vector documents: ${vectorError.message}`);
+    }
+
+    res.json({
+      success: true,
+      contract: {
+        noticeId: contract.noticeId,
+        title: contract.title,
+        description: contract.description,
+        agency: contract.agency,
+        naicsCode: contract.naicsCode,
+        classificationCode: contract.classificationCode,
+        postedDate: contract.postedDate,
+        setAsideCode: contract.setAsideCode,
+        resourceLinks: contract.resourceLinks,
+        indexedAt: contract.indexedAt,
+        createdAt: contract.createdAt,
+        updatedAt: contract.updatedAt
+      },
+      documents: {
+        processing_queue: relatedDocuments.map(doc => ({
+          id: doc.id,
+          filename: doc.filename,
+          status: doc.status,
+          completed_at: doc.completedAt,
+          has_processed_data: !!doc.processedData,
+          error_message: doc.errorMessage
+        })),
+        vector_database: vectorDocuments.map(doc => ({
+          id: doc.metadata.id,
+          filename: doc.metadata.filename,
+          processed_at: doc.metadata.processedAt,
+          relevance_score: doc.score,
+          content_preview: doc.document?.substring(0, 300) + '...'
+        }))
+      },
+      statistics: {
+        total_resource_links: contract.resourceLinks ? (Array.isArray(contract.resourceLinks) ? contract.resourceLinks.length : 1) : 0,
+        documents_in_queue: relatedDocuments.length,
+        documents_in_vector_db: vectorDocuments.length,
+        completed_documents: relatedDocuments.filter(doc => doc.status === 'completed').length,
+        failed_documents: relatedDocuments.filter(doc => doc.status === 'failed').length
+      }
+    });
+
+  } catch (error) {
+    console.error(`❌ [DEBUG] Error getting contract details for ${req.params.contractId}:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      contractId: req.params.contractId
+    });
+  }
+});
+
 console.log('📋 [DEBUG] Documents router module loaded successfully');
 module.exports = router;
