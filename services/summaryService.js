@@ -284,7 +284,7 @@ function splitContentByTokens(content, maxTokens = 100000) {
   return chunks;
 }
 
-// Single summarization function (no workers - for your queue system)
+// Parallel-optimized summarization function
 async function summarizeContent(content, apiKey, isMultiPart = false, partInfo = '') {
   const url = 'https://openrouter.ai/api/v1/chat/completions';
   
@@ -333,7 +333,8 @@ JSON SCHEMA:
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://your-app.com',
         'X-Title': 'Government Contract Attachment Analyzer'
-      }
+      },
+      timeout: 90000 // 90 second timeout for parallel processing
     });
 
     // Check if response has expected structure

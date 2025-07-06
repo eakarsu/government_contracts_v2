@@ -2105,7 +2105,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
   let errorCount = 0;
   let processedCount = 0;
 
-  // Process single document with minimal logging
+  // Process single document with full pipeline parallelization
   const processDocument = async (doc) => {
     const startTime = Date.now();
     
@@ -2134,16 +2134,94 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         throw new Error('No file found');
       }
       
-      // Process with 2 minute timeout (much faster)
+      // PARALLEL PIPELINE: Start all operations simultaneously
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout (2min)')), 120000);
+        setTimeout(() => reject(new Error('Timeout (3min)')), 180000);
       });
       
       const processingPromise = (async () => {
-        const result = await summarizeContent(filePath, doc.filename, '', 'openai/gpt-4.1');
-        if (!result) throw new Error('No result');
+        // Step 1: Check if conversion needed and start it immediately
+        const fileExt = path.extname(filePath).toLowerCase();
+        let conversionPromise = Promise.resolve(filePath); // Default to original file
         
-        // Parallel operations
+        if (fileExt !== '.pdf') {
+          console.log(`🔄 Starting PDF conversion in parallel: ${doc.filename}`);
+          conversionPromise = (async () => {
+            const LibreOfficeService = require('./libreoffice.service');
+            const libreOfficeService = new LibreOfficeService();
+            
+            const tempDir = path.join(process.cwd(), 'temp_parallel_conversion', `${Date.now()}_${doc.id}`);
+            await fs.ensureDir(tempDir);
+            
+            try {
+              await libreOfficeService.convertToPdfWithRetry(filePath, tempDir);
+              const files = await fs.readdir(tempDir);
+              const pdfFile = files.find(file => file.toLowerCase().endsWith('.pdf'));
+              
+              if (pdfFile) {
+                return path.join(tempDir, pdfFile);
+              } else {
+                throw new Error('No PDF file found after conversion');
+              }
+            } catch (error) {
+              await fs.remove(tempDir).catch(() => {});
+              throw new Error(`PDF conversion failed: ${error.message}`);
+            }
+          })();
+        }
+        
+        // Step 2: Wait for conversion to complete, then start extraction and summarization in parallel
+        const pdfPath = await conversionPromise;
+        console.log(`📄 PDF ready, starting parallel extraction and analysis: ${doc.filename}`);
+        
+        // Start extraction immediately
+        const extractionPromise = (async () => {
+          const pdfService = require('./summaryService.js');
+          return await pdfService.processPDF(pdfPath, {
+            apiKey: process.env.REACT_APP_OPENROUTER_KEY,
+            saveExtracted: false,
+            outputDir: null
+          });
+        })();
+        
+        // Wait for extraction, then start summarization
+        const extractResult = await extractionPromise;
+        
+        if (!extractResult.success) {
+          throw new Error(`PDF extraction failed: ${extractResult.error}`);
+        }
+        
+        console.log(`✅ Extraction completed, starting summarization: ${doc.filename}`);
+        
+        // Start summarization
+        const summaryPromise = (async () => {
+          const pdfService = require('./summaryService.js');
+          return await pdfService.summarizeContent(
+            extractResult.extractedContent,
+            process.env.REACT_APP_OPENROUTER_KEY
+          );
+        })();
+        
+        // Wait for summarization
+        const summaryResult = await summaryPromise;
+        
+        if (!summaryResult.success) {
+          throw new Error(`Summarization failed: ${summaryResult.error}`);
+        }
+        
+        // Clean up temp conversion files
+        if (fileExt !== '.pdf' && pdfPath.includes('temp_parallel_conversion')) {
+          try {
+            const tempDir = path.dirname(pdfPath);
+            await fs.remove(tempDir);
+          } catch (cleanupError) {
+            // Ignore cleanup errors
+          }
+        }
+        
+        const result = summaryResult.result;
+        
+        // Step 3: Start final operations in parallel
         await Promise.all([
           // Index in vector database
           vectorService.indexDocument({
