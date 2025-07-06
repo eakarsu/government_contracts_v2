@@ -3,6 +3,9 @@
 client/node_modules/
 /client/node_modules
 
+downloaded_documents/
+/downloaded_documents
+
 package-lock.json
 client/package-lock.json
 
@@ -302,4 +305,6 @@ tmp/
 temp/
 
 .aider*
+.env
+.env
 .env
