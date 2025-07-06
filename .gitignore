@@ -3,6 +3,9 @@
 client/node_modules/
 /client/node_modules
 
+package-lock.json
+client/package-lock.json
+
 # Dependencies
 /node_modules
 /.pnp
@@ -298,3 +301,5 @@ common/autoinstallers/*/.npmrc
 tmp/
 temp/
 
+.aider*
+.env

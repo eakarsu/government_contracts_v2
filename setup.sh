@@ -40,7 +40,6 @@ setup_env_file() {
             print_warning "Please edit .env file with your actual API keys:"
             echo "  • SAM_GOV_API_KEY: Get from https://sam.gov/data-services"
             echo "  • OPENROUTER_API_KEY: Get from https://openrouter.ai"
-            echo "  • NORSHIN_API_KEY: Get from your Norshin account"
         else
             print_error ".env.example file not found"
             exit 1

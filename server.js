@@ -8,7 +8,7 @@ const multer = require('multer');
 const config = require('./config/env');
 const { prisma, testConnection, disconnect } = require('./config/database');
 const vectorService = require('./services/vectorService');
-const { sendToNorshinAPI } = require('./services/norshinService');
+
 
 // Debug: Log that we're importing routes
 console.log('📋 [DEBUG] Importing routes...');

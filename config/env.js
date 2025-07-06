@@ -4,7 +4,7 @@ require('dotenv').config();
 const requiredEnvVars = [
   'DATABASE_URL',
   'SAM_GOV_API_KEY',
-  'NORSHIN_API_KEY'
+  'REACT_APP_OPENROUTER_KEY'
 ];
 
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);

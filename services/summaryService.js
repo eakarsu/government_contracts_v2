@@ -312,7 +312,7 @@ JSON SCHEMA:
 
   try {
     const response = await axios.post(url, {
-      model: 'openai/gpt-4o',
+      model: 'openai/gpt-4.1',
       messages: [
         {
           role: 'system',
@@ -325,6 +325,7 @@ JSON SCHEMA:
       ],
       max_tokens: 16000,
       temperature: 0.2,
+      transforms: ["middle-out"],
       response_format: { type: "json_object" }
     }, {
       headers: {
