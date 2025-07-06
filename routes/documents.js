@@ -1658,16 +1658,10 @@ async function processTestDocumentsSequentially(documents, jobId) {
         throw updateError;
       }
 
-      // Create a more unique document ID that includes the actual file path
       const documentId = `${doc.contractNoticeId}_${doc.filename}`;
-      const fileBasedId = `${doc.contractNoticeId}_${path.basename(filePathToProcess)}`;
       
-      console.log(`📄 [DEBUG] Document ID: ${documentId}`);
-      console.log(`📄 [DEBUG] File-based ID: ${fileBasedId}`);
-      
-      // Check if document is already indexed in vector database using both IDs
+      // Check if document is already indexed in vector database
       const existingDocs = await vectorService.searchDocuments(documentId, 1);
-      const existingFileBasedDocs = await vectorService.searchDocuments(fileBasedId, 1);
       
       if (existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) {
         console.log(`🧪 [DEBUG] Test document already indexed, using cached: ${documentId}`);
@@ -2025,10 +2019,8 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       // Check if document is already indexed in vector database
       const existingDocs = await vectorService.searchDocuments(documentId, 1);
       
-      if ((existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) ||
-          (existingFileBasedDocs.length > 0 && existingFileBasedDocs[0].metadata.id === fileBasedId)) {
-        const cachedId = existingDocs.length > 0 ? documentId : fileBasedId;
-        console.log(`📄 [DEBUG] Document already indexed, using cached: ${cachedId}`);
+      if (existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) {
+        console.log(`📄 [DEBUG] Document already indexed, using cached: ${documentId}`);
         
         // Update status to completed with cached data
         try {
