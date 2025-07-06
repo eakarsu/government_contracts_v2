@@ -624,20 +624,20 @@ router.post('/process', async (req, res) => {
 
     console.log(`✅ [DEBUG] Created processing job: ${job.id}`);
 
-    // Use much higher concurrency for auto-queue processing
-    const autoConcurrency = Math.min(100, Math.max(50, Math.floor(queuedDocs.length / 2)));
+    // Use high concurrency with minimum of 20 for auto-queue processing
+    const autoConcurrency = Math.max(20, Math.min(100, Math.floor(queuedDocs.length / 2)));
 
     // Respond immediately and start background processing
     res.json({
       success: true,
-      message: `Started processing ALL ${queuedDocs.length} documents from queue with ${autoConcurrency} workers`,
+      message: `Started processing ALL ${queuedDocs.length} documents from queue with ${autoConcurrency} workers (minimum 20)`,
       job_id: job.id,
       documents_count: queuedDocs.length,
       concurrency: autoConcurrency,
-      processing_method: 'maximum_auto_parallel'
+      processing_method: 'high_concurrency_batch_processing'
     });
 
-    // Process documents in background with much higher concurrency
+    // Process documents in background with high concurrency
     processDocumentsInParallel(queuedDocs, autoConcurrency, job.id);
 
   } catch (error) {
@@ -1599,7 +1599,7 @@ router.post('/queue/process-test', async (req, res) => {
 // Process queued documents with parallel processing and real-time updates
 router.post('/queue/process', async (req, res) => {
   try {
-    const { concurrency = 50, batch_size = 1000, process_all = true } = req.body; // Much higher defaults
+    const { concurrency = 20, batch_size = 1000, process_all = true } = req.body; // Minimum 20 concurrency
     
     console.log('🔄 [DEBUG] Starting parallel document processing...');
     console.log(`🔄 [DEBUG] Concurrency: ${concurrency}, Batch size: ${batch_size}, Process all: ${process_all}`);
@@ -1638,9 +1638,9 @@ router.post('/queue/process', async (req, res) => {
 
     console.log(`🔄 [DEBUG] Found ${queuedDocs.length} documents to process`);
 
-    // Process ALL documents simultaneously (no concurrency limit)
-    let finalConcurrency = queuedDocs.length; // Set concurrency to total number of documents
-    console.log(`🔄 [DEBUG] Processing ALL ${queuedDocs.length} documents simultaneously (no concurrency limit)`);
+    // Ensure minimum concurrency of 20
+    let finalConcurrency = Math.max(20, Math.min(concurrency, queuedDocs.length));
+    console.log(`🔄 [DEBUG] Processing ${queuedDocs.length} documents with concurrency=${finalConcurrency} (minimum 20)`);
 
     // Create processing job for tracking
     const job = await prisma.indexingJob.create({
@@ -1656,11 +1656,11 @@ router.post('/queue/process', async (req, res) => {
     // Respond immediately with job info
     res.json({
       success: true,
-      message: `Started processing ALL ${queuedDocs.length} documents SIMULTANEOUSLY (no limits)`,
+      message: `Started processing ${queuedDocs.length} documents with HIGH CONCURRENCY=${finalConcurrency}`,
       job_id: job.id,
       documents_count: queuedDocs.length,
       concurrency: finalConcurrency,
-      processing_method: 'unlimited_simultaneous_processing',
+      processing_method: 'high_concurrency_batch_processing',
       process_all: process_all
     });
 
@@ -1676,19 +1676,23 @@ router.post('/queue/process', async (req, res) => {
   }
 });
 
-// Helper function to process test documents sequentially (cost-effective)
+// Helper function to process test documents with higher concurrency
 async function processTestDocumentsSequentially(documents, jobId) {
-  console.log(`🧪 [DEBUG] Processing ${documents.length} TEST documents SEQUENTIALLY (cost-effective mode)`);
+  console.log(`🧪 [DEBUG] Processing ${documents.length} TEST documents with CONCURRENCY=20 (cost-effective mode)`);
   
   let processedCount = 0;
   let successCount = 0;
   let errorCount = 0;
   let skippedCount = 0;
 
-  // Process documents one by one to minimize costs
-  for (const doc of documents) {
+  // Process documents with concurrency of 20 instead of sequentially
+  const concurrency = Math.min(20, documents.length);
+  console.log(`🧪 [DEBUG] Using concurrency: ${concurrency}`);
+
+  // Process single document
+  const processDocument = async (doc) => {
     try {
-      console.log(`🧪 [DEBUG] Processing TEST document ${processedCount + 1}/${documents.length}: ${doc.filename}`);
+      console.log(`🧪 [DEBUG] Processing TEST document: ${doc.filename}`);
       
       // Update status to processing
       try {
@@ -1702,7 +1706,7 @@ async function processTestDocumentsSequentially(documents, jobId) {
       } catch (updateError) {
         if (updateError.code === 'P2025') {
           console.log(`⚠️ [DEBUG] Test document record ${doc.id} no longer exists, skipping`);
-          continue;
+          return { success: false, filename: doc.filename, error: 'Record not found' };
         }
         throw updateError;
       }
@@ -1732,13 +1736,14 @@ async function processTestDocumentsSequentially(documents, jobId) {
         } catch (updateError) {
           if (updateError.code === 'P2025') {
             console.log(`⚠️ [DEBUG] Test document record ${doc.id} was deleted`);
-            continue;
+            return { success: false, filename: doc.filename, error: 'Record deleted during caching' };
           }
           throw updateError;
         }
 
         skippedCount++;
-        console.log(`🧪 [DEBUG] ✅ Test document ${processedCount + 1} cached successfully`);
+        console.log(`🧪 [DEBUG] ✅ Test document cached successfully: ${doc.filename}`);
+        return { success: true, filename: doc.filename, cached: true };
       } else {
         // Process document via summarization service
         console.log(`🧪 [DEBUG] 💰 COST ALERT: Sending test document to summarization service`);
@@ -1801,7 +1806,7 @@ async function processTestDocumentsSequentially(documents, jobId) {
 
           if (!existingRecord) {
             console.log(`⚠️ [DEBUG] Test document record ${doc.id} no longer exists`);
-            continue;
+            return { success: false, filename: doc.filename, error: 'Record not found' };
           }
 
           // Update filename if changed
@@ -1837,13 +1842,14 @@ async function processTestDocumentsSequentially(documents, jobId) {
           } catch (updateError) {
             if (updateError.code === 'P2025') {
               console.log(`⚠️ [DEBUG] Test document record ${doc.id} was deleted during processing`);
-              continue;
+              return { success: false, filename: doc.filename, error: 'Record deleted during processing' };
             }
             throw updateError;
           }
 
           successCount++;
-          console.log(`🧪 [DEBUG] ✅ Test document ${processedCount + 1} processed successfully`);
+          console.log(`🧪 [DEBUG] ✅ Test document processed successfully: ${doc.filename}`);
+          return { success: true, filename: finalFilename, cached: false };
         } else {
           throw new Error('No result from summarization service');
         }
@@ -1869,16 +1875,55 @@ async function processTestDocumentsSequentially(documents, jobId) {
       }
 
       errorCount++;
+      return { success: false, filename: doc.filename, error: error.message };
     } finally {
       processedCount++;
-      
-      console.log(`🧪 [DEBUG] Test progress: ${processedCount}/${documents.length} - Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}`);
-      
-      // Add delay between documents to be gentle on the API
-      if (processedCount < documents.length) {
-        console.log(`🧪 [DEBUG] Waiting 2 seconds before next test document...`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  };
+
+  // Process documents in batches with concurrency
+  const batchSize = concurrency;
+  const batches = [];
+  
+  for (let i = 0; i < documents.length; i += batchSize) {
+    batches.push(documents.slice(i, i + batchSize));
+  }
+
+  console.log(`🧪 [DEBUG] Processing ${documents.length} documents in ${batches.length} batches of ${batchSize}`);
+
+  // Process each batch in parallel
+  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+    const batch = batches[batchIndex];
+    console.log(`🧪 [DEBUG] Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} documents`);
+    
+    const batchPromises = batch.map(doc => processDocument(doc));
+    const batchResults = await Promise.allSettled(batchPromises);
+    
+    // Process batch results
+    batchResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        const value = result.value;
+        if (value?.success) {
+          if (value.cached) {
+            skippedCount++;
+          } else {
+            successCount++;
+          }
+        } else {
+          errorCount++;
+        }
+      } else {
+        console.error(`🧪 [DEBUG] Batch ${batchIndex + 1} document ${index + 1} rejected:`, result.reason);
+        errorCount++;
       }
+    });
+    
+    console.log(`🧪 [DEBUG] Batch ${batchIndex + 1} completed - Progress: ${processedCount}/${documents.length} - Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}`);
+    
+    // Small delay between batches
+    if (batchIndex < batches.length - 1) {
+      console.log(`🧪 [DEBUG] Waiting 1 second before next batch...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
 
@@ -1908,9 +1953,11 @@ async function processTestDocumentsSequentially(documents, jobId) {
   }
 }
 
-// Helper function to process ALL documents simultaneously (no concurrency limits)
+// Helper function to process ALL documents with high concurrency (minimum 20)
 async function processDocumentsInParallel(documents, concurrency, jobId) {
-  console.log(`🔄 [DEBUG] Processing ALL ${documents.length} documents SIMULTANEOUSLY (no concurrency limits)`);
+  // Ensure minimum concurrency of 20
+  const finalConcurrency = Math.max(20, Math.min(concurrency, documents.length));
+  console.log(`🔄 [DEBUG] Processing ${documents.length} documents with HIGH CONCURRENCY=${finalConcurrency}`);
   
   let processedCount = 0;
   let successCount = 0;
@@ -2117,14 +2164,51 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
     }
   };
 
-  // Process ALL documents simultaneously (no worker pattern)
-  console.log(`🚀 [DEBUG] Starting ALL ${documents.length} documents simultaneously...`);
+  // Process documents in batches with high concurrency
+  const batchSize = finalConcurrency;
+  const batches = [];
   
-  // Create a promise for each document and run them ALL in parallel
-  const allPromises = documents.map(doc => processDocument(doc));
-  
-  // Wait for ALL documents to complete
-  await Promise.allSettled(allPromises);
+  for (let i = 0; i < documents.length; i += batchSize) {
+    batches.push(documents.slice(i, i + batchSize));
+  }
+
+  console.log(`🚀 [DEBUG] Processing ${documents.length} documents in ${batches.length} batches of ${batchSize}`);
+
+  // Process each batch in parallel
+  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+    const batch = batches[batchIndex];
+    console.log(`🚀 [DEBUG] Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} documents`);
+    
+    const batchPromises = batch.map(doc => processDocument(doc));
+    const batchResults = await Promise.allSettled(batchPromises);
+    
+    // Process batch results and update counters
+    batchResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        const value = result.value;
+        if (value?.success) {
+          if (value.cached) {
+            skippedCount++;
+          } else {
+            successCount++;
+          }
+        } else {
+          errorCount++;
+        }
+      } else {
+        console.error(`🔄 [DEBUG] Batch ${batchIndex + 1} document ${index + 1} rejected:`, result.reason);
+        errorCount++;
+      }
+    });
+    
+    console.log(`🔄 [DEBUG] Batch ${batchIndex + 1} completed - Progress: ${processedCount}/${documents.length} - Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}`);
+    
+    // Small delay between batches to avoid overwhelming the API
+    if (batchIndex < batches.length - 1) {
+      console.log(`🔄 [DEBUG] Waiting 500ms before next batch...`);
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
 
   // Update job status
   try {
