@@ -284,10 +284,35 @@ function splitContentByTokens(content, maxTokens = 100000) {
   return chunks;
 }
 
-// Parallel-optimized summarization function
+// Parallel-optimized summarization function with chunking for large documents
 async function summarizeContent(content, apiKey, isMultiPart = false, partInfo = '') {
   const url = 'https://openrouter.ai/api/v1/chat/completions';
   
+  // Check content size and split if too large
+  const contentTokens = estimateTokens(content);
+  console.log(`📊 [DEBUG] Content size: ${content.length} chars, ~${contentTokens} tokens`);
+  
+  // If content is too large (>15000 tokens), split it into chunks
+  if (contentTokens > 15000) {
+    console.log(`⚠️ [DEBUG] Large document detected (${contentTokens} tokens), splitting into chunks...`);
+    
+    const chunks = splitContentByTokens(content, 12000); // Smaller chunks for API limits
+    console.log(`📝 [DEBUG] Split into ${chunks.length} chunks`);
+    
+    // Process first chunk only for now (to avoid API rate limits)
+    const firstChunk = chunks[0];
+    const firstChunkTokens = estimateTokens(firstChunk);
+    console.log(`📝 [DEBUG] Processing first chunk: ${firstChunkTokens} tokens`);
+    
+    return await processSingleChunk(firstChunk, apiKey, url, true, `Part 1 of ${chunks.length}`);
+  }
+  
+  // Process normal-sized content
+  return await processSingleChunk(content, apiKey, url, isMultiPart, partInfo);
+}
+
+// Helper function to process a single chunk
+async function processSingleChunk(content, apiKey, url, isMultiPart = false, partInfo = '') {
   const prompt = `TASK: Analyze government contract attachment document. Return 10-page equivalent analysis in JSON.
 
 ${isMultiPart ? `SECTION: ${partInfo}` : ''}
@@ -311,6 +336,8 @@ JSON SCHEMA:
 }`;
 
   try {
+    console.log(`🔄 [DEBUG] Sending ${estimateTokens(prompt)} tokens to OpenRouter API...`);
+    
     const response = await axios.post(url, {
       model: 'openai/gpt-4.1',
       messages: [
@@ -334,8 +361,10 @@ JSON SCHEMA:
         'HTTP-Referer': 'https://your-app.com',
         'X-Title': 'Government Contract Attachment Analyzer'
       },
-      timeout: 90000 // 90 second timeout for parallel processing
+      timeout: 120000 // Increased to 2 minutes for large documents
     });
+    
+    console.log(`✅ [DEBUG] API response received, status: ${response.status}`);
 
     // Check if response has expected structure
     if (!response.data) {
