@@ -1644,20 +1644,22 @@ router.post('/queue/process', async (req, res) => {
     for (const filename of availableFiles) {
       const filePath = path.join(downloadPath, filename);
       
-      // Try to find existing queue entry
+      // Create a unique identifier for this specific file
+      const uniqueId = `${filename}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Try to find existing queue entry by exact filename and path match
       let queueEntry = await prisma.documentProcessingQueue.findFirst({
         where: {
-          OR: [
+          AND: [
             { filename: filename },
-            { localFilePath: filePath },
-            { filename: { contains: filename.split('_')[0] } } // Match by contract ID
+            { localFilePath: filePath }
           ],
-          status: { in: ['queued', 'failed'] } // Include failed docs for retry
+          status: { in: ['queued', 'failed'] }
         }
       });
       
       if (!queueEntry) {
-        // Create new queue entry for this file
+        // Create new queue entry for this specific file
         try {
           // Extract contract ID from filename (assuming format: contractId_...)
           const contractId = filename.split('_')[0];
@@ -1667,8 +1669,8 @@ router.post('/queue/process', async (req, res) => {
               contractNoticeId: contractId,
               documentUrl: `file://${filePath}`, // Use file URL for local files
               localFilePath: filePath,
-              description: `Local file: ${filename}`,
-              filename: filename,
+              description: `Local file: ${filename} (${uniqueId})`,
+              filename: filename, // Keep original filename
               status: 'queued',
               queuedAt: new Date(),
               retryCount: 0,
@@ -1676,31 +1678,34 @@ router.post('/queue/process', async (req, res) => {
             }
           });
           
-          console.log(`📋 [DEBUG] Created queue entry for: ${filename}`);
+          console.log(`📋 [DEBUG] Created queue entry for: ${filename} at ${filePath}`);
         } catch (createError) {
           console.error(`❌ [DEBUG] Error creating queue entry for ${filename}: ${createError.message}`);
           continue;
         }
       } else {
-        // Update existing entry to queued status and update file path
+        // Update existing entry to queued status and ensure correct file path
         try {
           await prisma.documentProcessingQueue.update({
             where: { id: queueEntry.id },
             data: {
               status: 'queued',
-              localFilePath: filePath,
+              localFilePath: filePath, // Ensure this points to the correct file
+              filename: filename, // Ensure filename is correct
               queuedAt: new Date(),
               errorMessage: null,
               failedAt: null
             }
           });
-          console.log(`📋 [DEBUG] Updated existing queue entry for: ${filename}`);
+          console.log(`📋 [DEBUG] Updated existing queue entry for: ${filename} at ${filePath}`);
         } catch (updateError) {
           console.error(`❌ [DEBUG] Error updating queue entry for ${filename}: ${updateError.message}`);
         }
       }
       
       if (queueEntry) {
+        // Verify the queue entry has the correct file path
+        console.log(`📋 [DEBUG] Queue entry ${queueEntry.id}: filename=${queueEntry.filename}, localFilePath=${queueEntry.localFilePath}`);
         queuedDocsToProcess.push(queueEntry);
       }
     }
@@ -1717,7 +1722,7 @@ router.post('/queue/process', async (req, res) => {
     console.log(`📄 [DEBUG] Document types selected:`);
     queuedDocsToProcess.forEach((doc, index) => {
       const fileExt = doc.filename ? path.extname(doc.filename).toLowerCase() : 'unknown';
-      console.log(`📄 [DEBUG]   ${index + 1}. ${doc.filename} (${fileExt})`);
+      console.log(`📄 [DEBUG]   ${index + 1}. ID:${doc.id} ${doc.filename} (${fileExt}) -> ${doc.localFilePath}`);
     });
 
     // Use higher concurrency for faster processing
@@ -2140,18 +2145,38 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         data: { status: 'processing', startedAt: new Date() }
       });
 
-      // Find file path efficiently
+      // Use the exact file path from the queue entry
       let filePath = doc.localFilePath;
+      console.log(`📁 [DEBUG] Processing queue entry ${doc.id}: ${doc.filename}`);
+      console.log(`📁 [DEBUG] Expected file path: ${filePath}`);
+      
+      // Verify the file exists at the specified path
       if (!filePath || !await fs.pathExists(filePath)) {
+        console.error(`❌ [DEBUG] File not found at expected path: ${filePath}`);
+        console.log(`🔍 [DEBUG] Searching for file in download directory...`);
+        
         const downloadPath = path.join(process.cwd(), 'downloaded_documents');
         const files = await fs.readdir(downloadPath).catch(() => []);
-        const matchingFile = files.find(file => 
-          file.includes(doc.contractNoticeId) && 
-          (file.toLowerCase().endsWith('.pdf') || file.toLowerCase().endsWith('.docx'))
-        );
+        
+        // Look for exact filename match first
+        let matchingFile = files.find(file => file === doc.filename);
+        
+        if (!matchingFile) {
+          // Fallback to partial match
+          matchingFile = files.find(file => 
+            file.includes(doc.contractNoticeId) && 
+            (file.toLowerCase().endsWith('.pdf') || file.toLowerCase().endsWith('.docx'))
+          );
+        }
+        
         if (matchingFile) {
           filePath = path.join(downloadPath, matchingFile);
+          console.log(`✅ [DEBUG] Found file: ${matchingFile} at ${filePath}`);
+        } else {
+          console.error(`❌ [DEBUG] No matching file found for ${doc.filename}`);
         }
+      } else {
+        console.log(`✅ [DEBUG] File verified at: ${filePath}`);
       }
       
       if (!filePath) {
