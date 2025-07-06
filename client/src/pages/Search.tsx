@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import { SearchForm, SearchResult, Contract } from '../types';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 import { Link } from 'react-router-dom';
+
+interface SearchHistoryItem {
+  id: string;
+  query: string;
+  timestamp: string;
+  result: SearchResult;
+  form: SearchForm;
+}
 
 const Search: React.FC = () => {
   const [searchForm, setSearchForm] = useState<SearchForm>({
@@ -12,19 +20,61 @@ const Search: React.FC = () => {
     include_analysis: true,
   });
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Load search history from localStorage on component mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('searchHistory');
+    if (savedHistory) {
+      try {
+        setSearchHistory(JSON.parse(savedHistory));
+      } catch (error) {
+        console.error('Error loading search history:', error);
+      }
+    }
+  }, []);
+
+  // Save search history to localStorage
+  const saveSearchToHistory = (form: SearchForm, result: SearchResult) => {
+    const historyItem: SearchHistoryItem = {
+      id: Date.now().toString(),
+      query: form.query,
+      timestamp: new Date().toISOString(),
+      result,
+      form,
+    };
+
+    const updatedHistory = [historyItem, ...searchHistory.slice(0, 9)]; // Keep last 10 searches
+    setSearchHistory(updatedHistory);
+    localStorage.setItem('searchHistory', JSON.stringify(updatedHistory));
+  };
 
   const searchMutation = useMutation({
     mutationFn: (data: SearchForm) => apiService.searchContracts(data),
     onSuccess: (data) => {
       setSearchResult(data);
+      saveSearchToHistory(searchForm, data);
     },
   });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchForm.query.trim()) {
+      setShowHistory(false);
       searchMutation.mutate(searchForm);
     }
+  };
+
+  const loadHistoryItem = (historyItem: SearchHistoryItem) => {
+    setSearchForm(historyItem.form);
+    setSearchResult(historyItem.result);
+    setShowHistory(false);
+  };
+
+  const clearSearchHistory = () => {
+    setSearchHistory([]);
+    localStorage.removeItem('searchHistory');
   };
 
   const formatDate = (dateString?: string) => {
@@ -40,6 +90,54 @@ const Search: React.FC = () => {
           Search through government contracts with AI-powered analysis
         </p>
       </div>
+
+      {/* Search History Toggle */}
+      {searchHistory.length > 0 && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="text-sm text-primary-600 hover:text-primary-800 flex items-center"
+          >
+            {showHistory ? '🔽' : '▶️'} Search History ({searchHistory.length})
+          </button>
+        </div>
+      )}
+
+      {/* Search History */}
+      {showHistory && searchHistory.length > 0 && (
+        <div className="bg-white shadow rounded-lg p-6 mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Recent Searches</h2>
+            <button
+              onClick={clearSearchHistory}
+              className="text-sm text-red-600 hover:text-red-800"
+            >
+              Clear History
+            </button>
+          </div>
+          <div className="space-y-3">
+            {searchHistory.map((item) => (
+              <div
+                key={item.id}
+                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                onClick={() => loadHistoryItem(item)}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">"{item.query}"</div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      {item.result.results.total_results} results • {new Date(item.timestamp).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400 ml-4">
+                    Limit: {item.form.limit} • Analysis: {item.form.include_analysis ? 'Yes' : 'No'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Search Form */}
       <div className="bg-white shadow rounded-lg p-6 mb-8">
@@ -89,13 +187,27 @@ const Search: React.FC = () => {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={searchMutation.isPending || !searchForm.query.trim()}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-          >
-            {searchMutation.isPending ? <LoadingSpinner size="sm" /> : 'Search'}
-          </button>
+          <div className="flex space-x-4">
+            <button
+              type="submit"
+              disabled={searchMutation.isPending || !searchForm.query.trim()}
+              className="flex-1 flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+            >
+              {searchMutation.isPending ? <LoadingSpinner size="sm" /> : 'Search'}
+            </button>
+            {searchResult && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchResult(null);
+                  setSearchForm({ query: '', limit: 20, include_analysis: true });
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                Clear Results
+              </button>
+            )}
+          </div>
         </form>
       </div>
 
