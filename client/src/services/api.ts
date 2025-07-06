@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import type {
   ApiResponse,
   Contract,
+  ContractAnalysis,
   IndexingJob,
   SearchResult,
   QueueStatus,
@@ -161,8 +162,8 @@ class ApiService {
     return response.data;
   }
 
-  async analyzeContract(noticeId: string): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>(`/contracts/${noticeId}/analyze`);
+  async analyzeContract(noticeId: string): Promise<ContractAnalysis> {
+    const response = await api.post<ContractAnalysis>(`/documents/contracts/${noticeId}/analyze`);
     return response.data;
   }
 

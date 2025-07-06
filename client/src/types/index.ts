@@ -21,6 +21,104 @@ export interface Contract {
   indexedAt?: string;
   createdAt: string;
   updatedAt: string;
+  documents?: {
+    processing_queue: Array<{
+      id: number;
+      filename: string;
+      status: string;
+      document_url: string;
+      local_file_path?: string;
+      queued_at: string;
+      started_at?: string;
+      completed_at?: string;
+      failed_at?: string;
+      has_processed_data: boolean;
+      processed_data_preview?: string;
+      error_message?: string;
+      is_local_file: boolean;
+    }>;
+    vector_database: Array<{
+      id: string;
+      filename: string;
+      processed_at: string;
+      relevance_score: number;
+      content_preview: string;
+      content_length: number;
+    }>;
+    downloaded_files: Array<{
+      filename: string;
+      size_bytes: number;
+      size_mb: number;
+      modified: string;
+      extension: string;
+      path: string;
+    }>;
+    resource_links_analysis: Array<{
+      index: number;
+      url: string;
+      filename: string;
+      extension: string;
+      is_downloaded: boolean;
+      queue_status: string;
+      queue_entry_id?: number;
+    }>;
+  };
+  statistics?: {
+    total_resource_links: number;
+    documents_in_queue: number;
+    documents_in_vector_db: number;
+    downloaded_files_count: number;
+    completed_documents: number;
+    failed_documents: number;
+    processing_documents: number;
+    queued_documents: number;
+    download_completion_rate: number;
+    processing_completion_rate: number;
+  };
+}
+
+export interface ContractAnalysis {
+  success: boolean;
+  contract_id: string;
+  analysis: {
+    contract_overview: {
+      title: string;
+      agency: string;
+      naics_code: string;
+      classification: string;
+      posted_date: string;
+      set_aside: string;
+      description_length: number;
+      has_description: boolean;
+    };
+    document_analysis: {
+      total_resource_links: number;
+      documents_processed: number;
+      documents_failed: number;
+      documents_in_vector_db: number;
+      processing_success_rate: number;
+    };
+    content_insights: {
+      contract_text_length: number;
+      has_sufficient_content: boolean;
+      key_terms: Array<{
+        term: string;
+        frequency: number;
+      }>;
+      document_summaries: Array<{
+        filename: string;
+        summary: string;
+        word_count: number;
+        key_points: string[];
+      }>;
+    };
+    recommendations: Array<{
+      type: 'success' | 'warning' | 'info' | 'error';
+      title: string;
+      message: string;
+    }>;
+  };
+  analyzed_at: string;
 }
 
 // Job Types

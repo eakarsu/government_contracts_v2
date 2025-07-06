@@ -3926,7 +3926,12 @@ router.get('/contracts/:contractId', async (req, res) => {
         status: true,
         processedData: true,
         completedAt: true,
-        errorMessage: true
+        errorMessage: true,
+        localFilePath: true,
+        documentUrl: true,
+        queuedAt: true,
+        startedAt: true,
+        failedAt: true
       },
       orderBy: { queuedAt: 'desc' }
     });
@@ -3940,6 +3945,64 @@ router.get('/contracts/:contractId', async (req, res) => {
       );
     } catch (vectorError) {
       console.warn(`⚠️ [DEBUG] Could not fetch vector documents: ${vectorError.message}`);
+    }
+
+    // Check for downloaded files in the downloaded_documents folder
+    const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+    let downloadedFiles = [];
+    
+    try {
+      if (await fs.pathExists(downloadPath)) {
+        const files = await fs.readdir(downloadPath);
+        const contractFiles = files.filter(file => file.includes(contractId));
+        
+        for (const file of contractFiles) {
+          const filePath = path.join(downloadPath, file);
+          try {
+            const stats = await fs.stat(filePath);
+            downloadedFiles.push({
+              filename: file,
+              size: stats.size,
+              modified: stats.mtime,
+              path: filePath,
+              extension: path.extname(file).toLowerCase()
+            });
+          } catch (statError) {
+            // Skip files that can't be stat'd
+          }
+        }
+      }
+    } catch (dirError) {
+      console.warn(`⚠️ [DEBUG] Could not check downloaded files: ${dirError.message}`);
+    }
+
+    // Parse resource links and analyze them
+    let resourceLinksAnalysis = [];
+    if (contract.resourceLinks && Array.isArray(contract.resourceLinks)) {
+      resourceLinksAnalysis = contract.resourceLinks.map((url, index) => {
+        const urlParts = url.split('/');
+        const filename = urlParts[urlParts.length - 1] || `document_${index + 1}`;
+        const extension = path.extname(filename).toLowerCase();
+        
+        // Check if this URL has been downloaded
+        const isDownloaded = downloadedFiles.some(file => 
+          file.filename.includes(filename.replace(/\.[^/.]+$/, '')) || 
+          file.filename.includes(`${contractId}_`)
+        );
+        
+        // Check if this URL is in processing queue
+        const queueEntry = relatedDocuments.find(doc => doc.documentUrl === url);
+        
+        return {
+          index: index + 1,
+          url: url,
+          filename: filename,
+          extension: extension,
+          is_downloaded: isDownloaded,
+          queue_status: queueEntry ? queueEntry.status : 'not_queued',
+          queue_entry_id: queueEntry ? queueEntry.id : null
+        };
+      });
     }
 
     // Return the contract data directly (not nested under 'contract' key)
@@ -3958,30 +4021,60 @@ router.get('/contracts/:contractId', async (req, res) => {
       indexedAt: contract.indexedAt ? contract.indexedAt.toISOString() : null,
       createdAt: contract.createdAt.toISOString(),
       updatedAt: contract.updatedAt.toISOString(),
-      // Additional metadata for the frontend
+      
+      // Enhanced document information
       documents: {
         processing_queue: relatedDocuments.map(doc => ({
           id: doc.id,
           filename: doc.filename,
           status: doc.status,
+          document_url: doc.documentUrl,
+          local_file_path: doc.localFilePath,
+          queued_at: doc.queuedAt,
+          started_at: doc.startedAt,
           completed_at: doc.completedAt,
+          failed_at: doc.failedAt,
           has_processed_data: !!doc.processedData,
-          error_message: doc.errorMessage
+          processed_data_preview: doc.processedData ? 
+            JSON.stringify(JSON.parse(doc.processedData)).substring(0, 200) + '...' : null,
+          error_message: doc.errorMessage,
+          is_local_file: !!doc.localFilePath
         })),
         vector_database: vectorDocuments.map(doc => ({
           id: doc.metadata.id,
           filename: doc.metadata.filename,
           processed_at: doc.metadata.processedAt,
           relevance_score: doc.score,
-          content_preview: doc.document?.substring(0, 300) + '...'
-        }))
+          content_preview: doc.document?.substring(0, 300) + '...',
+          content_length: doc.document?.length || 0
+        })),
+        downloaded_files: downloadedFiles.map(file => ({
+          filename: file.filename,
+          size_bytes: file.size,
+          size_mb: Math.round(file.size / (1024 * 1024) * 100) / 100,
+          modified: file.modified,
+          extension: file.extension,
+          path: file.path
+        })),
+        resource_links_analysis: resourceLinksAnalysis
       },
+      
+      // Enhanced statistics
       statistics: {
         total_resource_links: contract.resourceLinks ? (Array.isArray(contract.resourceLinks) ? contract.resourceLinks.length : 1) : 0,
         documents_in_queue: relatedDocuments.length,
         documents_in_vector_db: vectorDocuments.length,
+        downloaded_files_count: downloadedFiles.length,
         completed_documents: relatedDocuments.filter(doc => doc.status === 'completed').length,
-        failed_documents: relatedDocuments.filter(doc => doc.status === 'failed').length
+        failed_documents: relatedDocuments.filter(doc => doc.status === 'failed').length,
+        processing_documents: relatedDocuments.filter(doc => doc.status === 'processing').length,
+        queued_documents: relatedDocuments.filter(doc => doc.status === 'queued').length,
+        download_completion_rate: contract.resourceLinks && Array.isArray(contract.resourceLinks) && contract.resourceLinks.length > 0 
+          ? Math.round((downloadedFiles.length / contract.resourceLinks.length) * 100) 
+          : 0,
+        processing_completion_rate: relatedDocuments.length > 0 
+          ? Math.round((relatedDocuments.filter(doc => doc.status === 'completed').length / relatedDocuments.length) * 100)
+          : 0
       }
     });
 
@@ -3994,6 +4087,219 @@ router.get('/contracts/:contractId', async (req, res) => {
     });
   }
 });
+
+// Analyze contract endpoint
+router.post('/contracts/:contractId/analyze', async (req, res) => {
+  try {
+    const { contractId } = req.params;
+    console.log(`🔍 [DEBUG] Analyzing contract: ${contractId}`);
+
+    // Find the contract in the database
+    const contract = await prisma.contract.findUnique({
+      where: { noticeId: contractId }
+    });
+
+    if (!contract) {
+      return res.status(404).json({
+        success: false,
+        error: 'Contract not found',
+        contractId: contractId
+      });
+    }
+
+    // Get related documents and their processing status
+    const relatedDocuments = await prisma.documentProcessingQueue.findMany({
+      where: { contractNoticeId: contractId },
+      select: {
+        id: true,
+        filename: true,
+        status: true,
+        processedData: true,
+        completedAt: true,
+        errorMessage: true
+      }
+    });
+
+    // Get vector database documents for analysis
+    let vectorDocuments = [];
+    try {
+      vectorDocuments = await vectorService.searchDocuments(contractId, 50);
+      vectorDocuments = vectorDocuments.filter(doc => 
+        doc.metadata.contractId === contractId
+      );
+    } catch (vectorError) {
+      console.warn(`⚠️ [DEBUG] Could not fetch vector documents: ${vectorError.message}`);
+    }
+
+    // Analyze contract content
+    const contractText = `${contract.title || ''} ${contract.description || ''} ${contract.agency || ''}`.trim();
+    
+    // Basic analysis
+    const analysis = {
+      contract_overview: {
+        title: contract.title,
+        agency: contract.agency,
+        naics_code: contract.naicsCode,
+        classification: contract.classificationCode,
+        posted_date: contract.postedDate,
+        set_aside: contract.setAsideCode,
+        description_length: contract.description?.length || 0,
+        has_description: !!contract.description
+      },
+      document_analysis: {
+        total_resource_links: contract.resourceLinks ? (Array.isArray(contract.resourceLinks) ? contract.resourceLinks.length : 1) : 0,
+        documents_processed: relatedDocuments.filter(doc => doc.status === 'completed').length,
+        documents_failed: relatedDocuments.filter(doc => doc.status === 'failed').length,
+        documents_in_vector_db: vectorDocuments.length,
+        processing_success_rate: relatedDocuments.length > 0 
+          ? Math.round((relatedDocuments.filter(doc => doc.status === 'completed').length / relatedDocuments.length) * 100)
+          : 0
+      },
+      content_insights: {
+        contract_text_length: contractText.length,
+        has_sufficient_content: contractText.length > 100,
+        key_terms: extractKeyTerms(contractText),
+        document_summaries: relatedDocuments
+          .filter(doc => doc.status === 'completed' && doc.processedData)
+          .map(doc => {
+            try {
+              const data = JSON.parse(doc.processedData);
+              return {
+                filename: doc.filename,
+                summary: data.summary?.substring(0, 200) + '...' || 'No summary available',
+                word_count: data.wordCount || 0,
+                key_points: data.keyPoints?.slice(0, 3) || []
+              };
+            } catch (parseError) {
+              return {
+                filename: doc.filename,
+                summary: 'Error parsing processed data',
+                word_count: 0,
+                key_points: []
+              };
+            }
+          })
+      },
+      recommendations: generateRecommendations(contract, relatedDocuments, vectorDocuments)
+    };
+
+    console.log(`✅ [DEBUG] Contract analysis completed for: ${contractId}`);
+
+    res.json({
+      success: true,
+      contract_id: contractId,
+      analysis: analysis,
+      analyzed_at: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error(`❌ [DEBUG] Error analyzing contract ${req.params.contractId}:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      contractId: req.params.contractId
+    });
+  }
+});
+
+// Helper function to extract key terms from text
+function extractKeyTerms(text) {
+  if (!text || text.length < 10) return [];
+  
+  const commonWords = new Set(['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'up', 'about', 'into', 'over', 'after']);
+  const words = text.toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 3 && !commonWords.has(word));
+  
+  const wordCount = {};
+  words.forEach(word => {
+    wordCount[word] = (wordCount[word] || 0) + 1;
+  });
+  
+  return Object.entries(wordCount)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 10)
+    .map(([word, count]) => ({ term: word, frequency: count }));
+}
+
+// Helper function to generate recommendations
+function generateRecommendations(contract, relatedDocuments, vectorDocuments) {
+  const recommendations = [];
+  
+  // Check if contract has documents
+  if (!contract.resourceLinks || !Array.isArray(contract.resourceLinks) || contract.resourceLinks.length === 0) {
+    recommendations.push({
+      type: 'warning',
+      title: 'No Document Links',
+      message: 'This contract has no associated document links. Consider checking if documents are available.'
+    });
+  }
+  
+  // Check processing status
+  const completedDocs = relatedDocuments.filter(doc => doc.status === 'completed').length;
+  const totalDocs = relatedDocuments.length;
+  
+  if (totalDocs > 0 && completedDocs < totalDocs) {
+    recommendations.push({
+      type: 'info',
+      title: 'Document Processing',
+      message: `${totalDocs - completedDocs} documents are still being processed or have failed. Check the processing queue.`
+    });
+  }
+  
+  // Check vector database indexing
+  if (completedDocs > 0 && vectorDocuments.length === 0) {
+    recommendations.push({
+      type: 'warning',
+      title: 'Vector Database',
+      message: 'Processed documents are not indexed in the vector database. They may not be searchable.'
+    });
+  }
+  
+  // Success message
+  if (completedDocs > 0 && vectorDocuments.length > 0) {
+    recommendations.push({
+      type: 'success',
+      title: 'Analysis Complete',
+      message: `Successfully processed ${completedDocs} documents and indexed ${vectorDocuments.length} in the search database.`
+    });
+  }
+  
+  // NAICS code insights
+  if (contract.naicsCode) {
+    const naicsInsights = getNaicsInsights(contract.naicsCode);
+    if (naicsInsights) {
+      recommendations.push({
+        type: 'info',
+        title: 'Industry Classification',
+        message: naicsInsights
+      });
+    }
+  }
+  
+  return recommendations;
+}
+
+// Helper function to provide NAICS code insights
+function getNaicsInsights(naicsCode) {
+  const naicsMap = {
+    '334': 'Computer and Electronic Product Manufacturing',
+    '541': 'Professional, Scientific, and Technical Services',
+    '561': 'Administrative and Support Services',
+    '336': 'Transportation Equipment Manufacturing',
+    '333': 'Machinery Manufacturing'
+  };
+  
+  const prefix = naicsCode.substring(0, 3);
+  const industry = naicsMap[prefix];
+  
+  if (industry) {
+    return `This contract is in the ${industry} sector (NAICS ${naicsCode}).`;
+  }
+  
+  return null;
+}
 
 console.log('📋 [DEBUG] Documents router module loaded successfully');
 module.exports = router;
