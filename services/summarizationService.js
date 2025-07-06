@@ -11,6 +11,7 @@ const axios = require('axios');
 const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', model = 'openai/gpt-4.1') => {
   try {
     console.log(`📤 [DEBUG] Processing document locally: ${originalName}`);
+    console.log(`📤 [DEBUG] Input file path/URL: ${filePathOrUrl}`);
     
 
     let fileBuffer;
@@ -101,13 +102,17 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
       const LibreOfficeService = require('./libreoffice.service');
       const libreOfficeService = new LibreOfficeService();
       
-      // Create temp directory for conversion
-      const tempDir = path.join(process.cwd(), 'temp_summarization', `${Date.now()}_${path.basename(originalName, fileExt)}`);
+      // Create temp directory for conversion using the actual file being processed
+      const actualFileName = path.basename(pdfPath);
+      const actualFileExt = path.extname(actualFileName);
+      const actualBaseName = path.basename(actualFileName, actualFileExt);
+      const tempDir = path.join(process.cwd(), 'temp_summarization', `${Date.now()}_${actualBaseName}`);
       await fs.ensureDir(tempDir);
       
       try {
         // Convert to PDF using LibreOffice
         console.log(`📄➡️📄 [CONVERT] Converting ${fileExt} to PDF: ${pdfPath}`);
+        console.log(`📄➡️📄 [CONVERT] Output directory: ${tempDir}`);
         await libreOfficeService.convertToPdfWithRetry(pdfPath, tempDir);
         
         // Find the converted PDF
@@ -117,7 +122,10 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
         if (pdfFile) {
           finalPdfPath = path.join(tempDir, pdfFile);
           console.log(`📄➡️📄 [CONVERT] ✅ Conversion successful: ${finalPdfPath}`);
+          console.log(`📄➡️📄 [CONVERT] Original file: ${pdfPath}`);
+          console.log(`📄➡️📄 [CONVERT] Converted file: ${pdfFile}`);
         } else {
+          console.log(`📄➡️📄 [CONVERT] ❌ Available files in ${tempDir}:`, files);
           throw new Error('No PDF file found after LibreOffice conversion');
         }
         

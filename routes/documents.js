@@ -1658,10 +1658,16 @@ async function processTestDocumentsSequentially(documents, jobId) {
         throw updateError;
       }
 
+      // Create a more unique document ID that includes the actual file path
       const documentId = `${doc.contractNoticeId}_${doc.filename}`;
+      const fileBasedId = `${doc.contractNoticeId}_${path.basename(filePathToProcess)}`;
       
-      // Check if document is already indexed in vector database
+      console.log(`📄 [DEBUG] Document ID: ${documentId}`);
+      console.log(`📄 [DEBUG] File-based ID: ${fileBasedId}`);
+      
+      // Check if document is already indexed in vector database using both IDs
       const existingDocs = await vectorService.searchDocuments(documentId, 1);
+      const existingFileBasedDocs = await vectorService.searchDocuments(fileBasedId, 1);
       
       if (existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) {
         console.log(`🧪 [DEBUG] Test document already indexed, using cached: ${documentId}`);
@@ -2019,8 +2025,10 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       // Check if document is already indexed in vector database
       const existingDocs = await vectorService.searchDocuments(documentId, 1);
       
-      if (existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) {
-        console.log(`📄 [DEBUG] Document already indexed, using cached: ${documentId}`);
+      if ((existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) ||
+          (existingFileBasedDocs.length > 0 && existingFileBasedDocs[0].metadata.id === fileBasedId)) {
+        const cachedId = existingDocs.length > 0 ? documentId : fileBasedId;
+        console.log(`📄 [DEBUG] Document already indexed, using cached: ${cachedId}`);
         
         // Update status to completed with cached data
         try {
@@ -2091,6 +2099,10 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       let filePathToProcess;
       let needsConversion = documentMetadata.needsConversion || false;
         
+      console.log(`📥 [DEBUG] Document ${doc.id}: ${doc.filename}`);
+      console.log(`📥 [DEBUG] Document URL: ${doc.documentUrl}`);
+      console.log(`📥 [DEBUG] Stored local path: ${doc.localFilePath}`);
+        
       if (localFilePath && await fs.pathExists(localFilePath)) {
         filePathToProcess = localFilePath;
         console.log(`📥 [DEBUG] ✅ Using found local file: ${localFilePath}`);
@@ -2101,6 +2113,8 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         filePathToProcess = doc.documentUrl;
         console.log(`📥 [DEBUG] ⚠️ No local file found, will download from URL: ${doc.documentUrl}`);
       }
+        
+      console.log(`📥 [DEBUG] Final file path to process: ${filePathToProcess}`);
         
       // If document needs conversion and we're processing from URL, handle conversion first
       let finalProcessingPath = filePathToProcess;
