@@ -1564,54 +1564,122 @@ router.post('/queue/process', async (req, res) => {
       });
     }
 
-    // Get queued documents with test limit for safety, prioritizing .doc/.docx files
-    const queuedDocs = await prisma.documentProcessingQueue.findMany({
-      where: { 
-        status: 'queued',
-        localFilePath: { not: null } // Only process documents that have been downloaded locally
-      },
-      take: test_limit * 2, // Get more documents to filter from
-      orderBy: { queuedAt: 'asc' }
-    });
-
-    // Prioritize .doc/.docx files to ensure at least one is included
-    const docxFiles = queuedDocs.filter(doc => 
-      doc.filename && (
-        doc.filename.toLowerCase().endsWith('.docx') || 
-        doc.filename.toLowerCase().endsWith('.doc')
-      )
-    );
+    // First, scan the downloaded_documents folder to find actual files
+    const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+    let availableFiles = [];
     
-    const pdfFiles = queuedDocs.filter(doc => 
-      doc.filename && doc.filename.toLowerCase().endsWith('.pdf')
-    );
-    
-    const otherFiles = queuedDocs.filter(doc => 
-      doc.filename && !doc.filename.toLowerCase().endsWith('.pdf') && 
-      !doc.filename.toLowerCase().endsWith('.docx') && 
-      !doc.filename.toLowerCase().endsWith('.doc')
-    );
-
-    // Create final selection ensuring at least one .doc/.docx if available
-    let finalQueuedDocs = [];
-    
-    if (docxFiles.length > 0) {
-      // Add at least one .doc/.docx file
-      finalQueuedDocs.push(docxFiles[0]);
-      console.log(`📄 [DEBUG] Prioritized .doc/.docx file: ${docxFiles[0].filename}`);
-      
-      // Fill remaining slots with mix of file types
-      const remainingSlots = test_limit - 1;
-      const remainingFiles = [...docxFiles.slice(1), ...pdfFiles, ...otherFiles];
-      finalQueuedDocs.push(...remainingFiles.slice(0, remainingSlots));
-    } else {
-      // No .doc/.docx files available, use original selection
-      finalQueuedDocs = queuedDocs.slice(0, test_limit);
-      console.log(`⚠️ [DEBUG] No .doc/.docx files found in queue, using available files`);
+    try {
+      if (await fs.pathExists(downloadPath)) {
+        const files = await fs.readdir(downloadPath);
+        console.log(`📁 [DEBUG] Found ${files.length} files in downloaded_documents folder`);
+        
+        // Categorize files by extension
+        const docxFiles = files.filter(file => 
+          file.toLowerCase().endsWith('.docx') || file.toLowerCase().endsWith('.doc')
+        );
+        const pdfFiles = files.filter(file => file.toLowerCase().endsWith('.pdf'));
+        const otherFiles = files.filter(file => 
+          !file.toLowerCase().endsWith('.pdf') && 
+          !file.toLowerCase().endsWith('.docx') && 
+          !file.toLowerCase().endsWith('.doc')
+        );
+        
+        console.log(`📄 [DEBUG] File breakdown: ${docxFiles.length} .doc/.docx, ${pdfFiles.length} .pdf, ${otherFiles.length} other`);
+        
+        if (docxFiles.length > 0) {
+          console.log(`📄 [DEBUG] Found .doc/.docx files: ${docxFiles.slice(0, 3).join(', ')}${docxFiles.length > 3 ? '...' : ''}`);
+        }
+        
+        // Prioritize .doc/.docx files
+        let selectedFiles = [];
+        if (docxFiles.length > 0) {
+          selectedFiles.push(docxFiles[0]); // Always include at least one .doc/.docx
+          console.log(`📄 [DEBUG] Prioritized .doc/.docx file: ${docxFiles[0]}`);
+          
+          // Fill remaining slots
+          const remainingSlots = test_limit - 1;
+          const remainingFiles = [...docxFiles.slice(1), ...pdfFiles, ...otherFiles];
+          selectedFiles.push(...remainingFiles.slice(0, remainingSlots));
+        } else {
+          // No .doc/.docx files, use PDFs and others
+          selectedFiles = [...pdfFiles, ...otherFiles].slice(0, test_limit);
+          console.log(`⚠️ [DEBUG] No .doc/.docx files found in downloaded folder, using available files`);
+        }
+        
+        availableFiles = selectedFiles.slice(0, test_limit);
+      } else {
+        console.log(`❌ [DEBUG] Downloaded documents folder not found: ${downloadPath}`);
+      }
+    } catch (error) {
+      console.error(`❌ [DEBUG] Error scanning downloaded files: ${error.message}`);
     }
-
-    // Update queuedDocs to use our prioritized selection
-    const queuedDocsToProcess = finalQueuedDocs.slice(0, test_limit);
+    
+    // Now get or create queue entries for these files
+    const queuedDocsToProcess = [];
+    
+    for (const filename of availableFiles) {
+      const filePath = path.join(downloadPath, filename);
+      
+      // Try to find existing queue entry
+      let queueEntry = await prisma.documentProcessingQueue.findFirst({
+        where: {
+          OR: [
+            { filename: filename },
+            { localFilePath: filePath },
+            { filename: { contains: filename.split('_')[0] } } // Match by contract ID
+          ],
+          status: { in: ['queued', 'failed'] } // Include failed docs for retry
+        }
+      });
+      
+      if (!queueEntry) {
+        // Create new queue entry for this file
+        try {
+          // Extract contract ID from filename (assuming format: contractId_...)
+          const contractId = filename.split('_')[0];
+          
+          queueEntry = await prisma.documentProcessingQueue.create({
+            data: {
+              contractNoticeId: contractId,
+              documentUrl: `file://${filePath}`, // Use file URL for local files
+              localFilePath: filePath,
+              description: `Local file: ${filename}`,
+              filename: filename,
+              status: 'queued',
+              queuedAt: new Date(),
+              retryCount: 0,
+              maxRetries: 3
+            }
+          });
+          
+          console.log(`📋 [DEBUG] Created queue entry for: ${filename}`);
+        } catch (createError) {
+          console.error(`❌ [DEBUG] Error creating queue entry for ${filename}: ${createError.message}`);
+          continue;
+        }
+      } else {
+        // Update existing entry to queued status and update file path
+        try {
+          await prisma.documentProcessingQueue.update({
+            where: { id: queueEntry.id },
+            data: {
+              status: 'queued',
+              localFilePath: filePath,
+              queuedAt: new Date(),
+              errorMessage: null,
+              failedAt: null
+            }
+          });
+          console.log(`📋 [DEBUG] Updated existing queue entry for: ${filename}`);
+        } catch (updateError) {
+          console.error(`❌ [DEBUG] Error updating queue entry for ${filename}: ${updateError.message}`);
+        }
+      }
+      
+      if (queueEntry) {
+        queuedDocsToProcess.push(queueEntry);
+      }
+    }
 
     if (queuedDocsToProcess.length === 0) {
       return res.json({
