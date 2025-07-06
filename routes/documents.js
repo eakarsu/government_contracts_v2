@@ -1168,85 +1168,26 @@ router.post('/queue', async (req, res) => {
                 continue;
               }
 
-              // 🆕 CALL LIBREOFFICE CONVERSION SERVICE BEFORE QUEUE INSERTION
-              console.log(`📄➡️📄 [QUEUE] 🔄 Attempting PDF conversion before queueing: ${filename}`);
-              
-              // Create temporary directory for conversion
-              const tempDir = path.join(process.cwd(), 'temp_conversions', Date.now().toString());
-              await fs.ensureDir(tempDir);
-              
-              // Download the document first
-              let conversionResult;
-              try {
-                const response = await axios.get(docUrl, {
-                  responseType: 'arraybuffer',
-                  timeout: 120000,
-                  headers: {
-                    'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)',
-                    'Accept': '*/*'
-                  }
-                });
+              // Store document metadata for later processing
+              let documentMetadata = {
+                originalUrl: docUrl,
+                originalFilename: originalFilename,
+                needsConversion: false,
+                fileExtension: path.extname(originalFilename).toLowerCase()
+              };
 
-                const fileBuffer = Buffer.from(response.data);
-                const fileExt = path.extname(originalFilename).toLowerCase();
-                const tempInputPath = path.join(tempDir, `input${fileExt}`);
-                await fs.writeFile(tempInputPath, fileBuffer);
-                
-                // Convert using LibreOffice
-                await libreOfficeService.convertToPdfWithRetry(tempInputPath, tempDir);
-                
-                conversionResult = {
-                  success: true,
-                  isPdf: fileExt === '.pdf',
-                  wasConverted: fileExt !== '.pdf',
-                  originalUrl: docUrl,
-                  originalFilename: originalFilename,
-                  message: fileExt === '.pdf' ? 'Document is already a PDF' : 'Document successfully converted to PDF'
-                };
-              } catch (error) {
-                conversionResult = {
-                  success: false,
-                  isPdf: false,
-                  wasConverted: false,
-                  originalUrl: docUrl,
-                  originalFilename: originalFilename,
-                  error: error.message,
-                  message: `PDF conversion failed: ${error.message}`
-                };
-              } finally {
-                // Clean up temp directory
-                try {
-                  await fs.remove(tempDir);
-                } catch (cleanupError) {
-                  console.warn(`⚠️ [DEBUG] Could not clean up temp directory: ${cleanupError.message}`);
-                }
+              // Check if document needs PDF conversion
+              const fileExt = path.extname(originalFilename).toLowerCase();
+              if (fileExt !== '.pdf') {
+                documentMetadata.needsConversion = true;
+                console.log(`📄➡️📄 [QUEUE] Document will need PDF conversion during processing: ${originalFilename} (${fileExt})`);
+              } else {
+                console.log(`📄➡️📄 [QUEUE] Document is already PDF: ${originalFilename}`);
               }
 
-              console.log(`📄➡️📄 [QUEUE] PDF conversion result:`, {
-                success: conversionResult.success,
-                isPdf: conversionResult.isPdf,
-                wasConverted: conversionResult.wasConverted,
-                message: conversionResult.message
-              });
-
-              // Determine the final document URL and filename to queue
+              // Use original URL and filename for queueing - conversion will happen during processing
               let finalDocUrl = docUrl;
               let finalFilename = filename;
-
-              if (conversionResult.success) {
-                if (conversionResult.wasConverted && conversionResult.pdfUrl) {
-                  // Use the converted PDF URL
-                  finalDocUrl = conversionResult.pdfUrl;
-                  finalFilename = conversionResult.convertedFilename || `${contract.noticeId}_${originalFilename}.pdf`;
-                  console.log(`📄➡️📄 [QUEUE] ✅ Using converted PDF URL: ${finalDocUrl}`);
-                } else if (conversionResult.isPdf) {
-                  // Document was already a PDF
-                  console.log(`📄➡️📄 [QUEUE] ✅ Document is already PDF, using original URL: ${finalDocUrl}`);
-                }
-              } else {
-                // Conversion failed, use original URL but log the failure
-                console.log(`📄➡️📄 [QUEUE] ⚠️ PDF conversion failed, using original URL: ${conversionResult.message}`);
-              }
 
               // Check if document was already downloaded locally
               const downloadPath = path.join(process.cwd(), 'downloaded_documents');
@@ -1262,18 +1203,20 @@ router.post('/queue', async (req, res) => {
                 console.log(`📁 [DEBUG] Found local file for document: ${localFile}`);
               }
 
-              // Create queue entry for individual document (NOT the contract)
+              // Create queue entry for individual document with metadata
               await prisma.documentProcessingQueue.create({
                 data: {
                   contractNoticeId: contract.noticeId,
-                  documentUrl: finalDocUrl, // Use final URL (converted PDF or original)
+                  documentUrl: finalDocUrl,
                   localFilePath: localFilePath,
                   description: `Document from: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
-                  filename: finalFilename, // Use final filename
+                  filename: finalFilename,
                   status: 'queued',
                   queuedAt: new Date(),
                   retryCount: 0,
-                  maxRetries: 3
+                  maxRetries: 3,
+                  // Store metadata as JSON string for processing workflow
+                  metadata: JSON.stringify(documentMetadata)
                 }
               });
 
@@ -1778,8 +1721,20 @@ async function processTestDocumentsSequentially(documents, jobId) {
           console.log(`🧪 [DEBUG] ⚠️ Could not check downloaded files: ${error.message}`);
         }
         
+        // Parse document metadata if available
+        let documentMetadata = {};
+        try {
+          if (doc.metadata) {
+            documentMetadata = JSON.parse(doc.metadata);
+          }
+        } catch (parseError) {
+          console.warn(`🧪 [DEBUG] Could not parse document metadata: ${parseError.message}`);
+        }
+
         // Use local file if found, otherwise use the stored localFilePath, otherwise use URL
         let filePathToProcess;
+        let needsConversion = documentMetadata.needsConversion || false;
+        
         if (localFilePath && await fs.pathExists(localFilePath)) {
           filePathToProcess = localFilePath;
           console.log(`🧪 [DEBUG] ✅ Using found local file: ${localFilePath}`);
@@ -1791,14 +1746,83 @@ async function processTestDocumentsSequentially(documents, jobId) {
           console.log(`🧪 [DEBUG] ⚠️ No local file found, will download from URL: ${doc.documentUrl}`);
         }
         
-        console.log(`🧪 [DEBUG] Processing file: ${filePathToProcess}`);
+        // If document needs conversion and we're processing from URL, handle conversion first
+        let finalProcessingPath = filePathToProcess;
+        if (needsConversion && (filePathToProcess === doc.documentUrl || filePathToProcess.startsWith('http'))) {
+          console.log(`📄➡️📄 [TEST] Document needs PDF conversion: ${doc.filename}`);
+          
+          // Create temp directory for conversion
+          const tempDir = path.join(process.cwd(), 'temp_test_processing', `${Date.now()}_${doc.id}`);
+          await fs.ensureDir(tempDir);
+          
+          try {
+            // Download file first if it's a URL
+            let tempInputPath;
+            if (filePathToProcess.startsWith('http')) {
+              console.log(`🧪 [DEBUG] Downloading for conversion: ${filePathToProcess}`);
+              const response = await axios.get(filePathToProcess, {
+                responseType: 'arraybuffer',
+                timeout: 120000,
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)',
+                  'Accept': '*/*'
+                }
+              });
+              
+              const fileBuffer = Buffer.from(response.data);
+              const fileExt = documentMetadata.fileExtension || path.extname(doc.filename).toLowerCase();
+              tempInputPath = path.join(tempDir, `input${fileExt}`);
+              await fs.writeFile(tempInputPath, fileBuffer);
+            } else {
+              tempInputPath = filePathToProcess;
+            }
+            
+            // Convert to PDF using LibreOffice
+            console.log(`📄➡️📄 [TEST] Converting to PDF: ${tempInputPath}`);
+            await libreOfficeService.convertToPdfWithRetry(tempInputPath, tempDir);
+            
+            // Find the converted PDF
+            const files = await fs.readdir(tempDir);
+            const pdfFile = files.find(file => file.toLowerCase().endsWith('.pdf'));
+            
+            if (pdfFile) {
+              finalProcessingPath = path.join(tempDir, pdfFile);
+              console.log(`📄➡️📄 [TEST] ✅ Conversion successful: ${finalProcessingPath}`);
+            } else {
+              throw new Error('No PDF file found after conversion');
+            }
+            
+          } catch (conversionError) {
+            console.error(`📄➡️📄 [TEST] ❌ Conversion failed: ${conversionError.message}`);
+            // Clean up temp directory
+            try {
+              await fs.remove(tempDir);
+            } catch (cleanupError) {
+              console.warn(`🧪 [DEBUG] Could not clean up temp directory: ${cleanupError.message}`);
+            }
+            throw new Error(`PDF conversion failed: ${conversionError.message}`);
+          }
+        }
+        
+        console.log(`🧪 [DEBUG] Processing file: ${finalProcessingPath}`);
         
         const result = await summarizeContent(
-          filePathToProcess,
+          finalProcessingPath,
           doc.filename || 'test_document',
           '',
           'openai/gpt-4.1'
         );
+        
+        // Clean up temp conversion directory if it was created
+        if (needsConversion && finalProcessingPath.includes('temp_test_processing')) {
+          try {
+            const tempDir = path.dirname(finalProcessingPath);
+            await fs.remove(tempDir);
+            console.log(`🧪 [DEBUG] Cleaned up temp conversion directory: ${tempDir}`);
+          } catch (cleanupError) {
+            console.warn(`🧪 [DEBUG] Could not clean up temp conversion directory: ${cleanupError.message}`);
+          }
+        }
 
         if (result) {
           const finalFilename = result.correctedFilename || doc.filename;
@@ -2053,8 +2077,20 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         console.log(`📥 [DEBUG] ⚠️ Could not check downloaded files: ${error.message}`);
       }
       
+      // Parse document metadata if available
+      let documentMetadata = {};
+      try {
+        if (doc.metadata) {
+          documentMetadata = JSON.parse(doc.metadata);
+        }
+      } catch (parseError) {
+        console.warn(`⚠️ [DEBUG] Could not parse document metadata: ${parseError.message}`);
+      }
+
       // Use local file if found, otherwise use the stored localFilePath, otherwise use URL
       let filePathToProcess;
+      let needsConversion = documentMetadata.needsConversion || false;
+        
       if (localFilePath && await fs.pathExists(localFilePath)) {
         filePathToProcess = localFilePath;
         console.log(`📥 [DEBUG] ✅ Using found local file: ${localFilePath}`);
@@ -2065,15 +2101,84 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         filePathToProcess = doc.documentUrl;
         console.log(`📥 [DEBUG] ⚠️ No local file found, will download from URL: ${doc.documentUrl}`);
       }
-      
-      console.log(`📥 [DEBUG] Processing file: ${filePathToProcess}`);
-      
+        
+      // If document needs conversion and we're processing from URL, handle conversion first
+      let finalProcessingPath = filePathToProcess;
+      if (needsConversion && (filePathToProcess === doc.documentUrl || filePathToProcess.startsWith('http'))) {
+        console.log(`📄➡️📄 [PROCESSING] Document needs PDF conversion: ${doc.filename}`);
+          
+        // Create temp directory for conversion
+        const tempDir = path.join(process.cwd(), 'temp_processing', `${Date.now()}_${doc.id}`);
+        await fs.ensureDir(tempDir);
+          
+        try {
+          // Download file first if it's a URL
+          let tempInputPath;
+          if (filePathToProcess.startsWith('http')) {
+            console.log(`📥 [DEBUG] Downloading for conversion: ${filePathToProcess}`);
+            const response = await axios.get(filePathToProcess, {
+              responseType: 'arraybuffer',
+              timeout: 120000,
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)',
+                'Accept': '*/*'
+              }
+            });
+              
+            const fileBuffer = Buffer.from(response.data);
+            const fileExt = documentMetadata.fileExtension || path.extname(doc.filename).toLowerCase();
+            tempInputPath = path.join(tempDir, `input${fileExt}`);
+            await fs.writeFile(tempInputPath, fileBuffer);
+          } else {
+            tempInputPath = filePathToProcess;
+          }
+            
+          // Convert to PDF using LibreOffice
+          console.log(`📄➡️📄 [PROCESSING] Converting to PDF: ${tempInputPath}`);
+          await libreOfficeService.convertToPdfWithRetry(tempInputPath, tempDir);
+            
+          // Find the converted PDF
+          const files = await fs.readdir(tempDir);
+          const pdfFile = files.find(file => file.toLowerCase().endsWith('.pdf'));
+            
+          if (pdfFile) {
+            finalProcessingPath = path.join(tempDir, pdfFile);
+            console.log(`📄➡️📄 [PROCESSING] ✅ Conversion successful: ${finalProcessingPath}`);
+          } else {
+            throw new Error('No PDF file found after conversion');
+          }
+            
+        } catch (conversionError) {
+          console.error(`📄➡️📄 [PROCESSING] ❌ Conversion failed: ${conversionError.message}`);
+          // Clean up temp directory
+          try {
+            await fs.remove(tempDir);
+          } catch (cleanupError) {
+            console.warn(`⚠️ [DEBUG] Could not clean up temp directory: ${cleanupError.message}`);
+          }
+          throw new Error(`PDF conversion failed: ${conversionError.message}`);
+        }
+      }
+        
+      console.log(`📥 [DEBUG] Processing file: ${finalProcessingPath}`);
+        
       const result = await summarizeContent(
-        filePathToProcess,
+        finalProcessingPath,
         doc.filename || 'document',
         '',
         'openai/gpt-4.1'
       );
+        
+      // Clean up temp conversion directory if it was created
+      if (needsConversion && finalProcessingPath.includes('temp_processing')) {
+        try {
+          const tempDir = path.dirname(finalProcessingPath);
+          await fs.remove(tempDir);
+          console.log(`🗑️ [DEBUG] Cleaned up temp conversion directory: ${tempDir}`);
+        } catch (cleanupError) {
+          console.warn(`⚠️ [DEBUG] Could not clean up temp conversion directory: ${cleanupError.message}`);
+        }
+      }
 
       if (result) {
         // The filename might have been updated with correct extension in sendToNorshinAPI
