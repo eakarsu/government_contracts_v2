@@ -338,23 +338,80 @@ JSON SCHEMA:
     });
 
     // Check if response has expected structure
-    if (!response.data || !response.data.choices || !response.data.choices[0] || !response.data.choices[0].message) {
+    if (!response.data) {
+      console.error('❌ No response data received from API');
+      return {
+        success: false,
+        error: 'No response data from API',
+        rawResponse: response
+      };
+    }
+
+    // Handle case where API returns direct string content (not OpenAI format)
+    if (typeof response.data === 'string') {
+      console.log('📝 API returned direct string content');
+      let cleanedResult = response.data.trim();
+      
+      // Check if the string is just whitespace
+      if (!cleanedResult || cleanedResult.length < 10) {
+        console.error('❌ API returned empty or whitespace-only content:', JSON.stringify(response.data));
+        return {
+          success: false,
+          error: 'API returned empty content',
+          rawResponse: response.data
+        };
+      }
+      
+      // Try to parse as JSON
+      try {
+        const parsedJSON = JSON.parse(cleanedResult);
+        return {
+          success: true,
+          result: parsedJSON
+        };
+      } catch (parseError) {
+        console.error('❌ Failed to parse direct string response as JSON:', parseError.message);
+        return {
+          success: false,
+          error: 'Direct string response is not valid JSON',
+          rawContent: cleanedResult
+        };
+      }
+    }
+
+    // Handle standard OpenAI API format
+    if (!response.data.choices || !response.data.choices[0] || !response.data.choices[0].message) {
       console.error('❌ Unexpected API response structure:', JSON.stringify(response.data, null, 2));
       return {
         success: false,
-        error: 'Invalid API response structure',
+        error: 'Invalid API response structure - missing choices array',
         rawResponse: response.data
       };
     }
 
-    // Clean the JSON response
+    // Clean the JSON response from OpenAI format
     let cleanedResult = response.data.choices[0].message.content;
-    console.log (`Cleaned result: ${cleanedResult}`)
+    console.log(`📝 Raw API content length: ${cleanedResult ? cleanedResult.length : 0}`);
+    console.log(`📝 First 200 chars: ${cleanedResult ? cleanedResult.substring(0, 200) : 'null'}`);
+    
+    // Check if content is empty or just whitespace
+    if (!cleanedResult || cleanedResult.trim().length === 0) {
+      console.error('❌ API returned empty message content');
+      return {
+        success: false,
+        error: 'API returned empty message content',
+        rawResponse: response.data
+      };
+    }
     
     cleanedResult = cleanedResult
+      .replace(/^.*\s*```json/i,'')
       .replace(/^.*\s*```/,'')
       .replace(/```\s*$/, '')
       .trim();
+    
+    console.log(`📝 Cleaned result length: ${cleanedResult.length}`);
+    console.log(`📝 Cleaned result preview: ${cleanedResult.substring(0, 200)}`);
 
     try {
       const parsedJSON = JSON.parse(cleanedResult);
@@ -363,17 +420,30 @@ JSON SCHEMA:
         result: parsedJSON
       };
     } catch (parseError) {
+      console.error('❌ JSON parsing failed:', parseError.message);
+      console.error('❌ Content that failed to parse:', cleanedResult.substring(0, 500));
       return {
         success: false,
-        error: 'JSON parsing failed',
+        error: `JSON parsing failed: ${parseError.message}`,
         rawContent: cleanedResult
       };
     }
   } catch (error) {
-    console.error('❌ OpenRouter API Error:', error.response?.data || error.message);
+    console.error('❌ OpenRouter API Error:', error.message);
+    if (error.response) {
+      console.error('❌ API Response Status:', error.response.status);
+      console.error('❌ API Response Headers:', error.response.headers);
+      console.error('❌ API Response Data:', error.response.data);
+    }
+    if (error.code === 'ECONNABORTED') {
+      console.error('❌ Request timed out after 90 seconds');
+    }
+    
     return {
       success: false,
-      error: error.response?.data || error.message
+      error: error.response?.data || error.message,
+      errorType: error.code || 'unknown',
+      statusCode: error.response?.status
     };
   }
 }
