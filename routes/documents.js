@@ -1983,36 +1983,56 @@ async function processTestDocumentsSequentially(documents, jobId) {
 
 // Helper function to process ALL documents with high concurrency (minimum 20)
 async function processDocumentsInParallel(documents, concurrency, jobId) {
-  // Ensure minimum concurrency of 20
-  const finalConcurrency = Math.max(20, Math.min(concurrency, documents.length));
-  console.log(`🔄 [DEBUG] Processing ${documents.length} documents with HIGH CONCURRENCY=${finalConcurrency}`);
+  // Use lower concurrency for testing to avoid infinite loops
+  const finalConcurrency = Math.min(3, documents.length);
+  console.log(`🔄 [DEBUG] Processing ${documents.length} documents with CONTROLLED CONCURRENCY=${finalConcurrency}`);
   
-  let processedCount = 0;
+  let totalProcessed = 0;
   let successCount = 0;
   let errorCount = 0;
   let skippedCount = 0;
 
-  // Process single document
-  const processDocument = async (doc) => {
+  // Process documents sequentially to avoid race conditions
+  for (let i = 0; i < documents.length; i++) {
+    const doc = documents[i];
+    
     try {
-      console.log(`🔄 [DEBUG] Starting processing: ${doc.filename}`);
+      console.log(`🔄 [DEBUG] Processing document ${i + 1}/${documents.length}: ${doc.filename}`);
       
-      // Update status to processing immediately with existence check
-      try {
-        await prisma.documentProcessingQueue.update({
-          where: { id: doc.id },
-          data: { 
-            status: 'processing',
-            startedAt: new Date()
-          }
-        });
-      } catch (updateError) {
-        if (updateError.code === 'P2025') {
-          console.log(`⚠️ [DEBUG] Document record ${doc.id} no longer exists, skipping processing`);
-          return { success: false, filename: doc.filename, error: 'Record not found at start' };
-        }
-        throw updateError;
+      // Check if document is already processed
+      const currentDoc = await prisma.documentProcessingQueue.findUnique({
+        where: { id: doc.id }
+      });
+      
+      if (!currentDoc) {
+        console.log(`⚠️ [DEBUG] Document ${doc.id} no longer exists, skipping`);
+        skippedCount++;
+        totalProcessed++;
+        continue;
       }
+      
+      if (currentDoc.status === 'completed') {
+        console.log(`✅ [DEBUG] Document ${doc.filename} already completed, skipping`);
+        successCount++;
+        totalProcessed++;
+        continue;
+      }
+      
+      if (currentDoc.status === 'failed') {
+        console.log(`❌ [DEBUG] Document ${doc.filename} already failed, skipping`);
+        errorCount++;
+        totalProcessed++;
+        continue;
+      }
+      
+      // Update status to processing
+      await prisma.documentProcessingQueue.update({
+        where: { id: doc.id },
+        data: { 
+          status: 'processing',
+          startedAt: new Date()
+        }
+      });
 
       const documentId = `${doc.contractNoticeId}_${doc.filename}`;
       
@@ -2022,234 +2042,103 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       if (existingDocs.length > 0 && existingDocs[0].metadata.id === documentId) {
         console.log(`📄 [DEBUG] Document already indexed, using cached: ${documentId}`);
         
-        // Update status to completed with cached data
-        try {
-          await prisma.documentProcessingQueue.update({
-            where: { id: doc.id },
-            data: {
-              status: 'completed',
-              processedData: JSON.stringify({ 
-                cached: true, 
-                content: existingDocs[0].document,
-                source: 'vector_database'
-              }),
-              completedAt: new Date()
-            }
-          });
-        } catch (updateError) {
-          if (updateError.code === 'P2025') {
-            console.log(`⚠️ [DEBUG] Document record ${doc.id} was deleted, cannot mark as cached`);
-            return { success: false, filename: doc.filename, error: 'Record deleted during caching' };
+        await prisma.documentProcessingQueue.update({
+          where: { id: doc.id },
+          data: {
+            status: 'completed',
+            processedData: JSON.stringify({ 
+              cached: true, 
+              content: existingDocs[0].document,
+              source: 'vector_database'
+            }),
+            completedAt: new Date()
           }
-          throw updateError;
-        }
+        });
 
         skippedCount++;
-        return { success: true, filename: doc.filename, cached: true };
+        totalProcessed++;
+        continue;
       }
 
-      // Process document via summarization service
-      console.log(`📥 [DEBUG] Sending to summarization service`);
-      
-      // First, try to find the downloaded file in the downloaded_documents folder
+      // Find local file
       const downloadPath = path.join(process.cwd(), 'downloaded_documents');
-      let localFilePath = null;
+      let filePathToProcess = null;
       
-      try {
-        const downloadedFiles = await fs.readdir(downloadPath);
-        // Look for files that match this contract ID
-        const matchingFile = downloadedFiles.find(file => 
-          file.includes(doc.contractNoticeId) && 
-          (file.toLowerCase().endsWith('.pdf') || 
-           file.toLowerCase().endsWith('.doc') || 
-           file.toLowerCase().endsWith('.docx') ||
-           file.toLowerCase().endsWith('.xls') ||
-           file.toLowerCase().endsWith('.xlsx') ||
-           file.toLowerCase().endsWith('.ppt') ||
-           file.toLowerCase().endsWith('.pptx'))
-        );
-        
-        if (matchingFile) {
-          localFilePath = path.join(downloadPath, matchingFile);
-          console.log(`📥 [DEBUG] ✅ Found downloaded file: ${matchingFile}`);
-        }
-      } catch (error) {
-        console.log(`📥 [DEBUG] ⚠️ Could not check downloaded files: ${error.message}`);
-      }
-      
-      // Parse document metadata if available
-      let documentMetadata = {};
-      try {
-        if (doc.metadata) {
-          documentMetadata = JSON.parse(doc.metadata);
-        }
-      } catch (parseError) {
-        console.warn(`⚠️ [DEBUG] Could not parse document metadata: ${parseError.message}`);
-      }
-
-      // Use local file if found, otherwise use the stored localFilePath, otherwise use URL
-      let filePathToProcess;
-      let needsConversion = documentMetadata.needsConversion || false;
-        
-      console.log(`📥 [DEBUG] Document ${doc.id}: ${doc.filename}`);
-      console.log(`📥 [DEBUG] Document URL: ${doc.documentUrl}`);
-      console.log(`📥 [DEBUG] Stored local path: ${doc.localFilePath}`);
-        
-      if (localFilePath && await fs.pathExists(localFilePath)) {
-        filePathToProcess = localFilePath;
-        console.log(`📥 [DEBUG] ✅ Using found local file: ${localFilePath}`);
-      } else if (doc.localFilePath && await fs.pathExists(doc.localFilePath)) {
+      if (doc.localFilePath && await fs.pathExists(doc.localFilePath)) {
         filePathToProcess = doc.localFilePath;
-        console.log(`📥 [DEBUG] ✅ Using stored local file path: ${doc.localFilePath}`);
+        console.log(`📥 [DEBUG] Using stored local file: ${doc.localFilePath}`);
       } else {
-        filePathToProcess = doc.documentUrl;
-        console.log(`📥 [DEBUG] ⚠️ No local file found, will download from URL: ${doc.documentUrl}`);
-      }
-        
-      console.log(`📥 [DEBUG] Final file path to process: ${filePathToProcess}`);
-        
-      // If document needs conversion and we're processing from URL, handle conversion first
-      let finalProcessingPath = filePathToProcess;
-      if (needsConversion && (filePathToProcess === doc.documentUrl || filePathToProcess.startsWith('http'))) {
-        console.log(`📄➡️📄 [PROCESSING] Document needs PDF conversion: ${doc.filename}`);
-          
-        // Create temp directory for conversion
-        const tempDir = path.join(process.cwd(), 'temp_processing', `${Date.now()}_${doc.id}`);
-        await fs.ensureDir(tempDir);
-          
+        // Look for matching file
         try {
-          // Download file first if it's a URL
-          let tempInputPath;
-          if (filePathToProcess.startsWith('http')) {
-            console.log(`📥 [DEBUG] Downloading for conversion: ${filePathToProcess}`);
-            const response = await axios.get(filePathToProcess, {
-              responseType: 'arraybuffer',
-              timeout: 120000,
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)',
-                'Accept': '*/*'
-              }
-            });
-              
-            const fileBuffer = Buffer.from(response.data);
-            const fileExt = documentMetadata.fileExtension || path.extname(doc.filename).toLowerCase();
-            tempInputPath = path.join(tempDir, `input${fileExt}`);
-            await fs.writeFile(tempInputPath, fileBuffer);
-          } else {
-            tempInputPath = filePathToProcess;
+          const downloadedFiles = await fs.readdir(downloadPath);
+          const matchingFile = downloadedFiles.find(file => 
+            file.includes(doc.contractNoticeId) && 
+            (file.toLowerCase().endsWith('.pdf') || 
+             file.toLowerCase().endsWith('.doc') || 
+             file.toLowerCase().endsWith('.docx'))
+          );
+          
+          if (matchingFile) {
+            filePathToProcess = path.join(downloadPath, matchingFile);
+            console.log(`📥 [DEBUG] Found matching file: ${matchingFile}`);
           }
-            
-          // Convert to PDF using LibreOffice
-          console.log(`📄➡️📄 [PROCESSING] Converting to PDF: ${tempInputPath}`);
-          await libreOfficeService.convertToPdfWithRetry(tempInputPath, tempDir);
-            
-          // Find the converted PDF
-          const files = await fs.readdir(tempDir);
-          const pdfFile = files.find(file => file.toLowerCase().endsWith('.pdf'));
-            
-          if (pdfFile) {
-            finalProcessingPath = path.join(tempDir, pdfFile);
-            console.log(`📄➡️📄 [PROCESSING] ✅ Conversion successful: ${finalProcessingPath}`);
-          } else {
-            throw new Error('No PDF file found after conversion');
-          }
-            
-        } catch (conversionError) {
-          console.error(`📄➡️📄 [PROCESSING] ❌ Conversion failed: ${conversionError.message}`);
-          // Clean up temp directory
-          try {
-            await fs.remove(tempDir);
-          } catch (cleanupError) {
-            console.warn(`⚠️ [DEBUG] Could not clean up temp directory: ${cleanupError.message}`);
-          }
-          throw new Error(`PDF conversion failed: ${conversionError.message}`);
+        } catch (error) {
+          console.log(`📥 [DEBUG] Could not check downloaded files: ${error.message}`);
         }
       }
-        
-      console.log(`📥 [DEBUG] Processing file: ${finalProcessingPath}`);
-        
+      
+      if (!filePathToProcess) {
+        console.log(`❌ [DEBUG] No local file found for ${doc.filename}, marking as failed`);
+        await prisma.documentProcessingQueue.update({
+          where: { id: doc.id },
+          data: {
+            status: 'failed',
+            errorMessage: 'No local file found',
+            failedAt: new Date()
+          }
+        });
+        errorCount++;
+        totalProcessed++;
+        continue;
+      }
+      
+      console.log(`📥 [DEBUG] Processing file: ${filePathToProcess}`);
+      
+      // Process the document
       const result = await summarizeContent(
-        finalProcessingPath,
+        filePathToProcess,
         doc.filename || 'document',
         '',
         'openai/gpt-4.1'
       );
-        
-      // Clean up temp conversion directory if it was created
-      if (needsConversion && finalProcessingPath.includes('temp_processing')) {
-        try {
-          const tempDir = path.dirname(finalProcessingPath);
-          await fs.remove(tempDir);
-          console.log(`🗑️ [DEBUG] Cleaned up temp conversion directory: ${tempDir}`);
-        } catch (cleanupError) {
-          console.warn(`⚠️ [DEBUG] Could not clean up temp conversion directory: ${cleanupError.message}`);
-        }
-      }
-
+      
       if (result) {
-        // The filename might have been updated with correct extension in sendToNorshinAPI
-        const finalFilename = result.correctedFilename || doc.filename;
-        
-        // Check if record still exists before updating
-        const existingRecord = await prisma.documentProcessingQueue.findUnique({
-          where: { id: doc.id }
-        });
-
-        if (!existingRecord) {
-          console.log(`⚠️ [DEBUG] Document record ${doc.id} no longer exists, skipping update`);
-          return { success: false, filename: doc.filename, error: 'Record not found' };
-        }
-
-        // Update the queue entry with the corrected filename if it changed
-        if (finalFilename !== doc.filename) {
-          console.log(`📄 [DEBUG] Updating filename from ${doc.filename} to ${finalFilename}`);
-          try {
-            await prisma.documentProcessingQueue.update({
-              where: { id: doc.id },
-              data: { filename: finalFilename }
-            });
-          } catch (updateError) {
-            console.log(`⚠️ [DEBUG] Failed to update filename for ${doc.id}: ${updateError.message}`);
-            // Continue processing even if filename update fails
-          }
-        }
-
-        // Index the processed document in vector database
+        // Index the processed document
         await vectorService.indexDocument({
-          filename: finalFilename,
+          filename: doc.filename,
           content: result.content || result.text || JSON.stringify(result),
           processedData: result
         }, doc.contractNoticeId);
 
-        // Update status to completed with existence check
-        try {
-          await prisma.documentProcessingQueue.update({
-            where: { id: doc.id },
-            data: {
-              status: 'completed',
-              processedData: JSON.stringify(result),
-              completedAt: new Date()
-            }
-          });
-        } catch (updateError) {
-          if (updateError.code === 'P2025') {
-            console.log(`⚠️ [DEBUG] Document record ${doc.id} was deleted during processing`);
-            return { success: false, filename: doc.filename, error: 'Record deleted during processing' };
+        // Update status to completed
+        await prisma.documentProcessingQueue.update({
+          where: { id: doc.id },
+          data: {
+            status: 'completed',
+            processedData: JSON.stringify(result),
+            completedAt: new Date()
           }
-          throw updateError;
-        }
+        });
 
         successCount++;
-        console.log(`✅ [DEBUG] Successfully processed: ${finalFilename}`);
-        return { success: true, filename: finalFilename, cached: false };
+        console.log(`✅ [DEBUG] Successfully processed: ${doc.filename}`);
       } else {
-        throw new Error('No result from Norshin API');
+        throw new Error('No result from summarization service');
       }
 
     } catch (error) {
       console.error(`❌ [DEBUG] Error processing ${doc.filename}:`, error.message);
       
-      // Update status to failed with existence check
       try {
         await prisma.documentProcessingQueue.update({
           where: { id: doc.id },
@@ -2260,69 +2149,14 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           }
         });
       } catch (updateError) {
-        if (updateError.code === 'P2025') {
-          console.log(`⚠️ [DEBUG] Document record ${doc.id} was deleted, cannot mark as failed`);
-        } else {
-          console.error(`❌ [DEBUG] Error updating failed status for ${doc.id}:`, updateError.message);
-        }
+        console.error(`❌ [DEBUG] Error updating failed status: ${updateError.message}`);
       }
 
       errorCount++;
-      return { success: false, filename: doc.filename, error: error.message };
-    } finally {
-      processedCount++;
-      
-      // Log progress every 10 documents
-      if (processedCount % 10 === 0 || processedCount === documents.length) {
-        console.log(`📊 [DEBUG] Progress: ${processedCount}/${documents.length} (${Math.round(processedCount/documents.length*100)}%) - Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}`);
-      }
     }
-  };
-
-  // Process documents in batches with high concurrency
-  const batchSize = finalConcurrency;
-  const batches = [];
-  
-  for (let i = 0; i < documents.length; i += batchSize) {
-    batches.push(documents.slice(i, i + batchSize));
-  }
-
-  console.log(`🚀 [DEBUG] Processing ${documents.length} documents in ${batches.length} batches of ${batchSize}`);
-
-  // Process each batch in parallel
-  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-    const batch = batches[batchIndex];
-    console.log(`🚀 [DEBUG] Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} documents`);
     
-    const batchPromises = batch.map(doc => processDocument(doc));
-    const batchResults = await Promise.allSettled(batchPromises);
-    
-    // Process batch results and update counters
-    batchResults.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        const value = result.value;
-        if (value?.success) {
-          if (value.cached) {
-            skippedCount++;
-          } else {
-            successCount++;
-          }
-        } else {
-          errorCount++;
-        }
-      } else {
-        console.error(`🔄 [DEBUG] Batch ${batchIndex + 1} document ${index + 1} rejected:`, result.reason);
-        errorCount++;
-      }
-    });
-    
-    console.log(`🔄 [DEBUG] Batch ${batchIndex + 1} completed - Progress: ${processedCount}/${documents.length} - Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}`);
-    
-    // Small delay between batches to avoid overwhelming the API
-    if (batchIndex < batches.length - 1) {
-      console.log(`🔄 [DEBUG] Waiting 500ms before next batch...`);
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
+    totalProcessed++;
+    console.log(`📊 [DEBUG] Progress: ${totalProcessed}/${documents.length} - Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}`);
   }
 
   // Update job status
@@ -2337,7 +2171,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       }
     });
 
-    console.log(`🎉 [DEBUG] Parallel processing completed!`);
+    console.log(`🎉 [DEBUG] Processing completed!`);
     console.log(`📊 [DEBUG] Final stats: ${successCount} success, ${errorCount} errors, ${skippedCount} skipped`);
   } catch (updateError) {
     console.error('❌ [DEBUG] Error updating job status:', updateError);
