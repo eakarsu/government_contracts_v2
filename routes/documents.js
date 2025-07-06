@@ -3909,7 +3909,13 @@ router.get('/contracts/:contractId', async (req, res) => {
       });
     }
 
-    console.log(`✅ [DEBUG] Found contract: ${contract.title || 'Untitled'}`);
+    console.log(`✅ [DEBUG] Found contract:`, {
+      id: contract.noticeId,
+      title: contract.title,
+      agency: contract.agency,
+      naicsCode: contract.naicsCode,
+      description: contract.description?.substring(0, 100)
+    });
 
     // Get related documents from processing queue if any
     const relatedDocuments = await prisma.documentProcessingQueue.findMany({
@@ -3936,22 +3942,23 @@ router.get('/contracts/:contractId', async (req, res) => {
       console.warn(`⚠️ [DEBUG] Could not fetch vector documents: ${vectorError.message}`);
     }
 
+    // Return the contract data directly (not nested under 'contract' key)
+    // This matches what the frontend expects based on the Contract type
     res.json({
-      success: true,
-      contract: {
-        noticeId: contract.noticeId,
-        title: contract.title,
-        description: contract.description,
-        agency: contract.agency,
-        naicsCode: contract.naicsCode,
-        classificationCode: contract.classificationCode,
-        postedDate: contract.postedDate,
-        setAsideCode: contract.setAsideCode,
-        resourceLinks: contract.resourceLinks,
-        indexedAt: contract.indexedAt,
-        createdAt: contract.createdAt,
-        updatedAt: contract.updatedAt
-      },
+      id: contract.id,
+      noticeId: contract.noticeId,
+      title: contract.title || 'Untitled Contract',
+      description: contract.description || 'No description available.',
+      agency: contract.agency || 'N/A',
+      naicsCode: contract.naicsCode || 'N/A',
+      classificationCode: contract.classificationCode || 'N/A',
+      postedDate: contract.postedDate ? contract.postedDate.toISOString() : null,
+      setAsideCode: contract.setAsideCode || 'N/A',
+      resourceLinks: contract.resourceLinks || [],
+      indexedAt: contract.indexedAt ? contract.indexedAt.toISOString() : null,
+      createdAt: contract.createdAt.toISOString(),
+      updatedAt: contract.updatedAt.toISOString(),
+      // Additional metadata for the frontend
       documents: {
         processing_queue: relatedDocuments.map(doc => ({
           id: doc.id,
