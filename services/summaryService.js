@@ -336,6 +336,16 @@ JSON SCHEMA:
       }
     });
 
+    // Check if response has expected structure
+    if (!response.data || !response.data.choices || !response.data.choices[0] || !response.data.choices[0].message) {
+      console.error('❌ Unexpected API response structure:', JSON.stringify(response.data, null, 2));
+      return {
+        success: false,
+        error: 'Invalid API response structure',
+        rawResponse: response.data
+      };
+    }
+
     // Clean the JSON response
     let cleanedResult = response.data.choices[0].message.content;
     cleanedResult = cleanedResult
@@ -357,6 +367,7 @@ JSON SCHEMA:
       };
     }
   } catch (error) {
+    console.error('❌ OpenRouter API Error:', error.response?.data || error.message);
     return {
       success: false,
       error: error.response?.data || error.message
