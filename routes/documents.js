@@ -1984,7 +1984,7 @@ async function processTestDocumentsSequentially(documents, jobId) {
 // Helper function to process documents with timeout and proper exit
 async function processDocumentsInParallel(documents, concurrency, jobId) {
   console.log(`🔄 [DEBUG] EMERGENCY FIX: Starting simple document processing`);
-  console.log(`🔄 [DEBUG] Processing ${documents.length} documents with 30 second timeout per document`);
+  console.log(`🔄 [DEBUG] Processing ${documents.length} documents with 5 minute timeout per document`);
   
   let successCount = 0;
   let errorCount = 0;
@@ -1997,22 +1997,23 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
     try {
       console.log(`🔄 [DEBUG] PROCESSING ${i + 1}/${documents.length}: ${doc.filename}`);
       
-      // Set 30 second timeout per document
+      // Set 5 minute timeout per document (processing can take time)
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Document processing timeout (30s)')), 30000);
+        setTimeout(() => reject(new Error('Document processing timeout (5min)')), 300000);
       });
       
       const processingPromise = (async () => {
-        // Update to processing
+        console.log(`🔄 [DEBUG] Step 1: Updating status to processing for ${doc.filename}`);
         await prisma.documentProcessingQueue.update({
           where: { id: doc.id },
           data: { status: 'processing', startedAt: new Date() }
         });
 
-        // Find file
+        console.log(`🔄 [DEBUG] Step 2: Finding file for ${doc.filename}`);
         let filePath = null;
         if (doc.localFilePath && await fs.pathExists(doc.localFilePath)) {
           filePath = doc.localFilePath;
+          console.log(`✅ [DEBUG] Found file at stored path: ${filePath}`);
         } else {
           const downloadPath = path.join(process.cwd(), 'downloaded_documents');
           const files = await fs.readdir(downloadPath).catch(() => []);
@@ -2022,21 +2023,36 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           );
           if (matchingFile) {
             filePath = path.join(downloadPath, matchingFile);
+            console.log(`✅ [DEBUG] Found matching file: ${filePath}`);
           }
         }
         
         if (!filePath) {
-          throw new Error('No file found');
+          throw new Error('No file found for processing');
         }
         
-        // Process with timeout
+        console.log(`🔄 [DEBUG] Step 3: File verified, starting processing: ${filePath}`);
+        
+        // Process with detailed logging
+        console.log(`🔄 [DEBUG] Starting summarizeContent for: ${doc.filename}`);
         const result = await summarizeContent(filePath, doc.filename, '', 'openai/gpt-4.1');
+        console.log(`✅ [DEBUG] summarizeContent completed for: ${doc.filename}`);
         
         if (!result) {
-          throw new Error('No result');
+          throw new Error('No result from summarizeContent');
         }
         
+        // Index in vector database
+        console.log(`🔄 [DEBUG] Indexing in vector database: ${doc.filename}`);
+        await vectorService.indexDocument({
+          filename: doc.filename,
+          content: result.content || result.text || JSON.stringify(result),
+          processedData: result
+        }, doc.contractNoticeId);
+        console.log(`✅ [DEBUG] Vector indexing completed for: ${doc.filename}`);
+        
         // Mark completed
+        console.log(`🔄 [DEBUG] Updating database status to completed: ${doc.filename}`);
         await prisma.documentProcessingQueue.update({
           where: { id: doc.id },
           data: {
@@ -2045,6 +2061,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
             completedAt: new Date()
           }
         });
+        console.log(`✅ [DEBUG] Database update completed for: ${doc.filename}`);
         
         return result;
       })();
