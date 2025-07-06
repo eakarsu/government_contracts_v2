@@ -2147,7 +2147,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         if (fileExt !== '.pdf') {
           console.log(`🔄 Starting PDF conversion in parallel: ${doc.filename}`);
           conversionPromise = (async () => {
-            const LibreOfficeService = require('./libreoffice.service');
+            const LibreOfficeService = require('../services/libreoffice.service');
             const libreOfficeService = new LibreOfficeService();
             
             const tempDir = path.join(process.cwd(), 'temp_parallel_conversion', `${Date.now()}_${doc.id}`);
@@ -2176,7 +2176,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         
         // Start extraction immediately
         const extractionPromise = (async () => {
-          const pdfService = require('./summaryService.js');
+          const pdfService = require('../services/summaryService.js');
           return await pdfService.processPDF(pdfPath, {
             apiKey: process.env.REACT_APP_OPENROUTER_KEY,
             saveExtracted: false,
@@ -2195,7 +2195,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         
         // Start summarization
         const summaryPromise = (async () => {
-          const pdfService = require('./summaryService.js');
+          const pdfService = require('../services/summaryService.js');
           return await pdfService.summarizeContent(
             extractResult.extractedContent,
             process.env.REACT_APP_OPENROUTER_KEY
