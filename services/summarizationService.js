@@ -10,10 +10,6 @@ const axios = require('axios');
 // Utility function to send file to Norshin API (now using local PDF processing)
 const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', model = 'openai/gpt-4.1') => {
   try {
-    console.log(`📤 [DEBUG] Processing document locally: ${originalName}`);
-    console.log(`📤 [DEBUG] Input file path/URL: ${filePathOrUrl}`);
-    
-
     let fileBuffer;
     let tempFilePath = null;
     let pdfPath = filePathOrUrl;
@@ -21,18 +17,14 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
     // Check if it's a URL or local file path
     if (filePathOrUrl.startsWith('http://') || filePathOrUrl.startsWith('https://')) {
       // Download the file from URL
-      console.log(`📥 [DEBUG] Downloading document from: ${filePathOrUrl}`);
-      
-      // Create temp directory
       const tempDir = './temp_downloads';
       await fs.ensureDir(tempDir);
       
-      // Download file manually using axios
       tempFilePath = path.join(tempDir, `download_${Date.now()}_${originalName}`);
       
       const response = await axios.get(filePathOrUrl, {
         responseType: 'arraybuffer',
-        timeout: 120000,
+        timeout: 60000, // Reduced timeout
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)',
           'Accept': '*/*'
@@ -41,9 +33,6 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
 
       fileBuffer = Buffer.from(response.data);
       await fs.writeFile(tempFilePath, fileBuffer);
-      console.log(`📥 [DEBUG] Downloaded ${fileBuffer.length} bytes`);
-      
-      // Use the downloaded file path for processing
       pdfPath = tempFilePath;
     } else {
       // Read local file
@@ -53,56 +42,35 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
       fileBuffer = fs.readFileSync(filePathOrUrl);
     }
     
-    // Analyze the document (keeping original Norshin logic)
+    // Quick document analysis
     const contentType = path.extname(originalName).toLowerCase();
     const analysis = documentAnalyzer.analyzeDocument(fileBuffer, originalName, contentType);
     
-    console.log(`📄 [DEBUG] Document Analysis:`);
-    console.log(`📄 [DEBUG] - Type: ${analysis.documentType}`);
-    console.log(`📄 [DEBUG] - Size: ${analysis.size} bytes`);
-    console.log(`📄 [DEBUG] - Original Extension: ${analysis.extension}`);
-    console.log(`📄 [DEBUG] - Estimated Pages: ${analysis.estimatedPages} pages`);
-    console.log(`📄 [DEBUG] - Supported: ${analysis.isSupported}`);
-    console.log(`📄 [DEBUG] - Is ZIP: ${analysis.isZipFile}`);
-    
-    // Skip ZIP files (keeping original Norshin logic)
+    // Skip unsupported files quickly
     if (analysis.isZipFile) {
-      console.log(`⚠️ [DEBUG] Skipping ZIP file: ${originalName}`);
-      throw new Error(`ZIP files are not supported: ${originalName}`);
+      throw new Error(`ZIP files not supported: ${originalName}`);
     }
     
-    // Skip unsupported types (keeping original Norshin logic)
     if (!analysis.isSupported) {
-      console.log(`⚠️ [DEBUG] Skipping unsupported document type: ${analysis.documentType}`);
-      throw new Error(`Unsupported document type: ${analysis.documentType}`);
+      throw new Error(`Unsupported type: ${analysis.documentType}`);
     }
     
-    // Generate correct filename with proper extension (keeping original Norshin logic)
+    // Generate correct filename
     const correctExtension = documentAnalyzer.getCorrectExtension(analysis.documentType, analysis.extension);
     const properFilename = originalName.includes('_') ?
       originalName.split('_')[0] + '_' + originalName.split('_').slice(1).join('_').replace(/\.[^/.]+$/, '') + correctExtension :
       originalName.replace(/\.[^/.]+$/, '') + correctExtension;
     
-    console.log(`📄 [DEBUG] - Correct Extension: ${correctExtension}`);
-    console.log(`📄 [DEBUG] - Proper Filename: ${properFilename}`);
-    
-    // Update originalName to use the correct extension
     originalName = properFilename;
     
-    console.log(`🔄 [DEBUG] Processing document with local service...`);
-    
-    // Check if document needs PDF conversion first
+    // Handle PDF conversion efficiently
     const fileExt = path.extname(pdfPath).toLowerCase();
     let finalPdfPath = pdfPath;
     
     if (fileExt !== '.pdf') {
-      console.log(`📄➡️📄 [CONVERT] Document needs PDF conversion: ${originalName} (${fileExt})`);
-      
-      // Import LibreOffice service
       const LibreOfficeService = require('./libreoffice.service');
       const libreOfficeService = new LibreOfficeService();
       
-      // Create temp directory for conversion using the actual file being processed
       const actualFileName = path.basename(pdfPath);
       const actualFileExt = path.extname(actualFileName);
       const actualBaseName = path.basename(actualFileName, actualFileExt);
@@ -110,37 +78,25 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
       await fs.ensureDir(tempDir);
       
       try {
-        // Convert to PDF using LibreOffice
-        console.log(`📄➡️📄 [CONVERT] Converting ${fileExt} to PDF: ${pdfPath}`);
-        console.log(`📄➡️📄 [CONVERT] Output directory: ${tempDir}`);
         await libreOfficeService.convertToPdfWithRetry(pdfPath, tempDir);
         
-        // Find the converted PDF
         const files = await fs.readdir(tempDir);
         const pdfFile = files.find(file => file.toLowerCase().endsWith('.pdf'));
         
         if (pdfFile) {
           finalPdfPath = path.join(tempDir, pdfFile);
-          console.log(`📄➡️📄 [CONVERT] ✅ Conversion successful: ${finalPdfPath}`);
-          console.log(`📄➡️📄 [CONVERT] Original file: ${pdfPath}`);
-          console.log(`📄➡️📄 [CONVERT] Converted file: ${pdfFile}`);
         } else {
-          console.log(`📄➡️📄 [CONVERT] ❌ Available files in ${tempDir}:`, files);
-          throw new Error('No PDF file found after LibreOffice conversion');
+          throw new Error('No PDF file found after conversion');
         }
         
       } catch (conversionError) {
-        console.error(`📄➡️📄 [CONVERT] ❌ Conversion failed: ${conversionError.message}`);
-        // Clean up temp directory
         try {
           await fs.remove(tempDir);
         } catch (cleanupError) {
-          console.warn(`⚠️ [DEBUG] Could not clean up temp directory: ${cleanupError.message}`);
+          // Ignore cleanup errors
         }
         throw new Error(`PDF conversion failed: ${conversionError.message}`);
       }
-    } else {
-      console.log(`📄➡️📄 [CONVERT] Document is already PDF: ${originalName}`);
     }
     
     // Now call processPDF on the PDF file (either original or converted)

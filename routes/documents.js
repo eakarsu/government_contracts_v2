@@ -1696,9 +1696,9 @@ router.post('/queue/process', async (req, res) => {
       console.log(`📄 [DEBUG]   ${index + 1}. ${doc.filename} (${fileExt})`);
     });
 
-    // For testing, use lower concurrency
-    let finalConcurrency = Math.min(3, queuedDocsToProcess.length); // Max 3 concurrent for testing
-    console.log(`🔄 [DEBUG] Processing ${queuedDocsToProcess.length} documents with TEST concurrency=${finalConcurrency} (testing mode)`);
+    // Use higher concurrency for faster processing
+    let finalConcurrency = Math.min(8, queuedDocsToProcess.length); // Increased to 8 concurrent
+    console.log(`🚀 [OPTIMIZED] Processing ${queuedDocsToProcess.length} documents with concurrency=${finalConcurrency}`);
 
     // Create processing job for tracking
     const job = await prisma.indexingJob.create({
@@ -2097,104 +2097,89 @@ async function processTestDocumentsSequentially(documents, jobId) {
   }
 }
 
-// Helper function to process documents with timeout and proper exit
+// Optimized parallel document processing with proper concurrency
 async function processDocumentsInParallel(documents, concurrency, jobId) {
-  console.log(`🔄 [DEBUG] EMERGENCY FIX: Starting simple document processing`);
-  console.log(`🔄 [DEBUG] Processing ${documents.length} documents with 5 minute timeout per document`);
+  console.log(`🚀 [OPTIMIZED] Starting parallel processing: ${documents.length} documents, concurrency: ${concurrency}`);
   
   let successCount = 0;
   let errorCount = 0;
+  let processedCount = 0;
 
-  // Process documents with timeout to prevent infinite loops
-  for (let i = 0; i < documents.length; i++) {
-    const doc = documents[i];
+  // Process single document with minimal logging
+  const processDocument = async (doc) => {
     const startTime = Date.now();
     
     try {
-      console.log(`🔄 [DEBUG] PROCESSING ${i + 1}/${documents.length}: ${doc.filename}`);
+      // Quick status update
+      await prisma.documentProcessingQueue.update({
+        where: { id: doc.id },
+        data: { status: 'processing', startedAt: new Date() }
+      });
+
+      // Find file path efficiently
+      let filePath = doc.localFilePath;
+      if (!filePath || !await fs.pathExists(filePath)) {
+        const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+        const files = await fs.readdir(downloadPath).catch(() => []);
+        const matchingFile = files.find(file => 
+          file.includes(doc.contractNoticeId) && 
+          (file.toLowerCase().endsWith('.pdf') || file.toLowerCase().endsWith('.docx'))
+        );
+        if (matchingFile) {
+          filePath = path.join(downloadPath, matchingFile);
+        }
+      }
       
-      // Set 5 minute timeout per document (processing can take time)
+      if (!filePath) {
+        throw new Error('No file found');
+      }
+      
+      // Process with 2 minute timeout (much faster)
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Document processing timeout (5min)')), 300000);
+        setTimeout(() => reject(new Error('Timeout (2min)')), 120000);
       });
       
       const processingPromise = (async () => {
-        console.log(`🔄 [DEBUG] Step 1: Updating status to processing for ${doc.filename}`);
-        await prisma.documentProcessingQueue.update({
-          where: { id: doc.id },
-          data: { status: 'processing', startedAt: new Date() }
-        });
-
-        console.log(`🔄 [DEBUG] Step 2: Finding file for ${doc.filename}`);
-        let filePath = null;
-        if (doc.localFilePath && await fs.pathExists(doc.localFilePath)) {
-          filePath = doc.localFilePath;
-          console.log(`✅ [DEBUG] Found file at stored path: ${filePath}`);
-        } else {
-          const downloadPath = path.join(process.cwd(), 'downloaded_documents');
-          const files = await fs.readdir(downloadPath).catch(() => []);
-          const matchingFile = files.find(file => 
-            file.includes(doc.contractNoticeId) && 
-            (file.toLowerCase().endsWith('.pdf') || file.toLowerCase().endsWith('.docx'))
-          );
-          if (matchingFile) {
-            filePath = path.join(downloadPath, matchingFile);
-            console.log(`✅ [DEBUG] Found matching file: ${filePath}`);
-          }
-        }
-        
-        if (!filePath) {
-          throw new Error('No file found for processing');
-        }
-        
-        console.log(`🔄 [DEBUG] Step 3: File verified, starting processing: ${filePath}`);
-        
-        // Process with detailed logging
-        console.log(`🔄 [DEBUG] Starting summarizeContent for: ${doc.filename}`);
         const result = await summarizeContent(filePath, doc.filename, '', 'openai/gpt-4.1');
-        console.log(`✅ [DEBUG] summarizeContent completed for: ${doc.filename}`);
+        if (!result) throw new Error('No result');
         
-        if (!result) {
-          throw new Error('No result from summarizeContent');
-        }
-        
-        // Index in vector database
-        console.log(`🔄 [DEBUG] Indexing in vector database: ${doc.filename}`);
-        await vectorService.indexDocument({
-          filename: doc.filename,
-          content: result.content || result.text || JSON.stringify(result),
-          processedData: result
-        }, doc.contractNoticeId);
-        console.log(`✅ [DEBUG] Vector indexing completed for: ${doc.filename}`);
-        
-        // Mark completed
-        console.log(`🔄 [DEBUG] Updating database status to completed: ${doc.filename}`);
-        await prisma.documentProcessingQueue.update({
-          where: { id: doc.id },
-          data: {
-            status: 'completed',
-            processedData: JSON.stringify(result),
-            completedAt: new Date()
-          }
-        });
-        console.log(`✅ [DEBUG] Database update completed for: ${doc.filename}`);
+        // Parallel operations
+        await Promise.all([
+          // Index in vector database
+          vectorService.indexDocument({
+            filename: doc.filename,
+            content: result.content || result.text || JSON.stringify(result),
+            processedData: result
+          }, doc.contractNoticeId),
+          
+          // Update database status
+          prisma.documentProcessingQueue.update({
+            where: { id: doc.id },
+            data: {
+              status: 'completed',
+              processedData: JSON.stringify(result),
+              completedAt: new Date()
+            }
+          })
+        ]);
         
         return result;
       })();
       
-      // Race between processing and timeout
       await Promise.race([processingPromise, timeoutPromise]);
       
       successCount++;
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-      console.log(`✅ [DEBUG] SUCCESS ${i + 1}/${documents.length} in ${duration}s: ${doc.filename}`);
+      console.log(`✅ ${++processedCount}/${documents.length} (${duration}s): ${doc.filename}`);
+      
+      return { success: true, filename: doc.filename };
 
     } catch (error) {
       errorCount++;
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-      console.error(`❌ [DEBUG] FAILED ${i + 1}/${documents.length} in ${duration}s: ${doc.filename} - ${error.message}`);
+      console.log(`❌ ${++processedCount}/${documents.length} (${duration}s): ${doc.filename} - ${error.message}`);
       
-      // Mark as failed
+      // Quick failure update
       try {
         await prisma.documentProcessingQueue.update({
           where: { id: doc.id },
@@ -2205,15 +2190,39 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           }
         });
       } catch (updateError) {
-        console.error(`❌ [DEBUG] Could not update failed status: ${updateError.message}`);
+        // Ignore update errors to keep processing fast
       }
+      
+      return { success: false, filename: doc.filename, error: error.message };
     }
-    
-    // Force progress log every document
-    console.log(`📊 [DEBUG] PROGRESS: ${i + 1}/${documents.length} complete - ${successCount} success, ${errorCount} errors`);
+  };
+
+  // Process in true parallel batches
+  const batchSize = Math.min(concurrency, 10); // Max 10 concurrent
+  const batches = [];
+  
+  for (let i = 0; i < documents.length; i += batchSize) {
+    batches.push(documents.slice(i, i + batchSize));
   }
 
-  // FORCE completion
+  console.log(`📦 Processing ${documents.length} documents in ${batches.length} batches of ${batchSize}`);
+
+  // Process all batches
+  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+    const batch = batches[batchIndex];
+    console.log(`🔄 Batch ${batchIndex + 1}/${batches.length}: ${batch.length} documents`);
+    
+    // Process batch in parallel
+    const batchPromises = batch.map(doc => processDocument(doc));
+    await Promise.allSettled(batchPromises);
+    
+    // Brief pause between batches
+    if (batchIndex < batches.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+
+  // Update job status
   try {
     await prisma.indexingJob.update({
       where: { id: jobId },
@@ -2225,14 +2234,11 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       }
     });
 
-    console.log(`🎉 [DEBUG] ===== PROCESSING FORCE COMPLETED =====`);
-    console.log(`📊 [DEBUG] FINAL: ${successCount} success, ${errorCount} errors, ${documents.length} total`);
-    console.log(`🎉 [DEBUG] ===== LOOP BROKEN - FUNCTION EXITING =====`);
+    console.log(`🎉 COMPLETED: ${successCount} success, ${errorCount} errors, ${documents.length} total`);
   } catch (updateError) {
-    console.error('❌ [DEBUG] Error updating job status:', updateError);
+    console.error('❌ Error updating job status:', updateError);
   }
   
-  // Force return to break any potential loop
   return {
     success: true,
     processed: documents.length,
