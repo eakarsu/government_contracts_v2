@@ -1590,23 +1590,47 @@ router.post('/queue/process', async (req, res) => {
           console.log(`📄 [DEBUG] Found .doc/.docx files: ${docxFiles.slice(0, 3).join(', ')}${docxFiles.length > 3 ? '...' : ''}`);
         }
         
-        // Prioritize .doc/.docx files
+        // Prioritize .doc/.docx files and ensure unique selection
         let selectedFiles = [];
+        const usedFiles = new Set(); // Track used files to avoid duplicates
+        
         if (docxFiles.length > 0) {
-          selectedFiles.push(docxFiles[0]); // Always include at least one .doc/.docx
+          // Add first .doc/.docx file
+          selectedFiles.push(docxFiles[0]);
+          usedFiles.add(docxFiles[0]);
           console.log(`📄 [DEBUG] Prioritized .doc/.docx file: ${docxFiles[0]}`);
           
-          // Fill remaining slots
+          // Fill remaining slots with different files
           const remainingSlots = test_limit - 1;
-          const remainingFiles = [...docxFiles.slice(1), ...pdfFiles, ...otherFiles];
-          selectedFiles.push(...remainingFiles.slice(0, remainingSlots));
+          const allRemainingFiles = [...docxFiles.slice(1), ...pdfFiles, ...otherFiles];
+          
+          for (const file of allRemainingFiles) {
+            if (selectedFiles.length >= test_limit) break;
+            if (!usedFiles.has(file)) {
+              selectedFiles.push(file);
+              usedFiles.add(file);
+              console.log(`📄 [DEBUG] Added unique file: ${file}`);
+            }
+          }
         } else {
-          // No .doc/.docx files, use PDFs and others
-          selectedFiles = [...pdfFiles, ...otherFiles].slice(0, test_limit);
+          // No .doc/.docx files, use PDFs and others (ensuring uniqueness)
+          const allFiles = [...pdfFiles, ...otherFiles];
+          for (const file of allFiles) {
+            if (selectedFiles.length >= test_limit) break;
+            if (!usedFiles.has(file)) {
+              selectedFiles.push(file);
+              usedFiles.add(file);
+            }
+          }
           console.log(`⚠️ [DEBUG] No .doc/.docx files found in downloaded folder, using available files`);
         }
         
-        availableFiles = selectedFiles.slice(0, test_limit);
+        availableFiles = selectedFiles;
+        console.log(`📄 [DEBUG] Final selection: ${availableFiles.length} unique files`);
+        availableFiles.forEach((file, index) => {
+          const ext = path.extname(file).toLowerCase();
+          console.log(`📄 [DEBUG] Selected file ${index + 1}: ${file} (${ext})`);
+        });
       } else {
         console.log(`❌ [DEBUG] Downloaded documents folder not found: ${downloadPath}`);
       }
