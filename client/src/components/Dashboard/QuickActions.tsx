@@ -21,7 +21,7 @@ const QuickActions: React.FC = () => {
   });
 
   const processDocumentsMutation = useMutation({
-    mutationFn: () => apiService.processDocuments(undefined, 3), // Use limit of 3 to trigger test mode
+    mutationFn: () => apiService.processDocuments(undefined, 10), // Use limit of 10 to trigger test mode
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queue-status'] });
     },
@@ -86,7 +86,7 @@ const QuickActions: React.FC = () => {
 
   // Test bed mutations for cost-effective testing
   const queueTestDocumentsMutation = useMutation({
-    mutationFn: () => apiService.queueTestDocuments({ test_limit: 3, clear_existing: true }),
+    mutationFn: () => apiService.queueTestDocuments({ test_limit: 10, clear_existing: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queue-status'] });
     },
@@ -182,7 +182,7 @@ const QuickActions: React.FC = () => {
               {queueTestDocumentsMutation.isPending ? (
                 <LoadingSpinner size="sm" color="white" />
               ) : (
-                '🧪 Queue 3 Test Documents'
+                '🧪 Queue 10 Test Documents'
               )}
             </button>
 

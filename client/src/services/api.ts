@@ -248,7 +248,7 @@ class ApiService {
 
   async queueTestDocuments(options?: { test_limit?: number; clear_existing?: boolean }): Promise<ApiResponse> {
     console.log('🧪 [DEBUG] API Service: Calling queueTestDocuments endpoint...');
-    const response = await api.post<ApiResponse>('/documents/queue/test', options || { test_limit: 3, clear_existing: true });
+    const response = await api.post<ApiResponse>('/documents/queue/test', options || { test_limit: 10, clear_existing: true });
     console.log('🧪 [DEBUG] API Service: queueTestDocuments response:', response.data);
     return response.data;
   }

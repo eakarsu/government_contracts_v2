@@ -253,7 +253,7 @@ router.post('/process', async (req, res) => {
           resourceLinks: { not: null },
           ...(contract_id ? { noticeId: contract_id } : {})
         },
-        take: Math.min(limit, 5), // Maximum 5 contracts for test mode
+        take: Math.min(limit, 10), // Maximum 10 contracts for test mode
         select: {
           noticeId: true,
           title: true,
@@ -763,10 +763,10 @@ router.post('/download', async (req, res) => {
   }
 });
 
-// Test bed endpoint - process only 3-5 documents for cost-effective testing
+// Test bed endpoint - process only 10 documents for cost-effective testing
 router.post('/queue/test', async (req, res) => {
   try {
-    const { test_limit = 5, clear_existing = true } = req.body;
+    const { test_limit = 10, clear_existing = true } = req.body;
     
     console.log('🧪 [DEBUG] Starting TEST BED document queue population...');
     console.log(`🧪 [DEBUG] TEST MODE: Processing only ${test_limit} documents to minimize costs`);
@@ -782,7 +782,7 @@ router.post('/queue/test', async (req, res) => {
       where: { 
         resourceLinks: { not: null }
       },
-      take: 5, // Only get first 5 contracts for testing
+      take: 10, // Only get first 10 contracts for testing
       select: {
         noticeId: true,
         title: true,
