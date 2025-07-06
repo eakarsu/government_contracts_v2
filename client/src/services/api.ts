@@ -163,7 +163,10 @@ class ApiService {
   }
 
   async analyzeContract(noticeId: string): Promise<ContractAnalysis> {
+    console.log('🔍 [DEBUG] API Service analyzeContract called for:', noticeId);
     const response = await api.post<ContractAnalysis>(`/documents/contracts/${noticeId}/analyze`);
+    console.log('🔍 [DEBUG] API Service analyzeContract raw response:', response);
+    console.log('🔍 [DEBUG] API Service analyzeContract response.data:', response.data);
     return response.data;
   }
 

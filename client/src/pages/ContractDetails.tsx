@@ -22,8 +22,14 @@ const ContractDetails: React.FC = () => {
     mutationFn: () => apiService.analyzeContract(contractId!),
     onSuccess: (data) => {
       console.log('🔍 [DEBUG] Analysis results received:', data);
+      console.log('🔍 [DEBUG] Analysis data structure:', JSON.stringify(data, null, 2));
       setAnalysisResults(data);
       queryClient.invalidateQueries({ queryKey: ['contract', contractId] });
+      
+      // Force a re-render by updating state
+      setTimeout(() => {
+        console.log('🔍 [DEBUG] Current analysisResults state:', analysisResults);
+      }, 100);
     },
     onError: (error: any) => {
       console.error('Contract analysis error:', error);
@@ -298,7 +304,7 @@ const ContractDetails: React.FC = () => {
       )}
 
       {/* Analysis Results */}
-      {analysisResults && (
+      {analysisResults && analysisResults.analysis && (
         <div className="mt-8 bg-white shadow rounded-lg p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">🔍 Contract Analysis Results</h2>
           
@@ -475,17 +481,21 @@ const ContractDetails: React.FC = () => {
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
           <div className="text-green-800 text-sm">
             Contract analysis completed successfully! 
-            {analysisResults ? ' Analysis results are displayed above.' : ' Waiting for results to load...'}
+            {analysisResults && analysisResults.analysis ? ' Analysis results are displayed above.' : ' Waiting for results to load...'}
           </div>
-          {/* Debug info */}
-          {process.env.NODE_ENV === 'development' && (
-            <details className="mt-2">
-              <summary className="text-xs text-green-600 cursor-pointer">Debug: Raw Analysis Data</summary>
-              <pre className="text-xs text-green-700 mt-1 overflow-auto max-h-32">
-                {JSON.stringify(analysisResults, null, 2)}
-              </pre>
-            </details>
-          )}
+          {/* Debug info - always show in development */}
+          <details className="mt-2">
+            <summary className="text-xs text-green-600 cursor-pointer">Debug: Raw Analysis Data</summary>
+            <pre className="text-xs text-green-700 mt-1 overflow-auto max-h-32">
+              {JSON.stringify(analysisResults, null, 2)}
+            </pre>
+          </details>
+          {/* Additional debug info */}
+          <div className="mt-2 text-xs text-gray-600">
+            <div>analysisResults exists: {analysisResults ? 'Yes' : 'No'}</div>
+            <div>analysisResults.analysis exists: {analysisResults?.analysis ? 'Yes' : 'No'}</div>
+            <div>analysisResults.success: {analysisResults?.success ? 'Yes' : 'No'}</div>
+          </div>
         </div>
       )}
 
