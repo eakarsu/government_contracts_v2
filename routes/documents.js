@@ -1564,17 +1564,56 @@ router.post('/queue/process', async (req, res) => {
       });
     }
 
-    // Get queued documents with test limit for safety
+    // Get queued documents with test limit for safety, prioritizing .doc/.docx files
     const queuedDocs = await prisma.documentProcessingQueue.findMany({
       where: { 
         status: 'queued',
         localFilePath: { not: null } // Only process documents that have been downloaded locally
       },
-      take: test_limit, // Limit to test_limit documents for safety
+      take: test_limit * 2, // Get more documents to filter from
       orderBy: { queuedAt: 'asc' }
     });
 
-    if (queuedDocs.length === 0) {
+    // Prioritize .doc/.docx files to ensure at least one is included
+    const docxFiles = queuedDocs.filter(doc => 
+      doc.filename && (
+        doc.filename.toLowerCase().endsWith('.docx') || 
+        doc.filename.toLowerCase().endsWith('.doc')
+      )
+    );
+    
+    const pdfFiles = queuedDocs.filter(doc => 
+      doc.filename && doc.filename.toLowerCase().endsWith('.pdf')
+    );
+    
+    const otherFiles = queuedDocs.filter(doc => 
+      doc.filename && !doc.filename.toLowerCase().endsWith('.pdf') && 
+      !doc.filename.toLowerCase().endsWith('.docx') && 
+      !doc.filename.toLowerCase().endsWith('.doc')
+    );
+
+    // Create final selection ensuring at least one .doc/.docx if available
+    let finalQueuedDocs = [];
+    
+    if (docxFiles.length > 0) {
+      // Add at least one .doc/.docx file
+      finalQueuedDocs.push(docxFiles[0]);
+      console.log(`📄 [DEBUG] Prioritized .doc/.docx file: ${docxFiles[0].filename}`);
+      
+      // Fill remaining slots with mix of file types
+      const remainingSlots = test_limit - 1;
+      const remainingFiles = [...docxFiles.slice(1), ...pdfFiles, ...otherFiles];
+      finalQueuedDocs.push(...remainingFiles.slice(0, remainingSlots));
+    } else {
+      // No .doc/.docx files available, use original selection
+      finalQueuedDocs = queuedDocs.slice(0, test_limit);
+      console.log(`⚠️ [DEBUG] No .doc/.docx files found in queue, using available files`);
+    }
+
+    // Update queuedDocs to use our prioritized selection
+    const queuedDocsToProcess = finalQueuedDocs.slice(0, test_limit);
+
+    if (queuedDocsToProcess.length === 0) {
       return res.json({
         success: true,
         message: 'No documents currently queued for processing',
@@ -1582,11 +1621,16 @@ router.post('/queue/process', async (req, res) => {
       });
     }
 
-    console.log(`🔄 [DEBUG] Found ${queuedDocs.length} downloaded documents to process (limited to ${test_limit} for testing)`);
+    console.log(`🔄 [DEBUG] Found ${queuedDocsToProcess.length} downloaded documents to process (limited to ${test_limit} for testing)`);
+    console.log(`📄 [DEBUG] Document types selected:`);
+    queuedDocsToProcess.forEach((doc, index) => {
+      const fileExt = doc.filename ? path.extname(doc.filename).toLowerCase() : 'unknown';
+      console.log(`📄 [DEBUG]   ${index + 1}. ${doc.filename} (${fileExt})`);
+    });
 
     // For testing, use lower concurrency
-    let finalConcurrency = Math.min(3, queuedDocs.length); // Max 3 concurrent for testing
-    console.log(`🔄 [DEBUG] Processing ${queuedDocs.length} documents with TEST concurrency=${finalConcurrency} (testing mode)`);
+    let finalConcurrency = Math.min(3, queuedDocsToProcess.length); // Max 3 concurrent for testing
+    console.log(`🔄 [DEBUG] Processing ${queuedDocsToProcess.length} documents with TEST concurrency=${finalConcurrency} (testing mode)`);
 
     // Create processing job for tracking
     const job = await prisma.indexingJob.create({
@@ -1602,17 +1646,21 @@ router.post('/queue/process', async (req, res) => {
     // Respond immediately with job info
     res.json({
       success: true,
-      message: `🧪 TEST MODE: Started processing ${queuedDocs.length} downloaded documents (limited to ${test_limit} for testing)`,
+      message: `🧪 TEST MODE: Started processing ${queuedDocsToProcess.length} downloaded documents (limited to ${test_limit} for testing)`,
       job_id: job.id,
-      documents_count: queuedDocs.length,
+      documents_count: queuedDocsToProcess.length,
       concurrency: finalConcurrency,
       processing_method: 'test_mode_limited_processing',
       test_limit: test_limit,
-      note: 'Processing limited to downloaded documents only for testing'
+      note: 'Processing limited to downloaded documents only for testing',
+      file_types_selected: queuedDocsToProcess.map(doc => ({
+        filename: doc.filename,
+        extension: doc.filename ? path.extname(doc.filename).toLowerCase() : 'unknown'
+      }))
     });
 
     // Process documents in parallel (don't await - run in background)
-    processDocumentsInParallel(queuedDocs, finalConcurrency, job.id);
+    processDocumentsInParallel(queuedDocsToProcess, finalConcurrency, job.id);
 
   } catch (error) {
     console.error('❌ [DEBUG] Error starting document processing:', error);
