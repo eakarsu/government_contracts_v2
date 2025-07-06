@@ -101,7 +101,7 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
       throw new Error(`PDF extraction failed: ${extractResult.error}`);
     }
     
-    console.log(`✅ Extraction completed: ${extractResult.method}, ${extractResult.wordCount} words content`);
+    console.log(`✅ Extraction completed: ${extractResult.method}, ${extractResult.wordCount} words content, content:${extractResult.extractedContent}`);
     
     // Create enhanced prompt if custom prompt provided (keeping original Norshin logic)
     let contentToSummarize = extractResult.extractedContent;
@@ -119,7 +119,7 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
       throw new Error(`Local summarization failed: ${summaryResult.error}`);
     }
     
-    console.log(`✅ [DEBUG] Local analysis completed successfully`);
+    console.log(`✅ [DEBUG] Local analysis completed successfully: ${JSON.stringify(summaryResult, null, 2) }`);
     
     // Clean up temp file if it was downloaded (keeping original Norshin logic)
     if (tempFilePath) {
