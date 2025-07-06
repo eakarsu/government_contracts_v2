@@ -38,7 +38,7 @@ const QuickActions: React.FC = () => {
   });
 
   const processQueueMutation = useMutation({
-    mutationFn: () => apiService.processQueuedDocuments(),
+    mutationFn: () => apiService.processQueuedDocuments({ test_limit: 3 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queue-status'] });
     },
@@ -154,7 +154,7 @@ const QuickActions: React.FC = () => {
           {processQueueMutation.isPending ? (
             <LoadingSpinner size="sm" color="white" />
           ) : (
-            'Process Queue'
+            '🧪 Process Queue (3 docs)'
           )}
         </button>
 
@@ -247,7 +247,7 @@ const QuickActions: React.FC = () => {
 
       {processQueueMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-          <div className="text-green-800 text-sm">Queue processing started!</div>
+          <div className="text-green-800 text-sm">🧪 Test queue processing started! (Limited to 3 downloaded documents)</div>
         </div>
       ) : null}
 

@@ -225,11 +225,12 @@ class ApiService {
     return response.data;
   }
 
-  async processQueuedDocuments(): Promise<ApiResponse> {
+  async processQueuedDocuments(options?: { test_limit?: number }): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>('/documents/queue/process', {
-      concurrency: 999999, // Unlimited concurrency
-      batch_size: 999999,  // No batch limit
-      process_all: true    // Process ALL queued documents
+      concurrency: 3,      // Limited concurrency for testing
+      batch_size: 3,       // Small batch size for testing
+      process_all: false,  // Don't process all documents
+      test_limit: options?.test_limit || 3  // Limit to 3 documents for testing
     }, {
       timeout: 3600000 // 1 hour timeout
     });

@@ -1599,10 +1599,10 @@ router.post('/queue/process-test', async (req, res) => {
 // Process queued documents with parallel processing and real-time updates
 router.post('/queue/process', async (req, res) => {
   try {
-    const { concurrency = 20, batch_size = 1000, process_all = true } = req.body; // Minimum 20 concurrency
+    const { concurrency = 20, batch_size = 1000, process_all = true, test_limit = 3 } = req.body; // Minimum 20 concurrency
     
     console.log('🔄 [DEBUG] Starting parallel document processing...');
-    console.log(`🔄 [DEBUG] Concurrency: ${concurrency}, Batch size: ${batch_size}, Process all: ${process_all}`);
+    console.log(`🔄 [DEBUG] Concurrency: ${concurrency}, Batch size: ${batch_size}, Process all: ${process_all}, Test limit: ${test_limit}`);
 
     // Check if there's already a running job
     const existingJob = await prisma.indexingJob.findFirst({
@@ -1621,10 +1621,13 @@ router.post('/queue/process', async (req, res) => {
       });
     }
 
-    // Get ALL queued documents if process_all is true
+    // Get queued documents with test limit for safety
     const queuedDocs = await prisma.documentProcessingQueue.findMany({
-      where: { status: 'queued' },
-      ...(process_all ? {} : { take: batch_size }), // No limit if process_all is true
+      where: { 
+        status: 'queued',
+        localFilePath: { not: null } // Only process documents that have been downloaded locally
+      },
+      take: test_limit, // Limit to test_limit documents for safety
       orderBy: { queuedAt: 'asc' }
     });
 
@@ -1636,11 +1639,11 @@ router.post('/queue/process', async (req, res) => {
       });
     }
 
-    console.log(`🔄 [DEBUG] Found ${queuedDocs.length} documents to process`);
+    console.log(`🔄 [DEBUG] Found ${queuedDocs.length} downloaded documents to process (limited to ${test_limit} for testing)`);
 
-    // Ensure minimum concurrency of 20
-    let finalConcurrency = Math.max(20, Math.min(concurrency, queuedDocs.length));
-    console.log(`🔄 [DEBUG] Processing ${queuedDocs.length} documents with concurrency=${finalConcurrency} (minimum 20)`);
+    // For testing, use lower concurrency
+    let finalConcurrency = Math.min(3, queuedDocs.length); // Max 3 concurrent for testing
+    console.log(`🔄 [DEBUG] Processing ${queuedDocs.length} documents with TEST concurrency=${finalConcurrency} (testing mode)`);
 
     // Create processing job for tracking
     const job = await prisma.indexingJob.create({
@@ -1656,12 +1659,13 @@ router.post('/queue/process', async (req, res) => {
     // Respond immediately with job info
     res.json({
       success: true,
-      message: `Started processing ${queuedDocs.length} documents with HIGH CONCURRENCY=${finalConcurrency}`,
+      message: `🧪 TEST MODE: Started processing ${queuedDocs.length} downloaded documents (limited to ${test_limit} for testing)`,
       job_id: job.id,
       documents_count: queuedDocs.length,
       concurrency: finalConcurrency,
-      processing_method: 'high_concurrency_batch_processing',
-      process_all: process_all
+      processing_method: 'test_mode_limited_processing',
+      test_limit: test_limit,
+      note: 'Processing limited to downloaded documents only for testing'
     });
 
     // Process documents in parallel (don't await - run in background)
