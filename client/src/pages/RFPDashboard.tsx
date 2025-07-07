@@ -36,22 +36,11 @@ const RFPDashboard: React.FC = () => {
     }
   };
 
-  const handleAnalyticsClick = async () => {
-    try {
-      const analyticsResponse = await apiService.getRFPAnalytics();
-      if (analyticsResponse.success && analyticsResponse.analytics && !analyticsResponse.analytics.message) {
-        // If analytics are available and real data exists
-        alert(`Analytics: Total RFPs: ${analyticsResponse.analytics.totalRFPs || 0}, Win Rate: ${analyticsResponse.analytics.winRate || 0}%`);
-      } else {
-        // Show a more user-friendly message
-        setError('Analytics feature is coming soon! This feature will provide detailed insights into your RFP performance, win rates, and trends.');
-        // Clear the error after 5 seconds
-        setTimeout(() => setError(null), 5000);
-      }
-    } catch (err: any) {
-      setError('Analytics feature is coming soon! This feature will provide detailed insights into your RFP performance, win rates, and trends.');
-      setTimeout(() => setError(null), 5000);
-    }
+  const handleAnalyticsClick = () => {
+    // Show user-friendly message without making API call since endpoint doesn't exist yet
+    setError('Analytics feature is coming soon! This feature will provide detailed insights into your RFP performance, win rates, and trends.');
+    // Clear the error after 5 seconds
+    setTimeout(() => setError(null), 5000);
   };
 
   if (loading) {
