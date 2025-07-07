@@ -376,3 +376,301 @@ export interface FileTypesResponse {
     available_for_search: string[];
   };
 }
+
+// RFP System Types
+export interface RFPTemplate {
+  id: number;
+  name: string;
+  agency: string;
+  description?: string;
+  sections: RFPSection[];
+  evaluationCriteria: EvaluationCriteria;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RFPSection {
+  id: string;
+  title: string;
+  description?: string;
+  required: boolean;
+  maxWords?: number;
+  format?: 'narrative' | 'table' | 'spreadsheet' | 'list';
+  mappings: string[];
+  evaluationWeight?: number;
+}
+
+export interface EvaluationCriteria {
+  technicalWeight: number;
+  costWeight: number;
+  pastPerformanceWeight: number;
+  factors: EvaluationFactor[];
+}
+
+export interface EvaluationFactor {
+  id: string;
+  name: string;
+  description: string;
+  weight: number;
+  type: 'technical' | 'cost' | 'past_performance' | 'management';
+}
+
+export interface CompanyProfile {
+  id: number;
+  companyName: string;
+  basicInfo: {
+    dunsNumber: string;
+    cageCode: string;
+    certifications: string[];
+    sizeStandard: string;
+    naicsCode: string[];
+  };
+  capabilities: {
+    coreCompetencies: string[];
+    technicalSkills: string[];
+    securityClearances: string[];
+    methodologies: string[];
+  };
+  pastPerformance: PastPerformanceRecord[];
+  keyPersonnel: KeyPersonnel[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PastPerformanceRecord {
+  id: string;
+  contractName: string;
+  client: string;
+  agency: string;
+  contractValue: number;
+  duration: string;
+  performanceRating: 'exceptional' | 'very_good' | 'satisfactory' | 'marginal' | 'unsatisfactory';
+  relevanceScore: number;
+  description: string;
+  keyAccomplishments: string[];
+  contactInfo: {
+    name: string;
+    title: string;
+    phone: string;
+    email: string;
+  };
+}
+
+export interface KeyPersonnel {
+  id: string;
+  name: string;
+  role: string;
+  clearanceLevel?: string;
+  experienceYears: number;
+  education: string[];
+  certifications: string[];
+  relevantProjects: string[];
+  resume?: string;
+}
+
+export interface RFPResponse {
+  id: number;
+  contractId: string;
+  templateId: number;
+  companyProfileId: number;
+  title: string;
+  status: 'draft' | 'in_review' | 'approved' | 'submitted';
+  sections: RFPResponseSection[];
+  complianceStatus: ComplianceStatus;
+  predictedScore: PredictedScore;
+  metadata: {
+    generatedAt: string;
+    lastModified: string;
+    wordCount: number;
+    pageCount: number;
+    submissionDeadline?: string;
+  };
+  collaborators: string[];
+  versions: RFPVersion[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RFPResponseSection {
+  id: string;
+  sectionId: string;
+  title: string;
+  content: string;
+  wordCount: number;
+  status: 'generated' | 'reviewed' | 'approved';
+  compliance: SectionCompliance;
+  lastModified: string;
+  modifiedBy: string;
+}
+
+export interface ComplianceStatus {
+  overall: boolean;
+  score: number;
+  checks: {
+    wordLimits: ComplianceCheck;
+    requiredSections: ComplianceCheck;
+    formatCompliance: ComplianceCheck;
+    requirementCoverage: ComplianceCheck;
+  };
+  issues: ComplianceIssue[];
+}
+
+export interface ComplianceCheck {
+  passed: boolean;
+  score: number;
+  details: string;
+}
+
+export interface ComplianceIssue {
+  type: 'error' | 'warning' | 'info';
+  section: string;
+  message: string;
+  suggestion?: string;
+}
+
+export interface SectionCompliance {
+  wordLimit: {
+    current: number;
+    maximum?: number;
+    compliant: boolean;
+  };
+  requirementCoverage: {
+    covered: string[];
+    missing: string[];
+    percentage: number;
+  };
+  quality: {
+    score: number;
+    strengths: string[];
+    improvements: string[];
+  };
+}
+
+export interface PredictedScore {
+  overall: number;
+  technical: number;
+  cost: number;
+  pastPerformance: number;
+  confidence: number;
+  factors: {
+    strengths: string[];
+    weaknesses: string[];
+    recommendations: string[];
+  };
+}
+
+export interface RFPVersion {
+  id: number;
+  versionNumber: number;
+  changes: string[];
+  createdBy: string;
+  createdAt: string;
+  comment?: string;
+}
+
+export interface RFPAnalysis {
+  contractId: string;
+  extractedData: {
+    scopeOfWork: string;
+    technicalRequirements: string[];
+    deliverables: string[];
+    timeline: string;
+    evaluationCriteria: EvaluationCriteria;
+    complianceRequirements: string[];
+    submissionRequirements: {
+      format: string;
+      pageLimit?: number;
+      deadline: string;
+      sections: string[];
+    };
+  };
+  recommendations: {
+    templateSuggestion: string;
+    keyFocusAreas: string[];
+    competitiveAdvantages: string[];
+    riskFactors: string[];
+  };
+  analyzedAt: string;
+}
+
+export interface RFPGenerationRequest {
+  contractId: string;
+  templateId: number;
+  companyProfileId: number;
+  customInstructions?: string;
+  focusAreas?: string[];
+}
+
+export interface RFPGenerationResponse {
+  success: boolean;
+  rfpResponseId: number;
+  generationTime: number;
+  sectionsGenerated: number;
+  complianceScore: number;
+  predictedScore: number;
+  message: string;
+}
+
+export interface CompetitiveAnalysis {
+  marketInsights: {
+    averageContractValue: number;
+    commonRequirements: string[];
+    winningStrategies: string[];
+    pricingTrends: {
+      low: number;
+      average: number;
+      high: number;
+    };
+  };
+  positioning: {
+    competitiveAdvantages: string[];
+    differentiators: string[];
+    riskFactors: string[];
+    recommendations: string[];
+  };
+  pricingStrategy: {
+    suggestedRange: {
+      min: number;
+      max: number;
+    };
+    justification: string;
+    competitiveFactors: string[];
+  };
+}
+
+export interface RFPDashboardStats {
+  totalRFPs: number;
+  activeRFPs: number;
+  submittedRFPs: number;
+  winRate: number;
+  averageScore: number;
+  recentActivity: {
+    rfpId: number;
+    title: string;
+    status: string;
+    lastModified: string;
+  }[];
+}
+
+// Form Types for RFP System
+export interface RFPTemplateForm {
+  name: string;
+  agency: string;
+  description?: string;
+  sections: Omit<RFPSection, 'id'>[];
+  evaluationCriteria: EvaluationCriteria;
+}
+
+export interface CompanyProfileForm {
+  companyName: string;
+  basicInfo: CompanyProfile['basicInfo'];
+  capabilities: CompanyProfile['capabilities'];
+  pastPerformance: Omit<PastPerformanceRecord, 'id'>[];
+  keyPersonnel: Omit<KeyPersonnel, 'id'>[];
+}
+
+export interface RFPSectionEditForm {
+  content: string;
+  customInstructions?: string;
+  focusPoints?: string[];
+}

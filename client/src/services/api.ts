@@ -15,6 +15,21 @@ import type {
   DocumentSearchResponse,
   DocumentStats,
   FileTypesResponse,
+  RFPTemplate,
+  RFPTemplateForm,
+  CompanyProfile,
+  CompanyProfileForm,
+  RFPAnalysis,
+  CompetitiveAnalysis,
+  RFPGenerationRequest,
+  RFPGenerationResponse,
+  RFPResponse,
+  RFPResponseSection,
+  RFPSectionEditForm,
+  ComplianceStatus,
+  PredictedScore,
+  RFPVersion,
+  RFPDashboardStats,
 } from '../types';
 
 // Create axios instance with default config
@@ -441,6 +456,174 @@ class ApiService {
 
   async resetAllStuckDocuments(): Promise<ApiResponse> {
     const response = await api.post<ApiResponse>('/admin/documents/reset-all-stuck');
+    return response.data;
+  }
+
+  // RFP System API Methods
+  
+  // RFP Templates
+  async getRFPTemplates(): Promise<{ success: boolean; templates: RFPTemplate[] }> {
+    const response = await api.get<{ success: boolean; templates: RFPTemplate[] }>('/rfp/templates');
+    return response.data;
+  }
+
+  async getRFPTemplate(templateId: number): Promise<{ success: boolean; template: RFPTemplate }> {
+    const response = await api.get<{ success: boolean; template: RFPTemplate }>(`/rfp/templates/${templateId}`);
+    return response.data;
+  }
+
+  async createRFPTemplate(template: RFPTemplateForm): Promise<{ success: boolean; template: RFPTemplate }> {
+    const response = await api.post<{ success: boolean; template: RFPTemplate }>('/rfp/templates', template);
+    return response.data;
+  }
+
+  async updateRFPTemplate(templateId: number, template: Partial<RFPTemplateForm>): Promise<{ success: boolean; template: RFPTemplate }> {
+    const response = await api.put<{ success: boolean; template: RFPTemplate }>(`/rfp/templates/${templateId}`, template);
+    return response.data;
+  }
+
+  async deleteRFPTemplate(templateId: number): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete<{ success: boolean; message: string }>(`/rfp/templates/${templateId}`);
+    return response.data;
+  }
+
+  // Company Profiles
+  async getCompanyProfiles(): Promise<{ success: boolean; profiles: CompanyProfile[] }> {
+    const response = await api.get<{ success: boolean; profiles: CompanyProfile[] }>('/rfp/company-profiles');
+    return response.data;
+  }
+
+  async getCompanyProfile(profileId: number): Promise<{ success: boolean; profile: CompanyProfile }> {
+    const response = await api.get<{ success: boolean; profile: CompanyProfile }>(`/rfp/company-profiles/${profileId}`);
+    return response.data;
+  }
+
+  async createCompanyProfile(profile: CompanyProfileForm): Promise<{ success: boolean; profile: CompanyProfile }> {
+    const response = await api.post<{ success: boolean; profile: CompanyProfile }>('/rfp/company-profiles', profile);
+    return response.data;
+  }
+
+  async updateCompanyProfile(profileId: number, profile: Partial<CompanyProfileForm>): Promise<{ success: boolean; profile: CompanyProfile }> {
+    const response = await api.put<{ success: boolean; profile: CompanyProfile }>(`/rfp/company-profiles/${profileId}`, profile);
+    return response.data;
+  }
+
+  async deleteCompanyProfile(profileId: number): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete<{ success: boolean; message: string }>(`/rfp/company-profiles/${profileId}`);
+    return response.data;
+  }
+
+  // RFP Analysis
+  async analyzeContractForRFP(contractId: string): Promise<{ success: boolean; analysis: RFPAnalysis }> {
+    console.log('🔍 [DEBUG] API Service analyzeContractForRFP called for:', contractId);
+    const response = await api.post<{ success: boolean; analysis: RFPAnalysis }>(`/rfp/analyze/${contractId}`);
+    console.log('🔍 [DEBUG] API Service analyzeContractForRFP response:', response.data);
+    return response.data;
+  }
+
+  async getCompetitiveAnalysis(contractId: string, companyProfileId: number): Promise<{ success: boolean; analysis: CompetitiveAnalysis }> {
+    const response = await api.post<{ success: boolean; analysis: CompetitiveAnalysis }>('/rfp/competitive-analysis', {
+      contractId,
+      companyProfileId
+    });
+    return response.data;
+  }
+
+  // RFP Generation
+  async generateRFPResponse(request: RFPGenerationRequest): Promise<RFPGenerationResponse> {
+    console.log('🚀 [DEBUG] API Service generateRFPResponse called with:', request);
+    const response = await api.post<RFPGenerationResponse>('/rfp/generate', request, {
+      timeout: 300000 // 5 minute timeout for generation
+    });
+    console.log('🚀 [DEBUG] API Service generateRFPResponse response:', response.data);
+    return response.data;
+  }
+
+  async regenerateRFPSection(rfpResponseId: number, sectionId: string, customInstructions?: string): Promise<{ success: boolean; section: RFPResponseSection }> {
+    const response = await api.post<{ success: boolean; section: RFPResponseSection }>(`/rfp/responses/${rfpResponseId}/sections/${sectionId}/regenerate`, {
+      customInstructions
+    });
+    return response.data;
+  }
+
+  // RFP Response Management
+  async getRFPResponses(page: number = 1, limit: number = 20): Promise<{ success: boolean; responses: RFPResponse[]; pagination: any }> {
+    const response = await api.get<{ success: boolean; responses: RFPResponse[]; pagination: any }>(`/rfp/responses?page=${page}&limit=${limit}`);
+    return response.data;
+  }
+
+  async getRFPResponse(responseId: number): Promise<{ success: boolean; response: RFPResponse }> {
+    const response = await api.get<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}`);
+    return response.data;
+  }
+
+  async updateRFPResponse(responseId: number, updates: Partial<RFPResponse>): Promise<{ success: boolean; response: RFPResponse }> {
+    const response = await api.put<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}`, updates);
+    return response.data;
+  }
+
+  async updateRFPSection(rfpResponseId: number, sectionId: string, updates: RFPSectionEditForm): Promise<{ success: boolean; section: RFPResponseSection }> {
+    const response = await api.put<{ success: boolean; section: RFPResponseSection }>(`/rfp/responses/${rfpResponseId}/sections/${sectionId}`, updates);
+    return response.data;
+  }
+
+  async deleteRFPResponse(responseId: number): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete<{ success: boolean; message: string }>(`/rfp/responses/${responseId}`);
+    return response.data;
+  }
+
+  // RFP Compliance & Scoring
+  async checkRFPCompliance(responseId: number): Promise<{ success: boolean; compliance: ComplianceStatus }> {
+    const response = await api.post<{ success: boolean; compliance: ComplianceStatus }>(`/rfp/responses/${responseId}/compliance`);
+    return response.data;
+  }
+
+  async predictRFPScore(responseId: number): Promise<{ success: boolean; prediction: PredictedScore }> {
+    const response = await api.post<{ success: boolean; prediction: PredictedScore }>(`/rfp/responses/${responseId}/score-prediction`);
+    return response.data;
+  }
+
+  // RFP Export & Collaboration
+  async exportRFPResponse(responseId: number, format: 'pdf' | 'docx' | 'html'): Promise<{ success: boolean; downloadUrl: string }> {
+    const response = await api.post<{ success: boolean; downloadUrl: string }>(`/rfp/responses/${responseId}/export`, { format });
+    return response.data;
+  }
+
+  async addRFPCollaborator(responseId: number, email: string, role: 'viewer' | 'editor' | 'reviewer'): Promise<{ success: boolean; message: string }> {
+    const response = await api.post<{ success: boolean; message: string }>(`/rfp/responses/${responseId}/collaborators`, { email, role });
+    return response.data;
+  }
+
+  async removeRFPCollaborator(responseId: number, email: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete<{ success: boolean; message: string }>(`/rfp/responses/${responseId}/collaborators/${email}`);
+    return response.data;
+  }
+
+  // RFP Versions
+  async createRFPVersion(responseId: number, comment?: string): Promise<{ success: boolean; version: RFPVersion }> {
+    const response = await api.post<{ success: boolean; version: RFPVersion }>(`/rfp/responses/${responseId}/versions`, { comment });
+    return response.data;
+  }
+
+  async getRFPVersions(responseId: number): Promise<{ success: boolean; versions: RFPVersion[] }> {
+    const response = await api.get<{ success: boolean; versions: RFPVersion[] }>(`/rfp/responses/${responseId}/versions`);
+    return response.data;
+  }
+
+  async restoreRFPVersion(responseId: number, versionId: number): Promise<{ success: boolean; response: RFPResponse }> {
+    const response = await api.post<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}/versions/${versionId}/restore`);
+    return response.data;
+  }
+
+  // RFP Dashboard & Analytics
+  async getRFPDashboardStats(): Promise<{ success: boolean; stats: RFPDashboardStats }> {
+    const response = await api.get<{ success: boolean; stats: RFPDashboardStats }>('/rfp/dashboard/stats');
+    return response.data;
+  }
+
+  async getRFPAnalytics(dateRange?: { start: string; end: string }): Promise<{ success: boolean; analytics: any }> {
+    const params = dateRange ? `?start=${dateRange.start}&end=${dateRange.end}` : '';
+    const response = await api.get<{ success: boolean; analytics: any }>(`/rfp/analytics${params}`);
     return response.data;
   }
 }
