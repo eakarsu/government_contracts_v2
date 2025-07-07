@@ -421,156 +421,150 @@ Generate a comprehensive RFP response covering all standard sections with profes
     try {
       console.log(`📝 [RFP] Extracting ${section.title} from structured response`);
       
-      // Map section IDs to structured response fields
-      const sectionMapping = {
-        'executive_summary': () => this.extractExecutiveSummary(structuredResult),
-        'technical_approach': () => this.extractTechnicalApproach(structuredResult),
-        'management_plan': () => this.extractManagementPlan(structuredResult),
-        'past_performance': () => this.extractPastPerformance(structuredResult)
-      };
-
-      const extractor = sectionMapping[section.id];
-      if (extractor) {
-        return extractor();
-      } else {
-        // Fallback for unmapped sections
-        return this.generateFallbackContent(section, structuredResult);
+      // Generic extraction - look for section content in the structured response
+      const sectionId = section.id;
+      const sectionTitle = section.title.toLowerCase().replace(/\s+/g, '_');
+      
+      // Try multiple possible field names for this section
+      const possibleFields = [
+        sectionId,
+        sectionTitle,
+        sectionTitle.replace(/_/g, ''),
+        section.title.toLowerCase().replace(/\s+/g, '')
+      ];
+      
+      let extractedContent = '';
+      
+      // Look for content in the structured response
+      for (const field of possibleFields) {
+        if (structuredResult[field]) {
+          extractedContent = this.formatSectionContent(structuredResult[field], section.title);
+          break;
+        }
       }
+      
+      // If no direct match, try to extract relevant content from any available sections
+      if (!extractedContent) {
+        extractedContent = this.extractRelevantContent(structuredResult, section);
+      }
+      
+      return extractedContent || this.generateMinimalContent(section);
       
     } catch (error) {
       console.error(`❌ [RFP] Error extracting ${section.title}:`, error);
-      return this.generateFallbackContent(section, structuredResult);
+      return this.generateMinimalContent(section);
     }
   }
 
-  extractExecutiveSummary(structuredResult) {
-    const parts = [];
+  formatSectionContent(sectionData, sectionTitle) {
+    const parts = [`# ${sectionTitle}\n`];
     
-    if (structuredResult.executive_summary?.overview) {
-      parts.push(structuredResult.executive_summary.overview);
+    if (typeof sectionData === 'string') {
+      return sectionData;
     }
     
-    if (structuredResult.executive_summary?.key_provisions?.length > 0) {
-      parts.push('\n\nKey Provisions:');
-      structuredResult.executive_summary.key_provisions.forEach(provision => {
-        parts.push(`• ${provision}`);
-      });
-    }
-    
-    if (structuredResult.executive_summary?.impact_assessment) {
-      parts.push('\n\nImpact Assessment:');
-      parts.push(structuredResult.executive_summary.impact_assessment);
-    }
-    
-    return parts.length > 0 ? parts.join('\n') : this.generateDefaultExecutiveSummary();
-  }
-
-  extractTechnicalApproach(structuredResult) {
-    const parts = [];
-    
-    if (structuredResult.technical_specifications?.requirements?.length > 0) {
-      parts.push('# Technical Approach\n');
-      parts.push('## Technical Requirements\n');
-      
-      structuredResult.technical_specifications.requirements.forEach(req => {
-        parts.push(`### ${req.requirement}\n`);
-        parts.push(`${req.description}\n`);
-        if (req.compliance_standard) {
-          parts.push(`**Compliance Standard:** ${req.compliance_standard}\n`);
+    if (typeof sectionData === 'object' && sectionData !== null) {
+      // Generic object traversal to extract content
+      Object.entries(sectionData).forEach(([key, value]) => {
+        if (typeof value === 'string' && value.length > 50) {
+          // Long string content - likely main content
+          parts.push(`## ${this.formatFieldName(key)}\n`);
+          parts.push(`${value}\n`);
+        } else if (Array.isArray(value) && value.length > 0) {
+          // Array content - format as list
+          parts.push(`## ${this.formatFieldName(key)}\n`);
+          value.forEach(item => {
+            if (typeof item === 'string') {
+              parts.push(`• ${item}`);
+            } else if (typeof item === 'object' && item !== null) {
+              // Object in array - format key-value pairs
+              Object.entries(item).forEach(([itemKey, itemValue]) => {
+                if (typeof itemValue === 'string') {
+                  parts.push(`**${this.formatFieldName(itemKey)}:** ${itemValue}`);
+                }
+              });
+              parts.push('');
+            }
+          });
+          parts.push('');
+        } else if (typeof value === 'object' && value !== null) {
+          // Nested object - recurse
+          parts.push(`## ${this.formatFieldName(key)}\n`);
+          Object.entries(value).forEach(([subKey, subValue]) => {
+            if (typeof subValue === 'string' && subValue.length > 20) {
+              parts.push(`**${this.formatFieldName(subKey)}:** ${subValue}\n`);
+            }
+          });
         }
-        parts.push('');
       });
     }
-    
-    if (structuredResult.technical_specifications?.performance_standards) {
-      parts.push('## Performance Standards\n');
-      parts.push(structuredResult.technical_specifications.performance_standards);
-    }
-    
-    return parts.length > 0 ? parts.join('\n') : this.generateDefaultTechnicalApproach();
-  }
-
-  extractManagementPlan(structuredResult) {
-    const parts = [];
-    
-    if (structuredResult.scope_deliverables?.statement_of_work) {
-      parts.push('# Management Plan\n');
-      parts.push('## Project Management Approach\n');
-      parts.push(structuredResult.scope_deliverables.statement_of_work);
-    }
-    
-    if (structuredResult.scope_deliverables?.milestones?.length > 0) {
-      parts.push('\n## Project Milestones\n');
-      structuredResult.scope_deliverables.milestones.forEach(milestone => {
-        parts.push(`**${milestone.milestone}** - ${milestone.date}`);
-        if (milestone.deliverable) {
-          parts.push(`Deliverable: ${milestone.deliverable}`);
-        }
-        parts.push('');
-      });
-    }
-    
-    return parts.length > 0 ? parts.join('\n') : this.generateDefaultManagementPlan();
-  }
-
-  extractPastPerformance(structuredResult) {
-    const parts = [];
-    
-    parts.push('# Past Performance\n');
-    parts.push('Norshin has a proven track record of successful government contract performance with expertise in Node.js and Java development.\n');
-    
-    if (structuredResult.performance_metrics?.kpis?.length > 0) {
-      parts.push('## Performance Metrics\n');
-      structuredResult.performance_metrics.kpis.forEach(kpi => {
-        parts.push(`**${kpi.metric}:** ${kpi.target}`);
-      });
-      parts.push('');
-    }
-    
-    parts.push('## Relevant Experience\n');
-    parts.push('Our team has successfully completed numerous government contracts involving similar technical requirements and scope. We have consistently received excellent performance ratings from our government clients.\n');
     
     return parts.join('\n');
   }
 
-  generateDefaultExecutiveSummary() {
-    return `# Executive Summary
-
-Norshin is pleased to submit this proposal for the contract opportunity. Our team brings extensive experience in government contracting, with core competencies in Node.js and Java development.
-
-Our approach leverages proven methodologies and best practices to deliver high-quality solutions that meet or exceed all requirements. We are committed to providing exceptional value, maintaining the highest standards of quality, and ensuring successful project delivery.
-
-Key strengths include our technical expertise, proven past performance record, and commitment to mission success. We look forward to partnering with your organization to achieve project objectives.`;
+  formatFieldName(fieldName) {
+    return fieldName
+      .replace(/_/g, ' ')
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/\b\w/g, l => l.toUpperCase())
+      .trim();
   }
 
-  generateDefaultTechnicalApproach() {
-    return `# Technical Approach
-
-Norshin's technical approach is designed to deliver a robust, scalable, and secure solution that meets all specified requirements. Our methodology incorporates industry best practices and proven technologies.
-
-## Architecture and Design
-Our solution employs a modular architecture that supports maintainability, scalability, and future enhancements. We leverage our expertise in Node.js and Java to deliver high-performance applications.
-
-## Implementation Strategy
-We follow an agile development approach with iterative delivery, continuous integration, and comprehensive testing. Our team ensures quality at every stage of development.
-
-## Quality Assurance
-Rigorous testing protocols and quality assurance measures are integrated throughout the development lifecycle to ensure deliverables meet all requirements and performance standards.`;
+  extractRelevantContent(structuredResult, section) {
+    const sectionKeywords = section.title.toLowerCase().split(' ');
+    const relevantContent = [];
+    
+    // Search through all fields in the structured result for relevant content
+    const searchObject = (obj, path = '') => {
+      if (typeof obj === 'object' && obj !== null) {
+        Object.entries(obj).forEach(([key, value]) => {
+          const keyLower = key.toLowerCase();
+          const hasRelevantKeyword = sectionKeywords.some(keyword => 
+            keyLower.includes(keyword) || keyword.includes(keyLower)
+          );
+          
+          if (hasRelevantKeyword && typeof value === 'string' && value.length > 100) {
+            relevantContent.push({
+              source: `${path}${key}`,
+              content: value
+            });
+          } else if (typeof value === 'object') {
+            searchObject(value, `${path}${key}.`);
+          }
+        });
+      }
+    };
+    
+    searchObject(structuredResult);
+    
+    if (relevantContent.length > 0) {
+      const parts = [`# ${section.title}\n`];
+      relevantContent.forEach(item => {
+        parts.push(`## ${this.formatFieldName(item.source.split('.').pop())}\n`);
+        parts.push(`${item.content}\n`);
+      });
+      return parts.join('\n');
+    }
+    
+    return '';
   }
 
-  generateDefaultManagementPlan() {
-    return `# Management Plan
+  generateMinimalContent(section) {
+    return `# ${section.title}
 
-Norshin has developed a comprehensive management plan to ensure successful project execution and delivery. Our approach emphasizes clear communication, proactive risk management, and stakeholder engagement.
+[Content for ${section.title} will be generated based on contract requirements and company capabilities. This section requires manual review and completion.]
 
-## Project Organization
-Our project team is structured with clear roles and responsibilities, led by experienced project managers with proven track records in government contracting.
+## Key Points
+• Address all requirements specified in the RFP
+• Highlight relevant company experience and capabilities
+• Demonstrate understanding of project objectives
+• Provide specific examples and metrics where applicable
 
-## Schedule Management
-We maintain detailed project schedules with defined milestones and deliverables. Regular progress reviews ensure projects stay on track and any issues are addressed promptly.
-
-## Risk Management
-Proactive risk identification and mitigation strategies are implemented to minimize project risks and ensure successful delivery.`;
+## Next Steps
+• Review contract requirements for this section
+• Gather relevant company information and past performance data
+• Develop detailed content addressing all evaluation criteria
+• Ensure compliance with word limits and formatting requirements`;
   }
 
   calculateCompliance(sections, template) {
@@ -785,72 +779,6 @@ Proactive risk identification and mitigation strategies are implemented to minim
   }
 
 
-  generateFallbackContent(section, structuredResult) {
-    const sectionTitle = section.title;
-    const companyName = 'Norshin';
-    
-    switch (section.id) {
-      case 'executive_summary':
-        return `# Executive Summary
-
-${companyName} is pleased to submit this proposal for the ${structuredResult.attachment_metadata?.contract_reference || 'contract opportunity'}. Our team brings extensive experience in government contracting, with core competencies in Node.js and Java development.
-
-Our approach leverages proven methodologies and best practices to deliver high-quality solutions that meet or exceed all requirements. We are committed to providing exceptional value, maintaining the highest standards of quality, and ensuring successful project delivery.
-
-Key strengths include our technical expertise, proven past performance record, and commitment to mission success. We look forward to partnering with your organization to achieve project objectives.`;
-
-      case 'technical_approach':
-        return `# Technical Approach
-
-${companyName}'s technical approach is designed to deliver a robust, scalable, and secure solution that meets all specified requirements. Our methodology incorporates industry best practices and proven technologies.
-
-## Architecture and Design
-Our solution employs a modular architecture that supports maintainability, scalability, and future enhancements. We leverage our expertise in Node.js and Java to deliver high-performance applications.
-
-## Implementation Strategy
-We follow an agile development approach with iterative delivery, continuous integration, and comprehensive testing. Our team ensures quality at every stage of development.
-
-## Quality Assurance
-Rigorous testing protocols and quality assurance measures are integrated throughout the development lifecycle to ensure deliverables meet all requirements and performance standards.`;
-
-      case 'management_plan':
-        return `# Management Plan
-
-${companyName} has developed a comprehensive management plan to ensure successful project execution and delivery. Our approach emphasizes clear communication, proactive risk management, and stakeholder engagement.
-
-## Project Organization
-Our project team is structured with clear roles and responsibilities, led by experienced project managers with proven track records in government contracting.
-
-## Schedule Management
-We maintain detailed project schedules with defined milestones and deliverables. Regular progress reviews ensure projects stay on track and any issues are addressed promptly.
-
-## Risk Management
-Proactive risk identification and mitigation strategies are implemented to minimize project risks and ensure successful delivery.`;
-
-      case 'past_performance':
-        return `# Past Performance
-
-${companyName} has a proven track record of successful government contract performance. Our experience demonstrates our capability to deliver high-quality solutions on time and within budget.
-
-## Relevant Experience
-Our team has successfully completed numerous government contracts involving similar technical requirements and scope. We have consistently received excellent performance ratings from our government clients.
-
-## Performance Metrics
-We maintain high standards for on-time delivery, quality, and customer satisfaction. Our past performance record demonstrates our commitment to excellence and mission success.
-
-## References
-We can provide references from previous government clients who can attest to our technical capabilities and professional performance.`;
-
-      default:
-        return `# ${sectionTitle}
-
-${companyName} is committed to delivering exceptional results for this ${sectionTitle.toLowerCase()} requirement. Our approach combines technical expertise, proven methodologies, and a deep understanding of government contracting requirements.
-
-We bring extensive experience and a track record of successful project delivery. Our team is dedicated to meeting all requirements and exceeding expectations.
-
-[This section will be customized based on specific requirements and company capabilities.]`;
-    }
-  }
 
   getDefaultTemplates() {
     return {

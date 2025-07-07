@@ -293,27 +293,28 @@ async function summarizeContent(content, apiKey, isMultiPart = false, partInfo =
   console.log(`📊 [DEBUG] Content size: ${content.length} chars, ~${contentTokens} tokens`);
   console.log(`📊 [DEBUG] Sending entire content in one request using middle-out transform (supports up to 280K tokens)`);
   
-  const prompt = `TASK: Analyze government contract attachment document. Return 10-page equivalent analysis in JSON.
+  const prompt = `TASK: Analyze government contract document and generate comprehensive RFP response sections.
 
 ${isMultiPart ? `SECTION: ${partInfo}` : ''}
 
-ATTACHMENT DOCUMENT:
+CONTRACT DOCUMENT:
 """
 ${content}
 """
 
-JSON SCHEMA:
-{
-  "attachment_metadata": {"title": "string", "type": "SOW/PWS/Specs/Amendment", "contract_reference": "string", "attachment_number": "string", "revision": "string", "effective_date": "string"},
-  "executive_summary": {"overview": "800 words", "key_provisions": ["string"], "changes_from_base": ["string"], "impact_assessment": "400 words"},
-  "technical_specifications": {"requirements": [{"requirement": "string", "description": "300 words", "compliance_standard": "string", "testing_method": "string"}], "performance_standards": "600 words", "quality_metrics": ["metric"]},
-  "scope_deliverables": {"statement_of_work": "1000 words", "deliverables": [{"name": "string", "description": "200 words", "acceptance_criteria": "string", "due_date": "string"}], "milestones": [{"milestone": "string", "date": "string", "deliverable": "string"}]},
-  "compliance_requirements": {"standards": [{"standard": "string", "requirement": "200 words", "verification": "string"}], "certifications": ["certification"], "reporting": "300 words", "inspection_testing": "400 words"},
-  "contract_modifications": {"changes": [{"change_type": "string", "description": "300 words", "rationale": "200 words", "cost_impact": "string"}], "amendment_history": "400 words", "effective_provisions": "300 words"},
-  "performance_metrics": {"kpis": [{"metric": "string", "target": "string", "measurement": "string", "penalty": "string"}], "service_levels": "400 words", "monitoring": "300 words"},
-  "risk_analysis": {"attachment_risks": [{"risk": "string", "description": "300 words", "probability": "H/M/L", "mitigation": ["string"]}], "compliance_risks": "400 words", "performance_risks": "300 words"},
-  "implementation_guidance": {"execution_approach": "500 words", "resource_requirements": "300 words", "coordination": "300 words", "quality_assurance": "400 words"}
-}`;
+Generate a comprehensive analysis and RFP response content in JSON format. Include all relevant sections that would be needed for a complete RFP response, such as:
+
+- Executive summary with overview and key points
+- Technical approach and specifications  
+- Management plan and project approach
+- Past performance and relevant experience
+- Scope of work and deliverables
+- Compliance requirements and standards
+- Performance metrics and quality measures
+- Risk analysis and mitigation strategies
+- Implementation guidance and coordination
+
+Structure the response as a JSON object with descriptive field names. Provide detailed, professional content suitable for government contracting. Each section should be comprehensive and address the specific requirements found in the contract document.`;
 
   try {
     const promptTokens = estimateTokens(prompt);
