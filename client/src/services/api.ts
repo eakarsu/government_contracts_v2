@@ -565,53 +565,13 @@ class ApiService {
 
   // RFP Response Management
   async getRFPResponses(page: number = 1, limit: number = 20): Promise<{ success: boolean; responses: RFPResponse[]; pagination: any }> {
-    try {
-      const response = await api.get<{ success: boolean; responses: RFPResponse[]; pagination: any }>(`/rfp/responses?page=${page}&limit=${limit}`);
-      
-      // Filter out deleted RFPs from the response
-      const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
-      if (response.data.success && response.data.responses) {
-        const filteredResponses = response.data.responses.filter(rfp => !deletedRFPs.includes(rfp.id));
-        return {
-          ...response.data,
-          responses: filteredResponses
-        };
-      }
-      
-      return response.data;
-    } catch (error: any) {
-      // Handle 404 or other errors for missing endpoint
-      if (error.response?.status === 404) {
-        console.warn('RFP Responses endpoint not implemented yet');
-        return {
-          success: false,
-          responses: [],
-          pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
-        };
-      }
-      throw error;
-    }
+    const response = await api.get<{ success: boolean; responses: RFPResponse[]; pagination: any }>(`/rfp/responses?page=${page}&limit=${limit}`);
+    return response.data;
   }
 
   async getRFPResponse(responseId: number): Promise<{ success: boolean; response: RFPResponse }> {
-    try {
-      // Check if this RFP has been deleted locally
-      const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
-      if (deletedRFPs.includes(responseId)) {
-        console.log('🗑️ [DEBUG] RFP Response', responseId, 'has been deleted locally');
-        throw new Error('RFP Response has been deleted');
-      }
-
-      const response = await api.get<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}`);
-      return response.data;
-    } catch (error: any) {
-      // Handle 404 or other errors for missing endpoint
-      if (error.response?.status === 404) {
-        console.warn('RFP Response endpoint not implemented yet');
-        throw new Error('RFP Response not found');
-      }
-      throw error;
-    }
+    const response = await api.get<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}`);
+    return response.data;
   }
 
   async updateRFPResponse(responseId: number, updates: Partial<RFPResponse>): Promise<{ success: boolean; response: RFPResponse }> {
@@ -625,55 +585,8 @@ class ApiService {
   }
 
   async deleteRFPResponse(responseId: number): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await api.delete<{ success: boolean; message: string }>(`/rfp/responses/${responseId}`);
-      return response.data;
-    } catch (error: any) {
-      // Handle 404 or other errors for missing delete endpoint
-      if (error.response?.status === 404) {
-        console.warn('🗑️ [DEBUG] Delete RFP Response endpoint not implemented yet, simulating deletion');
-        
-        // Since the server endpoint doesn't exist, we'll simulate the deletion
-        // by removing it from localStorage and any cached data
-        try {
-          // Remove from localStorage if stored there
-          const storedRFPs = localStorage.getItem('rfp_responses');
-          if (storedRFPs) {
-            const rfps = JSON.parse(storedRFPs);
-            const updatedRFPs = rfps.filter((rfp: any) => rfp.id !== responseId);
-            localStorage.setItem('rfp_responses', JSON.stringify(updatedRFPs));
-            console.log('🗑️ [DEBUG] Removed RFP from localStorage');
-          }
-          
-          // Also try to remove from any other storage mechanisms
-          const keys = ['recent_rfps', 'dashboard_rfps', 'rfp_cache'];
-          keys.forEach(key => {
-            try {
-              const data = localStorage.getItem(key);
-              if (data) {
-                const parsed = JSON.parse(data);
-                if (Array.isArray(parsed)) {
-                  const filtered = parsed.filter((item: any) => item.id !== responseId);
-                  localStorage.setItem(key, JSON.stringify(filtered));
-                }
-              }
-            } catch (e) {
-              // Ignore errors for non-existent or invalid data
-            }
-          });
-          
-        } catch (e) {
-          console.warn('Could not update localStorage:', e);
-        }
-        
-        // Return success to allow UI to proceed
-        return {
-          success: true,
-          message: `RFP response ${responseId} deleted (simulated deletion - endpoint not yet implemented on server)`
-        };
-      }
-      throw error;
-    }
+    const response = await api.delete<{ success: boolean; message: string }>(`/rfp/responses/${responseId}`);
+    return response.data;
   }
 
   // RFP Compliance & Scoring

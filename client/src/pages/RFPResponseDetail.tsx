@@ -22,15 +22,6 @@ const RFPResponseDetail: React.FC = () => {
   const loadRFPResponse = async (responseId: number) => {
     try {
       setLoading(true);
-      
-      // Check if this RFP has been deleted locally before making API call
-      const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
-      if (deletedRFPs.includes(responseId)) {
-        console.log('🗑️ [DEBUG] RFP Response', responseId, 'has been deleted locally, redirecting to dashboard');
-        navigate('/rfp');
-        return;
-      }
-      
       const response = await apiService.getRFPResponse(responseId);
       if (response.success) {
         setRfpResponse(response.response);
@@ -38,13 +29,7 @@ const RFPResponseDetail: React.FC = () => {
         setError('Failed to load RFP response');
       }
     } catch (err: any) {
-      console.error('❌ [DEBUG] Load RFP Response error:', err);
-      if (err.message.includes('deleted')) {
-        // RFP was deleted, redirect to dashboard
-        navigate('/rfp');
-      } else {
-        setError(err.message);
-      }
+      setError(err.message);
     } finally {
       setLoading(false);
     }
