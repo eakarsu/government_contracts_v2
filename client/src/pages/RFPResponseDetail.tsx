@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { RFPResponse } from '../types';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 
 const RFPResponseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [rfpResponse, setRfpResponse] = useState<RFPResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +92,10 @@ const RFPResponseDetail: React.FC = () => {
           >
             Back to Dashboard
           </Link>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+          <button 
+            onClick={() => navigate(`/rfp/responses/${id}/edit`)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
             Edit Response
           </button>
         </div>
@@ -196,8 +200,33 @@ const RFPResponseDetail: React.FC = () => {
               </div>
             ))
           ) : (
-            <div className="p-6 text-center text-gray-500">
-              No sections available
+            <div className="p-6 text-center">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No sections available</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                This RFP response appears to be incomplete. The generation process may not have finished properly.
+              </p>
+              <div className="mt-4 space-y-2">
+                <p className="text-sm text-gray-600">
+                  <strong>Possible reasons:</strong>
+                </p>
+                <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+                  <li>The RFP generation process is still running</li>
+                  <li>The selected template had no sections defined</li>
+                  <li>There was an error during generation</li>
+                  <li>The company profile data wasn't properly used</li>
+                </ul>
+                <div className="mt-4">
+                  <button 
+                    onClick={() => navigate(`/rfp/responses/${id}/edit`)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  >
+                    Edit Response
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
