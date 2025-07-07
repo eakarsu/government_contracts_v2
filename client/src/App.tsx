@@ -17,6 +17,11 @@ import NotFound from './pages/NotFound';
 
 // RFP Pages
 import RFPDashboard from './pages/RFPDashboard';
+import RFPGenerator from './pages/RFPGenerator';
+import RFPTemplates from './pages/RFPTemplates';
+import CompanyProfiles from './pages/CompanyProfiles';
+import RFPAnalytics from './pages/RFPAnalytics';
+import RFPResponses from './pages/RFPResponses';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -46,6 +51,11 @@ function App() {
               {/* RFP System Routes */}
               <Route path="/rfp" element={<RFPDashboard />} />
               <Route path="/rfp/dashboard" element={<RFPDashboard />} />
+              <Route path="/rfp/generate" element={<RFPGenerator />} />
+              <Route path="/rfp/templates" element={<RFPTemplates />} />
+              <Route path="/rfp/company-profiles" element={<CompanyProfiles />} />
+              <Route path="/rfp/analytics" element={<RFPAnalytics />} />
+              <Route path="/rfp/responses" element={<RFPResponses />} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
