@@ -552,7 +552,7 @@ class ApiService {
     
     try {
       const response = await api.post<RFPGenerationResponse>('/rfp/generate', request, {
-        timeout: 300000 // 5 minute timeout for generation
+        timeout: 60000 // Reduced to 1 minute timeout for faster feedback
       });
       console.log('🚀 [DEBUG] API Service generateRFPResponse response:', response.data);
       return response.data;
@@ -567,8 +567,8 @@ class ApiService {
         console.error('❌ [DEBUG] Server error during RFP generation:', error.response.data);
         throw new Error('Server error during RFP generation. Please check the server logs for details.');
       } else if (error.code === 'ECONNABORTED') {
-        console.error('❌ [DEBUG] RFP generation timeout');
-        throw new Error('RFP generation timed out. The process may be taking longer than expected.');
+        console.error('❌ [DEBUG] RFP generation timeout after 1 minute');
+        throw new Error('RFP generation timed out after 1 minute. The server may be overloaded or the generation process is not working properly.');
       }
       
       throw error;

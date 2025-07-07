@@ -17,6 +17,7 @@ const RFPGenerator: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [generationProgress, setGenerationProgress] = useState<string>('');
 
   useEffect(() => {
     loadData();
@@ -59,6 +60,7 @@ const RFPGenerator: React.FC = () => {
     try {
       setGenerating(true);
       setError(null);
+      setGenerationProgress('Validating inputs...');
 
       // Get the selected template to check if it has sections
       const selectedTemplateObj = templates.find(t => t.id === Number(selectedTemplate));
@@ -73,6 +75,8 @@ const RFPGenerator: React.FC = () => {
         setError('Selected company profile not found. Please choose a different profile.');
         return;
       }
+
+      setGenerationProgress('Preparing generation request...');
 
       console.log('🚀 [DEBUG] Generating RFP with:', {
         contract: selectedContract,
@@ -108,30 +112,51 @@ const RFPGenerator: React.FC = () => {
 
       console.log('🚀 [DEBUG] Full RFP generation request:', request);
 
-      const response = await apiService.generateRFPResponse(request);
+      setGenerationProgress('Sending request to server...');
 
-      console.log('🚀 [DEBUG] RFP Generation response:', response);
-
-      if (response.success) {
-        console.log('✅ [DEBUG] RFP generated successfully with ID:', response.rfpResponseId);
-        console.log('✅ [DEBUG] Generation details:', {
-          sectionsGenerated: response.sectionsGenerated,
-          complianceScore: response.complianceScore,
-          predictedScore: response.predictedScore,
-          generationTime: response.generationTime
+      // Start a timeout to show progress updates
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => {
+          if (prev.includes('Sending request')) return 'Processing contract data...';
+          if (prev.includes('Processing contract')) return 'Generating content sections...';
+          if (prev.includes('Generating content')) return 'Finalizing RFP response...';
+          return 'Still processing... (this may take a while)';
         });
-        
-        // Navigate to the generated RFP response to see the result
-        navigate(`/rfp/responses/${response.rfpResponseId}`);
-      } else {
-        console.error('❌ [DEBUG] RFP generation failed:', response.message);
-        setError(response.message || 'Failed to generate RFP response');
+      }, 10000); // Update every 10 seconds
+
+      try {
+        const response = await apiService.generateRFPResponse(request);
+        clearInterval(progressInterval);
+
+        console.log('🚀 [DEBUG] RFP Generation response:', response);
+
+        if (response.success) {
+          console.log('✅ [DEBUG] RFP generated successfully with ID:', response.rfpResponseId);
+          console.log('✅ [DEBUG] Generation details:', {
+            sectionsGenerated: response.sectionsGenerated,
+            complianceScore: response.complianceScore,
+            predictedScore: response.predictedScore,
+            generationTime: response.generationTime
+          });
+          
+          setGenerationProgress('Generation complete! Redirecting...');
+          
+          // Navigate to the generated RFP response to see the result
+          navigate(`/rfp/responses/${response.rfpResponseId}`);
+        } else {
+          console.error('❌ [DEBUG] RFP generation failed:', response.message);
+          setError(response.message || 'Failed to generate RFP response');
+        }
+      } catch (apiError) {
+        clearInterval(progressInterval);
+        throw apiError;
       }
     } catch (err: any) {
       console.error('❌ [DEBUG] RFP Generation error:', err);
       setError(err.message || 'An error occurred during RFP generation');
     } finally {
       setGenerating(false);
+      setGenerationProgress('');
     }
   };
 
@@ -168,6 +193,21 @@ const RFPGenerator: React.FC = () => {
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="text-red-800">{error}</div>
+        </div>
+      )}
+
+      {generating && generationProgress && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <div className="flex items-center">
+            <LoadingSpinner size="sm" className="mr-3" />
+            <div>
+              <div className="text-blue-800 font-medium">Generating RFP Response</div>
+              <div className="text-blue-600 text-sm">{generationProgress}</div>
+              <div className="text-blue-500 text-xs mt-1">
+                This process typically takes 30-60 seconds. If it takes longer, the server may be experiencing issues.
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -345,7 +385,7 @@ const RFPGenerator: React.FC = () => {
               className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {generating && <LoadingSpinner size="sm" className="mr-2" />}
-              {generating ? 'Generating...' : 'Generate RFP Response'}
+              {generating ? (generationProgress || 'Generating...') : 'Generate RFP Response'}
             </button>
           </div>
         </div>
