@@ -133,7 +133,7 @@ class RFPService {
         // Parse the JSON object to extract the actual content
         try {
           const parsedResult = result.result;
-          
+          console.log (` section: ${section} result: ${JSON.stringify(parsedResult, null, 2)}`)
           // Look for content in various possible fields
           if (parsedResult.content) {
             content = parsedResult.content;
