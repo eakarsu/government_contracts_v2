@@ -125,17 +125,74 @@ class RFPService {
         process.env.REACT_APP_OPENROUTER_KEY
       );
 
-      const content = result.result || `[Generated content for ${section.title}]`;
-      const wordCount = content.split(' ').length;
+      // Handle both string and object responses from summarization service
+      let content = '';
+      if (typeof result.result === 'string') {
+        content = result.result;
+      } else if (typeof result.result === 'object' && result.result !== null) {
+        // Parse the JSON object to extract the actual content
+        try {
+          const parsedResult = result.result;
+          
+          // Look for content in various possible fields
+          if (parsedResult.content) {
+            content = parsedResult.content;
+          } else if (parsedResult.summary) {
+            content = parsedResult.summary;
+          } else if (parsedResult.text) {
+            content = parsedResult.text;
+          } else if (parsedResult.response) {
+            content = parsedResult.response;
+          } else if (parsedResult.attachment_content) {
+            content = parsedResult.attachment_content;
+          } else if (parsedResult.document_content) {
+            content = parsedResult.document_content;
+          } else {
+            // If it's a structured document, try to extract meaningful text
+            const textParts = [];
+            
+            // Check for title
+            if (parsedResult.attachment_metadata?.title) {
+              textParts.push(`# ${parsedResult.attachment_metadata.title}\n`);
+            }
+            
+            // Check for sections or content blocks
+            if (parsedResult.sections && Array.isArray(parsedResult.sections)) {
+              parsedResult.sections.forEach(sectionData => {
+                if (sectionData.title) textParts.push(`## ${sectionData.title}\n`);
+                if (sectionData.content) textParts.push(`${sectionData.content}\n`);
+              });
+            }
+            
+            // If we found structured content, use it
+            if (textParts.length > 0) {
+              content = textParts.join('\n');
+            } else {
+              // Last resort: create a professional section based on the metadata
+              const title = parsedResult.attachment_metadata?.title || `${section.title} Section`;
+              content = `# ${title}\n\n[This section contains generated content for ${section.title}. The AI response was in a structured format that needs to be processed. Please review and edit as needed.]\n\nSection: ${section.title}`;
+            }
+          }
+        } catch (parseError) {
+          console.error(`❌ [RFP] Error parsing section result for ${section.title}:`, parseError);
+          content = `[Error processing generated content for ${section.title}. Please regenerate this section.]`;
+        }
+      } else {
+        content = `[Generated content for ${section.title}]`;
+      }
+
+      // Ensure content is a string before calling split
+      const contentString = String(content);
+      const wordCount = contentString.split(' ').length;
 
       return {
         id: section.id,
         sectionId: section.id,
         title: section.title,
-        content,
+        content: contentString,
         wordCount,
         status: 'generated',
-        compliance: this.calculateSectionCompliance(content, section),
+        compliance: this.calculateSectionCompliance(contentString, section),
         lastModified: new Date().toISOString(),
         modifiedBy: 'AI Generator'
       };
