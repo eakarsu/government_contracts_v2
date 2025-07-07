@@ -392,18 +392,38 @@ Content:`;
           process.env.REACT_APP_OPENROUTER_KEY
         );
 
+        // Handle both string and object responses from summarization service
+        let contentText = '';
+        if (typeof sectionResult.result === 'string') {
+          contentText = sectionResult.result;
+        } else if (typeof sectionResult.result === 'object') {
+          // If it's an object, try to extract meaningful content
+          if (sectionResult.result.content) {
+            contentText = sectionResult.result.content;
+          } else if (sectionResult.result.summary) {
+            contentText = sectionResult.result.summary;
+          } else {
+            // Fallback: stringify the object
+            contentText = JSON.stringify(sectionResult.result, null, 2);
+          }
+        } else {
+          contentText = `[Generated content for ${section.title}]`;
+        }
+
+        const wordCount = contentText.split(' ').length;
+
         const sectionContent = {
           id: section.id,
           sectionId: section.id,
           title: section.title,
-          content: sectionResult.result || `[Generated content for ${section.title}]`,
-          wordCount: (sectionResult.result || '').split(' ').length,
+          content: contentText,
+          wordCount: wordCount,
           status: 'generated',
           compliance: {
             wordLimit: {
-              current: (sectionResult.result || '').split(' ').length,
+              current: wordCount,
               maximum: section.maxWords,
-              compliant: !section.maxWords || (sectionResult.result || '').split(' ').length <= section.maxWords
+              compliant: !section.maxWords || wordCount <= section.maxWords
             },
             requirementCoverage: {
               covered: [],
