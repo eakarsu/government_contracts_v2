@@ -71,8 +71,8 @@ const RFPGenerator: React.FC = () => {
       const response = await apiService.generateRFPResponse(request);
 
       if (response.success) {
-        // Navigate to the generated RFP response
-        navigate(`/rfp/responses/${response.rfpResponseId}`);
+        // Navigate back to the RFP dashboard after successful generation
+        navigate('/rfp');
       } else {
         setError('Failed to generate RFP response');
       }

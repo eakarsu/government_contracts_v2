@@ -22,6 +22,7 @@ import RFPTemplates from './pages/RFPTemplates';
 import CompanyProfiles from './pages/CompanyProfiles';
 import RFPAnalytics from './pages/RFPAnalytics';
 import RFPResponses from './pages/RFPResponses';
+import RFPResponseDetail from './pages/RFPResponseDetail';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -56,6 +57,7 @@ function App() {
               <Route path="/rfp/company-profiles" element={<CompanyProfiles />} />
               <Route path="/rfp/analytics" element={<RFPAnalytics />} />
               <Route path="/rfp/responses" element={<RFPResponses />} />
+              <Route path="/rfp/responses/:id" element={<RFPResponseDetail />} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
