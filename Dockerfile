@@ -47,18 +47,8 @@ ENV PYTHONPATH=/usr/lib/python3.11/site-packages
 ENV CHROMA_DB_PATH=/app/vector_indexes
 ENV NODE_ENV=production
 
-# Create database initialization script
-RUN echo '#!/bin/sh\n\
-echo "Waiting for PostgreSQL to be ready..."\n\
-until pg_isready -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER; do\n\
-  echo "PostgreSQL is unavailable - sleeping"\n\
-  sleep 1\n\
-done\n\
-echo "PostgreSQL is up - executing command"\n\
-exec "$@"' > /app/wait-for-postgres.sh && chmod +x /app/wait-for-postgres.sh
-
 # Expose port
 EXPOSE 3000
 
-# Use wait script and start the application
-CMD ["/app/wait-for-postgres.sh", "npm", "start"]
+# Start the application directly
+CMD ["npm", "start"]
