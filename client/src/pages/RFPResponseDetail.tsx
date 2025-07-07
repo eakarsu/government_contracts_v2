@@ -42,12 +42,9 @@ const RFPResponseDetail: React.FC = () => {
       setDeleting(true);
       console.log('🗑️ [DEBUG] Starting deletion for RFP ID:', rfpResponse.id);
       
-      // Since the server endpoint doesn't exist, we'll simulate deletion by removing from localStorage
-      const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
-      deletedRFPs.push(rfpResponse.id);
-      localStorage.setItem('deleted_rfp_ids', JSON.stringify(deletedRFPs));
+      await apiService.deleteRFPResponse(rfpResponse.id);
       
-      console.log('✅ [DEBUG] RFP Response marked as deleted locally');
+      console.log('✅ [DEBUG] RFP Response deleted successfully');
       
       // Navigate back to dashboard
       navigate('/rfp');
@@ -211,14 +208,15 @@ const RFPResponseDetail: React.FC = () => {
           <h2 className="text-lg font-medium text-gray-900">Response Sections</h2>
         </div>
         <div className="divide-y divide-gray-200">
-          {rfpResponse.sections && rfpResponse.sections.length > 0 ? (
-            rfpResponse.sections.map((section, index) => (
-              <div key={section.id} className="p-6">
+          {rfpResponse.responseData?.sections && rfpResponse.responseData.sections.length > 0 ? (
+            rfpResponse.responseData.sections.map((section: any, index: number) => (
+              <div key={section.id || index} className="p-6">
                 <div className="flex justify-between items-start mb-3">
                   <h3 className="text-lg font-medium text-gray-900">{section.title}</h3>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     section.status === 'approved' ? 'bg-green-100 text-green-800' :
                     section.status === 'reviewed' ? 'bg-yellow-100 text-yellow-800' :
+                    section.status === 'generated' ? 'bg-blue-100 text-blue-800' :
                     'bg-gray-100 text-gray-800'
                   }`}>
                     {section.status}
@@ -228,9 +226,24 @@ const RFPResponseDetail: React.FC = () => {
                   <p className="text-gray-700 whitespace-pre-wrap">{section.content}</p>
                 </div>
                 <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-                  <span>Word count: {section.wordCount}</span>
-                  <span>Last modified: {new Date(section.lastModified).toLocaleDateString()}</span>
+                  <span>Word count: {section.wordCount || 0}</span>
+                  <span>Last modified: {new Date(section.lastModified || rfpResponse.updatedAt).toLocaleDateString()}</span>
                 </div>
+                {section.compliance && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-md">
+                    <div className="text-sm">
+                      <span className="font-medium">Compliance: </span>
+                      <span className={section.compliance.wordLimit?.compliant ? 'text-green-600' : 'text-red-600'}>
+                        {section.compliance.wordLimit?.compliant ? 'Within limits' : 'Exceeds limits'}
+                      </span>
+                      {section.compliance.wordLimit?.maximum && (
+                        <span className="text-gray-500 ml-2">
+                          ({section.compliance.wordLimit.current}/{section.compliance.wordLimit.maximum} words)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ))
           ) : (
@@ -257,23 +270,23 @@ const RFPResponseDetail: React.FC = () => {
                 <div className="mt-4 space-y-3">
                   <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
                     <p className="text-sm text-yellow-800">
-                      <strong>Debug Information:</strong> This RFP response (ID: {id}) was created but has no content sections. 
+                      <strong>Debug Information:</strong> This RFP response (ID: {rfpResponse.id}) was created but has no content sections. 
                       Check the browser console for detailed generation logs.
                     </p>
                   </div>
                   <div className="flex space-x-3">
                     <button 
-                      onClick={() => navigate(`/rfp/responses/${id}/edit`)}
+                      onClick={() => navigate(`/rfp/responses/${rfpResponse.id}/edit`)}
                       className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                     >
                       Edit Response
                     </button>
-                    <Link
-                      to="/rfp/generate"
+                    <button
+                      onClick={() => navigate('/rfp/generate')}
                       className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                     >
                       Try Generate Again
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </div>
