@@ -9,7 +9,6 @@ const RFPDashboard: React.FC = () => {
   const [recentRFPs, setRecentRFPs] = useState<RFPResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -37,10 +36,6 @@ const RFPDashboard: React.FC = () => {
     }
   };
 
-  const handleAnalyticsClick = () => {
-    // Show modal instead of error message
-    setShowAnalyticsModal(true);
-  };
 
   if (loading) {
     return (
@@ -248,9 +243,9 @@ const RFPDashboard: React.FC = () => {
             </div>
           </Link>
 
-          <button
-            onClick={handleAnalyticsClick}
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors w-full text-left"
+          <Link
+            to="/rfp/analytics"
+            className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors"
           >
             <div className="p-2 bg-purple-100 rounded-lg">
               <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -261,45 +256,10 @@ const RFPDashboard: React.FC = () => {
               <p className="text-sm font-medium text-gray-900">View Analytics</p>
               <p className="text-sm text-gray-500">Performance insights & trends</p>
             </div>
-          </button>
+          </Link>
         </div>
       </div>
 
-      {/* Analytics Coming Soon Modal */}
-      {showAnalyticsModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3 text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
-                <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-lg leading-6 font-medium text-gray-900 mt-4">Analytics Coming Soon!</h3>
-              <div className="mt-2 px-7 py-3">
-                <p className="text-sm text-gray-500">
-                  The analytics feature is currently under development. When ready, it will provide:
-                </p>
-                <ul className="text-sm text-gray-500 mt-3 text-left space-y-1">
-                  <li>• Detailed RFP performance insights</li>
-                  <li>• Win rate tracking and trends</li>
-                  <li>• Scoring predictions accuracy</li>
-                  <li>• Competitive analysis reports</li>
-                  <li>• Time-to-completion metrics</li>
-                </ul>
-              </div>
-              <div className="items-center px-4 py-3">
-                <button
-                  onClick={() => setShowAnalyticsModal(false)}
-                  className="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                >
-                  Got it!
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
