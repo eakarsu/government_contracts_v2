@@ -50,5 +50,5 @@ ENV NODE_ENV=production
 # Expose port
 EXPOSE 3000
 
-# Start the application directly
-CMD ["npm", "start"]
+# Start the application with initialization
+CMD ["sh", "-c", "./init-db.sh && npm start"]
