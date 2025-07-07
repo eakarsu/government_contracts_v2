@@ -1972,7 +1972,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
   };
 }
 
-// Search documents in vector database
+// Search documents in vector database (documents only, not contracts)
 router.post('/search', async (req, res) => {
   try {
     const { query, limit = 10, contract_id } = req.body;

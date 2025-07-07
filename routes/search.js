@@ -4,11 +4,11 @@ const vectorService = require('../services/vectorService');
 
 const router = express.Router();
 
-// Search contracts endpoint
+// Search contracts endpoint - consolidated from documentSearch.js
 router.post('/', async (req, res) => {
   try {
     const startTime = Date.now();
-    const { query, limit = 10, use_vector = true } = req.body;
+    const { query, limit = 10, use_vector = true, include_analysis = false } = req.body;
 
     if (!query) {
       return res.status(400).json({ error: 'Query parameter is required' });
@@ -76,7 +76,7 @@ router.post('/', async (req, res) => {
       }
     });
 
-    res.json({
+    let response = {
       query,
       results: {
         contracts: contracts,
@@ -84,7 +84,36 @@ router.post('/', async (req, res) => {
       },
       response_time: responseTime,
       search_method: use_vector ? 'vector' : 'database'
-    });
+    };
+
+    // Add AI analysis if requested (from documentSearch.js functionality)
+    if (include_analysis && contracts.length > 0) {
+      try {
+        const summaryService = require('../services/summaryService');
+        const analysisPrompt = `Analyze these government contract search results for query "${query}":
+
+${contracts.slice(0, 5).map(c => `- ${c.title} (${c.agency}): ${c.description?.substring(0, 200)}...`).join('\n')}
+
+Provide a brief analysis of the search results including key themes, agencies involved, and potential opportunities.`;
+
+        const analysisResult = await summaryService.summarizeContent(
+          analysisPrompt,
+          process.env.REACT_APP_OPENROUTER_KEY
+        );
+
+        if (analysisResult.success) {
+          response.ai_analysis = {
+            summary: analysisResult.result.summary || 'Analysis completed',
+            key_points: analysisResult.result.key_points || [],
+            recommendations: analysisResult.result.recommendations || []
+          };
+        }
+      } catch (analysisError) {
+        console.warn('AI analysis failed:', analysisError.message);
+      }
+    }
+
+    res.json(response);
 
   } catch (error) {
     console.error('Search failed:', error);
