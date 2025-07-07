@@ -75,6 +75,9 @@ app.use('/api/search', searchRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/recommendations', recommendationsRouter);
 
+// Mount RFP routes separately to make them accessible at /api/rfp/*
+app.use('/api/rfp', documentsRouter);
+
 // Debug: Log when routers are loaded
 console.log('📋 [DEBUG] Contracts router mounted at /api/contracts');
 console.log('📋 [DEBUG] Documents router mounted at /api/documents');
