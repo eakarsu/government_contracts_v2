@@ -83,6 +83,21 @@ const RFPGenerator: React.FC = () => {
         focusAreas
       });
 
+      // Log detailed template sections for debugging
+      console.log('🚀 [DEBUG] Template sections:', selectedTemplateObj.sections.map(s => ({
+        title: s.title,
+        description: s.description,
+        required: s.required,
+        mappings: s.mappings
+      })));
+
+      // Log company profile capabilities for debugging
+      console.log('🚀 [DEBUG] Company profile capabilities:', {
+        coreCompetencies: selectedProfileObj.capabilities?.coreCompetencies || [],
+        technicalSkills: selectedProfileObj.capabilities?.technicalSkills || [],
+        methodologies: selectedProfileObj.capabilities?.methodologies || []
+      });
+
       const request: RFPGenerationRequest = {
         contractId: selectedContract,
         templateId: Number(selectedTemplate),
@@ -91,14 +106,25 @@ const RFPGenerator: React.FC = () => {
         focusAreas: focusAreas.length > 0 ? focusAreas : undefined
       };
 
+      console.log('🚀 [DEBUG] Full RFP generation request:', request);
+
       const response = await apiService.generateRFPResponse(request);
 
       console.log('🚀 [DEBUG] RFP Generation response:', response);
 
       if (response.success) {
+        console.log('✅ [DEBUG] RFP generated successfully with ID:', response.rfpResponseId);
+        console.log('✅ [DEBUG] Generation details:', {
+          sectionsGenerated: response.sectionsGenerated,
+          complianceScore: response.complianceScore,
+          predictedScore: response.predictedScore,
+          generationTime: response.generationTime
+        });
+        
         // Navigate to the generated RFP response to see the result
         navigate(`/rfp/responses/${response.rfpResponseId}`);
       } else {
+        console.error('❌ [DEBUG] RFP generation failed:', response.message);
         setError(response.message || 'Failed to generate RFP response');
       }
     } catch (err: any) {

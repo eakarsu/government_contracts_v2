@@ -225,14 +225,30 @@ const RFPResponseDetail: React.FC = () => {
                   <li>The selected template had no sections defined</li>
                   <li>There was an error during generation</li>
                   <li>The company profile data wasn't properly used</li>
+                  <li>The server-side RFP generation endpoint may not be fully implemented</li>
+                  <li>The AI service for content generation may not be configured</li>
                 </ul>
-                <div className="mt-4">
-                  <button 
-                    onClick={() => navigate(`/rfp/responses/${id}/edit`)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    Edit Response
-                  </button>
+                <div className="mt-4 space-y-3">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Debug Information:</strong> This RFP response (ID: {id}) was created but has no content sections. 
+                      Check the browser console for detailed generation logs.
+                    </p>
+                  </div>
+                  <div className="flex space-x-3">
+                    <button 
+                      onClick={() => navigate(`/rfp/responses/${id}/edit`)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                    >
+                      Edit Response
+                    </button>
+                    <Link
+                      to="/rfp/generate"
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      Try Generate Again
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>

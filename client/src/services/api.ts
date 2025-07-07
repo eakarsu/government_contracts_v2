@@ -549,11 +549,30 @@ class ApiService {
   // RFP Generation
   async generateRFPResponse(request: RFPGenerationRequest): Promise<RFPGenerationResponse> {
     console.log('🚀 [DEBUG] API Service generateRFPResponse called with:', request);
-    const response = await api.post<RFPGenerationResponse>('/rfp/generate', request, {
-      timeout: 300000 // 5 minute timeout for generation
-    });
-    console.log('🚀 [DEBUG] API Service generateRFPResponse response:', response.data);
-    return response.data;
+    
+    try {
+      const response = await api.post<RFPGenerationResponse>('/rfp/generate', request, {
+        timeout: 300000 // 5 minute timeout for generation
+      });
+      console.log('🚀 [DEBUG] API Service generateRFPResponse response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [DEBUG] API Service generateRFPResponse error:', error);
+      
+      // Handle specific error cases
+      if (error.response?.status === 404) {
+        console.error('❌ [DEBUG] RFP generation endpoint not found (404)');
+        throw new Error('RFP generation service is not available. The server endpoint may not be implemented yet.');
+      } else if (error.response?.status === 500) {
+        console.error('❌ [DEBUG] Server error during RFP generation:', error.response.data);
+        throw new Error('Server error during RFP generation. Please check the server logs for details.');
+      } else if (error.code === 'ECONNABORTED') {
+        console.error('❌ [DEBUG] RFP generation timeout');
+        throw new Error('RFP generation timed out. The process may be taking longer than expected.');
+      }
+      
+      throw error;
+    }
   }
 
   async regenerateRFPSection(rfpResponseId: number, sectionId: string, customInstructions?: string): Promise<{ success: boolean; section: RFPResponseSection }> {
