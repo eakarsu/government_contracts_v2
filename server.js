@@ -15,7 +15,7 @@ console.log('📋 [DEBUG] Importing routes...');
 
 // Import routes
 const contractsRouter = require('./routes/contracts');
-const documentsRouter = require('./routes/documents');
+const documentSearchRouter = require('./routes/documentSearch');
 const searchRouter = require('./routes/search');
 const jobsRouter = require('./routes/jobs');
 const recommendationsRouter = require('./routes/recommendations');
@@ -72,7 +72,7 @@ const upload = multer({
 
 // Routes
 app.use('/api/contracts', contractsRouter);
-app.use('/api/documents', documentsRouter);
+app.use('/api/documents', documentSearchRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/recommendations', recommendationsRouter);
@@ -85,7 +85,7 @@ app.use('/api/documents/processing', documentProcessingRouter);
 
 // Debug: Log when routers are loaded
 console.log('📋 [DEBUG] Contracts router mounted at /api/contracts');
-console.log('📋 [DEBUG] Documents router mounted at /api/documents');
+console.log('📋 [DEBUG] Document search router mounted at /api/documents');
 console.log('📋 [DEBUG] Search router mounted at /api/search');
 console.log('📋 [DEBUG] Jobs router mounted at /api/jobs');
 console.log('📋 [DEBUG] Recommendations router mounted at /api/recommendations');
