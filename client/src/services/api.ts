@@ -599,10 +599,7 @@ class ApiService {
       const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
       if (deletedRFPs.includes(responseId)) {
         console.log('🗑️ [DEBUG] RFP Response', responseId, 'has been deleted locally');
-        return {
-          success: false,
-          response: null as any
-        };
+        throw new Error('RFP Response has been deleted');
       }
 
       const response = await api.get<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}`);
@@ -611,10 +608,7 @@ class ApiService {
       // Handle 404 or other errors for missing endpoint
       if (error.response?.status === 404) {
         console.warn('RFP Response endpoint not implemented yet');
-        return {
-          success: false,
-          response: null as any
-        };
+        throw new Error('RFP Response not found');
       }
       throw error;
     }
