@@ -36,6 +36,21 @@ const RFPDashboard: React.FC = () => {
     }
   };
 
+  const handleAnalyticsClick = async () => {
+    try {
+      const analyticsResponse = await apiService.getRFPAnalytics();
+      if (analyticsResponse.success) {
+        // If analytics are available, you could navigate to a dedicated page
+        // For now, show a simple alert with the data
+        alert(`Analytics: Total RFPs: ${analyticsResponse.analytics.totalRFPs || 0}, Win Rate: ${analyticsResponse.analytics.winRate || 0}%`);
+      } else {
+        alert('Analytics feature is coming soon! The endpoint is not yet implemented on the server.');
+      }
+    } catch (err: any) {
+      alert('Analytics feature is coming soon! The endpoint is not yet implemented on the server.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -242,9 +257,9 @@ const RFPDashboard: React.FC = () => {
             </div>
           </Link>
 
-          <Link
-            to="/rfp/analytics"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors"
+          <button
+            onClick={handleAnalyticsClick}
+            className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors w-full text-left"
           >
             <div className="p-2 bg-purple-100 rounded-lg">
               <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,7 +270,7 @@ const RFPDashboard: React.FC = () => {
               <p className="text-sm font-medium text-gray-900">View Analytics</p>
               <p className="text-sm text-gray-500">Performance insights & trends</p>
             </div>
-          </Link>
+          </button>
         </div>
       </div>
     </div>
