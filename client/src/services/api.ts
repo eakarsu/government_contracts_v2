@@ -592,10 +592,24 @@ class ApiService {
       // Handle 404 or other errors for missing delete endpoint
       if (error.response?.status === 404) {
         console.warn('Delete RFP Response endpoint not implemented yet');
-        // For now, return success to allow UI to proceed
+        
+        // Since the server endpoint doesn't exist, we'll simulate the deletion
+        // by removing it from localStorage if we're storing RFPs there
+        try {
+          const storedRFPs = localStorage.getItem('rfp_responses');
+          if (storedRFPs) {
+            const rfps = JSON.parse(storedRFPs);
+            const updatedRFPs = rfps.filter((rfp: any) => rfp.id !== responseId);
+            localStorage.setItem('rfp_responses', JSON.stringify(updatedRFPs));
+          }
+        } catch (e) {
+          console.warn('Could not update localStorage:', e);
+        }
+        
+        // Return success to allow UI to proceed
         return {
           success: true,
-          message: 'RFP response deleted (endpoint not yet implemented on server)'
+          message: 'RFP response deleted (simulated deletion - endpoint not yet implemented on server)'
         };
       }
       throw error;

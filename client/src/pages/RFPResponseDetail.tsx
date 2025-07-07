@@ -44,6 +44,12 @@ const RFPResponseDetail: React.FC = () => {
       if (response.success) {
         // Show success message and navigate
         console.log('✅ RFP Response deleted:', response.message);
+        
+        // Notify dashboard to update its state
+        if ((window as any).handleRFPDeleted) {
+          (window as any).handleRFPDeleted(rfpResponse.id);
+        }
+        
         navigate('/rfp');
       } else {
         setError('Failed to delete RFP response');
