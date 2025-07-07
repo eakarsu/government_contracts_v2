@@ -214,12 +214,19 @@ router.post('/generate', async (req, res) => {
       data: {
         responseData: JSON.stringify({
           sections: generationResult.sections,
-          metadata: generationResult.metadata
+          metadata: {
+            ...generationResult.metadata,
+            customInstructions,
+            focusAreas
+          }
         }),
         complianceStatus: JSON.stringify(generationResult.compliance),
-        predictedScore: generationResult.predictedScore.overall
+        predictedScore: generationResult.predictedScore.overall || generationResult.predictedScore
       }
     });
+
+    console.log(`📊 [DEBUG] Updated RFP response ${rfpResponse.id} with ${generationResult.sections.length} sections`);
+    console.log(`📊 [DEBUG] First section preview:`, generationResult.sections[0]?.title, generationResult.sections[0]?.content?.substring(0, 100));
 
     const generationTime = Date.now() - startTime;
 
@@ -311,11 +318,17 @@ router.get('/responses/:responseId', async (req, res) => {
       });
     }
 
+    const parsedResponseData = JSON.parse(response.responseData || '{}');
+    console.log(`📊 [DEBUG] Retrieved RFP response ${responseId}:`);
+    console.log(`📊 [DEBUG] - Response data keys:`, Object.keys(parsedResponseData));
+    console.log(`📊 [DEBUG] - Sections count:`, parsedResponseData.sections?.length || 0);
+    console.log(`📊 [DEBUG] - First section:`, parsedResponseData.sections?.[0]?.title);
+
     res.json({
       success: true,
       response: {
         ...response,
-        responseData: JSON.parse(response.responseData || '{}'),
+        responseData: parsedResponseData,
         complianceStatus: JSON.parse(response.complianceStatus || '{}'),
         template: {
           ...response.template,
