@@ -11,19 +11,28 @@ const RFPDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Function to handle RFP deletion from child components
-  const handleRFPDeleted = (deletedRFPId: number) => {
+  const handleRFPDeleted = React.useCallback((deletedRFPId: number) => {
+    console.log('🗑️ [DEBUG] Dashboard: Handling RFP deletion for ID:', deletedRFPId);
+    
     // Remove from recent RFPs list
-    setRecentRFPs(prev => prev.filter(rfp => rfp.id !== deletedRFPId));
+    setRecentRFPs(prev => {
+      const filtered = prev.filter(rfp => rfp.id !== deletedRFPId);
+      console.log('🗑️ [DEBUG] Dashboard: Updated recent RFPs from', prev.length, 'to', filtered.length);
+      return filtered;
+    });
     
     // Update stats counters
-    if (stats) {
-      setStats(prev => prev ? {
+    setStats(prev => {
+      if (!prev) return prev;
+      const updated = {
         ...prev,
         totalRFPs: Math.max(0, prev.totalRFPs - 1),
         activeRFPs: Math.max(0, prev.activeRFPs - 1)
-      } : null);
-    }
-  };
+      };
+      console.log('🗑️ [DEBUG] Dashboard: Updated stats from', prev.totalRFPs, 'to', updated.totalRFPs);
+      return updated;
+    });
+  }, []);
 
   // Make this function available globally for other components
   React.useEffect(() => {
@@ -31,7 +40,7 @@ const RFPDashboard: React.FC = () => {
     return () => {
       delete (window as any).handleRFPDeleted;
     };
-  }, [stats]);
+  }, [handleRFPDeleted]);
 
   useEffect(() => {
     loadDashboardData();

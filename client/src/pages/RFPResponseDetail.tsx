@@ -40,17 +40,24 @@ const RFPResponseDetail: React.FC = () => {
 
     try {
       setDeleting(true);
+      console.log('🗑️ [DEBUG] Starting deletion for RFP ID:', rfpResponse.id);
+      
       const response = await apiService.deleteRFPResponse(rfpResponse.id);
       if (response.success) {
-        // Show success message and navigate
-        console.log('✅ RFP Response deleted:', response.message);
+        console.log('✅ [DEBUG] RFP Response deleted successfully:', response.message);
         
-        // Notify dashboard to update its state
+        // Notify dashboard to update its state BEFORE navigation
         if ((window as any).handleRFPDeleted) {
+          console.log('🗑️ [DEBUG] Calling global handleRFPDeleted for ID:', rfpResponse.id);
           (window as any).handleRFPDeleted(rfpResponse.id);
+        } else {
+          console.warn('⚠️ [DEBUG] Global handleRFPDeleted not available');
         }
         
-        navigate('/rfp');
+        // Small delay to ensure state updates before navigation
+        setTimeout(() => {
+          navigate('/rfp');
+        }, 100);
       } else {
         setError('Failed to delete RFP response');
       }

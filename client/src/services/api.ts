@@ -591,17 +591,37 @@ class ApiService {
     } catch (error: any) {
       // Handle 404 or other errors for missing delete endpoint
       if (error.response?.status === 404) {
-        console.warn('Delete RFP Response endpoint not implemented yet');
+        console.warn('🗑️ [DEBUG] Delete RFP Response endpoint not implemented yet, simulating deletion');
         
         // Since the server endpoint doesn't exist, we'll simulate the deletion
-        // by removing it from localStorage if we're storing RFPs there
+        // by removing it from localStorage and any cached data
         try {
+          // Remove from localStorage if stored there
           const storedRFPs = localStorage.getItem('rfp_responses');
           if (storedRFPs) {
             const rfps = JSON.parse(storedRFPs);
             const updatedRFPs = rfps.filter((rfp: any) => rfp.id !== responseId);
             localStorage.setItem('rfp_responses', JSON.stringify(updatedRFPs));
+            console.log('🗑️ [DEBUG] Removed RFP from localStorage');
           }
+          
+          // Also try to remove from any other storage mechanisms
+          const keys = ['recent_rfps', 'dashboard_rfps', 'rfp_cache'];
+          keys.forEach(key => {
+            try {
+              const data = localStorage.getItem(key);
+              if (data) {
+                const parsed = JSON.parse(data);
+                if (Array.isArray(parsed)) {
+                  const filtered = parsed.filter((item: any) => item.id !== responseId);
+                  localStorage.setItem(key, JSON.stringify(filtered));
+                }
+              }
+            } catch (e) {
+              // Ignore errors for non-existent or invalid data
+            }
+          });
+          
         } catch (e) {
           console.warn('Could not update localStorage:', e);
         }
@@ -609,7 +629,7 @@ class ApiService {
         // Return success to allow UI to proceed
         return {
           success: true,
-          message: 'RFP response deleted (simulated deletion - endpoint not yet implemented on server)'
+          message: `RFP response ${responseId} deleted (simulated deletion - endpoint not yet implemented on server)`
         };
       }
       throw error;
