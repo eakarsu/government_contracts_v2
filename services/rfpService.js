@@ -111,51 +111,26 @@ class RFPService {
     }
   }
 
-  /**
-   * Generate content for a specific section
-   */
-  async generateSectionContent(section, contract, companyData, customInstructions = '') {
-    try {
-      console.log(`📝 [RFP] Generating section: ${section.title}`);
+  generateFallbackSections(templateSections) {
+    console.log(`⚠️ [RFP] Generating fallback sections for ${templateSections.length} sections`);
+    return templateSections.map(section => this.generateErrorSection(section));
+  }
 
-      // Build comprehensive prompt for the contract document
-      const contractContent = this.buildContractContent(contract, companyData, customInstructions);
-      
-      // Make single call to get structured JSON response for the entire contract
-      const result = await summaryService.summarizeContent(
-        contractContent,
-        process.env.REACT_APP_OPENROUTER_KEY
-      );
-
-      // Extract content for this specific section from the structured response
-      let content = '';
-      if (result.success && result.result) {
-        content = this.extractSectionFromStructuredResponse(result.result, section);
-      } else {
-        console.error(`❌ [RFP] Failed to generate content for ${section.title}:`, result.error);
-        content = `[Error generating content for ${section.title}. Please regenerate this section.]`;
-      }
-
-      // Ensure content is a string before calling split
-      const contentString = String(content);
-      const wordCount = contentString.split(' ').length;
-
-      return {
-        id: section.id,
-        sectionId: section.id,
-        title: section.title,
-        content: contentString,
-        wordCount,
-        status: 'generated',
-        compliance: this.calculateSectionCompliance(contentString, section),
-        lastModified: new Date().toISOString(),
-        modifiedBy: 'AI Generator'
-      };
-
-    } catch (error) {
-      console.error(`❌ [RFP] Error generating section ${section.title}:`, error);
-      throw error;
-    }
+  generateErrorSection(section) {
+    return {
+      id: section.id,
+      sectionId: section.id,
+      title: section.title,
+      content: `[Content for ${section.title} - Generation failed. Please regenerate this section.]`,
+      wordCount: 0,
+      status: 'error',
+      compliance: { 
+        wordLimit: { compliant: false, current: 0, maximum: section.maxWords }, 
+        quality: { score: 0 } 
+      },
+      lastModified: new Date().toISOString(),
+      modifiedBy: 'AI Generator'
+    };
   }
 
   /**
@@ -365,35 +340,55 @@ Extract and provide structured RFP analysis in JSON format:
   }
 
   async generateAllSections(templateSections, contract, companyData, options) {
-    const sections = [];
+    try {
+      console.log(`🚀 [RFP] Making single API call to generate all ${templateSections.length} sections`);
 
-    for (const section of templateSections) {
-      try {
-        const sectionContent = await this.generateSectionContent(
-          section,
-          contract,
-          companyData,
-          options.customInstructions
-        );
-        sections.push(sectionContent);
-      } catch (error) {
-        console.error(`Error generating section ${section.title}:`, error);
-        // Add placeholder section
-        sections.push({
-          id: section.id,
-          sectionId: section.id,
-          title: section.title,
-          content: `[Content for ${section.title} - Generation failed]`,
-          wordCount: 0,
-          status: 'error',
-          compliance: { wordLimit: { compliant: false }, quality: { score: 0 } },
-          lastModified: new Date().toISOString(),
-          modifiedBy: 'AI Generator'
-        });
+      // Build comprehensive prompt for the contract document
+      const contractContent = this.buildContractContent(contract, companyData, options.customInstructions);
+      
+      // Make single call to get structured JSON response for ALL sections
+      const result = await summaryService.summarizeContent(
+        contractContent,
+        process.env.REACT_APP_OPENROUTER_KEY
+      );
+
+      if (!result.success || !result.result) {
+        console.error(`❌ [RFP] Failed to generate content:`, result.error);
+        return this.generateFallbackSections(templateSections);
       }
-    }
 
-    return sections;
+      // Extract all sections from the single API response
+      const sections = [];
+      for (const section of templateSections) {
+        try {
+          const content = this.extractSectionFromStructuredResponse(result.result, section);
+          const contentString = String(content);
+          const wordCount = contentString.split(' ').length;
+
+          sections.push({
+            id: section.id,
+            sectionId: section.id,
+            title: section.title,
+            content: contentString,
+            wordCount,
+            status: 'generated',
+            compliance: this.calculateSectionCompliance(contentString, section),
+            lastModified: new Date().toISOString(),
+            modifiedBy: 'AI Generator'
+          });
+        } catch (error) {
+          console.error(`Error extracting section ${section.title}:`, error);
+          sections.push(this.generateErrorSection(section));
+        }
+      }
+
+      console.log(`✅ [RFP] Successfully generated ${sections.length} sections from single API call`);
+      return sections;
+
+    } catch (error) {
+      console.error(`❌ [RFP] Error in generateAllSections:`, error);
+      return this.generateFallbackSections(templateSections);
+    }
   }
 
   buildContractContent(contract, companyData, customInstructions) {
