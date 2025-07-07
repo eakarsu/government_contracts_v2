@@ -586,75 +586,12 @@ async function processPDF(pdfPath, options = {}) {
   }
 }
 
-// Specialized function for RFP section content generation
-async function generateRFPSectionContent(prompt, apiKey) {
-  const url = 'https://openrouter.ai/api/v1/chat/completions';
-  
-  try {
-    const response = await axios.post(url, {
-      model: 'openai/gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert RFP writer specializing in government contracts. Generate professional, compelling content that addresses all requirements. Return only the content text, not JSON.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      max_tokens: 4000,
-      temperature: 0.3
-    }, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://your-app.com',
-        'X-Title': 'RFP Section Generator'
-      },
-      timeout: 60000
-    });
-    
-    console.log(`✅ [RFP] API response received for section generation, status: ${response.status}`);
-
-    if (!response.data || !response.data.choices || !response.data.choices[0]) {
-      return {
-        success: false,
-        error: 'Invalid API response structure'
-      };
-    }
-
-    const content = response.data.choices[0].message.content;
-    
-    if (!content || content.trim().length === 0) {
-      return {
-        success: false,
-        error: 'API returned empty content'
-      };
-    }
-    
-    return {
-      success: true,
-      result: content.trim()
-    };
-    
-  } catch (error) {
-    console.error('❌ [RFP] Section generation API Error:', error.message);
-    return {
-      success: false,
-      error: error.response?.data || error.message,
-      errorType: error.code || 'unknown',
-      statusCode: error.response?.status
-    };
-  }
-}
 
 // Export all functions for use in your app
 module.exports = {
   // Main functions
   processPDF,
   summarizeContent,
-  generateRFPSectionContent,
   
   // Utility functions
   estimateTokens,

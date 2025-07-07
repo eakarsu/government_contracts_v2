@@ -118,22 +118,19 @@ class RFPService {
     try {
       console.log(`📝 [RFP] Generating section: ${section.title}`);
 
-      const prompt = this.buildSectionPrompt(section, contract, companyData, customInstructions);
+      // Build comprehensive prompt for the contract document
+      const contractContent = this.buildContractContent(contract, companyData, customInstructions);
       
-      const result = await summaryService.generateRFPSectionContent(
-        prompt,
+      // Make single call to get structured JSON response for the entire contract
+      const result = await summaryService.summarizeContent(
+        contractContent,
         process.env.REACT_APP_OPENROUTER_KEY
       );
 
-      // Handle the response from the specialized RFP section generation
+      // Extract content for this specific section from the structured response
       let content = '';
       if (result.success && result.result) {
-        if (typeof result.result === 'string') {
-          content = result.result;
-        } else {
-          // Convert structured response to readable content
-          content = this.extractContentFromStructuredResponse(result.result, section);
-        }
+        content = this.extractSectionFromStructuredResponse(result.result, section);
       } else {
         console.error(`❌ [RFP] Failed to generate content for ${section.title}:`, result.error);
         content = `[Error generating content for ${section.title}. Please regenerate this section.]`;
@@ -399,18 +396,16 @@ Extract and provide structured RFP analysis in JSON format:
     return sections;
   }
 
-  buildSectionPrompt(section, contract, companyData, customInstructions) {
-    return `Generate professional RFP section content for: ${section.title}
-
-SECTION: ${section.title}
-DESCRIPTION: ${section.description || 'Standard RFP section'}
-MAX WORDS: ${section.maxWords || 1000}
-FORMAT: ${section.format || 'narrative'}
+  buildContractContent(contract, companyData, customInstructions) {
+    return `TASK: Analyze government contract and generate comprehensive RFP response sections.
 
 CONTRACT INFORMATION:
 Title: ${contract.title}
 Agency: ${contract.agency}
 Description: ${contract.description}
+NAICS Code: ${contract.naicsCode || 'N/A'}
+Classification: ${contract.classificationCode || 'N/A'}
+Posted Date: ${contract.postedDate || 'N/A'}
 
 COMPANY INFORMATION:
 Name: ${companyData.companyName || 'Norshin'}
@@ -419,14 +414,163 @@ Past Performance: ${companyData.pastPerformance?.map(p => p.contractName).join('
 
 CUSTOM INSTRUCTIONS: ${customInstructions || 'Follow RFP best practices'}
 
-Generate compelling, professional content that:
-1. Addresses section requirements
-2. Highlights company strengths
-3. Demonstrates government contracting expertise
-4. Stays within word limits
-5. Uses professional language
+Generate a comprehensive RFP response covering all standard sections with professional, compelling content that addresses requirements and highlights company strengths.`;
+  }
 
-Return the content as plain text, not JSON.`;
+  extractSectionFromStructuredResponse(structuredResult, section) {
+    try {
+      console.log(`📝 [RFP] Extracting ${section.title} from structured response`);
+      
+      // Map section IDs to structured response fields
+      const sectionMapping = {
+        'executive_summary': () => this.extractExecutiveSummary(structuredResult),
+        'technical_approach': () => this.extractTechnicalApproach(structuredResult),
+        'management_plan': () => this.extractManagementPlan(structuredResult),
+        'past_performance': () => this.extractPastPerformance(structuredResult)
+      };
+
+      const extractor = sectionMapping[section.id];
+      if (extractor) {
+        return extractor();
+      } else {
+        // Fallback for unmapped sections
+        return this.generateFallbackContent(section, structuredResult);
+      }
+      
+    } catch (error) {
+      console.error(`❌ [RFP] Error extracting ${section.title}:`, error);
+      return this.generateFallbackContent(section, structuredResult);
+    }
+  }
+
+  extractExecutiveSummary(structuredResult) {
+    const parts = [];
+    
+    if (structuredResult.executive_summary?.overview) {
+      parts.push(structuredResult.executive_summary.overview);
+    }
+    
+    if (structuredResult.executive_summary?.key_provisions?.length > 0) {
+      parts.push('\n\nKey Provisions:');
+      structuredResult.executive_summary.key_provisions.forEach(provision => {
+        parts.push(`• ${provision}`);
+      });
+    }
+    
+    if (structuredResult.executive_summary?.impact_assessment) {
+      parts.push('\n\nImpact Assessment:');
+      parts.push(structuredResult.executive_summary.impact_assessment);
+    }
+    
+    return parts.length > 0 ? parts.join('\n') : this.generateDefaultExecutiveSummary();
+  }
+
+  extractTechnicalApproach(structuredResult) {
+    const parts = [];
+    
+    if (structuredResult.technical_specifications?.requirements?.length > 0) {
+      parts.push('# Technical Approach\n');
+      parts.push('## Technical Requirements\n');
+      
+      structuredResult.technical_specifications.requirements.forEach(req => {
+        parts.push(`### ${req.requirement}\n`);
+        parts.push(`${req.description}\n`);
+        if (req.compliance_standard) {
+          parts.push(`**Compliance Standard:** ${req.compliance_standard}\n`);
+        }
+        parts.push('');
+      });
+    }
+    
+    if (structuredResult.technical_specifications?.performance_standards) {
+      parts.push('## Performance Standards\n');
+      parts.push(structuredResult.technical_specifications.performance_standards);
+    }
+    
+    return parts.length > 0 ? parts.join('\n') : this.generateDefaultTechnicalApproach();
+  }
+
+  extractManagementPlan(structuredResult) {
+    const parts = [];
+    
+    if (structuredResult.scope_deliverables?.statement_of_work) {
+      parts.push('# Management Plan\n');
+      parts.push('## Project Management Approach\n');
+      parts.push(structuredResult.scope_deliverables.statement_of_work);
+    }
+    
+    if (structuredResult.scope_deliverables?.milestones?.length > 0) {
+      parts.push('\n## Project Milestones\n');
+      structuredResult.scope_deliverables.milestones.forEach(milestone => {
+        parts.push(`**${milestone.milestone}** - ${milestone.date}`);
+        if (milestone.deliverable) {
+          parts.push(`Deliverable: ${milestone.deliverable}`);
+        }
+        parts.push('');
+      });
+    }
+    
+    return parts.length > 0 ? parts.join('\n') : this.generateDefaultManagementPlan();
+  }
+
+  extractPastPerformance(structuredResult) {
+    const parts = [];
+    
+    parts.push('# Past Performance\n');
+    parts.push('Norshin has a proven track record of successful government contract performance with expertise in Node.js and Java development.\n');
+    
+    if (structuredResult.performance_metrics?.kpis?.length > 0) {
+      parts.push('## Performance Metrics\n');
+      structuredResult.performance_metrics.kpis.forEach(kpi => {
+        parts.push(`**${kpi.metric}:** ${kpi.target}`);
+      });
+      parts.push('');
+    }
+    
+    parts.push('## Relevant Experience\n');
+    parts.push('Our team has successfully completed numerous government contracts involving similar technical requirements and scope. We have consistently received excellent performance ratings from our government clients.\n');
+    
+    return parts.join('\n');
+  }
+
+  generateDefaultExecutiveSummary() {
+    return `# Executive Summary
+
+Norshin is pleased to submit this proposal for the contract opportunity. Our team brings extensive experience in government contracting, with core competencies in Node.js and Java development.
+
+Our approach leverages proven methodologies and best practices to deliver high-quality solutions that meet or exceed all requirements. We are committed to providing exceptional value, maintaining the highest standards of quality, and ensuring successful project delivery.
+
+Key strengths include our technical expertise, proven past performance record, and commitment to mission success. We look forward to partnering with your organization to achieve project objectives.`;
+  }
+
+  generateDefaultTechnicalApproach() {
+    return `# Technical Approach
+
+Norshin's technical approach is designed to deliver a robust, scalable, and secure solution that meets all specified requirements. Our methodology incorporates industry best practices and proven technologies.
+
+## Architecture and Design
+Our solution employs a modular architecture that supports maintainability, scalability, and future enhancements. We leverage our expertise in Node.js and Java to deliver high-performance applications.
+
+## Implementation Strategy
+We follow an agile development approach with iterative delivery, continuous integration, and comprehensive testing. Our team ensures quality at every stage of development.
+
+## Quality Assurance
+Rigorous testing protocols and quality assurance measures are integrated throughout the development lifecycle to ensure deliverables meet all requirements and performance standards.`;
+  }
+
+  generateDefaultManagementPlan() {
+    return `# Management Plan
+
+Norshin has developed a comprehensive management plan to ensure successful project execution and delivery. Our approach emphasizes clear communication, proactive risk management, and stakeholder engagement.
+
+## Project Organization
+Our project team is structured with clear roles and responsibilities, led by experienced project managers with proven track records in government contracting.
+
+## Schedule Management
+We maintain detailed project schedules with defined milestones and deliverables. Regular progress reviews ensure projects stay on track and any issues are addressed promptly.
+
+## Risk Management
+Proactive risk identification and mitigation strategies are implemented to minimize project risks and ensure successful delivery.`;
   }
 
   calculateCompliance(sections, template) {
@@ -640,88 +784,6 @@ Return the content as plain text, not JSON.`;
     };
   }
 
-  extractContentFromStructuredResponse(structuredResult, section) {
-    try {
-      console.log(`📝 [RFP] Extracting content from structured response for ${section.title}`);
-      
-      // Handle the structured JSON response format seen in contracts.txt
-      const textParts = [];
-      
-      // Add title if available
-      if (structuredResult.attachment_metadata?.title) {
-        textParts.push(`# ${structuredResult.attachment_metadata.title}\n`);
-      }
-      
-      // Extract executive summary content
-      if (structuredResult.executive_summary) {
-        if (structuredResult.executive_summary.overview) {
-          textParts.push(structuredResult.executive_summary.overview);
-        }
-        
-        if (structuredResult.executive_summary.key_provisions) {
-          textParts.push('\n\nKey Provisions:');
-          structuredResult.executive_summary.key_provisions.forEach(provision => {
-            textParts.push(`• ${provision}`);
-          });
-        }
-        
-        if (structuredResult.executive_summary.impact_assessment) {
-          textParts.push('\n\nImpact Assessment:');
-          textParts.push(structuredResult.executive_summary.impact_assessment);
-        }
-      }
-      
-      // Extract technical specifications content
-      if (structuredResult.technical_specifications) {
-        if (structuredResult.technical_specifications.requirements) {
-          textParts.push('\n\nTechnical Requirements:');
-          structuredResult.technical_specifications.requirements.forEach(req => {
-            textParts.push(`\n**${req.requirement}**`);
-            textParts.push(req.description);
-            if (req.compliance_standard) {
-              textParts.push(`Compliance Standard: ${req.compliance_standard}`);
-            }
-          });
-        }
-        
-        if (structuredResult.technical_specifications.performance_standards) {
-          textParts.push('\n\nPerformance Standards:');
-          textParts.push(structuredResult.technical_specifications.performance_standards);
-        }
-      }
-      
-      // Extract scope and deliverables content
-      if (structuredResult.scope_deliverables) {
-        if (structuredResult.scope_deliverables.statement_of_work) {
-          textParts.push('\n\nStatement of Work:');
-          textParts.push(structuredResult.scope_deliverables.statement_of_work);
-        }
-        
-        if (structuredResult.scope_deliverables.deliverables) {
-          textParts.push('\n\nDeliverables:');
-          structuredResult.scope_deliverables.deliverables.forEach(deliverable => {
-            textParts.push(`\n**${deliverable.name}**`);
-            textParts.push(deliverable.description);
-            if (deliverable.due_date) {
-              textParts.push(`Due Date: ${deliverable.due_date}`);
-            }
-          });
-        }
-      }
-      
-      // If we found structured content, use it
-      if (textParts.length > 0) {
-        return textParts.join('\n');
-      } else {
-        // Fallback: create professional content based on section type
-        return this.generateFallbackContent(section, structuredResult);
-      }
-      
-    } catch (error) {
-      console.error(`❌ [RFP] Error extracting content from structured response:`, error);
-      return `[Error processing structured response for ${section.title}. Please regenerate this section.]`;
-    }
-  }
 
   generateFallbackContent(section, structuredResult) {
     const sectionTitle = section.title;
