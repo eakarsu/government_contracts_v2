@@ -153,139 +153,12 @@ router.post('/analyze/:contractId', async (req, res) => {
     const { contractId } = req.params;
     console.log(`🔍 [DEBUG] Analyzing contract for RFP: ${contractId}`);
 
-    // Get the contract
-    const contract = await prisma.contract.findUnique({
-      where: { noticeId: contractId }
-    });
-
-    if (!contract) {
-      return res.status(404).json({
-        success: false,
-        error: 'Contract not found'
-      });
-    }
-
-    // Get processed documents for this contract
-    const processedDocs = await prisma.documentProcessingQueue.findMany({
-      where: { 
-        contractNoticeId: contractId,
-        status: 'completed',
-        processedData: { not: null }
-      }
-    });
-
-    // Combine contract and document data for analysis
-    let analysisContent = `
-Contract Title: ${contract.title || 'N/A'}
-Agency: ${contract.agency || 'N/A'}
-NAICS Code: ${contract.naicsCode || 'N/A'}
-Description: ${contract.description || 'N/A'}
-`;
-
-    // Add processed document content
-    if (processedDocs.length > 0) {
-      analysisContent += '\n\nDocument Content:\n';
-      processedDocs.forEach((doc, index) => {
-        try {
-          const docData = JSON.parse(doc.processedData);
-          analysisContent += `\nDocument ${index + 1} (${doc.filename}):\n${docData.content || docData.summary || 'No content available'}\n`;
-        } catch (parseError) {
-          console.warn(`Could not parse document data for ${doc.filename}`);
-        }
-      });
-    }
-
-    // Generate RFP analysis using AI
-    const rfpAnalysisPrompt = `Analyze this government contract for RFP response preparation:
-
-${analysisContent}
-
-Extract and provide structured RFP analysis in the following JSON format:
-{
-  "extractedData": {
-    "scopeOfWork": "Detailed description of work requirements",
-    "technicalRequirements": ["requirement1", "requirement2", "requirement3"],
-    "deliverables": ["deliverable1", "deliverable2"],
-    "timeline": "Project timeline and milestones",
-    "evaluationCriteria": {
-      "technicalWeight": 60,
-      "costWeight": 30,
-      "pastPerformanceWeight": 10,
-      "factors": [
-        {
-          "id": "technical_approach",
-          "name": "Technical Approach",
-          "description": "Quality of technical solution",
-          "weight": 40,
-          "type": "technical"
-        }
-      ]
-    },
-    "complianceRequirements": ["requirement1", "requirement2"],
-    "submissionRequirements": {
-      "format": "PDF",
-      "pageLimit": 50,
-      "deadline": "2024-02-15",
-      "sections": ["Executive Summary", "Technical Approach", "Management Plan"]
-    }
-  },
-  "recommendations": {
-    "templateSuggestion": "DOD Standard Template",
-    "keyFocusAreas": ["area1", "area2", "area3"],
-    "competitiveAdvantages": ["advantage1", "advantage2"],
-    "riskFactors": ["risk1", "risk2"]
-  }
-}
-
-Provide only the JSON response, no additional text.`;
-
-    const summaryService = require('../services/summaryService.js');
-    const analysisResult = await summaryService.summarizeContent(
-      rfpAnalysisPrompt,
-      process.env.REACT_APP_OPENROUTER_KEY
-    );
-
-    let analysis;
-    try {
-      // Try to parse the AI response as JSON
-      analysis = JSON.parse(analysisResult.result);
-    } catch (parseError) {
-      // Fallback to structured analysis if JSON parsing fails
-      console.warn('Could not parse AI response as JSON, using fallback analysis');
-      analysis = {
-        extractedData: {
-          scopeOfWork: contract.description || 'Scope not clearly defined',
-          technicalRequirements: ['Technical requirements to be determined from full RFP'],
-          deliverables: ['Deliverables to be determined from full RFP'],
-          timeline: 'Timeline to be determined from full RFP',
-          evaluationCriteria: {
-            technicalWeight: 60,
-            costWeight: 30,
-            pastPerformanceWeight: 10,
-            factors: []
-          },
-          complianceRequirements: ['Standard government compliance requirements'],
-          submissionRequirements: {
-            format: 'PDF',
-            sections: ['Executive Summary', 'Technical Approach', 'Management Plan', 'Past Performance', 'Cost Proposal']
-          }
-        },
-        recommendations: {
-          templateSuggestion: contract.agency === 'DEPARTMENT OF DEFENSE' ? 'DOD Template' : 'Standard Government Template',
-          keyFocusAreas: ['Technical Excellence', 'Cost Effectiveness', 'Past Performance'],
-          competitiveAdvantages: ['To be determined based on company profile'],
-          riskFactors: ['Competition level', 'Technical complexity']
-        }
-      };
-    }
+    const rfpService = require('../services/rfpService');
+    const analysis = await rfpService.analyzeContractForRFP(contractId);
 
     res.json({
       success: true,
-      analysis: {
-        contractId: contractId,
-        ...analysis,
-        analyzedAt: new Date().toISOString()
-      }
+      analysis
     });
 
   } catch (error) {
@@ -304,37 +177,15 @@ router.post('/generate', async (req, res) => {
     console.log(`🚀 [DEBUG] Generating RFP response for contract: ${contractId}`);
 
     const startTime = Date.now();
+    const rfpService = require('../services/rfpService');
 
-    // Get required data
-    const [contract, template, companyProfile] = await Promise.all([
-      prisma.contract.findUnique({ where: { noticeId: contractId } }),
-      prisma.rfpTemplate.findUnique({ where: { id: templateId } }),
-      prisma.companyProfile.findUnique({ where: { id: companyProfileId } })
-    ]);
-
-    if (!contract || !template || !companyProfile) {
-      return res.status(404).json({
-        success: false,
-        error: 'Required data not found (contract, template, or company profile)'
-      });
-    }
-
-    // Parse template and company data
-    const templateData = {
-      ...template,
-      sections: JSON.parse(template.sections || '[]'),
-      evaluationCriteria: JSON.parse(template.evaluationCriteria || '{}')
-    };
-    
-    const companyData = JSON.parse(companyProfile.profileData || '{}');
-
-    // Create RFP response record
+    // Create RFP response record first
     const rfpResponse = await prisma.rfpResponse.create({
       data: {
         contractId: contractId,
         templateId: templateId,
         companyProfileId: companyProfileId,
-        title: `RFP Response - ${contract.title}`,
+        title: `RFP Response - Contract ${contractId}`,
         status: 'draft',
         responseData: JSON.stringify({
           sections: [],
@@ -349,181 +200,24 @@ router.post('/generate', async (req, res) => {
       }
     });
 
-    // Generate content for each section
-    const generatedSections = [];
-    let sectionsGenerated = 0;
-
-    for (const section of templateData.sections) {
-      try {
-        console.log(`📝 [DEBUG] Generating section: ${section.title}`);
-
-        const sectionPrompt = `Generate professional RFP section content:
-
-SECTION: ${section.title}
-DESCRIPTION: ${section.description || 'Standard RFP section'}
-MAX WORDS: ${section.maxWords || 1000}
-FORMAT: ${section.format || 'narrative'}
-
-CONTRACT INFORMATION:
-Title: ${contract.title}
-Agency: ${contract.agency}
-Description: ${contract.description}
-
-COMPANY INFORMATION:
-Name: ${companyData.companyName || 'Company Name'}
-Core Competencies: ${companyData.capabilities?.coreCompetencies?.join(', ') || 'Various technical capabilities'}
-Past Performance: ${companyData.pastPerformance?.map(p => p.contractName).join(', ') || 'Relevant government contracts'}
-
-CUSTOM INSTRUCTIONS: ${customInstructions || 'Follow standard RFP best practices'}
-FOCUS AREAS: ${focusAreas?.join(', ') || 'Technical excellence and cost effectiveness'}
-
-Generate compelling, professional content that:
-1. Addresses the section requirements
-2. Highlights company strengths
-3. Demonstrates understanding of government needs
-4. Stays within word limits
-5. Uses professional government contracting language
-
-Content:`;
-
-        const summaryService = require('../services/summaryService.js');
-        const sectionResult = await summaryService.summarizeContent(
-          sectionPrompt,
-          process.env.REACT_APP_OPENROUTER_KEY
-        );
-
-        // Handle both string and object responses from summarization service
-        let contentText = '';
-        if (typeof sectionResult.result === 'string') {
-          contentText = sectionResult.result;
-        } else if (typeof sectionResult.result === 'object') {
-          // Parse the JSON object to extract the actual content
-          try {
-            const parsedResult = typeof sectionResult.result === 'string' 
-              ? JSON.parse(sectionResult.result) 
-              : sectionResult.result;
-            
-            // Look for content in various possible fields
-            if (parsedResult.content) {
-              contentText = parsedResult.content;
-            } else if (parsedResult.summary) {
-              contentText = parsedResult.summary;
-            } else if (parsedResult.text) {
-              contentText = parsedResult.text;
-            } else if (parsedResult.response) {
-              contentText = parsedResult.response;
-            } else if (parsedResult.attachment_content) {
-              contentText = parsedResult.attachment_content;
-            } else if (parsedResult.document_content) {
-              contentText = parsedResult.document_content;
-            } else {
-              // If it's a structured document, try to extract meaningful text
-              const textParts = [];
-              
-              // Check for title
-              if (parsedResult.attachment_metadata?.title) {
-                textParts.push(`# ${parsedResult.attachment_metadata.title}\n`);
-              }
-              
-              // Check for sections or content blocks
-              if (parsedResult.sections && Array.isArray(parsedResult.sections)) {
-                parsedResult.sections.forEach(section => {
-                  if (section.title) textParts.push(`## ${section.title}\n`);
-                  if (section.content) textParts.push(`${section.content}\n`);
-                });
-              }
-              
-              // If we found structured content, use it
-              if (textParts.length > 0) {
-                contentText = textParts.join('\n');
-              } else {
-                // Last resort: create a professional section based on the metadata
-                const title = parsedResult.attachment_metadata?.title || `${section.title} Section`;
-                contentText = `# ${title}\n\n[This section contains generated content for ${section.title}. The AI response was in a structured format that needs to be processed. Please review and edit as needed.]\n\nGenerated for: ${contract.title}\nAgency: ${contract.agency}\nSection: ${section.title}`;
-              }
-            }
-          } catch (parseError) {
-            console.error(`❌ [DEBUG] Error parsing section result for ${section.title}:`, parseError);
-            contentText = `[Error processing generated content for ${section.title}. Please regenerate this section.]`;
-          }
-        } else {
-          contentText = `[Generated content for ${section.title}]`;
-        }
-
-        const wordCount = contentText.split(' ').length;
-
-        const sectionContent = {
-          id: section.id,
-          sectionId: section.id,
-          title: section.title,
-          content: contentText,
-          wordCount: wordCount,
-          status: 'generated',
-          compliance: {
-            wordLimit: {
-              current: wordCount,
-              maximum: section.maxWords,
-              compliant: !section.maxWords || wordCount <= section.maxWords
-            },
-            requirementCoverage: {
-              covered: [],
-              missing: [],
-              percentage: 85
-            },
-            quality: {
-              score: 85,
-              strengths: ['Professional tone', 'Relevant content'],
-              improvements: ['Add more specific examples']
-            }
-          },
-          lastModified: new Date().toISOString(),
-          modifiedBy: 'AI Generator'
-        };
-
-        generatedSections.push(sectionContent);
-        sectionsGenerated++;
-
-      } catch (sectionError) {
-        console.error(`❌ [DEBUG] Error generating section ${section.title}:`, sectionError);
-        // Continue with other sections
-      }
-    }
-
-    // Update RFP response with generated content
-    const updatedResponseData = {
-      sections: generatedSections,
-      metadata: {
-        generatedAt: new Date().toISOString(),
-        lastModified: new Date().toISOString(),
-        wordCount: generatedSections.reduce((total, section) => total + section.wordCount, 0),
-        pageCount: Math.ceil(generatedSections.reduce((total, section) => total + section.wordCount, 0) / 250),
-        customInstructions,
-        focusAreas
-      }
-    };
-
-    // Calculate basic compliance score
-    const complianceScore = Math.round(
-      generatedSections.reduce((total, section) => total + (section.compliance.quality.score || 0), 0) / 
-      generatedSections.length
+    // Generate RFP content using service
+    const generationResult = await rfpService.generateRFPResponse(
+      contractId, 
+      templateId, 
+      companyProfileId, 
+      { customInstructions, focusAreas }
     );
 
+    // Update RFP response with generated content
     await prisma.rfpResponse.update({
       where: { id: rfpResponse.id },
       data: {
-        responseData: JSON.stringify(updatedResponseData),
-        complianceStatus: JSON.stringify({
-          overall: complianceScore >= 80,
-          score: complianceScore,
-          checks: {
-            wordLimits: { passed: true, score: 95, details: 'All sections within limits' },
-            requiredSections: { passed: true, score: 100, details: 'All required sections generated' },
-            formatCompliance: { passed: true, score: 90, details: 'Standard format followed' },
-            requirementCoverage: { passed: true, score: 85, details: 'Requirements addressed' }
-          },
-          issues: []
+        responseData: JSON.stringify({
+          sections: generationResult.sections,
+          metadata: generationResult.metadata
         }),
-        predictedScore: complianceScore
+        complianceStatus: JSON.stringify(generationResult.compliance),
+        predictedScore: generationResult.predictedScore.overall
       }
     });
 
@@ -535,10 +229,10 @@ Content:`;
       success: true,
       rfpResponseId: rfpResponse.id,
       generationTime,
-      sectionsGenerated,
-      complianceScore,
-      predictedScore: complianceScore,
-      message: `Successfully generated ${sectionsGenerated} sections for RFP response`
+      sectionsGenerated: generationResult.sections.length,
+      complianceScore: generationResult.compliance.score,
+      predictedScore: generationResult.predictedScore.overall,
+      message: `Successfully generated ${generationResult.sections.length} sections for RFP response`
     });
 
   } catch (error) {
@@ -638,6 +332,127 @@ router.get('/responses/:responseId', async (req, res) => {
   } catch (error) {
     console.error(`❌ [DEBUG] Error getting RFP response ${req.params.responseId}:`, error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// RFP Competitive Analysis
+router.post('/competitive-analysis', async (req, res) => {
+  try {
+    const { contractId, companyProfileId } = req.body;
+    console.log(`📊 [DEBUG] Getting competitive analysis for contract: ${contractId}`);
+
+    const rfpService = require('../services/rfpService');
+    const analysis = await rfpService.getCompetitiveAnalysis(contractId, companyProfileId);
+
+    res.json({
+      success: true,
+      analysis
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error getting competitive analysis:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// RFP Compliance Check
+router.post('/responses/:responseId/compliance', async (req, res) => {
+  try {
+    const { responseId } = req.params;
+    console.log(`✅ [DEBUG] Checking compliance for RFP response: ${responseId}`);
+
+    const response = await prisma.rfpResponse.findUnique({
+      where: { id: parseInt(responseId) },
+      include: { template: true }
+    });
+
+    if (!response) {
+      return res.status(404).json({
+        success: false,
+        error: 'RFP response not found'
+      });
+    }
+
+    const rfpService = require('../services/rfpService');
+    const responseData = JSON.parse(response.responseData || '{}');
+    const compliance = rfpService.checkCompliance(responseData, response.template);
+
+    // Update compliance status in database
+    await prisma.rfpResponse.update({
+      where: { id: parseInt(responseId) },
+      data: {
+        complianceStatus: JSON.stringify(compliance)
+      }
+    });
+
+    res.json({
+      success: true,
+      compliance
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error checking compliance:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// RFP Score Prediction
+router.post('/responses/:responseId/score-prediction', async (req, res) => {
+  try {
+    const { responseId } = req.params;
+    console.log(`🎯 [DEBUG] Predicting score for RFP response: ${responseId}`);
+
+    const response = await prisma.rfpResponse.findUnique({
+      where: { id: parseInt(responseId) },
+      include: { 
+        template: true,
+        companyProfile: true
+      }
+    });
+
+    if (!response) {
+      return res.status(404).json({
+        success: false,
+        error: 'RFP response not found'
+      });
+    }
+
+    const rfpService = require('../services/rfpService');
+    const responseData = JSON.parse(response.responseData || '{}');
+    const companyData = JSON.parse(response.companyProfile.profileData || '{}');
+    const templateData = {
+      ...response.template,
+      sections: JSON.parse(response.template.sections || '[]'),
+      evaluationCriteria: JSON.parse(response.template.evaluationCriteria || '{}')
+    };
+
+    const prediction = rfpService.predictScore(responseData.sections, templateData, companyData);
+
+    // Update predicted score in database
+    await prisma.rfpResponse.update({
+      where: { id: parseInt(responseId) },
+      data: {
+        predictedScore: prediction.overall
+      }
+    });
+
+    res.json({
+      success: true,
+      prediction
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error predicting score:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
