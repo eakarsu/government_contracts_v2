@@ -86,8 +86,7 @@ const RFPTemplates: React.FC = () => {
     const newSection: Omit<RFPSection, 'id'> = {
       title: '',
       description: '',
-      required: true,
-      order: formData.sections.length + 1
+      required: true
     };
     setFormData(prev => ({
       ...prev,
