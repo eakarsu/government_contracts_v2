@@ -181,7 +181,7 @@ const RFPDashboard: React.FC = () => {
                     </span>
                     {rfp.predictedScore && (
                       <span className="text-sm font-medium text-gray-900">
-                        Score: {Math.round(rfp.predictedScore)}
+                        Score: {typeof rfp.predictedScore === 'number' ? Math.round(rfp.predictedScore) : Math.round(rfp.predictedScore.overall)}
                       </span>
                     )}
                   </div>
