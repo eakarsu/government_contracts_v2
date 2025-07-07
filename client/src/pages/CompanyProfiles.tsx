@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
-import { CompanyProfile } from '../types';
+import { CompanyProfile, CompanyProfileForm } from '../types';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 
 const CompanyProfiles: React.FC = () => {
@@ -8,6 +8,26 @@ const CompanyProfiles: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [formData, setFormData] = useState<CompanyProfileForm>({
+    companyName: '',
+    basicInfo: {
+      dunsNumber: '',
+      cageCode: '',
+      certifications: [],
+      sizeStandard: '',
+      naicsCode: []
+    },
+    capabilities: {
+      coreCompetencies: [],
+      technicalCapabilities: [],
+      industryExperience: [],
+      certifications: [],
+      securityClearances: []
+    },
+    pastPerformance: [],
+    keyPersonnel: []
+  });
 
   useEffect(() => {
     loadProfiles();
@@ -24,6 +44,109 @@ const CompanyProfiles: React.FC = () => {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateProfile = async () => {
+    if (!formData.companyName.trim()) {
+      setError('Company name is required');
+      return;
+    }
+
+    try {
+      setCreating(true);
+      setError(null);
+      const response = await apiService.createCompanyProfile(formData);
+      if (response.success) {
+        setProfiles([...profiles, response.profile]);
+        setShowCreateForm(false);
+        resetForm();
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      companyName: '',
+      basicInfo: {
+        dunsNumber: '',
+        cageCode: '',
+        certifications: [],
+        sizeStandard: '',
+        naicsCode: []
+      },
+      capabilities: {
+        coreCompetencies: [],
+        technicalCapabilities: [],
+        industryExperience: [],
+        certifications: [],
+        securityClearances: []
+      },
+      pastPerformance: [],
+      keyPersonnel: []
+    });
+  };
+
+  const addToArray = (field: string, subField?: string) => {
+    if (subField) {
+      setFormData(prev => ({
+        ...prev,
+        [field]: {
+          ...prev[field as keyof CompanyProfileForm],
+          [subField]: [...(prev[field as keyof CompanyProfileForm] as any)[subField], '']
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: [...(prev[field as keyof CompanyProfileForm] as string[]), '']
+      }));
+    }
+  };
+
+  const updateArrayItem = (field: string, index: number, value: string, subField?: string) => {
+    if (subField) {
+      const fieldData = formData[field as keyof CompanyProfileForm] as any;
+      const updatedArray = [...fieldData[subField]];
+      updatedArray[index] = value;
+      setFormData(prev => ({
+        ...prev,
+        [field]: {
+          ...fieldData,
+          [subField]: updatedArray
+        }
+      }));
+    } else {
+      const updatedArray = [...(formData[field as keyof CompanyProfileForm] as string[])];
+      updatedArray[index] = value;
+      setFormData(prev => ({
+        ...prev,
+        [field]: updatedArray
+      }));
+    }
+  };
+
+  const removeFromArray = (field: string, index: number, subField?: string) => {
+    if (subField) {
+      const fieldData = formData[field as keyof CompanyProfileForm] as any;
+      const updatedArray = fieldData[subField].filter((_: any, i: number) => i !== index);
+      setFormData(prev => ({
+        ...prev,
+        [field]: {
+          ...fieldData,
+          [subField]: updatedArray
+        }
+      }));
+    } else {
+      const updatedArray = (formData[field as keyof CompanyProfileForm] as string[]).filter((_, i) => i !== index);
+      setFormData(prev => ({
+        ...prev,
+        [field]: updatedArray
+      }));
     }
   };
 
@@ -127,26 +250,229 @@ const CompanyProfiles: React.FC = () => {
         )}
       </div>
 
-      {/* Create Form Modal (placeholder) */}
+      {/* Create Form Modal */}
       {showCreateForm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Create Company Profile</h3>
-            <p className="text-gray-600 mb-4">
-              Company profile creation form will be implemented here.
-            </p>
-            <div className="flex justify-end space-x-3">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-medium text-gray-900 mb-6">Create Company Profile</h3>
+            
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div>
+                <h4 className="text-md font-medium text-gray-900 mb-4">Basic Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Company Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.companyName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter company name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      DUNS Number
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.basicInfo.dunsNumber}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        basicInfo: { ...prev.basicInfo, dunsNumber: e.target.value }
+                      }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter DUNS number"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      CAGE Code
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.basicInfo.cageCode}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        basicInfo: { ...prev.basicInfo, cageCode: e.target.value }
+                      }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter CAGE code"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Size Standard
+                    </label>
+                    <select
+                      value={formData.basicInfo.sizeStandard}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        basicInfo: { ...prev.basicInfo, sizeStandard: e.target.value }
+                      }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select size standard</option>
+                      <option value="Small Business">Small Business</option>
+                      <option value="Large Business">Large Business</option>
+                      <option value="8(a) Small Disadvantaged Business">8(a) Small Disadvantaged Business</option>
+                      <option value="HUBZone Small Business">HUBZone Small Business</option>
+                      <option value="Service-Disabled Veteran-Owned Small Business">Service-Disabled Veteran-Owned Small Business</option>
+                      <option value="Women-Owned Small Business">Women-Owned Small Business</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* NAICS Codes */}
+              <div>
+                <h4 className="text-md font-medium text-gray-900 mb-4">NAICS Codes</h4>
+                <div className="space-y-2">
+                  {formData.basicInfo.naicsCode.map((naics, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={naics}
+                        onChange={(e) => updateArrayItem('basicInfo', index, e.target.value, 'naicsCode')}
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter NAICS code (e.g., 541511)"
+                      />
+                      <button
+                        onClick={() => removeFromArray('basicInfo', index, 'naicsCode')}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => addToArray('basicInfo', 'naicsCode')}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    + Add NAICS Code
+                  </button>
+                </div>
+              </div>
+
+              {/* Core Competencies */}
+              <div>
+                <h4 className="text-md font-medium text-gray-900 mb-4">Core Competencies</h4>
+                <div className="space-y-2">
+                  {formData.capabilities.coreCompetencies.map((competency, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={competency}
+                        onChange={(e) => updateArrayItem('capabilities', index, e.target.value, 'coreCompetencies')}
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter core competency"
+                      />
+                      <button
+                        onClick={() => removeFromArray('capabilities', index, 'coreCompetencies')}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => addToArray('capabilities', 'coreCompetencies')}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    + Add Core Competency
+                  </button>
+                </div>
+              </div>
+
+              {/* Technical Capabilities */}
+              <div>
+                <h4 className="text-md font-medium text-gray-900 mb-4">Technical Capabilities</h4>
+                <div className="space-y-2">
+                  {formData.capabilities.technicalCapabilities.map((capability, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={capability}
+                        onChange={(e) => updateArrayItem('capabilities', index, e.target.value, 'technicalCapabilities')}
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter technical capability"
+                      />
+                      <button
+                        onClick={() => removeFromArray('capabilities', index, 'technicalCapabilities')}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => addToArray('capabilities', 'technicalCapabilities')}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    + Add Technical Capability
+                  </button>
+                </div>
+              </div>
+
+              {/* Certifications */}
+              <div>
+                <h4 className="text-md font-medium text-gray-900 mb-4">Certifications</h4>
+                <div className="space-y-2">
+                  {formData.basicInfo.certifications.map((certification, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={certification}
+                        onChange={(e) => updateArrayItem('basicInfo', index, e.target.value, 'certifications')}
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter certification"
+                      />
+                      <button
+                        onClick={() => removeFromArray('basicInfo', index, 'certifications')}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => addToArray('basicInfo', 'certifications')}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    + Add Certification
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
+                <div className="text-red-800">{error}</div>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
               <button
-                onClick={() => setShowCreateForm(false)}
+                onClick={() => {
+                  setShowCreateForm(false);
+                  resetForm();
+                  setError(null);
+                }}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                disabled={creating}
               >
                 Cancel
               </button>
               <button
-                onClick={() => setShowCreateForm(false)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                onClick={handleCreateProfile}
+                disabled={creating || !formData.companyName.trim()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Create
+                {creating && <LoadingSpinner size="sm" className="mr-2" />}
+                {creating ? 'Creating...' : 'Create Profile'}
               </button>
             </div>
           </div>
