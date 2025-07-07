@@ -86,9 +86,7 @@ const RFPTemplates: React.FC = () => {
     const newSection: Omit<RFPSection, 'id'> = {
       title: '',
       description: '',
-      requirements: [],
-      wordLimit: undefined,
-      isRequired: true,
+      required: true,
       order: formData.sections.length + 1
     };
     setFormData(prev => ({
@@ -108,23 +106,6 @@ const RFPTemplates: React.FC = () => {
     setFormData(prev => ({ ...prev, sections: updatedSections }));
   };
 
-  const addRequirement = (sectionIndex: number) => {
-    const updatedSections = [...formData.sections];
-    updatedSections[sectionIndex].requirements.push('');
-    setFormData(prev => ({ ...prev, sections: updatedSections }));
-  };
-
-  const updateRequirement = (sectionIndex: number, reqIndex: number, value: string) => {
-    const updatedSections = [...formData.sections];
-    updatedSections[sectionIndex].requirements[reqIndex] = value;
-    setFormData(prev => ({ ...prev, sections: updatedSections }));
-  };
-
-  const removeRequirement = (sectionIndex: number, reqIndex: number) => {
-    const updatedSections = [...formData.sections];
-    updatedSections[sectionIndex].requirements = updatedSections[sectionIndex].requirements.filter((_, i) => i !== reqIndex);
-    setFormData(prev => ({ ...prev, sections: updatedSections }));
-  };
 
   if (loading) {
     return (
@@ -385,31 +366,17 @@ const RFPTemplates: React.FC = () => {
                           </button>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Section Title *
-                            </label>
-                            <input
-                              type="text"
-                              value={section.title}
-                              onChange={(e) => updateSection(index, 'title', e.target.value)}
-                              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="e.g., Technical Approach"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Word Limit (optional)
-                            </label>
-                            <input
-                              type="number"
-                              value={section.wordLimit || ''}
-                              onChange={(e) => updateSection(index, 'wordLimit', e.target.value ? Number(e.target.value) : undefined)}
-                              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="e.g., 500"
-                            />
-                          </div>
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Section Title *
+                          </label>
+                          <input
+                            type="text"
+                            value={section.title}
+                            onChange={(e) => updateSection(index, 'title', e.target.value)}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="e.g., Technical Approach"
+                          />
                         </div>
                         
                         <div className="mb-4">
@@ -425,45 +392,13 @@ const RFPTemplates: React.FC = () => {
                           />
                         </div>
                         
-                        <div className="mb-4">
-                          <div className="flex justify-between items-center mb-2">
-                            <label className="block text-sm font-medium text-gray-700">
-                              Requirements
-                            </label>
-                            <button
-                              onClick={() => addRequirement(index)}
-                              className="text-blue-600 hover:text-blue-800 text-sm"
-                            >
-                              + Add Requirement
-                            </button>
-                          </div>
-                          <div className="space-y-2">
-                            {section.requirements.map((req, reqIndex) => (
-                              <div key={reqIndex} className="flex items-center space-x-2">
-                                <input
-                                  type="text"
-                                  value={req}
-                                  onChange={(e) => updateRequirement(index, reqIndex, e.target.value)}
-                                  className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  placeholder="Enter requirement"
-                                />
-                                <button
-                                  onClick={() => removeRequirement(index, reqIndex)}
-                                  className="text-red-600 hover:text-red-800"
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
                         
                         <div className="flex items-center">
                           <input
                             type="checkbox"
                             id={`required-${index}`}
-                            checked={section.isRequired}
-                            onChange={(e) => updateSection(index, 'isRequired', e.target.checked)}
+                            checked={section.required}
+                            onChange={(e) => updateSection(index, 'required', e.target.checked)}
                             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
                           <label htmlFor={`required-${index}`} className="ml-2 block text-sm text-gray-900">
