@@ -9,6 +9,8 @@ const CompanyProfiles: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<CompanyProfile | null>(null);
+  const [updating, setUpdating] = useState(false);
   const [formData, setFormData] = useState<CompanyProfileForm>({
     companyName: '',
     basicInfo: {
@@ -66,6 +68,56 @@ const CompanyProfiles: React.FC = () => {
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleEditProfile = (profile: CompanyProfile) => {
+    setEditingProfile(profile);
+    setFormData({
+      companyName: profile.companyName,
+      basicInfo: {
+        dunsNumber: profile.basicInfo?.dunsNumber || '',
+        cageCode: profile.basicInfo?.cageCode || '',
+        certifications: profile.basicInfo?.certifications || [],
+        sizeStandard: profile.basicInfo?.sizeStandard || '',
+        naicsCode: profile.basicInfo?.naicsCode || []
+      },
+      capabilities: {
+        coreCompetencies: profile.capabilities?.coreCompetencies || [],
+        technicalSkills: profile.capabilities?.technicalSkills || [],
+        securityClearances: profile.capabilities?.securityClearances || [],
+        methodologies: profile.capabilities?.methodologies || []
+      },
+      pastPerformance: profile.pastPerformance || [],
+      keyPersonnel: profile.keyPersonnel || []
+    });
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!formData.companyName.trim() || !editingProfile) {
+      setError('Company name is required');
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      setError(null);
+      const response = await apiService.updateCompanyProfile(editingProfile.id, formData);
+      if (response.success) {
+        setProfiles(profiles.map(p => p.id === editingProfile.id ? response.profile : p));
+        setEditingProfile(null);
+        resetForm();
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingProfile(null);
+    resetForm();
+    setError(null);
   };
 
   const resetForm = () => {
@@ -231,7 +283,10 @@ const CompanyProfiles: React.FC = () => {
                     </div>
                   </div>
                   <div className="ml-4 flex space-x-2">
-                    <button className="text-blue-600 hover:text-blue-800 text-sm">
+                    <button 
+                      onClick={() => handleEditProfile(profile)}
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
                       Edit
                     </button>
                     <button className="text-red-600 hover:text-red-800 text-sm">
@@ -261,11 +316,13 @@ const CompanyProfiles: React.FC = () => {
         )}
       </div>
 
-      {/* Create Form Modal */}
-      {showCreateForm && (
+      {/* Create/Edit Form Modal */}
+      {(showCreateForm || editingProfile) && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Create Company Profile</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-6">
+              {editingProfile ? 'Edit Company Profile' : 'Create Company Profile'}
+            </h3>
             
             <div className="space-y-6">
               {/* Basic Information */}
@@ -498,22 +555,29 @@ const CompanyProfiles: React.FC = () => {
             <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
               <button
                 onClick={() => {
-                  setShowCreateForm(false);
-                  resetForm();
-                  setError(null);
+                  if (editingProfile) {
+                    handleCancelEdit();
+                  } else {
+                    setShowCreateForm(false);
+                    resetForm();
+                    setError(null);
+                  }
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                disabled={creating}
+                disabled={creating || updating}
               >
                 Cancel
               </button>
               <button
-                onClick={handleCreateProfile}
-                disabled={creating || !formData.companyName.trim()}
+                onClick={editingProfile ? handleUpdateProfile : handleCreateProfile}
+                disabled={(creating || updating) || !formData.companyName.trim()}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                {creating && <LoadingSpinner size="sm" className="mr-2" />}
-                {creating ? 'Creating...' : 'Create Profile'}
+                {(creating || updating) && <LoadingSpinner size="sm" className="mr-2" />}
+                {editingProfile 
+                  ? (updating ? 'Updating...' : 'Update Profile')
+                  : (creating ? 'Creating...' : 'Create Profile')
+                }
               </button>
             </div>
           </div>
