@@ -95,6 +95,76 @@ const RFPTemplates: React.FC = () => {
     }));
   };
 
+  const addPredefinedSections = () => {
+    const predefinedSections: Omit<RFPSection, 'id'>[] = [
+      {
+        title: 'Executive Summary',
+        description: 'Provide a high-level overview of your proposed solution, highlighting key benefits and differentiators.',
+        required: true,
+        mappings: ['executive_summary', 'overview']
+      },
+      {
+        title: 'Technical Approach',
+        description: 'Detail your technical methodology, architecture, and implementation strategy.',
+        required: true,
+        mappings: ['technical_approach', 'methodology', 'architecture']
+      },
+      {
+        title: 'Management Approach',
+        description: 'Describe your project management methodology, team structure, and communication plans.',
+        required: true,
+        mappings: ['management_approach', 'project_management', 'team_structure']
+      },
+      {
+        title: 'Past Performance',
+        description: 'Provide relevant examples of similar work, including outcomes and client references.',
+        required: true,
+        mappings: ['past_performance', 'experience', 'references']
+      },
+      {
+        title: 'Key Personnel',
+        description: 'Identify key team members, their roles, qualifications, and relevant experience.',
+        required: true,
+        mappings: ['key_personnel', 'team_members', 'staff_qualifications']
+      },
+      {
+        title: 'Cost Proposal',
+        description: 'Provide detailed cost breakdown including labor, materials, and other direct costs.',
+        required: true,
+        mappings: ['cost_proposal', 'pricing', 'budget']
+      },
+      {
+        title: 'Schedule and Milestones',
+        description: 'Present project timeline with key milestones and deliverable dates.',
+        required: true,
+        mappings: ['schedule', 'timeline', 'milestones']
+      },
+      {
+        title: 'Risk Management',
+        description: 'Identify potential risks and your mitigation strategies.',
+        required: false,
+        mappings: ['risk_management', 'risk_mitigation']
+      },
+      {
+        title: 'Quality Assurance',
+        description: 'Describe your quality control processes and standards.',
+        required: false,
+        mappings: ['quality_assurance', 'quality_control']
+      },
+      {
+        title: 'Security and Compliance',
+        description: 'Detail security measures and compliance with relevant regulations.',
+        required: false,
+        mappings: ['security', 'compliance', 'regulations']
+      }
+    ];
+
+    setFormData(prev => ({
+      ...prev,
+      sections: [...prev.sections, ...predefinedSections]
+    }));
+  };
+
   const updateSection = (index: number, field: keyof RFPSection, value: any) => {
     const updatedSections = [...formData.sections];
     updatedSections[index] = { ...updatedSections[index], [field]: value };
@@ -334,23 +404,39 @@ const RFPTemplates: React.FC = () => {
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h4 className="text-md font-medium text-gray-900">RFP Sections</h4>
-                  <button
-                    onClick={addSection}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    + Add Section
-                  </button>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={addPredefinedSections}
+                      className="text-green-600 hover:text-green-800 text-sm"
+                    >
+                      + Add Standard Sections
+                    </button>
+                    <button
+                      onClick={addSection}
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      + Add Custom Section
+                    </button>
+                  </div>
                 </div>
                 
                 {formData.sections.length === 0 ? (
                   <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
                     <p className="text-gray-500">No sections added yet</p>
-                    <button
-                      onClick={addSection}
-                      className="mt-2 text-blue-600 hover:text-blue-800"
-                    >
-                      Add your first section
-                    </button>
+                    <div className="mt-4 space-x-4">
+                      <button
+                        onClick={addPredefinedSections}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                      >
+                        Add Standard RFP Sections
+                      </button>
+                      <button
+                        onClick={addSection}
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        Add Custom Section
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4">

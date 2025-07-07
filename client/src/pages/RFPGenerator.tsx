@@ -60,6 +60,29 @@ const RFPGenerator: React.FC = () => {
       setGenerating(true);
       setError(null);
 
+      // Get the selected template to check if it has sections
+      const selectedTemplateObj = templates.find(t => t.id === Number(selectedTemplate));
+      if (!selectedTemplateObj || !selectedTemplateObj.sections || selectedTemplateObj.sections.length === 0) {
+        setError('Selected template has no sections defined. Please choose a different template or add sections to this template.');
+        return;
+      }
+
+      // Get the selected company profile to check if it has data
+      const selectedProfileObj = profiles.find(p => p.id === Number(selectedProfile));
+      if (!selectedProfileObj) {
+        setError('Selected company profile not found. Please choose a different profile.');
+        return;
+      }
+
+      console.log('🚀 [DEBUG] Generating RFP with:', {
+        contract: selectedContract,
+        template: selectedTemplateObj.name,
+        templateSections: selectedTemplateObj.sections.length,
+        profile: selectedProfileObj.companyName,
+        customInstructions,
+        focusAreas
+      });
+
       const request: RFPGenerationRequest = {
         contractId: selectedContract,
         templateId: Number(selectedTemplate),
@@ -70,14 +93,17 @@ const RFPGenerator: React.FC = () => {
 
       const response = await apiService.generateRFPResponse(request);
 
+      console.log('🚀 [DEBUG] RFP Generation response:', response);
+
       if (response.success) {
-        // Navigate back to the RFP dashboard after successful generation
-        navigate('/rfp');
+        // Navigate to the generated RFP response to see the result
+        navigate(`/rfp/responses/${response.rfpResponseId}`);
       } else {
-        setError('Failed to generate RFP response');
+        setError(response.message || 'Failed to generate RFP response');
       }
     } catch (err: any) {
-      setError(err.message);
+      console.error('❌ [DEBUG] RFP Generation error:', err);
+      setError(err.message || 'An error occurred during RFP generation');
     } finally {
       setGenerating(false);
     }
@@ -162,7 +188,7 @@ const RFPGenerator: React.FC = () => {
                 </option>
               ))}
             </select>
-            {templates.length === 0 && (
+            {templates.length === 0 ? (
               <p className="text-sm text-gray-500 mt-1">
                 No templates available. <button 
                   onClick={() => navigate('/rfp/templates')}
@@ -171,6 +197,22 @@ const RFPGenerator: React.FC = () => {
                   Create one first
                 </button>.
               </p>
+            ) : (
+              selectedTemplate && (
+                <div className="mt-2 p-3 bg-blue-50 rounded-md">
+                  <p className="text-sm text-blue-800">
+                    <strong>Selected Template:</strong> {templates.find(t => t.id === Number(selectedTemplate))?.name}
+                  </p>
+                  <p className="text-sm text-blue-600">
+                    Sections: {templates.find(t => t.id === Number(selectedTemplate))?.sections?.length || 0}
+                  </p>
+                  {templates.find(t => t.id === Number(selectedTemplate))?.sections?.length === 0 && (
+                    <p className="text-sm text-red-600 mt-1">
+                      ⚠️ This template has no sections defined. Please add sections to generate a complete RFP.
+                    </p>
+                  )}
+                </div>
+              )
             )}
           </div>
 
@@ -191,7 +233,7 @@ const RFPGenerator: React.FC = () => {
                 </option>
               ))}
             </select>
-            {profiles.length === 0 && (
+            {profiles.length === 0 ? (
               <p className="text-sm text-gray-500 mt-1">
                 No company profiles available. <button 
                   onClick={() => navigate('/rfp/company-profiles')}
@@ -200,6 +242,20 @@ const RFPGenerator: React.FC = () => {
                   Create one first
                 </button>.
               </p>
+            ) : (
+              selectedProfile && (
+                <div className="mt-2 p-3 bg-green-50 rounded-md">
+                  <p className="text-sm text-green-800">
+                    <strong>Selected Profile:</strong> {profiles.find(p => p.id === Number(selectedProfile))?.companyName}
+                  </p>
+                  <p className="text-sm text-green-600">
+                    Core Competencies: {profiles.find(p => p.id === Number(selectedProfile))?.capabilities?.coreCompetencies?.length || 0}
+                  </p>
+                  <p className="text-sm text-green-600">
+                    Technical Skills: {profiles.find(p => p.id === Number(selectedProfile))?.capabilities?.technicalSkills?.length || 0}
+                  </p>
+                </div>
+              )
             )}
           </div>
 
