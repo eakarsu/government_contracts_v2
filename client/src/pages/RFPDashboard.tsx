@@ -10,46 +10,20 @@ const RFPDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Function to handle RFP deletion from child components
-  const handleRFPDeleted = React.useCallback((deletedRFPId: number) => {
-    console.log('🗑️ [DEBUG] Dashboard: Handling RFP deletion for ID:', deletedRFPId);
-    
-    // Remove from recent RFPs list
-    setRecentRFPs(prev => {
-      const filtered = prev.filter(rfp => rfp.id !== deletedRFPId);
-      console.log('🗑️ [DEBUG] Dashboard: Updated recent RFPs from', prev.length, 'to', filtered.length);
-      return filtered;
-    });
-    
-    // Update stats counters
-    setStats(prev => {
-      if (!prev) return prev;
-      const updated = {
-        ...prev,
-        totalRFPs: Math.max(0, prev.totalRFPs - 1),
-        activeRFPs: Math.max(0, prev.activeRFPs - 1)
-      };
-      console.log('🗑️ [DEBUG] Dashboard: Updated stats from', prev.totalRFPs, 'to', updated.totalRFPs);
-      return updated;
-    });
-
-    // Store deleted RFP IDs to prevent them from being loaded again
-    const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
-    deletedRFPs.push(deletedRFPId);
-    localStorage.setItem('deleted_rfp_ids', JSON.stringify(deletedRFPs));
-    console.log('🗑️ [DEBUG] Dashboard: Added RFP ID to deleted list:', deletedRFPId);
-  }, []);
-
-  // Make this function available globally for other components
-  React.useEffect(() => {
-    (window as any).handleRFPDeleted = handleRFPDeleted;
-    return () => {
-      delete (window as any).handleRFPDeleted;
-    };
-  }, [handleRFPDeleted]);
 
   useEffect(() => {
     loadDashboardData();
+  }, []);
+
+  // Reload data when component becomes visible (user navigates back)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('🔄 [DEBUG] Dashboard: Window focused, reloading data');
+      loadDashboardData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const loadDashboardData = async () => {

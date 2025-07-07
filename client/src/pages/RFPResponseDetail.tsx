@@ -46,18 +46,8 @@ const RFPResponseDetail: React.FC = () => {
       if (response.success) {
         console.log('✅ [DEBUG] RFP Response deleted successfully:', response.message);
         
-        // Notify dashboard to update its state BEFORE navigation
-        if ((window as any).handleRFPDeleted) {
-          console.log('🗑️ [DEBUG] Calling global handleRFPDeleted for ID:', rfpResponse.id);
-          (window as any).handleRFPDeleted(rfpResponse.id);
-        } else {
-          console.warn('⚠️ [DEBUG] Global handleRFPDeleted not available');
-        }
-        
-        // Small delay to ensure state updates before navigation
-        setTimeout(() => {
-          navigate('/rfp');
-        }, 100);
+        // Navigate back to dashboard - it will refresh and not show the deleted item
+        navigate('/rfp');
       } else {
         setError('Failed to delete RFP response');
       }
