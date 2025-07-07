@@ -20,10 +20,9 @@ const CompanyProfiles: React.FC = () => {
     },
     capabilities: {
       coreCompetencies: [],
-      technicalCapabilities: [],
-      industryExperience: [],
-      certifications: [],
-      securityClearances: []
+      technicalSkills: [],
+      securityClearances: [],
+      methodologies: []
     },
     pastPerformance: [],
     keyPersonnel: []
@@ -81,10 +80,9 @@ const CompanyProfiles: React.FC = () => {
       },
       capabilities: {
         coreCompetencies: [],
-        technicalCapabilities: [],
-        industryExperience: [],
-        certifications: [],
-        securityClearances: []
+        technicalSkills: [],
+        securityClearances: [],
+        methodologies: []
       },
       pastPerformance: [],
       keyPersonnel: []
@@ -93,60 +91,73 @@ const CompanyProfiles: React.FC = () => {
 
   const addToArray = (field: string, subField?: string) => {
     if (subField) {
-      setFormData(prev => ({
-        ...prev,
-        [field]: {
-          ...prev[field as keyof CompanyProfileForm],
-          [subField]: [...(prev[field as keyof CompanyProfileForm] as any)[subField], '']
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [field]: [...(prev[field as keyof CompanyProfileForm] as string[]), '']
-      }));
+      if (field === 'basicInfo') {
+        setFormData(prev => ({
+          ...prev,
+          basicInfo: {
+            ...prev.basicInfo,
+            [subField]: [...(prev.basicInfo as any)[subField], '']
+          }
+        }));
+      } else if (field === 'capabilities') {
+        setFormData(prev => ({
+          ...prev,
+          capabilities: {
+            ...prev.capabilities,
+            [subField]: [...(prev.capabilities as any)[subField], '']
+          }
+        }));
+      }
     }
   };
 
   const updateArrayItem = (field: string, index: number, value: string, subField?: string) => {
     if (subField) {
-      const fieldData = formData[field as keyof CompanyProfileForm] as any;
-      const updatedArray = [...fieldData[subField]];
-      updatedArray[index] = value;
-      setFormData(prev => ({
-        ...prev,
-        [field]: {
-          ...fieldData,
-          [subField]: updatedArray
-        }
-      }));
-    } else {
-      const updatedArray = [...(formData[field as keyof CompanyProfileForm] as string[])];
-      updatedArray[index] = value;
-      setFormData(prev => ({
-        ...prev,
-        [field]: updatedArray
-      }));
+      if (field === 'basicInfo') {
+        const updatedArray = [...(formData.basicInfo as any)[subField]];
+        updatedArray[index] = value;
+        setFormData(prev => ({
+          ...prev,
+          basicInfo: {
+            ...prev.basicInfo,
+            [subField]: updatedArray
+          }
+        }));
+      } else if (field === 'capabilities') {
+        const updatedArray = [...(formData.capabilities as any)[subField]];
+        updatedArray[index] = value;
+        setFormData(prev => ({
+          ...prev,
+          capabilities: {
+            ...prev.capabilities,
+            [subField]: updatedArray
+          }
+        }));
+      }
     }
   };
 
   const removeFromArray = (field: string, index: number, subField?: string) => {
     if (subField) {
-      const fieldData = formData[field as keyof CompanyProfileForm] as any;
-      const updatedArray = fieldData[subField].filter((_: any, i: number) => i !== index);
-      setFormData(prev => ({
-        ...prev,
-        [field]: {
-          ...fieldData,
-          [subField]: updatedArray
-        }
-      }));
-    } else {
-      const updatedArray = (formData[field as keyof CompanyProfileForm] as string[]).filter((_, i) => i !== index);
-      setFormData(prev => ({
-        ...prev,
-        [field]: updatedArray
-      }));
+      if (field === 'basicInfo') {
+        const updatedArray = (formData.basicInfo as any)[subField].filter((_: any, i: number) => i !== index);
+        setFormData(prev => ({
+          ...prev,
+          basicInfo: {
+            ...prev.basicInfo,
+            [subField]: updatedArray
+          }
+        }));
+      } else if (field === 'capabilities') {
+        const updatedArray = (formData.capabilities as any)[subField].filter((_: any, i: number) => i !== index);
+        setFormData(prev => ({
+          ...prev,
+          capabilities: {
+            ...prev.capabilities,
+            [subField]: updatedArray
+          }
+        }));
+      }
     }
   };
 
@@ -208,7 +219,7 @@ const CompanyProfiles: React.FC = () => {
                     <div className="mt-3">
                       <span className="font-medium text-sm text-gray-600">Core Competencies:</span>
                       <div className="mt-1 flex flex-wrap gap-1">
-                        {profile.capabilities?.coreCompetencies?.map((competency, index) => (
+                        {profile.capabilities?.coreCompetencies?.map((competency: string, index: number) => (
                           <span
                             key={index}
                             className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
@@ -387,21 +398,21 @@ const CompanyProfiles: React.FC = () => {
                 </div>
               </div>
 
-              {/* Technical Capabilities */}
+              {/* Technical Skills */}
               <div>
-                <h4 className="text-md font-medium text-gray-900 mb-4">Technical Capabilities</h4>
+                <h4 className="text-md font-medium text-gray-900 mb-4">Technical Skills</h4>
                 <div className="space-y-2">
-                  {formData.capabilities.technicalCapabilities.map((capability, index) => (
+                  {formData.capabilities.technicalSkills.map((skill: string, index: number) => (
                     <div key={index} className="flex items-center space-x-2">
                       <input
                         type="text"
-                        value={capability}
-                        onChange={(e) => updateArrayItem('capabilities', index, e.target.value, 'technicalCapabilities')}
+                        value={skill}
+                        onChange={(e) => updateArrayItem('capabilities', index, e.target.value, 'technicalSkills')}
                         className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Enter technical capability"
+                        placeholder="Enter technical skill"
                       />
                       <button
-                        onClick={() => removeFromArray('capabilities', index, 'technicalCapabilities')}
+                        onClick={() => removeFromArray('capabilities', index, 'technicalSkills')}
                         className="text-red-600 hover:text-red-800"
                       >
                         Remove
@@ -409,10 +420,40 @@ const CompanyProfiles: React.FC = () => {
                     </div>
                   ))}
                   <button
-                    onClick={() => addToArray('capabilities', 'technicalCapabilities')}
+                    onClick={() => addToArray('capabilities', 'technicalSkills')}
                     className="text-blue-600 hover:text-blue-800 text-sm"
                   >
-                    + Add Technical Capability
+                    + Add Technical Skill
+                  </button>
+                </div>
+              </div>
+
+              {/* Methodologies */}
+              <div>
+                <h4 className="text-md font-medium text-gray-900 mb-4">Methodologies</h4>
+                <div className="space-y-2">
+                  {formData.capabilities.methodologies.map((methodology: string, index: number) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={methodology}
+                        onChange={(e) => updateArrayItem('capabilities', index, e.target.value, 'methodologies')}
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter methodology (e.g., Agile, DevOps)"
+                      />
+                      <button
+                        onClick={() => removeFromArray('capabilities', index, 'methodologies')}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => addToArray('capabilities', 'methodologies')}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    + Add Methodology
                   </button>
                 </div>
               </div>
