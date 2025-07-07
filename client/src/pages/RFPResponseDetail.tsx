@@ -158,7 +158,7 @@ const RFPResponseDetail: React.FC = () => {
               <ul className="space-y-1">
                 {rfpResponse.complianceStatus.issues.map((issue, index) => (
                   <li key={index} className="text-sm text-red-600">
-                    • {issue.message || issue.title || 'Compliance issue'}
+                    • {issue.message || 'Compliance issue'}
                   </li>
                 ))}
               </ul>
