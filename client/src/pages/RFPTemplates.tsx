@@ -86,7 +86,8 @@ const RFPTemplates: React.FC = () => {
     const newSection: Omit<RFPSection, 'id'> = {
       title: '',
       description: '',
-      required: true
+      required: true,
+      mappings: []
     };
     setFormData(prev => ({
       ...prev,
