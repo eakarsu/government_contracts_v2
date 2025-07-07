@@ -133,7 +133,7 @@ const RFPResponseDetail: React.FC = () => {
       </div>
 
       {/* Predicted Score */}
-      {rfpResponse.predictedScore && (
+      {(rfpResponse.predictedScore !== undefined && rfpResponse.predictedScore !== null) && (
         <div className="bg-white p-6 rounded-lg shadow border">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Predicted Score</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -141,27 +141,27 @@ const RFPResponseDetail: React.FC = () => {
               <div className="text-2xl font-bold text-blue-600">
                 {typeof rfpResponse.predictedScore === 'number' 
                   ? Math.round(rfpResponse.predictedScore) 
-                  : Math.round(rfpResponse.predictedScore.overall)}
+                  : Math.round((rfpResponse.predictedScore as any).overall || 0)}
               </div>
               <div className="text-sm text-gray-500">Overall</div>
             </div>
-            {typeof rfpResponse.predictedScore === 'object' && (
+            {typeof rfpResponse.predictedScore === 'object' && rfpResponse.predictedScore !== null && (
               <>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600">
-                    {Math.round(rfpResponse.predictedScore.technical)}
+                    {Math.round((rfpResponse.predictedScore as any).technical || 0)}
                   </div>
                   <div className="text-sm text-gray-500">Technical</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-yellow-600">
-                    {Math.round(rfpResponse.predictedScore.cost)}
+                    {Math.round((rfpResponse.predictedScore as any).cost || 0)}
                   </div>
                   <div className="text-sm text-gray-500">Cost</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600">
-                    {Math.round(rfpResponse.predictedScore.pastPerformance)}
+                    {Math.round((rfpResponse.predictedScore as any).pastPerformance || 0)}
                   </div>
                   <div className="text-sm text-gray-500">Past Performance</div>
                 </div>
@@ -208,8 +208,8 @@ const RFPResponseDetail: React.FC = () => {
           <h2 className="text-lg font-medium text-gray-900">Response Sections</h2>
         </div>
         <div className="divide-y divide-gray-200">
-          {rfpResponse.responseData?.sections && rfpResponse.responseData.sections.length > 0 ? (
-            rfpResponse.responseData.sections.map((section: any, index: number) => (
+          {(rfpResponse.responseData?.sections || rfpResponse.sections) && (rfpResponse.responseData?.sections || rfpResponse.sections)!.length > 0 ? (
+            (rfpResponse.responseData?.sections || rfpResponse.sections)!.map((section: any, index: number) => (
               <div key={section.id || index} className="p-6">
                 <div className="flex justify-between items-start mb-3">
                   <h3 className="text-lg font-medium text-gray-900">{section.title}</h3>
@@ -227,7 +227,7 @@ const RFPResponseDetail: React.FC = () => {
                 </div>
                 <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
                   <span>Word count: {section.wordCount || 0}</span>
-                  <span>Last modified: {new Date(section.lastModified || rfpResponse.updatedAt).toLocaleDateString()}</span>
+                  <span>Last modified: {new Date(section.lastModified || rfpResponse.updatedAt || new Date()).toLocaleDateString()}</span>
                 </div>
                 {section.compliance && (
                   <div className="mt-3 p-3 bg-gray-50 rounded-md">

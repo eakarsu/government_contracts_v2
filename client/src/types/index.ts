@@ -475,18 +475,29 @@ export interface RFPResponse {
   companyProfileId: number;
   title: string;
   status: 'draft' | 'in_review' | 'approved' | 'submitted';
-  sections: RFPResponseSection[];
+  responseData?: {
+    sections: RFPResponseSection[];
+    metadata: {
+      generatedAt: string;
+      lastModified?: string;
+      wordCount?: number;
+      pageCount?: number;
+      customInstructions?: string;
+      focusAreas?: string[];
+    };
+  };
+  sections?: RFPResponseSection[]; // Legacy field for backward compatibility
   complianceStatus: ComplianceStatus;
-  predictedScore: PredictedScore;
-  metadata: {
+  predictedScore: PredictedScore | number;
+  metadata?: {
     generatedAt: string;
     lastModified: string;
     wordCount: number;
     pageCount: number;
     submissionDeadline?: string;
   };
-  collaborators: string[];
-  versions: RFPVersion[];
+  collaborators?: string[];
+  versions?: RFPVersion[];
   createdAt: string;
   updatedAt: string;
 }
