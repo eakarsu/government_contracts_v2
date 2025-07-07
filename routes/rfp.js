@@ -469,6 +469,38 @@ router.post('/responses/:responseId/score-prediction', async (req, res) => {
   }
 });
 
+// Delete RFP Response
+router.delete('/responses/:responseId', async (req, res) => {
+  try {
+    const { responseId } = req.params;
+    console.log(`🗑️ [DEBUG] Deleting RFP response: ${responseId}`);
+
+    const response = await prisma.rfpResponse.findUnique({
+      where: { id: parseInt(responseId) }
+    });
+
+    if (!response) {
+      return res.status(404).json({
+        success: false,
+        error: 'RFP response not found'
+      });
+    }
+
+    await prisma.rfpResponse.delete({
+      where: { id: parseInt(responseId) }
+    });
+
+    res.json({
+      success: true,
+      message: 'RFP response deleted successfully'
+    });
+
+  } catch (error) {
+    console.error(`❌ [DEBUG] Error deleting RFP response ${req.params.responseId}:`, error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // RFP Dashboard Stats
 router.get('/dashboard/stats', async (req, res) => {
   try {
