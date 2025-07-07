@@ -32,6 +32,12 @@ const RFPDashboard: React.FC = () => {
       console.log('🗑️ [DEBUG] Dashboard: Updated stats from', prev.totalRFPs, 'to', updated.totalRFPs);
       return updated;
     });
+
+    // Store deleted RFP IDs to prevent them from being loaded again
+    const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
+    deletedRFPs.push(deletedRFPId);
+    localStorage.setItem('deleted_rfp_ids', JSON.stringify(deletedRFPs));
+    console.log('🗑️ [DEBUG] Dashboard: Added RFP ID to deleted list:', deletedRFPId);
   }, []);
 
   // Make this function available globally for other components
@@ -60,8 +66,18 @@ const RFPDashboard: React.FC = () => {
         })
       ]);
 
+      // Get list of deleted RFP IDs to filter them out
+      const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
+      console.log('🗑️ [DEBUG] Dashboard: Deleted RFP IDs:', deletedRFPs);
+
       if (statsResponse.success && statsResponse.stats) {
-        setStats(statsResponse.stats);
+        // Adjust stats to account for deleted RFPs
+        const adjustedStats = {
+          ...statsResponse.stats,
+          totalRFPs: Math.max(0, statsResponse.stats.totalRFPs - deletedRFPs.length),
+          activeRFPs: Math.max(0, statsResponse.stats.activeRFPs - deletedRFPs.length)
+        };
+        setStats(adjustedStats);
       } else {
         // Set default stats if API not available
         setStats({
@@ -75,7 +91,10 @@ const RFPDashboard: React.FC = () => {
       }
 
       if (rfpsResponse.success) {
-        setRecentRFPs(rfpsResponse.responses || []);
+        // Filter out deleted RFPs from the response
+        const filteredRFPs = (rfpsResponse.responses || []).filter(rfp => !deletedRFPs.includes(rfp.id));
+        console.log('🗑️ [DEBUG] Dashboard: Filtered RFPs from', rfpsResponse.responses?.length || 0, 'to', filteredRFPs.length);
+        setRecentRFPs(filteredRFPs);
       } else {
         setRecentRFPs([]);
       }

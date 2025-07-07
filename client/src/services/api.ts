@@ -565,13 +565,59 @@ class ApiService {
 
   // RFP Response Management
   async getRFPResponses(page: number = 1, limit: number = 20): Promise<{ success: boolean; responses: RFPResponse[]; pagination: any }> {
-    const response = await api.get<{ success: boolean; responses: RFPResponse[]; pagination: any }>(`/rfp/responses?page=${page}&limit=${limit}`);
-    return response.data;
+    try {
+      const response = await api.get<{ success: boolean; responses: RFPResponse[]; pagination: any }>(`/rfp/responses?page=${page}&limit=${limit}`);
+      
+      // Filter out deleted RFPs from the response
+      const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
+      if (response.data.success && response.data.responses) {
+        const filteredResponses = response.data.responses.filter(rfp => !deletedRFPs.includes(rfp.id));
+        return {
+          ...response.data,
+          responses: filteredResponses
+        };
+      }
+      
+      return response.data;
+    } catch (error: any) {
+      // Handle 404 or other errors for missing endpoint
+      if (error.response?.status === 404) {
+        console.warn('RFP Responses endpoint not implemented yet');
+        return {
+          success: false,
+          responses: [],
+          pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
+        };
+      }
+      throw error;
+    }
   }
 
   async getRFPResponse(responseId: number): Promise<{ success: boolean; response: RFPResponse }> {
-    const response = await api.get<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}`);
-    return response.data;
+    try {
+      // Check if this RFP has been deleted locally
+      const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
+      if (deletedRFPs.includes(responseId)) {
+        console.log('🗑️ [DEBUG] RFP Response', responseId, 'has been deleted locally');
+        return {
+          success: false,
+          response: null as any
+        };
+      }
+
+      const response = await api.get<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}`);
+      return response.data;
+    } catch (error: any) {
+      // Handle 404 or other errors for missing endpoint
+      if (error.response?.status === 404) {
+        console.warn('RFP Response endpoint not implemented yet');
+        return {
+          success: false,
+          response: null as any
+        };
+      }
+      throw error;
+    }
   }
 
   async updateRFPResponse(responseId: number, updates: Partial<RFPResponse>): Promise<{ success: boolean; response: RFPResponse }> {
