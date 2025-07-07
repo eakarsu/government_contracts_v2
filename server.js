@@ -19,6 +19,8 @@ const documentsRouter = require('./routes/documents');
 const searchRouter = require('./routes/search');
 const jobsRouter = require('./routes/jobs');
 const recommendationsRouter = require('./routes/recommendations');
+const rfpRouter = require('./routes/rfp');
+const documentProcessingRouter = require('./routes/documentProcessing');
 
 const app = express();
 
@@ -75,8 +77,11 @@ app.use('/api/search', searchRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/recommendations', recommendationsRouter);
 
-// Mount RFP routes separately to make them accessible at /api/rfp/*
-app.use('/api/rfp', documentsRouter);
+// Mount RFP routes at /api/rfp/*
+app.use('/api/rfp', rfpRouter);
+
+// Mount document processing routes at /api/documents/processing/*
+app.use('/api/documents/processing', documentProcessingRouter);
 
 // Debug: Log when routers are loaded
 console.log('📋 [DEBUG] Contracts router mounted at /api/contracts');
@@ -84,6 +89,8 @@ console.log('📋 [DEBUG] Documents router mounted at /api/documents');
 console.log('📋 [DEBUG] Search router mounted at /api/search');
 console.log('📋 [DEBUG] Jobs router mounted at /api/jobs');
 console.log('📋 [DEBUG] Recommendations router mounted at /api/recommendations');
+console.log('📋 [DEBUG] RFP router mounted at /api/rfp');
+console.log('📋 [DEBUG] Document processing router mounted at /api/documents/processing');
 
 // Test that routes are properly loaded
 app.get('/api/test-routes', (req, res) => {
