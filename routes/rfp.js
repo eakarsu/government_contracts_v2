@@ -397,14 +397,54 @@ Content:`;
         if (typeof sectionResult.result === 'string') {
           contentText = sectionResult.result;
         } else if (typeof sectionResult.result === 'object') {
-          // If it's an object, try to extract meaningful content
-          if (sectionResult.result.content) {
-            contentText = sectionResult.result.content;
-          } else if (sectionResult.result.summary) {
-            contentText = sectionResult.result.summary;
-          } else {
-            // Fallback: stringify the object
-            contentText = JSON.stringify(sectionResult.result, null, 2);
+          // Parse the JSON object to extract the actual content
+          try {
+            const parsedResult = typeof sectionResult.result === 'string' 
+              ? JSON.parse(sectionResult.result) 
+              : sectionResult.result;
+            
+            // Look for content in various possible fields
+            if (parsedResult.content) {
+              contentText = parsedResult.content;
+            } else if (parsedResult.summary) {
+              contentText = parsedResult.summary;
+            } else if (parsedResult.text) {
+              contentText = parsedResult.text;
+            } else if (parsedResult.response) {
+              contentText = parsedResult.response;
+            } else if (parsedResult.attachment_content) {
+              contentText = parsedResult.attachment_content;
+            } else if (parsedResult.document_content) {
+              contentText = parsedResult.document_content;
+            } else {
+              // If it's a structured document, try to extract meaningful text
+              const textParts = [];
+              
+              // Check for title
+              if (parsedResult.attachment_metadata?.title) {
+                textParts.push(`# ${parsedResult.attachment_metadata.title}\n`);
+              }
+              
+              // Check for sections or content blocks
+              if (parsedResult.sections && Array.isArray(parsedResult.sections)) {
+                parsedResult.sections.forEach(section => {
+                  if (section.title) textParts.push(`## ${section.title}\n`);
+                  if (section.content) textParts.push(`${section.content}\n`);
+                });
+              }
+              
+              // If we found structured content, use it
+              if (textParts.length > 0) {
+                contentText = textParts.join('\n');
+              } else {
+                // Last resort: create a professional section based on the metadata
+                const title = parsedResult.attachment_metadata?.title || `${section.title} Section`;
+                contentText = `# ${title}\n\n[This section contains generated content for ${section.title}. The AI response was in a structured format that needs to be processed. Please review and edit as needed.]\n\nGenerated for: ${contract.title}\nAgency: ${contract.agency}\nSection: ${section.title}`;
+              }
+            }
+          } catch (parseError) {
+            console.error(`❌ [DEBUG] Error parsing section result for ${section.title}:`, parseError);
+            contentText = `[Error processing generated content for ${section.title}. Please regenerate this section.]`;
           }
         } else {
           contentText = `[Generated content for ${section.title}]`;
