@@ -31,8 +31,8 @@ const RFPGenerator: React.FC = () => {
         apiService.getCompanyProfiles()
       ]);
 
-      if (contractsResponse.success) {
-        setContracts(contractsResponse.results || []);
+      if (contractsResponse.results) {
+        setContracts(contractsResponse.results.contracts || []);
       }
 
       if (templatesResponse.success) {
