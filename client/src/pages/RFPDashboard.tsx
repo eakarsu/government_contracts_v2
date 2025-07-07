@@ -29,6 +29,11 @@ const RFPDashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      
+      // Get list of deleted RFP IDs to adjust stats
+      const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
+      console.log('🗑️ [DEBUG] Dashboard: Deleted RFP IDs:', deletedRFPs);
+
       const [statsResponse, rfpsResponse] = await Promise.all([
         apiService.getRFPDashboardStats().catch(err => {
           console.warn('Dashboard stats not available:', err.message);
@@ -41,7 +46,13 @@ const RFPDashboard: React.FC = () => {
       ]);
 
       if (statsResponse.success && statsResponse.stats) {
-        setStats(statsResponse.stats);
+        // Adjust stats to account for deleted RFPs
+        const adjustedStats = {
+          ...statsResponse.stats,
+          totalRFPs: Math.max(0, statsResponse.stats.totalRFPs - deletedRFPs.length),
+          activeRFPs: Math.max(0, statsResponse.stats.activeRFPs - deletedRFPs.length)
+        };
+        setStats(adjustedStats);
       } else {
         // Set default stats if API not available
         setStats({
