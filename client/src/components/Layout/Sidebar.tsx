@@ -10,7 +10,8 @@ import {
   BarChart3,
   X,
   Database,
-  Zap
+  Zap,
+  ClipboardList
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -22,6 +23,7 @@ interface SidebarProps {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Search', href: '/search', icon: Search },
+  { name: 'RFP System', href: '/rfp', icon: ClipboardList },
   { name: 'Jobs', href: '/jobs', icon: BarChart3 },
   { name: 'Documents', href: '/documents', icon: Upload },
   { name: 'API Docs', href: '/api-docs', icon: Database },
@@ -65,7 +67,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <nav className="mt-8 px-4">
           <ul className="space-y-2">
             {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
+              const isActive = location.pathname === item.href || (item.href === '/rfp' && location.pathname.startsWith('/rfp'));
               return (
                 <li key={item.name}>
                   <NavLink
