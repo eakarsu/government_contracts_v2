@@ -71,26 +71,38 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    const message = error.response?.data?.error || error.message || 'An error occurred';
+    let message = 'An error occurred';
+    
+    // Handle different error response formats
+    if (error.response?.data) {
+      if (typeof error.response.data === 'string') {
+        // Check if it's HTML error page
+        if (error.response.data.includes('<!DOCTYPE html>')) {
+          console.warn('Error response is HTML:', error.response.data);
+          message = `Server error (${error.response.status}): Endpoint may not exist`;
+        } else {
+          try {
+            const parsed = JSON.parse(error.response.data);
+            message = parsed.error || parsed.message || message;
+          } catch (e) {
+            message = error.response.data;
+          }
+        }
+      } else if (typeof error.response.data === 'object') {
+        message = error.response.data.error || error.response.data.message || message;
+      }
+    } else {
+      message = error.message || message;
+    }
     
     // Don't show toast for certain endpoints
-    const silentEndpoints = ['/status', '/config'];
+    const silentEndpoints = ['/status', '/config', '/rfp/analytics'];
     const isSilentEndpoint = silentEndpoints.some(endpoint => 
       error.config?.url?.includes(endpoint)
     );
     
     if (!isSilentEndpoint) {
       toast.error(message);
-    }
-    
-    // Handle non-JSON error responses
-    if (error.response?.data && typeof error.response.data === 'string') {
-      try {
-        error.response.data = JSON.parse(error.response.data);
-      } catch (e) {
-        // Leave as string if not JSON
-        console.warn('Error response is not valid JSON:', error.response.data);
-      }
     }
     
     return Promise.reject(error);
@@ -187,6 +199,11 @@ class ApiService {
 
   // Search
   async searchContracts(data: SearchForm): Promise<SearchResult> {
+    // Ensure query is provided
+    if (!data.query || data.query.trim() === '') {
+      throw new Error('Query parameter is required');
+    }
+    
     const response = await api.post<SearchResult>('/search', data);
     return response.data;
   }
@@ -622,9 +639,26 @@ class ApiService {
   }
 
   async getRFPAnalytics(dateRange?: { start: string; end: string }): Promise<{ success: boolean; analytics: any }> {
-    const params = dateRange ? `?start=${dateRange.start}&end=${dateRange.end}` : '';
-    const response = await api.get<{ success: boolean; analytics: any }>(`/rfp/analytics${params}`);
-    return response.data;
+    try {
+      const params = dateRange ? `?start=${dateRange.start}&end=${dateRange.end}` : '';
+      const response = await api.get<{ success: boolean; analytics: any }>(`/rfp/analytics${params}`);
+      return response.data;
+    } catch (error: any) {
+      // Handle 404 for missing analytics endpoint
+      if (error.response?.status === 404) {
+        console.warn('RFP Analytics endpoint not implemented yet');
+        return {
+          success: false,
+          analytics: {
+            message: 'Analytics endpoint not yet implemented',
+            totalRFPs: 0,
+            winRate: 0,
+            averageScore: 0
+          }
+        };
+      }
+      throw error;
+    }
   }
 }
 
