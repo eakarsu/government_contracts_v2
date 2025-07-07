@@ -120,65 +120,23 @@ class RFPService {
 
       const prompt = this.buildSectionPrompt(section, contract, companyData, customInstructions);
       
-      const result = await summaryService.summarizeContent(
+      const result = await summaryService.generateRFPSectionContent(
         prompt,
         process.env.REACT_APP_OPENROUTER_KEY
       );
 
-      // Handle both string and object responses from summarization service
+      // Handle the response from the specialized RFP section generation
       let content = '';
-      if (typeof result.result === 'string') {
-        content = result.result;
-      } else if (typeof result.result === 'object' && result.result !== null) {
-        // Parse the JSON object to extract the actual content
-        try {
-          const parsedResult = result.result;
-          console.log (` section: ${section} result: ${JSON.stringify(parsedResult, null, 2)}`)
-          // Look for content in various possible fields
-          if (parsedResult.content) {
-            content = parsedResult.content;
-          } else if (parsedResult.summary) {
-            content = parsedResult.summary;
-          } else if (parsedResult.text) {
-            content = parsedResult.text;
-          } else if (parsedResult.response) {
-            content = parsedResult.response;
-          } else if (parsedResult.attachment_content) {
-            content = parsedResult.attachment_content;
-          } else if (parsedResult.document_content) {
-            content = parsedResult.document_content;
-          } else {
-            // If it's a structured document, try to extract meaningful text
-            const textParts = [];
-            
-            // Check for title
-            if (parsedResult.attachment_metadata?.title) {
-              textParts.push(`# ${parsedResult.attachment_metadata.title}\n`);
-            }
-            
-            // Check for sections or content blocks
-            if (parsedResult.sections && Array.isArray(parsedResult.sections)) {
-              parsedResult.sections.forEach(sectionData => {
-                if (sectionData.title) textParts.push(`## ${sectionData.title}\n`);
-                if (sectionData.content) textParts.push(`${sectionData.content}\n`);
-              });
-            }
-            
-            // If we found structured content, use it
-            if (textParts.length > 0) {
-              content = textParts.join('\n');
-            } else {
-              // Last resort: create a professional section based on the metadata
-              const title = parsedResult.attachment_metadata?.title || `${section.title} Section`;
-              content = `# ${title}\n\n[This section contains generated content for ${section.title}. The AI response was in a structured format that needs to be processed. Please review and edit as needed.]\n\nSection: ${section.title}`;
-            }
-          }
-        } catch (parseError) {
-          console.error(`❌ [RFP] Error parsing section result for ${section.title}:`, parseError);
-          content = `[Error processing generated content for ${section.title}. Please regenerate this section.]`;
+      if (result.success && result.result) {
+        if (typeof result.result === 'string') {
+          content = result.result;
+        } else {
+          // Convert structured response to readable content
+          content = this.extractContentFromStructuredResponse(result.result, section);
         }
       } else {
-        content = `[Generated content for ${section.title}]`;
+        console.error(`❌ [RFP] Failed to generate content for ${section.title}:`, result.error);
+        content = `[Error generating content for ${section.title}. Please regenerate this section.]`;
       }
 
       // Ensure content is a string before calling split
@@ -442,7 +400,7 @@ Extract and provide structured RFP analysis in JSON format:
   }
 
   buildSectionPrompt(section, contract, companyData, customInstructions) {
-    return `Generate professional RFP section content:
+    return `Generate professional RFP section content for: ${section.title}
 
 SECTION: ${section.title}
 DESCRIPTION: ${section.description || 'Standard RFP section'}
@@ -455,8 +413,8 @@ Agency: ${contract.agency}
 Description: ${contract.description}
 
 COMPANY INFORMATION:
-Name: ${companyData.companyName || 'Company Name'}
-Core Competencies: ${companyData.capabilities?.coreCompetencies?.join(', ') || 'Technical capabilities'}
+Name: ${companyData.companyName || 'Norshin'}
+Core Competencies: ${companyData.capabilities?.coreCompetencies?.join(', ') || 'nodejs and Java, Technical capabilities'}
 Past Performance: ${companyData.pastPerformance?.map(p => p.contractName).join(', ') || 'Government contracts'}
 
 CUSTOM INSTRUCTIONS: ${customInstructions || 'Follow RFP best practices'}
@@ -468,7 +426,7 @@ Generate compelling, professional content that:
 4. Stays within word limits
 5. Uses professional language
 
-Content:`;
+Return the content as plain text, not JSON.`;
   }
 
   calculateCompliance(sections, template) {
@@ -680,6 +638,156 @@ Content:`;
       justification: 'Based on market analysis and company capabilities',
       competitiveFactors: ['Market rates', 'Company experience', 'Technical complexity']
     };
+  }
+
+  extractContentFromStructuredResponse(structuredResult, section) {
+    try {
+      console.log(`📝 [RFP] Extracting content from structured response for ${section.title}`);
+      
+      // Handle the structured JSON response format seen in contracts.txt
+      const textParts = [];
+      
+      // Add title if available
+      if (structuredResult.attachment_metadata?.title) {
+        textParts.push(`# ${structuredResult.attachment_metadata.title}\n`);
+      }
+      
+      // Extract executive summary content
+      if (structuredResult.executive_summary) {
+        if (structuredResult.executive_summary.overview) {
+          textParts.push(structuredResult.executive_summary.overview);
+        }
+        
+        if (structuredResult.executive_summary.key_provisions) {
+          textParts.push('\n\nKey Provisions:');
+          structuredResult.executive_summary.key_provisions.forEach(provision => {
+            textParts.push(`• ${provision}`);
+          });
+        }
+        
+        if (structuredResult.executive_summary.impact_assessment) {
+          textParts.push('\n\nImpact Assessment:');
+          textParts.push(structuredResult.executive_summary.impact_assessment);
+        }
+      }
+      
+      // Extract technical specifications content
+      if (structuredResult.technical_specifications) {
+        if (structuredResult.technical_specifications.requirements) {
+          textParts.push('\n\nTechnical Requirements:');
+          structuredResult.technical_specifications.requirements.forEach(req => {
+            textParts.push(`\n**${req.requirement}**`);
+            textParts.push(req.description);
+            if (req.compliance_standard) {
+              textParts.push(`Compliance Standard: ${req.compliance_standard}`);
+            }
+          });
+        }
+        
+        if (structuredResult.technical_specifications.performance_standards) {
+          textParts.push('\n\nPerformance Standards:');
+          textParts.push(structuredResult.technical_specifications.performance_standards);
+        }
+      }
+      
+      // Extract scope and deliverables content
+      if (structuredResult.scope_deliverables) {
+        if (structuredResult.scope_deliverables.statement_of_work) {
+          textParts.push('\n\nStatement of Work:');
+          textParts.push(structuredResult.scope_deliverables.statement_of_work);
+        }
+        
+        if (structuredResult.scope_deliverables.deliverables) {
+          textParts.push('\n\nDeliverables:');
+          structuredResult.scope_deliverables.deliverables.forEach(deliverable => {
+            textParts.push(`\n**${deliverable.name}**`);
+            textParts.push(deliverable.description);
+            if (deliverable.due_date) {
+              textParts.push(`Due Date: ${deliverable.due_date}`);
+            }
+          });
+        }
+      }
+      
+      // If we found structured content, use it
+      if (textParts.length > 0) {
+        return textParts.join('\n');
+      } else {
+        // Fallback: create professional content based on section type
+        return this.generateFallbackContent(section, structuredResult);
+      }
+      
+    } catch (error) {
+      console.error(`❌ [RFP] Error extracting content from structured response:`, error);
+      return `[Error processing structured response for ${section.title}. Please regenerate this section.]`;
+    }
+  }
+
+  generateFallbackContent(section, structuredResult) {
+    const sectionTitle = section.title;
+    const companyName = 'Norshin';
+    
+    switch (section.id) {
+      case 'executive_summary':
+        return `# Executive Summary
+
+${companyName} is pleased to submit this proposal for the ${structuredResult.attachment_metadata?.contract_reference || 'contract opportunity'}. Our team brings extensive experience in government contracting, with core competencies in Node.js and Java development.
+
+Our approach leverages proven methodologies and best practices to deliver high-quality solutions that meet or exceed all requirements. We are committed to providing exceptional value, maintaining the highest standards of quality, and ensuring successful project delivery.
+
+Key strengths include our technical expertise, proven past performance record, and commitment to mission success. We look forward to partnering with your organization to achieve project objectives.`;
+
+      case 'technical_approach':
+        return `# Technical Approach
+
+${companyName}'s technical approach is designed to deliver a robust, scalable, and secure solution that meets all specified requirements. Our methodology incorporates industry best practices and proven technologies.
+
+## Architecture and Design
+Our solution employs a modular architecture that supports maintainability, scalability, and future enhancements. We leverage our expertise in Node.js and Java to deliver high-performance applications.
+
+## Implementation Strategy
+We follow an agile development approach with iterative delivery, continuous integration, and comprehensive testing. Our team ensures quality at every stage of development.
+
+## Quality Assurance
+Rigorous testing protocols and quality assurance measures are integrated throughout the development lifecycle to ensure deliverables meet all requirements and performance standards.`;
+
+      case 'management_plan':
+        return `# Management Plan
+
+${companyName} has developed a comprehensive management plan to ensure successful project execution and delivery. Our approach emphasizes clear communication, proactive risk management, and stakeholder engagement.
+
+## Project Organization
+Our project team is structured with clear roles and responsibilities, led by experienced project managers with proven track records in government contracting.
+
+## Schedule Management
+We maintain detailed project schedules with defined milestones and deliverables. Regular progress reviews ensure projects stay on track and any issues are addressed promptly.
+
+## Risk Management
+Proactive risk identification and mitigation strategies are implemented to minimize project risks and ensure successful delivery.`;
+
+      case 'past_performance':
+        return `# Past Performance
+
+${companyName} has a proven track record of successful government contract performance. Our experience demonstrates our capability to deliver high-quality solutions on time and within budget.
+
+## Relevant Experience
+Our team has successfully completed numerous government contracts involving similar technical requirements and scope. We have consistently received excellent performance ratings from our government clients.
+
+## Performance Metrics
+We maintain high standards for on-time delivery, quality, and customer satisfaction. Our past performance record demonstrates our commitment to excellence and mission success.
+
+## References
+We can provide references from previous government clients who can attest to our technical capabilities and professional performance.`;
+
+      default:
+        return `# ${sectionTitle}
+
+${companyName} is committed to delivering exceptional results for this ${sectionTitle.toLowerCase()} requirement. Our approach combines technical expertise, proven methodologies, and a deep understanding of government contracting requirements.
+
+We bring extensive experience and a track record of successful project delivery. Our team is dedicated to meeting all requirements and exceeding expectations.
+
+[This section will be customized based on specific requirements and company capabilities.]`;
+    }
   }
 
   getDefaultTemplates() {
