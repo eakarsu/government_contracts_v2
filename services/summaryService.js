@@ -332,7 +332,7 @@ Structure the response as a JSON object with descriptive field names. Provide de
           content: prompt
         }
       ],
-      max_tokens: 16000,
+      max_tokens: 32000,
       temperature: 0.2,
       transforms: ["middle-out"],
       response_format: { type: "json_object" }

@@ -345,7 +345,8 @@ Extract and provide structured RFP analysis in JSON format:
 
       // Build comprehensive prompt for the contract document
       const contractContent = this.buildContractContent(contract, companyData, options.customInstructions);
-      
+      console.log(`🚀 [RFP] Making single API call to generate all ${templateSections.length} sections.Sending prompt: ${contractContent}`);
+
       // Make single call to get structured JSON response for ALL sections
       const result = await summaryService.summarizeContent(
         contractContent,
@@ -392,9 +393,9 @@ Extract and provide structured RFP analysis in JSON format:
   }
 
   buildContractContent(contract, companyData, customInstructions) {
-    return `TASK: Analyze government contract and generate comprehensive RFP response sections.
+    return `TASK: Analyze the government contract and generate a comprehensive RFP response, up to 10 pages, addressing each section below. For each section, follow the description and focus on the mapped contract/company data. Write in a professional, persuasive tone, ensuring compliance with government RFP best practices.
 
-CONTRACT INFORMATION:
+CONTRACT INFORMATION: 
 Title: ${contract.title}
 Agency: ${contract.agency}
 Description: ${contract.description}
@@ -409,7 +410,71 @@ Past Performance: ${companyData.pastPerformance?.map(p => p.contractName).join('
 
 CUSTOM INSTRUCTIONS: ${customInstructions || 'Follow RFP best practices'}
 
-Generate a comprehensive RFP response covering all standard sections with professional, compelling content that addresses requirements and highlights company strengths.`;
+---
+
+### RFP RESPONSE SECTIONS
+
+1. **Executive Summary**
+   - *Instruction*: Provide a high-level overview of your proposed solution, highlighting key benefits and differentiators.
+   - *Focus on*: [executive_summary, overview]
+   - *Length*: 1-2 paragraphs
+
+2. **Technical Approach**
+   - *Instruction*: Detail your technical methodology, architecture, and implementation strategy. Explain how your approach meets or exceeds contract requirements.
+   - *Focus on*: [technical_approach, methodology, architecture]
+   - *Length*: 2-3 paragraphs, include diagrams or bullet points if relevant
+
+3. **Management Approach**
+   - *Instruction*: Describe your project management methodology, team structure, and communication plans. Address resource allocation, reporting, and stakeholder engagement.
+   - *Focus on*: [management_approach, project_management, team_structure]
+   - *Length*: 1-2 paragraphs, include an organization chart if possible
+
+4. **Past Performance**
+   - *Instruction*: Provide relevant examples of similar work, including outcomes and client references. Highlight successful delivery, client satisfaction, and relevance to this contract.
+   - *Focus on*: [past_performance, experience, references]
+   - *Length*: 1-2 examples, 1 paragraph each
+
+5. **Key Personnel**
+   - *Instruction*: Identify key team members, their roles, qualifications, and relevant experience. Emphasize certifications, clearances, and expertise.
+   - *Focus on*: [key_personnel, team_members, staff_qualifications]
+   - *Length*: 1-2 sentences per person
+
+6. **Cost Proposal**
+   - *Instruction*: Provide a detailed cost breakdown including labor, materials, and other direct costs. Explain pricing rationale and cost efficiency.
+   - *Focus on*: [cost_proposal, pricing, budget]
+   - *Length*: Table or bullet list, plus 1 paragraph explanation
+
+7. **Schedule and Milestones**
+   - *Instruction*: Present a project timeline with key milestones and deliverable dates. Include a Gantt chart or timeline table if possible.
+   - *Focus on*: [schedule, timeline, milestones]
+   - *Length*: Table or list, plus 1 paragraph summary
+
+8. **Risk Management**
+   - *Instruction*: Identify potential risks and your mitigation strategies. Address technical, schedule, and compliance risks.
+   - *Focus on*: [risk_management, risk_mitigation]
+   - *Length*: 1-2 paragraphs or a risk table
+
+9. **Quality Assurance**
+   - *Instruction*: Describe your quality control processes and standards. Explain how you ensure deliverable quality and continuous improvement.
+   - *Focus on*: [quality_assurance, quality_control]
+   - *Length*: 1 paragraph
+
+10. **Security and Compliance**
+    - *Instruction*: Detail security measures and compliance with relevant regulations (e.g., NIST, FISMA, CMMC). Address data protection, access controls, and audit readiness.
+    - *Focus on*: [security, compliance, regulations]
+    - *Length*: 1 paragraph
+
+---
+
+**Instructions for Each Section:**
+- Use contract and company data mapped to each section.
+- Be specific, concise, and persuasive.
+- Address all requirements stated in the section description.
+- Highlight strengths, innovation, and compliance.
+- Where appropriate, use tables, bullet points, or diagrams.
+
+**End of Prompt**
+`;
   }
 
   extractSectionFromStructuredResponse(structuredResult, section) {

@@ -552,7 +552,7 @@ class ApiService {
     
     try {
       const response = await api.post<RFPGenerationResponse>('/rfp/generate', request, {
-        timeout: 300000 // 5 minutes timeout for RFP generation
+        timeout: 1200000 // 5 minutes timeout for RFP generation
       });
       console.log('🚀 [DEBUG] API Service generateRFPResponse response:', response.data);
       return response.data;
