@@ -42,12 +42,15 @@ const RFPResponseDetail: React.FC = () => {
       setDeleting(true);
       const response = await apiService.deleteRFPResponse(rfpResponse.id);
       if (response.success) {
+        // Show success message and navigate
+        console.log('✅ RFP Response deleted:', response.message);
         navigate('/rfp');
       } else {
         setError('Failed to delete RFP response');
       }
     } catch (err: any) {
-      setError(err.message);
+      console.error('❌ Delete RFP Response error:', err);
+      setError(err.message || 'Failed to delete RFP response');
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);

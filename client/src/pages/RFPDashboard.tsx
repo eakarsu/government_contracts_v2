@@ -18,18 +18,37 @@ const RFPDashboard: React.FC = () => {
     try {
       setLoading(true);
       const [statsResponse, rfpsResponse] = await Promise.all([
-        apiService.getRFPDashboardStats(),
-        apiService.getRFPResponses(1, 5)
+        apiService.getRFPDashboardStats().catch(err => {
+          console.warn('Dashboard stats not available:', err.message);
+          return { success: false, stats: null };
+        }),
+        apiService.getRFPResponses(1, 5).catch(err => {
+          console.warn('RFP responses not available:', err.message);
+          return { success: false, responses: [] };
+        })
       ]);
 
-      if (statsResponse.success) {
+      if (statsResponse.success && statsResponse.stats) {
         setStats(statsResponse.stats);
+      } else {
+        // Set default stats if API not available
+        setStats({
+          totalRFPs: 0,
+          activeRFPs: 0,
+          submittedRFPs: 0,
+          winRate: 0,
+          averageScore: 0,
+          recentActivity: []
+        });
       }
 
       if (rfpsResponse.success) {
-        setRecentRFPs(rfpsResponse.responses);
+        setRecentRFPs(rfpsResponse.responses || []);
+      } else {
+        setRecentRFPs([]);
       }
     } catch (err: any) {
+      console.error('Dashboard load error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
