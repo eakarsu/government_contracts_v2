@@ -122,3 +122,65 @@ model DocumentProcessingQueue {
 
   @@map("document_processing_queue")
 }
+
+model RfpTemplate {
+  id                 Int           @id @default(autoincrement())
+  name               String
+  agency             String?
+  description        String?
+  sections           String        // JSON string
+  evaluationCriteria String        @map("evaluation_criteria") // JSON string
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+  rfpResponses       RfpResponse[]
+
+  @@map("rfp_templates")
+}
+
+model CompanyProfile {
+  id           Int           @id @default(autoincrement())
+  companyName  String        @map("company_name")
+  profileData  String        @map("profile_data") // JSON string containing all company data
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  rfpResponses RfpResponse[]
+
+  @@map("company_profiles")
+}
+
+model RfpResponse {
+  id               Int            @id @default(autoincrement())
+  contractId       String         @map("contract_id")
+  templateId       Int            @map("template_id")
+  companyProfileId Int            @map("company_profile_id")
+  title            String
+  status           String         @default("draft") // draft, in_review, approved, submitted
+  responseData     String         @map("response_data") // JSON string containing sections and metadata
+  complianceStatus String         @map("compliance_status") // JSON string
+  predictedScore   Float?         @map("predicted_score")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  
+  // Relations
+  contract         Contract       @relation(fields: [contractId], references: [noticeId])
+  template         RfpTemplate    @relation(fields: [templateId], references: [id])
+  companyProfile   CompanyProfile @relation(fields: [companyProfileId], references: [id])
+  versions         RfpVersion[]
+
+  @@map("rfp_responses")
+}
+
+model RfpVersion {
+  id            Int         @id @default(autoincrement())
+  rfpResponseId Int         @map("rfp_response_id")
+  versionNumber Int         @map("version_number")
+  changes       String      // JSON string
+  comment       String?
+  createdBy     String      @map("created_by")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  
+  // Relations
+  rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
+
+  @@map("rfp_versions")
+}

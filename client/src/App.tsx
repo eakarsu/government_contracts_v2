@@ -15,6 +15,9 @@ import Documents from './pages/Documents';
 import ApiDocs from './pages/ApiDocs';
 import NotFound from './pages/NotFound';
 
+// RFP Pages
+import RFPDashboard from './pages/RFPDashboard';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +42,11 @@ function App() {
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/documents" element={<Documents />} />
               <Route path="/api-docs" element={<ApiDocs />} />
+              
+              {/* RFP System Routes */}
+              <Route path="/rfp" element={<RFPDashboard />} />
+              <Route path="/rfp/dashboard" element={<RFPDashboard />} />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
