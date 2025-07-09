@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 #testtest
 # Simple Node.js Development Starter

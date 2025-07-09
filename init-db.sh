@@ -1,5 +1,4 @@
-#!/bin/bash
-set -e
+#!/bin/sh
 
 echo "🚀 Starting database initialization..."
 
@@ -17,6 +16,16 @@ else
     echo "💻 Running on local machine"
     export POSTGRES_HOST=${POSTGRES_HOST:-localhost}
 fi
+
+# --- PostgreSQL Startup ---
+if [ ! -d "$PGDATA" ] || [ -z "$(ls -A "$PGDATA")" ]; then
+  echo "🔧 Initializing PostgreSQL data directory at $PGDATA"
+  su - postgres -c "initdb -D $PGDATA"
+fi
+
+echo "🟢 Starting PostgreSQL server..."
+su - postgres -c "pg_ctl -D $PGDATA -l /tmp/postgres.log start"
+
 
 echo "🔍 Checking PostgreSQL connection to $POSTGRES_HOST:$POSTGRES_PORT..."
 
@@ -58,45 +67,15 @@ fi
 
 # Initialize vector database directories
 echo "🔍 Setting up vector database directories..."
-mkdir -p /app/vector_indexes
-mkdir -p /app/vector_indexes/contracts
-mkdir -p /app/vector_indexes/documents
-chmod -R 755 /app/vector_indexes
+mkdir -p ./vector_indexes
+mkdir -p ./vector_indexes/contracts
+mkdir -p ./vector_indexes/documents
+chmod -R 755 ./vector_indexes
 echo "✅ Vector database directories created!"
 
-# Initialize ChromaDB collections
-echo "🔍 Initializing ChromaDB collections..."
-python3 -c "
-import chromadb
-import os
-import sys
-
-try:
-    # Initialize ChromaDB client
-    client = chromadb.PersistentClient(path='/app/vector_indexes')
-    
-    # Create contracts collection if it doesn't exist
-    try:
-        contracts_collection = client.get_collection('contracts')
-        print('✅ Contracts collection already exists')
-    except:
-        contracts_collection = client.create_collection('contracts')
-        print('✅ Created contracts collection')
-    
-    # Create documents collection if it doesn't exist
-    try:
-        documents_collection = client.get_collection('documents')
-        print('✅ Documents collection already exists')
-    except:
-        documents_collection = client.create_collection('documents')
-        print('✅ Created documents collection')
-    
-    print('✅ ChromaDB initialization completed successfully!')
-    
-except Exception as e:
-    print(f'❌ ChromaDB initialization failed: {e}')
-    sys.exit(1)
-"
+# --- Node.js-Based Chroma Vector DB Startup ---
+echo "🟢 Starting Node.js-based Chroma Vector DB service..."
+node ./services/vectorService.js &
 
 # Test vector service initialization (optional - don't fail if it doesn't work)
 echo "🧪 Testing vector service initialization..."

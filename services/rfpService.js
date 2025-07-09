@@ -417,52 +417,44 @@ CUSTOM INSTRUCTIONS: ${customInstructions || 'Follow RFP best practices'}
 1. **Executive Summary**
    - *Instruction*: Provide a high-level overview of your proposed solution, highlighting key benefits and differentiators.
    - *Focus on*: [executive_summary, overview]
-   - *Length*: 1-2 paragraphs
 
 2. **Technical Approach**
    - *Instruction*: Detail your technical methodology, architecture, and implementation strategy. Explain how your approach meets or exceeds contract requirements.
    - *Focus on*: [technical_approach, methodology, architecture]
-   - *Length*: 2-3 paragraphs, include diagrams or bullet points if relevant
+   - *Include diagrams or bullet points if relevant
 
 3. **Management Approach**
    - *Instruction*: Describe your project management methodology, team structure, and communication plans. Address resource allocation, reporting, and stakeholder engagement.
    - *Focus on*: [management_approach, project_management, team_structure]
-   - *Length*: 1-2 paragraphs, include an organization chart if possible
+   - *Include an organization chart if possible
 
 4. **Past Performance**
    - *Instruction*: Provide relevant examples of similar work, including outcomes and client references. Highlight successful delivery, client satisfaction, and relevance to this contract.
    - *Focus on*: [past_performance, experience, references]
-   - *Length*: 1-2 examples, 1 paragraph each
 
 5. **Key Personnel**
    - *Instruction*: Identify key team members, their roles, qualifications, and relevant experience. Emphasize certifications, clearances, and expertise.
    - *Focus on*: [key_personnel, team_members, staff_qualifications]
-   - *Length*: 1-2 sentences per person
 
 6. **Cost Proposal**
    - *Instruction*: Provide a detailed cost breakdown including labor, materials, and other direct costs. Explain pricing rationale and cost efficiency.
    - *Focus on*: [cost_proposal, pricing, budget]
-   - *Length*: Table or bullet list, plus 1 paragraph explanation
 
 7. **Schedule and Milestones**
    - *Instruction*: Present a project timeline with key milestones and deliverable dates. Include a Gantt chart or timeline table if possible.
    - *Focus on*: [schedule, timeline, milestones]
-   - *Length*: Table or list, plus 1 paragraph summary
 
 8. **Risk Management**
    - *Instruction*: Identify potential risks and your mitigation strategies. Address technical, schedule, and compliance risks.
    - *Focus on*: [risk_management, risk_mitigation]
-   - *Length*: 1-2 paragraphs or a risk table
 
 9. **Quality Assurance**
    - *Instruction*: Describe your quality control processes and standards. Explain how you ensure deliverable quality and continuous improvement.
    - *Focus on*: [quality_assurance, quality_control]
-   - *Length*: 1 paragraph
 
 10. **Security and Compliance**
     - *Instruction*: Detail security measures and compliance with relevant regulations (e.g., NIST, FISMA, CMMC). Address data protection, access controls, and audit readiness.
     - *Focus on*: [security, compliance, regulations]
-    - *Length*: 1 paragraph
 
 ---
 

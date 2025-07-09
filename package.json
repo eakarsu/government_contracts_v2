@@ -42,5 +42,8 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "prisma": {
+    "binaryTargets": ["native", "linux-musl-arm64-openssl-3.0.x"]
   }
 }
