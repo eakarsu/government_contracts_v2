@@ -159,7 +159,7 @@ echo "Vector Database: Vectra (Pure Node.js - embedded)"
 echo "Press Ctrl+C to stop all servers"
 
 # Start the API server in background
-npm run dev &
+PORT=3010 BROWSER=none npm run dev &
 SERVER_PID=$!
 echo $SERVER_PID > logs/server.pid
 
