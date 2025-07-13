@@ -1,11 +1,13 @@
 -- Enhanced AI-powered features database schema
 
--- Enable vector extension if not exists
-CREATE EXTENSION IF NOT EXISTS vector;
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Note: vector extension may not be available in all PostgreSQL installations
+-- CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Users table (if not exists)
 CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     first_name VARCHAR(100),
@@ -19,7 +21,7 @@ DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'contracts') THEN
         CREATE TABLE contracts (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
             notice_id VARCHAR(255) UNIQUE,
             title TEXT,
             description TEXT,
@@ -48,38 +50,56 @@ BEGIN
 END $$;
 
 -- Contract embeddings for semantic search
+-- Note: Using TEXT to store embeddings as JSON array since vector extension may not be available
 CREATE TABLE IF NOT EXISTS contract_embeddings (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
-    embedding VECTOR(1536),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    contract_id UUID,
+    embedding TEXT, -- JSON array of floats, e.g., '[0.1, 0.2, ...]'
     content_summary TEXT,
     metadata JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add foreign key constraint after ensuring contracts table exists
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'contracts') THEN
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints 
+            WHERE constraint_name = 'fk_contract_embeddings_contract_id'
+        ) THEN
+            ALTER TABLE contract_embeddings 
+            ADD CONSTRAINT fk_contract_embeddings_contract_id 
+            FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE;
+        END IF;
+    END IF;
+END $$;
+
 -- Search queries for analytics and caching
 CREATE TABLE IF NOT EXISTS search_queries (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID,
     query_text TEXT NOT NULL,
-    query_embedding VECTOR(1536),
+    query_embedding TEXT, -- JSON array of floats
     results_count INTEGER,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Saved searches
 CREATE TABLE IF NOT EXISTS saved_searches (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID,
     name VARCHAR(255) NOT NULL,
     query_text TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Business profiles for opportunity matching
 CREATE TABLE IF NOT EXISTS business_profiles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID,
     company_name VARCHAR(255) NOT NULL,
     naics_codes JSONB,
     capabilities TEXT[],
@@ -90,74 +110,83 @@ CREATE TABLE IF NOT EXISTS business_profiles (
     employee_count INTEGER,
     security_clearance_level VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Opportunity matches for AI recommendations
 CREATE TABLE IF NOT EXISTS opportunity_matches (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    business_profile_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE,
-    contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    business_profile_id UUID,
+    contract_id UUID,
     match_score DECIMAL(3,2),
     match_factors JSONB,
     notification_sent BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    FOREIGN KEY (business_profile_id) REFERENCES business_profiles(id) ON DELETE CASCADE,
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
 );
 
 -- RFP documents for proposal drafting
 CREATE TABLE IF NOT EXISTS rfp_documents (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    contract_id UUID REFERENCES contracts(id) ON DELETE SET NULL,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID,
+    contract_id UUID,
     original_filename VARCHAR(255),
     file_path TEXT,
     parsed_content JSONB,
     requirements JSONB,
     sections JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE SET NULL
 );
 
 -- Proposal drafts
 CREATE TABLE IF NOT EXISTS proposal_drafts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    rfp_document_id UUID REFERENCES rfp_documents(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    rfp_document_id UUID,
+    user_id UUID,
     title VARCHAR(255),
     sections JSONB,
     compliance_status JSONB,
     version INTEGER DEFAULT 1,
     status VARCHAR(50) DEFAULT 'draft',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    FOREIGN KEY (rfp_document_id) REFERENCES rfp_documents(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Contract deadlines for compliance tracking
 CREATE TABLE IF NOT EXISTS contract_deadlines (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    contract_id UUID,
     deadline_type VARCHAR(100),
     deadline_date TIMESTAMP WITH TIME ZONE,
     description TEXT,
     is_critical BOOLEAN DEFAULT FALSE,
     reminder_sent BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
 );
 
 -- Compliance checklists
 CREATE TABLE IF NOT EXISTS compliance_checklists (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    contract_id UUID,
     agency VARCHAR(100),
     checklist_items JSONB,
     completion_status JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
 );
 
 -- Document analyses for attachment analysis
 CREATE TABLE IF NOT EXISTS document_analyses (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    contract_id UUID,
     document_type VARCHAR(100),
     file_path TEXT,
     summary TEXT,
@@ -165,33 +194,38 @@ CREATE TABLE IF NOT EXISTS document_analyses (
     extracted_data JSONB,
     critical_clauses JSONB,
     analysis_confidence DECIMAL(3,2),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
 );
 
 -- Bid predictions for probability scoring
 CREATE TABLE IF NOT EXISTS bid_predictions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
-    business_profile_id UUID REFERENCES business_profiles(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    contract_id UUID,
+    business_profile_id UUID,
     probability_score DECIMAL(3,2),
     confidence_level VARCHAR(20),
     contributing_factors JSONB,
     improvement_suggestions JSONB,
     competitive_analysis JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE,
+    FOREIGN KEY (business_profile_id) REFERENCES business_profiles(id) ON DELETE CASCADE
 );
 
 -- Bid history for ML training
 CREATE TABLE IF NOT EXISTS bid_history (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID,
+    contract_id UUID,
     bid_amount DECIMAL(15,2),
     outcome VARCHAR(50),
     win_probability DECIMAL(3,2),
     actual_result BOOLEAN,
     lessons_learned TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
 );
 
 -- Create indexes for performance

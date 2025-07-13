@@ -8,7 +8,9 @@ class AIService {
   async generateEmbedding(text) {
     // Placeholder - return dummy embedding for now
     console.log('Generating embedding for:', text.substring(0, 100) + '...');
-    return new Array(1536).fill(0).map(() => Math.random());
+    const embedding = new Array(1536).fill(0).map(() => Math.random());
+    // Return as JSON string for database storage
+    return JSON.stringify(embedding);
   }
 
   async generateCompletion(prompt, model = 'gpt-3.5-turbo', maxTokens = 1000) {
