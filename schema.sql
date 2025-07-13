@@ -131,7 +131,7 @@ CREATE INDEX IF NOT EXISTS idx_contracts_naics_code ON contracts(naics_code);
 -- Insert default user for development
 INSERT INTO users (id, email, first_name, last_name, role) 
 VALUES ('00000000-0000-0000-0000-000000000001', 'test@example.com', 'Test', 'User', 'user')
-ON CONFLICT (email) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Insert sample RFP templates
 INSERT INTO rfp_templates (name, agency, description, sections, evaluation_criteria, updated_at) VALUES
