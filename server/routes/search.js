@@ -81,6 +81,14 @@ router.get('/suggestions', async (req, res) => {
 router.get('/history', auth, async (req, res) => {
   try {
     const { limit = 10 } = req.query;
+    
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
+    }
+    
     const history = await searchService.getSearchHistory(req.user.id, limit);
 
     res.json({
