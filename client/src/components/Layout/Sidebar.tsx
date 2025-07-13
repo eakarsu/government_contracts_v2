@@ -11,7 +11,10 @@ import {
   X,
   Database,
   Zap,
-  ClipboardList
+  ClipboardList,
+  Brain,
+  Target,
+  Wand2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -27,6 +30,12 @@ const navigation = [
   { name: 'Jobs', href: '/jobs', icon: BarChart3 },
   { name: 'Documents', href: '/documents', icon: Upload },
   { name: 'API Docs', href: '/api-docs', icon: Database },
+];
+
+const aiEnhancements = [
+  { name: 'AI Semantic Search', href: '/ai/semantic-search', icon: Brain },
+  { name: 'Proposal Drafter', href: '/ai/proposal-drafter', icon: Wand2 },
+  { name: 'Bid Analyzer', href: '/ai/bid-analyzer', icon: Target },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
@@ -94,6 +103,42 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               );
             })}
           </ul>
+
+          {/* AI Enhancements Section */}
+          <div className="mt-8">
+            <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              AI Enhancements
+            </h3>
+            <ul className="mt-2 space-y-2">
+              {aiEnhancements.map((item) => {
+                const isActive = location.pathname === item.href || location.pathname.startsWith('/ai');
+                return (
+                  <li key={item.name}>
+                    <NavLink
+                      to={item.href}
+                      onClick={onClose}
+                      className={clsx(
+                        'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200',
+                        isActive
+                          ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-500'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      )}
+                    >
+                      <item.icon
+                        className={clsx(
+                          'mr-3 h-5 w-5 transition-colors duration-200',
+                          isActive
+                            ? 'text-blue-500'
+                            : 'text-gray-400 group-hover:text-gray-500'
+                        )}
+                      />
+                      {item.name}
+                    </NavLink>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </nav>
 
         {/* Footer */}
