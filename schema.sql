@@ -118,6 +118,10 @@ CREATE TABLE IF NOT EXISTS contracts (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Add missing columns to existing tables if they don't exist
+ALTER TABLE bid_predictions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id);
+ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id);
+
 -- Indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_rfp_documents_user_id ON rfp_documents(user_id);
 CREATE INDEX IF NOT EXISTS idx_proposals_user_id ON proposals(user_id);
