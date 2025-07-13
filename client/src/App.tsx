@@ -25,6 +25,11 @@ import RFPResponses from './pages/RFPResponses';
 import RFPResponseDetail from './pages/RFPResponseDetail';
 import RFPResponseEdit from './pages/RFPResponseEdit';
 
+// AI Enhancement Components
+import ProposalDrafter from './components/Proposals/ProposalDrafter';
+import BidProbabilityAnalyzer from './components/Bidding/BidProbabilityAnalyzer';
+import SemanticSearch from './components/Search/SemanticSearch';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +65,11 @@ function App() {
               <Route path="/rfp/responses" element={<RFPResponses />} />
               <Route path="/rfp/responses/:id" element={<RFPResponseDetail />} />
               <Route path="/rfp/responses/:id/edit" element={<RFPResponseEdit />} />
+              
+              {/* AI Enhancement Routes */}
+              <Route path="/ai/semantic-search" element={<SemanticSearch />} />
+              <Route path="/ai/proposal-drafter" element={<ProposalDrafter />} />
+              <Route path="/ai/bid-analyzer" element={<BidProbabilityAnalyzer />} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
