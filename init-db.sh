@@ -58,6 +58,52 @@ if [ "$POSTGRES_AVAILABLE" = true ]; then
     echo "📊 Initializing PostgreSQL tables with Prisma..."
     npx prisma generate
     npx prisma db push --accept-data-loss --skip-generate
+    
+    # Run AI-powered features migration
+    echo "🤖 Setting up AI-powered features database schema..."
+    if [ -f "database/migrations/001_create_enhanced_tables.sql" ]; then
+        psql $DATABASE_URL -f database/migrations/001_create_enhanced_tables.sql
+        echo "✅ AI features database schema created!"
+    else
+        echo "⚠️ AI features migration file not found, creating basic tables..."
+        psql $DATABASE_URL -c "
+        CREATE EXTENSION IF NOT EXISTS vector;
+        CREATE TABLE IF NOT EXISTS users (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            first_name VARCHAR(100),
+            last_name VARCHAR(100),
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS business_profiles (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            company_name VARCHAR(255) NOT NULL,
+            naics_codes JSONB,
+            capabilities TEXT[],
+            certifications JSONB,
+            past_performance JSONB,
+            geographic_preferences JSONB,
+            annual_revenue DECIMAL(15,2),
+            employee_count INTEGER,
+            security_clearance_level VARCHAR(50),
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS contract_embeddings (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
+            embedding VECTOR(1536),
+            content_summary TEXT,
+            metadata JSONB,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+        "
+        echo "✅ Basic AI features tables created!"
+    fi
+    
     echo "✅ PostgreSQL tables initialized!"
 else
     echo "⚠️ Skipping PostgreSQL table initialization (database not available)"
@@ -65,13 +111,23 @@ else
     npx prisma generate || echo "⚠️ Prisma generate failed - continuing anyway"
 fi
 
-# Initialize vector database directories
-echo "🔍 Setting up vector database directories..."
+# Initialize vector database directories and AI features directories
+echo "🔍 Setting up vector database and AI features directories..."
 mkdir -p ./vector_indexes
 mkdir -p ./vector_indexes/contracts
 mkdir -p ./vector_indexes/documents
+mkdir -p ./uploads/rfp-documents
+mkdir -p ./uploads/documents
+mkdir -p ./logs
+mkdir -p ./database/migrations
+mkdir -p ./routes/api
+mkdir -p ./middleware
+mkdir -p ./utils
+mkdir -p ./scripts
 chmod -R 755 ./vector_indexes
-echo "✅ Vector database directories created!"
+chmod -R 755 ./uploads
+chmod -R 755 ./logs
+echo "✅ Vector database and AI features directories created!"
 
 # --- Node.js-Based Chroma Vector DB Startup ---
 echo "🟢 Starting Node.js-based Chroma Vector DB service..."
@@ -93,13 +149,30 @@ const vectorService = require('./services/vectorService');
 })();
 " || echo "⚠️ Vector service test skipped - will initialize at runtime"
 
+# Check for required environment variables for AI features
+echo "🔍 Checking AI features configuration..."
+if [ -z "$OPENROUTER_API_KEY" ]; then
+    echo "⚠️ OPENROUTER_API_KEY not set - AI features will not work"
+    echo "💡 Add your OpenRouter API key to .env file"
+else
+    echo "✅ OpenRouter API key configured"
+fi
+
+if [ -z "$SESSION_SECRET" ]; then
+    echo "⚠️ SESSION_SECRET not set - authentication will not work"
+    echo "💡 Add a session secret to .env file"
+else
+    echo "✅ Session secret configured"
+fi
+
 echo "🎉 Database initialization completed!"
 if [ "$POSTGRES_AVAILABLE" = true ]; then
-    echo "📊 PostgreSQL: Ready with Prisma schema"
+    echo "📊 PostgreSQL: Ready with Prisma schema and AI features"
 else
     echo "📊 PostgreSQL: Not available (will need to be started separately)"
 fi
 echo "🔍 ChromaDB: Ready with contracts and documents collections"
+echo "🤖 AI Features: Database schema ready"
 echo "🚀 Application is ready to start!"
 
 # Print helpful information
@@ -109,8 +182,20 @@ if [ "$POSTGRES_AVAILABLE" = false ]; then
     echo "   1. Start PostgreSQL database:"
     echo "      docker-compose up postgres -d"
     echo "   2. Re-run this script: npm run init-db"
-    echo "   3. Start the application: npm start"
+    echo "   3. Install dependencies: npm install"
+    echo "   4. Start the application: npm run dev-full"
 else
-    echo "   1. Start the application: npm start"
+    echo "   1. Install dependencies: npm install"
+    echo "   2. Start the application: npm run dev-full"
+    echo "   3. Access the app at http://localhost:3001"
 fi
+
+echo ""
+echo "🔧 AI Features Setup:"
+echo "   • Semantic Search: /semantic-search"
+echo "   • Business Profile: /profile/setup"
+echo "   • Opportunities: /opportunities"
+echo "   • Proposals: /proposals"
+echo "   • Compliance: /compliance"
+echo "   • Bid Analysis: /bidding"
 echo ""
