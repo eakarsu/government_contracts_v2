@@ -12,7 +12,8 @@ DO $$
 BEGIN 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                    WHERE table_name='contract_embeddings' AND column_name='chroma_document_id') THEN
-        ALTER TABLE contract_embeddings ADD COLUMN chroma_document_id TEXT UNIQUE;
+        ALTER TABLE contract_embeddings ADD COLUMN chroma_document_id TEXT;
+        ALTER TABLE contract_embeddings ADD CONSTRAINT contract_embeddings_chroma_document_id_unique UNIQUE (chroma_document_id);
     END IF;
 END $$;
 
