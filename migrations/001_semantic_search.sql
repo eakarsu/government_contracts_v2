@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS contract_embeddings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
-    chroma_document_id TEXT UNIQUE NOT NULL,
+    chroma_document_id TEXT UNIQUE,
     content_summary TEXT,
     metadata JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
