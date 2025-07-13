@@ -14,6 +14,7 @@ BEGIN
                    WHERE table_name='contract_embeddings' AND column_name='chroma_document_id') THEN
         ALTER TABLE contract_embeddings ADD COLUMN chroma_document_id TEXT;
         ALTER TABLE contract_embeddings ADD CONSTRAINT contract_embeddings_chroma_document_id_unique UNIQUE (chroma_document_id);
+        CREATE INDEX idx_contract_embeddings_chroma_id ON contract_embeddings(chroma_document_id);
     END IF;
 END $$;
 
@@ -147,7 +148,6 @@ CREATE TABLE IF NOT EXISTS bid_history (
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_contract_embeddings_contract_id ON contract_embeddings(contract_id);
-CREATE INDEX IF NOT EXISTS idx_contract_embeddings_chroma_id ON contract_embeddings(chroma_document_id);
 CREATE INDEX IF NOT EXISTS idx_search_queries_user_id ON search_queries(user_id);
 CREATE INDEX IF NOT EXISTS idx_business_profiles_user_id ON business_profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_opportunity_matches_business_profile_id ON opportunity_matches(business_profile_id);
