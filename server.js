@@ -22,11 +22,27 @@ const recommendationsRouter = require('./routes/recommendations');
 const rfpRouter = require('./routes/rfp');
 const documentProcessingRouter = require('./routes/documentProcessing');
 
+// Import new AI-powered routes
+const authRoutes = require('./routes/auth');
+const semanticSearchRoutes = require('./routes/semanticSearch');
+const profileRoutes = require('./routes/profiles');
+const aiRfpRoutes = require('./routes/aiRfp');
+const complianceRoutes = require('./routes/compliance');
+const documentAnalysisRoutes = require('./routes/documentAnalysis');
+const bidPredictionRoutes = require('./routes/bidPrediction');
+
+// Import middleware
+const { rateLimiter } = require('./middleware/rateLimiter');
+const { errorHandler } = require('./middleware/errorHandler');
+const { authMiddleware } = require('./middleware/auth');
+
 const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(rateLimiter);
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static('public'));
 app.use('/uploads', express.static(config.uploadDir));
 
@@ -70,7 +86,7 @@ const upload = multer({
   }
 });
 
-// Routes
+// Existing routes
 app.use('/api/contracts', contractsRouter);
 app.use('/api/documents', documentSearchRouter);
 app.use('/api/search', searchRouter);
@@ -82,6 +98,15 @@ app.use('/api/rfp', rfpRouter);
 
 // Mount document processing routes at /api/documents/processing/*
 app.use('/api/documents/processing', documentProcessingRouter);
+
+// New AI-powered routes
+app.use('/api/auth', authRoutes);
+app.use('/api/semantic-search', authMiddleware, semanticSearchRoutes);
+app.use('/api/profiles', authMiddleware, profileRoutes);
+app.use('/api/ai-rfp', authMiddleware, aiRfpRoutes);
+app.use('/api/compliance', authMiddleware, complianceRoutes);
+app.use('/api/document-analysis', authMiddleware, documentAnalysisRoutes);
+app.use('/api/bid-prediction', authMiddleware, bidPredictionRoutes);
 
 // Debug: Log when routers are loaded
 console.log('📋 [DEBUG] Contracts router mounted at /api/contracts');
@@ -286,6 +311,9 @@ app.use((error, req, res, next) => {
   console.error('Unhandled error:', error);
   res.status(500).json({ error: 'Internal server error' });
 });
+
+// Use the error handler middleware
+app.use(errorHandler);
 
 // Initialize services and start server
 async function startServer() {
