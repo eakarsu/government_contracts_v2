@@ -2,7 +2,6 @@
 CREATE TABLE IF NOT EXISTS contract_embeddings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
-    chroma_document_id TEXT UNIQUE,
     content_summary TEXT,
     metadata JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -13,7 +12,7 @@ DO $$
 BEGIN 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                    WHERE table_name='contract_embeddings' AND column_name='chroma_document_id') THEN
-        ALTER TABLE contract_embeddings ADD COLUMN chroma_document_id TEXT;
+        ALTER TABLE contract_embeddings ADD COLUMN chroma_document_id TEXT UNIQUE;
     END IF;
 END $$;
 
