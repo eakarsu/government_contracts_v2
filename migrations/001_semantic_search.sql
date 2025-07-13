@@ -8,16 +8,6 @@ CREATE TABLE IF NOT EXISTS contract_embeddings (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Add chroma_document_id column to existing contract_embeddings table if it doesn't exist
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                   WHERE table_name='contract_embeddings' AND column_name='chroma_document_id') THEN
-        ALTER TABLE contract_embeddings ADD COLUMN chroma_document_id TEXT;
-        -- Add unique constraint separately to avoid conflicts
-        ALTER TABLE contract_embeddings ADD CONSTRAINT contract_embeddings_chroma_document_id_key UNIQUE (chroma_document_id);
-    END IF;
-END $$;
 
 -- Search queries table (embeddings handled by Chroma)
 CREATE TABLE IF NOT EXISTS search_queries (
