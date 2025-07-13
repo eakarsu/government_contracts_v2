@@ -482,7 +482,7 @@ const ProposalDrafter: React.FC = () => {
                         <div>
                           <h4 className="text-lg font-medium text-gray-900">{proposal.title}</h4>
                           <p className="text-sm text-gray-600">
-                            {proposal.sectionsCount} sections • Version {proposal.version} • 
+                            {proposal.sections?.length || 0} sections • Version {proposal.version} • 
                             Created: {formatDate(proposal.createdAt)}
                           </p>
                         </div>

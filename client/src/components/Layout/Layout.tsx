@@ -13,7 +13,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Fetch app configuration
-  const { data: config } = useQuery(['config'], apiService.getConfig, {
+  const { data: config } = useQuery({
+    queryKey: ['config'],
+    queryFn: apiService.getConfig,
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 
@@ -25,7 +27,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <Header onMenuClick={() => setSidebarOpen(true)} config={config} />
+        <Header onMenuClick={() => setSidebarOpen(true)} config={config as any} />
         
         {/* Page content */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">

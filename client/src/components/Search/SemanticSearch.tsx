@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from '../../hooks/useDebounce';
-import SearchFilters from './SearchFilters';
+import SearchFiltersComponent from './SearchFilters';
 import SearchResults from './SearchResults';
 import SearchSuggestions from './SearchSuggestions';
 import SearchHistory from './SearchHistory';
 
-interface SearchFilters {
+interface SearchFiltersInterface {
   agency?: string;
   naics_code?: string;
   min_value?: number;
@@ -46,7 +46,7 @@ interface SearchResponse {
 
 const SemanticSearch: React.FC = () => {
   const [query, setQuery] = useState('');
-  const [filters, setFilters] = useState<SearchFilters>({});
+  const [filters, setFilters] = useState<SearchFiltersInterface>({});
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +87,7 @@ const SemanticSearch: React.FC = () => {
     }
   };
 
-  const performSearch = async (searchQuery: string, searchFilters: SearchFilters = {}, offset: number = 0) => {
+  const performSearch = async (searchQuery: string, searchFilters: SearchFiltersInterface = {}, offset: number = 0) => {
     if (!searchQuery.trim()) return;
 
     setLoading(true);
@@ -146,7 +146,7 @@ const SemanticSearch: React.FC = () => {
     performSearch(suggestion, filters, 0);
   };
 
-  const handleFilterChange = (newFilters: SearchFilters) => {
+  const handleFilterChange = (newFilters: SearchFiltersInterface) => {
     setFilters(newFilters);
     if (query.trim()) {
       performSearch(query, newFilters, 0);
@@ -280,7 +280,7 @@ const SemanticSearch: React.FC = () => {
         {/* Advanced Filters */}
         {showFilters && (
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <SearchFilters
+            <SearchFiltersComponent
               filters={filters}
               onFiltersChange={handleFilterChange}
             />
