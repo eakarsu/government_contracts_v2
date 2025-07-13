@@ -39,7 +39,13 @@ const { authMiddleware } = require('./middleware/auth');
 const app = express();
 
 // Configure Express to trust proxy headers (needed for rate limiting)
-app.set('trust proxy', true);
+// In development, trust localhost; in production, configure specific proxy IPs
+if (config.nodeEnv === 'development') {
+  app.set('trust proxy', 'loopback');
+} else {
+  // In production, configure specific proxy IPs or use 1 for single proxy
+  app.set('trust proxy', 1);
+}
 
 // Middleware
 app.use(cors());
