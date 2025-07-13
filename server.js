@@ -6,7 +6,7 @@ const multer = require('multer');
 
 // Import configuration and services
 const config = require('./config/env');
-const { prisma, testConnection, disconnect } = require('./config/database');
+const { query, testConnection, disconnect } = require('./config/database');
 const vectorService = require('./services/vectorService');
 
 
@@ -110,11 +110,7 @@ app.use('/api/documents/processing', documentProcessingRouter);
 
 // New AI-powered routes
 app.use('/api/auth', authRoutes);
-app.use('/api/semantic-search', authMiddleware, semanticSearchRoutes);
-app.use('/api/profiles', authMiddleware, profileRoutes);
 app.use('/api/ai-rfp', authMiddleware, aiRfpRoutes);
-app.use('/api/compliance', authMiddleware, complianceRoutes);
-app.use('/api/document-analysis', authMiddleware, documentAnalysisRoutes);
 app.use('/api/bid-prediction', authMiddleware, bidPredictionRoutes);
 
 // Debug: Log when routers are loaded

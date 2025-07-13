@@ -1,100 +1,70 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs-extra');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
+const { query } = require('../config/database');
+const aiService = require('../services/aiService');
+const config = require('../config/env');
+
 const router = express.Router();
 
-// Mock data storage (in production, this would be a database)
-let mockDocuments = [
-  {
-    id: 'doc-1',
-    filename: 'DOD_Cybersecurity_RFP_2024.pdf',
-    contractId: 'W52P1J-24-R-0001',
-    requirements: {
-      sections: ['Technical Approach', 'Management Plan', 'Past Performance', 'Cost Proposal'],
-      deadlines: ['2024-03-15T17:00:00Z'],
-      evaluation_criteria: {
-        technical: 60,
-        cost: 30,
-        past_performance: 10
-      }
-    },
-    sections: [
-      { id: 'tech', title: 'Technical Approach', wordLimit: 5000, required: true },
-      { id: 'mgmt', title: 'Management Plan', wordLimit: 3000, required: true },
-      { id: 'past', title: 'Past Performance', wordLimit: 2000, required: true },
-      { id: 'cost', title: 'Cost Proposal', wordLimit: 1000, required: true }
-    ],
-    uploadedAt: '2024-01-15T10:30:00Z',
-    hasAnalysis: true
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, '../uploads/rfp-documents');
+    fs.ensureDirSync(uploadDir);
+    cb(null, uploadDir);
   },
-  {
-    id: 'doc-2',
-    filename: 'NASA_Software_Development_RFP.pdf',
-    contractId: 'NNH24ZHA001N',
-    requirements: {
-      sections: ['Software Architecture', 'Testing Strategy', 'Security Plan'],
-      deadlines: ['2024-04-01T16:00:00Z'],
-      evaluation_criteria: {
-        technical: 70,
-        cost: 20,
-        past_performance: 10
-      }
-    },
-    sections: [
-      { id: 'arch', title: 'Software Architecture', wordLimit: 4000, required: true },
-      { id: 'test', title: 'Testing Strategy', wordLimit: 2500, required: true },
-      { id: 'sec', title: 'Security Plan', wordLimit: 2000, required: true }
-    ],
-    uploadedAt: '2024-01-20T14:15:00Z',
-    hasAnalysis: true
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
-];
+});
 
-let mockProposals = [
-  {
-    id: 'prop-1',
-    title: 'DOD Cybersecurity Services Proposal',
-    sections: [
-      {
-        id: 'tech-1',
-        sectionId: 'tech',
-        title: 'Technical Approach',
-        content: 'Our comprehensive cybersecurity approach leverages cutting-edge AI and machine learning technologies to provide real-time threat detection and response capabilities...',
-        wordCount: 4850,
-        status: 'reviewed',
-        compliance: {
-          wordLimit: { current: 4850, maximum: 5000, compliant: true },
-          requirementCoverage: { covered: ['AI/ML', 'Real-time monitoring', 'Incident response'], missing: [], percentage: 95 }
-        },
-        lastModified: '2024-01-16T09:30:00Z',
-        modifiedBy: 'AI Assistant'
-      },
-      {
-        id: 'mgmt-1',
-        sectionId: 'mgmt',
-        title: 'Management Plan',
-        content: 'Our project management methodology follows industry best practices including Agile development, regular stakeholder communication, and risk mitigation strategies...',
-        wordCount: 2950,
-        status: 'generated',
-        compliance: {
-          wordLimit: { current: 2950, maximum: 3000, compliant: true },
-          requirementCoverage: { covered: ['Agile methodology', 'Risk management'], missing: ['Quality assurance'], percentage: 85 }
-        },
-        lastModified: '2024-01-16T10:15:00Z',
-        modifiedBy: 'AI Assistant'
-      }
-    ],
-    status: 'draft',
-    version: 1,
-    createdAt: '2024-01-16T08:00:00Z',
-    updatedAt: '2024-01-16T10:15:00Z'
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['.pdf', '.doc', '.docx', '.txt'];
+    const fileExtension = path.extname(file.originalname).toLowerCase();
+    
+    if (allowedTypes.includes(fileExtension)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Unsupported file type. Allowed: PDF, DOC, DOCX, TXT'), false);
+    }
   }
-];
+});
 
 // GET /api/ai-rfp/documents
 router.get('/documents', async (req, res) => {
   try {
+    const result = await query(`
+      SELECT 
+        id, original_filename, contract_id, 
+        parsed_content, requirements, sections, created_at
+      FROM rfp_documents 
+      WHERE user_id = $1 
+      ORDER BY created_at DESC
+    `, [req.user.id]);
+
+    const documents = result.rows.map(row => ({
+      id: row.id,
+      filename: row.original_filename,
+      contractId: row.contract_id,
+      requirements: JSON.parse(row.requirements || '{}'),
+      sections: JSON.parse(row.sections || '[]'),
+      uploadedAt: row.created_at,
+      hasAnalysis: !!row.parsed_content
+    }));
+
     res.json({
       success: true,
-      documents: mockDocuments
+      documents
     });
   } catch (error) {
     console.error('Error fetching RFP documents:', error);
@@ -108,9 +78,28 @@ router.get('/documents', async (req, res) => {
 // GET /api/ai-rfp/proposals
 router.get('/proposals', async (req, res) => {
   try {
+    const result = await query(`
+      SELECT 
+        id, title, sections_data, status, version, 
+        created_at, updated_at
+      FROM proposals 
+      WHERE user_id = $1 
+      ORDER BY updated_at DESC
+    `, [req.user.id]);
+
+    const proposals = result.rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      sections: JSON.parse(row.sections_data || '[]'),
+      status: row.status,
+      version: row.version,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    }));
+
     res.json({
       success: true,
-      proposals: mockProposals
+      proposals
     });
   } catch (error) {
     console.error('Error fetching proposals:', error);
@@ -122,52 +111,101 @@ router.get('/proposals', async (req, res) => {
 });
 
 // POST /api/ai-rfp/upload
-router.post('/upload', async (req, res) => {
+router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
   try {
-    // Simulate file upload processing
-    const filename = req.body.filename || `RFP_Document_${Date.now()}.pdf`;
-    const contractId = req.body.contractId || `CONTRACT-${Date.now()}`;
-    
-    // Simulate AI analysis of the document
-    const analysisResults = {
-      sections: [
-        { id: 'exec', title: 'Executive Summary', wordLimit: 1000, required: true },
-        { id: 'tech', title: 'Technical Approach', wordLimit: 5000, required: true },
-        { id: 'mgmt', title: 'Management Plan', wordLimit: 3000, required: true },
-        { id: 'cost', title: 'Cost Proposal', wordLimit: 2000, required: true }
-      ],
-      requirements: {
-        deadlines: [new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()],
-        evaluation_criteria: {
-          technical: Math.floor(Math.random() * 30) + 50,
-          cost: Math.floor(Math.random() * 30) + 20,
-          past_performance: Math.floor(Math.random() * 20) + 10
-        }
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No RFP document provided' 
+      });
+    }
+
+    const { contractId } = req.body;
+    const filePath = req.file.path;
+    const originalFilename = req.file.originalname;
+
+    console.log(`Processing RFP document: ${originalFilename} for user ${req.user.id}`);
+
+    // Extract text from document
+    let extractedText = '';
+    const fileExtension = path.extname(originalFilename).toLowerCase();
+
+    try {
+      if (fileExtension === '.pdf') {
+        const dataBuffer = fs.readFileSync(filePath);
+        const pdfData = await pdfParse(dataBuffer);
+        extractedText = pdfData.text;
+      } else if (fileExtension === '.docx') {
+        const result = await mammoth.extractRawText({ path: filePath });
+        extractedText = result.value;
+      } else if (fileExtension === '.doc') {
+        const result = await mammoth.extractRawText({ path: filePath });
+        extractedText = result.value;
+      } else if (fileExtension === '.txt') {
+        extractedText = fs.readFileSync(filePath, 'utf8');
       }
-    };
-    
-    const newDocument = {
-      id: `doc-${Date.now()}`,
-      filename,
-      contractId,
-      requirements: analysisResults.requirements,
-      sections: analysisResults.sections,
-      uploadedAt: new Date().toISOString(),
-      hasAnalysis: true
-    };
-    
-    mockDocuments.push(newDocument);
-    
+    } catch (parseError) {
+      console.error('Document parsing error:', parseError);
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Failed to parse document content' 
+      });
+    }
+
+    if (!extractedText || extractedText.trim().length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No text content found in document' 
+      });
+    }
+
+    // Analyze document with AI
+    const analysis = await aiService.analyzeDocument(extractedText, 'rfp');
+
+    // Store RFP document in database
+    const result = await query(`
+      INSERT INTO rfp_documents (
+        user_id, contract_id, original_filename, file_path, 
+        parsed_content, requirements, sections
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `, [
+      req.user.id,
+      contractId || null,
+      originalFilename,
+      filePath,
+      JSON.stringify({ text: extractedText, analysis }),
+      JSON.stringify(analysis.requirements),
+      JSON.stringify(analysis.sections)
+    ]);
+
+    const rfpDocument = result.rows[0];
+
     res.json({
       success: true,
       message: 'RFP document uploaded and analyzed successfully',
-      document: newDocument
+      document: {
+        id: rfpDocument.id,
+        filename: rfpDocument.original_filename,
+        contractId: rfpDocument.contract_id,
+        requirements: JSON.parse(rfpDocument.requirements),
+        sections: JSON.parse(rfpDocument.sections),
+        uploadedAt: rfpDocument.created_at,
+        hasAnalysis: true
+      }
     });
+
   } catch (error) {
-    console.error('Error uploading RFP document:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to upload RFP document'
+    console.error('RFP upload error:', error);
+    
+    // Clean up uploaded file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to process RFP document' 
     });
   }
 });

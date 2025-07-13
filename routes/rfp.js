@@ -1,170 +1,58 @@
 const express = require('express');
+const { query } = require('../config/database');
+
 const router = express.Router();
-
-// Mock data storage
-let mockRFPResponses = [
-  {
-    id: 1,
-    title: 'DOD Cybersecurity Services Response',
-    contractId: 'W52P1J-24-R-0001',
-    status: 'in_review',
-    createdAt: '2024-01-15T08:00:00Z',
-    updatedAt: '2024-01-16T14:30:00Z',
-    submittedAt: null,
-    complianceScore: 85,
-    estimatedValue: 2500000,
-    sections: 4,
-    wordCount: 12500
-  },
-  {
-    id: 2,
-    title: 'NASA Software Development Proposal',
-    contractId: 'NNH24ZHA001N',
-    status: 'draft',
-    createdAt: '2024-01-18T10:15:00Z',
-    updatedAt: '2024-01-20T16:45:00Z',
-    submittedAt: null,
-    complianceScore: 72,
-    estimatedValue: 1800000,
-    sections: 3,
-    wordCount: 8900
-  },
-  {
-    id: 3,
-    title: 'GSA IT Services Contract Response',
-    contractId: 'GS-35F-0119Y',
-    status: 'submitted',
-    createdAt: '2024-01-10T09:30:00Z',
-    updatedAt: '2024-01-12T11:20:00Z',
-    submittedAt: '2024-01-12T17:00:00Z',
-    complianceScore: 92,
-    estimatedValue: 3200000,
-    sections: 5,
-    wordCount: 15200
-  },
-  {
-    id: 4,
-    title: 'DHS Border Security Technology',
-    contractId: 'HSBP1013D0024',
-    status: 'approved',
-    createdAt: '2024-01-05T14:20:00Z',
-    updatedAt: '2024-01-08T10:15:00Z',
-    submittedAt: '2024-01-08T16:30:00Z',
-    complianceScore: 88,
-    estimatedValue: 4100000,
-    sections: 6,
-    wordCount: 18750
-  }
-];
-
-let mockTemplates = [
-  {
-    id: 1,
-    name: 'DOD Standard RFP Template',
-    agency: 'Department of Defense',
-    description: 'Standard template for DOD contract proposals including security requirements',
-    sections: [
-      { id: 'exec', title: 'Executive Summary', wordLimit: 1000, required: true },
-      { id: 'tech', title: 'Technical Approach', wordLimit: 5000, required: true },
-      { id: 'mgmt', title: 'Management Plan', wordLimit: 3000, required: true },
-      { id: 'past', title: 'Past Performance', wordLimit: 2000, required: true },
-      { id: 'cost', title: 'Cost Proposal', wordLimit: 1500, required: true }
-    ],
-    evaluationCriteria: {
-      technical: 60,
-      cost: 25,
-      pastPerformance: 15
-    },
-    createdAt: '2024-01-01T00:00:00Z',
-    usageCount: 12
-  },
-  {
-    id: 2,
-    name: 'NASA Research & Development Template',
-    agency: 'NASA',
-    description: 'Template for NASA R&D contracts with emphasis on innovation',
-    sections: [
-      { id: 'innovation', title: 'Innovation Approach', wordLimit: 4000, required: true },
-      { id: 'technical', title: 'Technical Merit', wordLimit: 3500, required: true },
-      { id: 'team', title: 'Team Qualifications', wordLimit: 2000, required: true },
-      { id: 'timeline', title: 'Project Timeline', wordLimit: 1500, required: true }
-    ],
-    evaluationCriteria: {
-      technical: 70,
-      innovation: 20,
-      team: 10
-    },
-    createdAt: '2024-01-02T00:00:00Z',
-    usageCount: 8
-  }
-];
-
-let mockCompanyProfiles = [
-  {
-    id: 1,
-    companyName: 'TechSolutions Inc.',
-    basicInfo: {
-      dunsNumber: '123456789',
-      cageCode: '1A2B3',
-      certifications: ['ISO 27001', 'CMMI Level 3', '8(a) Certified'],
-      sizeStandard: 'Small Business',
-      naicsCode: ['541511', '541512']
-    },
-    capabilities: [
-      'Cybersecurity Services',
-      'Software Development',
-      'Cloud Migration',
-      'AI/ML Solutions'
-    ],
-    pastPerformance: {
-      totalContracts: 45,
-      totalValue: 125000000,
-      avgRating: 4.7,
-      recentProjects: [
-        { title: 'DOD Network Security', value: 2500000, year: 2023 },
-        { title: 'NASA Data Analytics', value: 1800000, year: 2023 }
-      ]
-    },
-    createdAt: '2024-01-01T00:00:00Z'
-  }
-];
 
 // GET /api/rfp/dashboard/stats
 router.get('/dashboard/stats', async (req, res) => {
   try {
-    const totalRFPs = mockRFPResponses.length;
-    const activeRFPs = mockRFPResponses.filter(r => ['draft', 'in_review'].includes(r.status)).length;
-    const completedRFPs = mockRFPResponses.filter(r => ['submitted', 'approved'].includes(r.status)).length;
-    const submittedRFPs = mockRFPResponses.filter(r => r.status === 'submitted').length;
-    const approvedRFPs = mockRFPResponses.filter(r => r.status === 'approved').length;
+    const statsResult = await query(`
+      SELECT 
+        COUNT(*) as total_rfps,
+        COUNT(CASE WHEN status IN ('draft', 'in_review') THEN 1 END) as active_rfps,
+        COUNT(CASE WHEN status IN ('submitted', 'approved') THEN 1 END) as completed_rfps,
+        COUNT(CASE WHEN status = 'submitted' THEN 1 END) as submitted_rfps,
+        COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved_rfps,
+        AVG(compliance_score) as avg_score,
+        SUM(estimated_value) as total_value
+      FROM proposals 
+      WHERE user_id = $1
+    `, [req.user.id]);
+
+    const recentResult = await query(`
+      SELECT id, title, status, updated_at
+      FROM proposals 
+      WHERE user_id = $1
+      ORDER BY updated_at DESC
+      LIMIT 5
+    `, [req.user.id]);
+
+    const stats = statsResult.rows[0];
+    const totalRFPs = parseInt(stats.total_rfps || 0);
+    const submittedRFPs = parseInt(stats.submitted_rfps || 0);
+    const approvedRFPs = parseInt(stats.approved_rfps || 0);
     
     const winRate = submittedRFPs > 0 ? Math.round((approvedRFPs / submittedRFPs) * 100) : 0;
-    const totalValue = mockRFPResponses.reduce((sum, r) => sum + (r.estimatedValue || 0), 0);
     
-    const recentActivity = mockRFPResponses
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      .slice(0, 5)
-      .map(rfp => ({
-        rfpId: rfp.id,
-        title: rfp.title,
-        status: rfp.status,
-        lastModified: rfp.updatedAt,
-        action: getLastAction(rfp.status)
-      }));
-    
-    const stats = {
-      totalRFPs,
-      activeRFPs,
-      completedRFPs,
-      winRate,
-      totalValue,
-      averageScore: Math.round(mockRFPResponses.reduce((sum, r) => sum + r.complianceScore, 0) / totalRFPs),
-      recentActivity
-    };
+    const recentActivity = recentResult.rows.map(rfp => ({
+      rfpId: rfp.id,
+      title: rfp.title,
+      status: rfp.status,
+      lastModified: rfp.updated_at,
+      action: getLastAction(rfp.status)
+    }));
     
     res.json({
       success: true,
-      stats
+      stats: {
+        totalRFPs,
+        activeRFPs: parseInt(stats.active_rfps || 0),
+        completedRFPs: parseInt(stats.completed_rfps || 0),
+        winRate,
+        totalValue: parseFloat(stats.total_value || 0),
+        averageScore: Math.round(parseFloat(stats.avg_score || 0)),
+        recentActivity
+      }
     });
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
@@ -174,6 +62,16 @@ router.get('/dashboard/stats', async (req, res) => {
     });
   }
 });
+
+function getLastAction(status) {
+  const actions = {
+    'draft': 'Created draft',
+    'in_review': 'Under review',
+    'submitted': 'Submitted to agency',
+    'approved': 'Contract awarded'
+  };
+  return actions[status] || 'Updated';
+}
 
 // GET /api/rfp/responses
 router.get('/responses', async (req, res) => {

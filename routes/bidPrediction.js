@@ -1,82 +1,8 @@
 const express = require('express');
+const { query } = require('../config/database');
+const aiService = require('../services/aiService');
+
 const router = express.Router();
-
-// Mock data storage
-let mockPredictions = [
-  {
-    id: 'pred-1',
-    contractId: 'W52P1J-24-R-0001',
-    contractTitle: 'DOD Cybersecurity Services',
-    agency: 'Department of Defense',
-    probability: 78,
-    confidence: 85,
-    factors: [
-      { factor: 'Past Performance Match', impact: 'positive', score: 92, description: 'Strong track record in similar cybersecurity projects' },
-      { factor: 'Technical Capability', impact: 'positive', score: 88, description: 'Advanced AI/ML expertise aligns with requirements' },
-      { factor: 'Team Qualifications', impact: 'positive', score: 85, description: 'Security clearances and certifications in place' },
-      { factor: 'Competition Level', impact: 'negative', score: 65, description: 'High number of qualified competitors expected' },
-      { factor: 'Price Competitiveness', impact: 'neutral', score: 75, description: 'Pricing within expected range' }
-    ],
-    recommendations: [
-      { type: 'improvement', title: 'Enhance Cost Proposal', description: 'Consider value-added services to justify premium pricing' },
-      { type: 'strength', title: 'Leverage AI Expertise', description: 'Emphasize unique machine learning capabilities in technical approach' },
-      { type: 'risk', title: 'Monitor Competition', description: 'Research competitor capabilities and adjust strategy accordingly' }
-    ],
-    competitiveAnalysis: {
-      estimatedCompetitors: 8,
-      marketPosition: 'Strong',
-      keyDifferentiators: ['AI/ML expertise', 'Security clearances', 'Past performance'],
-      threats: ['Established incumbents', 'Price competition']
-    },
-    createdAt: '2024-01-15T14:30:00Z'
-  },
-  {
-    id: 'pred-2',
-    contractId: 'NNH24ZHA001N',
-    contractTitle: 'NASA Software Development',
-    agency: 'NASA',
-    probability: 65,
-    confidence: 78,
-    factors: [
-      { factor: 'Technical Innovation', impact: 'positive', score: 90, description: 'Cutting-edge software development methodologies' },
-      { factor: 'NASA Experience', impact: 'neutral', score: 70, description: 'Limited direct NASA project experience' },
-      { factor: 'Team Size', impact: 'positive', score: 82, description: 'Adequate team size for project scope' },
-      { factor: 'Timeline Constraints', impact: 'negative', score: 60, description: 'Aggressive timeline may be challenging' }
-    ],
-    recommendations: [
-      { type: 'improvement', title: 'Highlight Space Industry Experience', description: 'Emphasize any aerospace or space-related projects' },
-      { type: 'partnership', title: 'Consider Teaming', description: 'Partner with NASA-experienced contractors' },
-      { type: 'planning', title: 'Detailed Timeline', description: 'Provide comprehensive project schedule with risk mitigation' }
-    ],
-    competitiveAnalysis: {
-      estimatedCompetitors: 12,
-      marketPosition: 'Moderate',
-      keyDifferentiators: ['Agile methodology', 'Modern tech stack'],
-      threats: ['NASA incumbents', 'Timeline concerns']
-    },
-    createdAt: '2024-01-18T11:15:00Z'
-  }
-];
-
-let mockAnalytics = {
-  totalBids: 24,
-  wonBids: 8,
-  winRate: 33.3,
-  avgBidAmount: 2850000,
-  predictionAccuracy: 82.5,
-  monthlyTrends: [
-    { month: 'Jan', bids: 4, wins: 1, accuracy: 85 },
-    { month: 'Feb', bids: 6, wins: 2, accuracy: 80 },
-    { month: 'Mar', bids: 5, wins: 2, accuracy: 83 },
-    { month: 'Apr', bids: 9, wins: 3, accuracy: 81 }
-  ],
-  topFactors: [
-    { factor: 'Past Performance', avgImpact: 85 },
-    { factor: 'Technical Capability', avgImpact: 82 },
-    { factor: 'Price Competitiveness', avgImpact: 78 },
-    { factor: 'Team Qualifications', avgImpact: 76 }
-  ]
-};
 
 // GET /api/bid-prediction/predictions
 router.get('/predictions', async (req, res) => {
@@ -85,16 +11,45 @@ router.get('/predictions', async (req, res) => {
     const limitNum = parseInt(limit);
     const offsetNum = parseInt(offset);
     
-    const paginatedPredictions = mockPredictions.slice(offsetNum, offsetNum + limitNum);
+    const result = await query(`
+      SELECT 
+        id, contract_id, contract_title, agency, probability, confidence,
+        factors, recommendations, competitive_analysis, created_at
+      FROM bid_predictions 
+      WHERE user_id = $1 
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [req.user.id, limitNum, offsetNum]);
+
+    const countResult = await query(`
+      SELECT COUNT(*) as total 
+      FROM bid_predictions 
+      WHERE user_id = $1
+    `, [req.user.id]);
+
+    const total = parseInt(countResult.rows[0].total);
+    
+    const predictions = result.rows.map(row => ({
+      id: row.id,
+      contractId: row.contract_id,
+      contractTitle: row.contract_title,
+      agency: row.agency,
+      probability: row.probability,
+      confidence: row.confidence,
+      factors: JSON.parse(row.factors || '[]'),
+      recommendations: JSON.parse(row.recommendations || '[]'),
+      competitiveAnalysis: JSON.parse(row.competitive_analysis || '{}'),
+      createdAt: row.created_at
+    }));
     
     res.json({
       success: true,
-      predictions: paginatedPredictions,
+      predictions,
       pagination: {
-        total: mockPredictions.length,
+        total,
         limit: limitNum,
         offset: offsetNum,
-        hasMore: offsetNum + limitNum < mockPredictions.length
+        hasMore: offsetNum + limitNum < total
       }
     });
   } catch (error) {
@@ -109,9 +64,56 @@ router.get('/predictions', async (req, res) => {
 // GET /api/bid-prediction/history
 router.get('/history', async (req, res) => {
   try {
+    const analyticsResult = await query(`
+      SELECT 
+        COUNT(*) as total_bids,
+        COUNT(CASE WHEN outcome = 'won' THEN 1 END) as won_bids,
+        AVG(bid_amount) as avg_bid_amount,
+        AVG(CASE WHEN outcome IS NOT NULL THEN 
+          CASE WHEN (outcome = 'won' AND probability > 50) OR (outcome = 'lost' AND probability <= 50) 
+          THEN 100 ELSE 0 END 
+        END) as prediction_accuracy
+      FROM bid_predictions bp
+      LEFT JOIN bid_history bh ON bp.contract_id = bh.contract_id
+      WHERE bp.user_id = $1
+    `, [req.user.id]);
+
+    const monthlyResult = await query(`
+      SELECT 
+        DATE_TRUNC('month', created_at) as month,
+        COUNT(*) as bids,
+        COUNT(CASE WHEN outcome = 'won' THEN 1 END) as wins
+      FROM bid_predictions bp
+      LEFT JOIN bid_history bh ON bp.contract_id = bh.contract_id
+      WHERE bp.user_id = $1 AND created_at >= NOW() - INTERVAL '6 months'
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY month
+    `, [req.user.id]);
+
+    const analytics = analyticsResult.rows[0];
+    const monthlyTrends = monthlyResult.rows.map(row => ({
+      month: new Date(row.month).toLocaleDateString('en-US', { month: 'short' }),
+      bids: parseInt(row.bids),
+      wins: parseInt(row.wins || 0),
+      accuracy: row.bids > 0 ? Math.round((row.wins / row.bids) * 100) : 0
+    }));
+
     res.json({
       success: true,
-      analytics: mockAnalytics
+      analytics: {
+        totalBids: parseInt(analytics.total_bids || 0),
+        wonBids: parseInt(analytics.won_bids || 0),
+        winRate: analytics.total_bids > 0 ? Math.round((analytics.won_bids / analytics.total_bids) * 100) : 0,
+        avgBidAmount: parseFloat(analytics.avg_bid_amount || 0),
+        predictionAccuracy: parseFloat(analytics.prediction_accuracy || 0),
+        monthlyTrends,
+        topFactors: [
+          { factor: 'Past Performance', avgImpact: 85 },
+          { factor: 'Technical Capability', avgImpact: 82 },
+          { factor: 'Price Competitiveness', avgImpact: 78 },
+          { factor: 'Team Qualifications', avgImpact: 76 }
+        ]
+      }
     });
   } catch (error) {
     console.error('Error fetching bid history:', error);
