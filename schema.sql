@@ -1,6 +1,6 @@
 -- Users table (if not exists)
 CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255),
     first_name VARCHAR(255),
@@ -11,10 +11,13 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Add role column if it doesn't exist
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user';
+
 -- RFP Documents table
 CREATE TABLE IF NOT EXISTS rfp_documents (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id),
+    user_id UUID NOT NULL REFERENCES users(id),
     contract_id VARCHAR(255),
     original_filename VARCHAR(255) NOT NULL,
     file_path VARCHAR(500) NOT NULL,
@@ -28,7 +31,7 @@ CREATE TABLE IF NOT EXISTS rfp_documents (
 -- Proposals table
 CREATE TABLE IF NOT EXISTS proposals (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id),
+    user_id UUID NOT NULL REFERENCES users(id),
     rfp_document_id INTEGER REFERENCES rfp_documents(id),
     title VARCHAR(255) NOT NULL,
     sections_data JSONB,
@@ -43,7 +46,7 @@ CREATE TABLE IF NOT EXISTS proposals (
 -- Bid Predictions table
 CREATE TABLE IF NOT EXISTS bid_predictions (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id),
+    user_id UUID NOT NULL REFERENCES users(id),
     contract_id VARCHAR(255) NOT NULL,
     contract_title VARCHAR(255),
     agency VARCHAR(255),
@@ -59,7 +62,7 @@ CREATE TABLE IF NOT EXISTS bid_predictions (
 -- Bid History table
 CREATE TABLE IF NOT EXISTS bid_history (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id),
+    user_id UUID NOT NULL REFERENCES users(id),
     contract_id VARCHAR(255) NOT NULL,
     bid_amount DECIMAL(15,2),
     outcome VARCHAR(50), -- 'won', 'lost', 'pending'
@@ -71,7 +74,7 @@ CREATE TABLE IF NOT EXISTS bid_history (
 -- Company Profiles table
 CREATE TABLE IF NOT EXISTS company_profiles (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id),
+    user_id UUID NOT NULL REFERENCES users(id),
     company_name VARCHAR(255) NOT NULL,
     basic_info JSONB,
     capabilities JSONB,
@@ -131,7 +134,7 @@ VALUES ('test@example.com', 'Test', 'User', 'user')
 ON CONFLICT (email) DO NOTHING;
 
 -- Insert sample RFP templates
-INSERT INTO rfp_templates (name, agency, description, sections, evaluation_criteria) VALUES
+INSERT INTO rfp_templates (name, agency, description, sections, evaluation_criteria, updated_at) VALUES
 ('DOD Standard RFP Template', 'Department of Defense', 'Standard template for DOD contract proposals including security requirements', 
  '[
    {"id": "exec", "title": "Executive Summary", "wordLimit": 1000, "required": true},
@@ -140,7 +143,8 @@ INSERT INTO rfp_templates (name, agency, description, sections, evaluation_crite
    {"id": "past", "title": "Past Performance", "wordLimit": 2000, "required": true},
    {"id": "cost", "title": "Cost Proposal", "wordLimit": 1500, "required": true}
  ]',
- '{"technical": 60, "cost": 25, "pastPerformance": 15}'
+ '{"technical": 60, "cost": 25, "pastPerformance": 15}',
+ CURRENT_TIMESTAMP
 ),
 ('NASA Research & Development Template', 'NASA', 'Template for NASA R&D contracts with emphasis on innovation',
  '[
@@ -149,6 +153,7 @@ INSERT INTO rfp_templates (name, agency, description, sections, evaluation_crite
    {"id": "team", "title": "Team Qualifications", "wordLimit": 2000, "required": true},
    {"id": "timeline", "title": "Project Timeline", "wordLimit": 1500, "required": true}
  ]',
- '{"technical": 70, "innovation": 20, "team": 10}'
+ '{"technical": 70, "innovation": 20, "team": 10}',
+ CURRENT_TIMESTAMP
 )
 ON CONFLICT DO NOTHING;
