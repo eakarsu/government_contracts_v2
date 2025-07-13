@@ -16,7 +16,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user';
 
 -- RFP Documents table
 CREATE TABLE IF NOT EXISTS rfp_documents (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id),
     contract_id VARCHAR(255),
     original_filename VARCHAR(255) NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS rfp_documents (
 CREATE TABLE IF NOT EXISTS proposals (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
-    rfp_document_id INTEGER REFERENCES rfp_documents(id),
+    rfp_document_id UUID REFERENCES rfp_documents(id),
     title VARCHAR(255) NOT NULL,
     sections_data JSONB,
     status VARCHAR(50) DEFAULT 'draft',
@@ -129,8 +129,8 @@ CREATE INDEX IF NOT EXISTS idx_contracts_agency ON contracts(agency);
 CREATE INDEX IF NOT EXISTS idx_contracts_naics_code ON contracts(naics_code);
 
 -- Insert default user for development
-INSERT INTO users (id, email, first_name, last_name, role) 
-VALUES ('00000000-0000-0000-0000-000000000001', 'test@example.com', 'Test', 'User', 'user')
+INSERT INTO users (id, email, password_hash, first_name, last_name, role) 
+VALUES ('00000000-0000-0000-0000-000000000001', 'test@example.com', 'dummy_hash', 'Test', 'User', 'user')
 ON CONFLICT DO NOTHING;
 
 -- Insert sample RFP templates
