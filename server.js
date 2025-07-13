@@ -38,6 +38,9 @@ const { authMiddleware } = require('./middleware/auth');
 
 const app = express();
 
+// Configure Express to trust proxy headers (needed for rate limiting)
+app.set('trust proxy', true);
+
 // Middleware
 app.use(cors());
 app.use(rateLimiter);
