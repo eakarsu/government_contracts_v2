@@ -24,12 +24,12 @@ async function generateAllRFPSectionsWithAI(contract, template, profile, section
 **SECTION ${index + 1}: ${section.title}**
 - Description: ${section.description || 'Standard RFP section'}
 - Requirements: ${JSON.stringify(section.requirements || [])}
-- Expected Length: ${section.title.toLowerCase().includes('executive') ? '800-1200 words' : 
+- Expected Length: ${section.title.toLowerCase().includes('executive') ? '1500-2500 words' : 
                    section.title.toLowerCase().includes('technical') ? '1500-2500 words' :
-                   section.title.toLowerCase().includes('management') ? '1000-1800 words' :
-                   section.title.toLowerCase().includes('cost') ? '600-1000 words' :
+                   section.title.toLowerCase().includes('management') ? '1500-2500 words' :
+                   section.title.toLowerCase().includes('cost') ? '1500-2500 words' :
                    '800-1500 words'}
-`).join('\n');
+`).join('\n');  
 
     const prompt = `
 You are an expert RFP response writer. Generate a comprehensive, professional RFP response with ALL sections below in a SINGLE response.
