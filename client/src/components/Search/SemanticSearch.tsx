@@ -16,7 +16,7 @@ interface SearchFiltersInterface {
   set_aside?: string;
 }
 
-interface SearchResult {
+interface SemanticSearchResult {
   contract_id: string;
   title: string;
   description: string;
@@ -32,15 +32,14 @@ interface SearchResult {
   noticeId?: string;
   notice_id?: string;
   postedDate?: string;
-  posted_date?: string;
   semanticScore?: number;
   keywordScore?: number;
   naicsMatch?: number;
 }
 
-interface SearchResponse {
+interface SemanticSearchResponse {
   success: boolean;
-  results: SearchResult[];
+  results: any[];
   pagination?: {
     total: number;
     limit: number;
@@ -61,7 +60,7 @@ interface SearchResponse {
 const SemanticSearch: React.FC = () => {
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<SearchFiltersInterface>({});
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<SemanticSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -125,9 +124,9 @@ const SemanticSearch: React.FC = () => {
         console.log('Search response results count:', data.results.length);
         console.log('Pagination data:', data.pagination);
         
-        // Transform Contract[] to SearchResult[] if needed
-        const transformedResults = data.results.map((result: any) => ({
-          contract_id: result.contract_id || result.noticeId || result.notice_id || result.id?.toString(),
+        // Transform Contract[] to SemanticSearchResult[] if needed
+        const transformedResults: SemanticSearchResult[] = data.results.map((result: any) => ({
+          contract_id: result.contract_id || result.noticeId || result.notice_id || result.id?.toString() || '',
           title: result.title || 'Untitled',
           description: result.description || '',
           agency: result.agency || 'N/A',
@@ -137,13 +136,20 @@ const SemanticSearch: React.FC = () => {
           semantic_score: result.semantic_score || result.semanticScore || 0,
           keyword_score: result.keyword_score || result.keywordScore || 0,
           combined_score: result.combined_score || result.semanticScore || 0,
-          ...result // Keep all original properties
+          // Keep additional properties
+          id: result.id,
+          noticeId: result.noticeId,
+          notice_id: result.notice_id,
+          postedDate: result.postedDate,
+          semanticScore: result.semanticScore,
+          keywordScore: result.keywordScore,
+          naicsMatch: result.naicsMatch
         }));
         
         setResults(transformedResults);
         
         // Fix pagination hasMore calculation if backend doesn't provide it correctly
-        const paginationData = data.pagination || {};
+        const paginationData = data.pagination || { total: 0, limit: 20, offset: 0, hasMore: false };
         const fixedPagination = {
           total: paginationData.total || data.results.length,
           limit: paginationData.limit || 20,
@@ -155,7 +161,7 @@ const SemanticSearch: React.FC = () => {
         console.log('Fixed pagination:', fixedPagination);
         console.log('Should show pagination?', fixedPagination.total > fixedPagination.limit);
         setPagination(fixedPagination);
-        setQueryInfo(data.query_info || null);
+        setQueryInfo((data as any).query_info || null);
       } else {
         setError('Search failed. Please try again.');
       }

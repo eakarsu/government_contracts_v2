@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface SearchResult {
+interface SearchResultItem {
   contract_id: string;
   title: string;
   description: string;
@@ -14,10 +14,14 @@ interface SearchResult {
   semanticScore?: number;
   keywordScore?: number;
   naicsMatch?: number;
+  id?: number;
+  noticeId?: string;
+  notice_id?: string;
+  postedDate?: string;
 }
 
 interface SearchResultsProps {
-  results: SearchResult[];
+  results: SearchResultItem[];
   loading: boolean;
   pagination: {
     total: number;
