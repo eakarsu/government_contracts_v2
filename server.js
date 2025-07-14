@@ -37,7 +37,7 @@ const documentAnalysisRoutes = require('./routes/documentAnalysis');
 const bidPredictionRoutes = require('./routes/bidPrediction');
 
 // Import middleware
-const { rateLimiter } = require('./middleware/rateLimiter');
+const { rateLimiter, statusRateLimiter } = require('./middleware/rateLimiter');
 const { errorHandler } = require('./middleware/errorHandler');
 const { authMiddleware } = require('./middleware/auth');
 
@@ -99,6 +99,12 @@ const upload = multer({
     }
   }
 });
+
+// Status endpoints with more permissive rate limiting
+app.use('/api/status', statusRateLimiter);
+app.use('/api/config', statusRateLimiter);
+app.use('/api/health', statusRateLimiter);
+app.use('/api/documents/queue/status', statusRateLimiter);
 
 // Existing routes
 app.use('/api/contracts', contractsRouter);

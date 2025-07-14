@@ -3,7 +3,7 @@ const rateLimit = require('express-rate-limit');
 // Basic rate limiter for API endpoints
 const rateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 1000, // Increased to 1000 requests per 15 minutes for dashboard polling
   message: {
     error: 'Too many requests from this IP, please try again later.'
   },
@@ -33,8 +33,20 @@ const aiRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Status/polling endpoints rate limiter (very permissive for dashboard updates)
+const statusRateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 200, // Allow 200 status requests per minute for real-time updates
+  message: {
+    error: 'Too many status requests, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   rateLimiter,
   authRateLimiter,
-  aiRateLimiter
+  aiRateLimiter,
+  statusRateLimiter
 };
