@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user';
 
 -- RFP Documents table
-CREATE TABLE IF NOT EXISTS rfp_documents (
+DROP TABLE IF EXISTS rfp_documents CASCADE;
+CREATE TABLE rfp_documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id),
     contract_id VARCHAR(255),
@@ -29,7 +30,8 @@ CREATE TABLE IF NOT EXISTS rfp_documents (
 );
 
 -- Proposals table
-CREATE TABLE IF NOT EXISTS proposals (
+DROP TABLE IF EXISTS proposals CASCADE;
+CREATE TABLE proposals (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
     rfp_document_id UUID REFERENCES rfp_documents(id),
@@ -44,7 +46,8 @@ CREATE TABLE IF NOT EXISTS proposals (
 );
 
 -- Bid Predictions table
-CREATE TABLE IF NOT EXISTS bid_predictions (
+DROP TABLE IF EXISTS bid_predictions CASCADE;
+CREATE TABLE bid_predictions (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
     contract_id VARCHAR(255) NOT NULL,
@@ -60,7 +63,8 @@ CREATE TABLE IF NOT EXISTS bid_predictions (
 );
 
 -- Bid History table
-CREATE TABLE IF NOT EXISTS bid_history (
+DROP TABLE IF EXISTS bid_history CASCADE;
+CREATE TABLE bid_history (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
     contract_id VARCHAR(255) NOT NULL,
@@ -72,7 +76,8 @@ CREATE TABLE IF NOT EXISTS bid_history (
 );
 
 -- Company Profiles table
-CREATE TABLE IF NOT EXISTS company_profiles (
+DROP TABLE IF EXISTS company_profiles CASCADE;
+CREATE TABLE company_profiles (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
     company_name VARCHAR(255) NOT NULL,
@@ -118,9 +123,6 @@ CREATE TABLE IF NOT EXISTS contracts (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Add missing columns to existing tables if they don't exist
-ALTER TABLE bid_predictions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id);
-ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id);
 
 -- Indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_rfp_documents_user_id ON rfp_documents(user_id);
