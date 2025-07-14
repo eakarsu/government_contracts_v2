@@ -169,7 +169,7 @@ router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
     const filePath = req.file.path;
     const originalFilename = req.file.originalname;
 
-    console.log(`Processing RFP document: ${originalFilename} for user ${req.user.id}`);
+    console.log(`Processing RFP document: ${originalFilename} for user 1`);
 
     // Extract text from document
     let extractedText = '';
