@@ -1220,21 +1220,12 @@ router.get('/responses/:id/download/:format', async (req, res) => {
       res.send(textContent);
 
     } else if (format === 'pdf') {
-      // Use ProposalDraftingService to generate PDF
-      console.log(`📄 [DEBUG] Using ProposalDraftingService to generate PDF`);
+      console.log(`📄 [DEBUG] Generating PDF for RFP response ${id}`);
       
       try {
-        // Create a proposal-like object for the service
-        const proposalForPDF = {
-          title: rfpResponse.title,
-          created_at: rfpResponse.created_at
-        };
+        const proposal = { title: rfpResponse.title };
+        const pdfBuffer = await proposalService.generatePDF(proposal, sections);
         
-        const pdfBuffer = await proposalService.generatePDF(proposalForPDF, sections);
-        
-        console.log(`📄 [DEBUG] Generated PDF buffer size: ${pdfBuffer.length} bytes`);
-        
-        // Clean filename for download
         const cleanTitle = rfpResponse.title
           .replace(/[^a-zA-Z0-9\s\-_]/g, '')
           .replace(/\s+/g, '_')
@@ -1244,27 +1235,18 @@ router.get('/responses/:id/download/:format', async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.pdf"`);
         res.send(pdfBuffer);
         
-      } catch (pdfError) {
-        console.error(`❌ [DEBUG] PDF generation error:`, pdfError);
-        throw new Error(`PDF generation failed: ${pdfError.message}`);
+      } catch (error) {
+        console.error(`❌ [DEBUG] PDF generation error:`, error);
+        throw new Error(`PDF generation failed: ${error.message}`);
       }
 
     } else if (format === 'docx') {
-      // Use ProposalDraftingService to generate DOCX
-      console.log(`📄 [DEBUG] Using ProposalDraftingService to generate DOCX`);
+      console.log(`📄 [DEBUG] Generating DOCX for RFP response ${id}`);
       
       try {
-        // Create a proposal-like object for the service
-        const proposalForDOCX = {
-          title: rfpResponse.title,
-          created_at: rfpResponse.created_at
-        };
+        const proposal = { title: rfpResponse.title };
+        const docxBuffer = await proposalService.generateDOCX(proposal, sections);
         
-        const docxBuffer = await proposalService.generateDOCX(proposalForDOCX, sections);
-        
-        console.log(`📄 [DEBUG] Generated DOCX buffer size: ${docxBuffer.length} bytes`);
-        
-        // Clean filename for download
         const cleanTitle = rfpResponse.title
           .replace(/[^a-zA-Z0-9\s\-_]/g, '')
           .replace(/\s+/g, '_')
@@ -1274,9 +1256,9 @@ router.get('/responses/:id/download/:format', async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.docx"`);
         res.send(docxBuffer);
         
-      } catch (docxError) {
-        console.error(`❌ [DEBUG] DOCX generation error:`, docxError);
-        throw new Error(`DOCX generation failed: ${docxError.message}`);
+      } catch (error) {
+        console.error(`❌ [DEBUG] DOCX generation error:`, error);
+        throw new Error(`DOCX generation failed: ${error.message}`);
       }
     }
 
@@ -1291,262 +1273,6 @@ router.get('/responses/:id/download/:format', async (req, res) => {
   }
 });
 
-// Helper function to generate HTML content for PDF
-function generateHTMLContent(rfpResponse, responseData) {
-  const sections = responseData.sections || [];
-  const contract = responseData.contract || {};
-  const companyProfile = responseData.companyProfile || {};
-
-  // Escape HTML content to prevent malformed HTML
-  const escapeHtml = (text) => {
-    if (!text) return '';
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  };
-
-  // Clean and format content for PDF
-  const formatContent = (content) => {
-    if (!content) return 'No content available';
-    
-    // Escape HTML and convert newlines to paragraphs
-    const escaped = escapeHtml(content);
-    return escaped
-      .split('\n')
-      .filter(line => line.trim().length > 0)
-      .map(line => `<p>${line.trim()}</p>`)
-      .join('');
-  };
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${escapeHtml(rfpResponse.title || 'RFP Response')}</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
-            line-height: 1.6;
-            color: #333;
-            background: white;
-            padding: 1in;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 2em;
-            border-bottom: 2px solid #333;
-            padding-bottom: 1em;
-        }
-        
-        .title {
-            font-size: 20pt;
-            font-weight: bold;
-            margin-bottom: 0.5em;
-            color: #000;
-        }
-        
-        .subtitle {
-            font-size: 14pt;
-            color: #666;
-            font-style: italic;
-        }
-        
-        .meta-info {
-            margin: 2em 0;
-            padding: 1em;
-            background-color: #f8f9fa;
-            border-left: 4px solid #007cba;
-            border-radius: 4px;
-        }
-        
-        .meta-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 0;
-        }
-        
-        .meta-table td {
-            padding: 0.5em;
-            border-bottom: 1px solid #ddd;
-            vertical-align: top;
-        }
-        
-        .meta-table td:first-child {
-            font-weight: bold;
-            width: 150px;
-            color: #555;
-        }
-        
-        .section {
-            margin: 2em 0;
-            page-break-inside: avoid;
-        }
-        
-        .section-title {
-            font-size: 16pt;
-            font-weight: bold;
-            color: #007cba;
-            border-bottom: 2px solid #007cba;
-            padding-bottom: 0.5em;
-            margin-bottom: 1em;
-        }
-        
-        .section-content {
-            text-align: justify;
-            margin-bottom: 1em;
-        }
-        
-        .section-content p {
-            margin-bottom: 1em;
-        }
-        
-        .section-meta {
-            font-size: 10pt;
-            color: #666;
-            border-top: 1px solid #eee;
-            padding-top: 0.5em;
-            margin-top: 1em;
-        }
-        
-        .page-break {
-            page-break-before: always;
-        }
-        
-        @media print {
-            body {
-                padding: 0;
-                margin: 0;
-            }
-            .page-break {
-                page-break-before: always;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="title">${escapeHtml(rfpResponse.title || 'RFP Response')}</div>
-        <div class="subtitle">Request for Proposal Response</div>
-    </div>
-
-    <div class="meta-info">
-        <table class="meta-table">
-            <tr>
-                <td>Contract:</td>
-                <td>${escapeHtml(contract.title || 'N/A')}</td>
-            </tr>
-            <tr>
-                <td>Agency:</td>
-                <td>${escapeHtml(contract.agency || 'N/A')}</td>
-            </tr>
-            <tr>
-                <td>Company:</td>
-                <td>${escapeHtml(companyProfile.name || 'N/A')}</td>
-            </tr>
-            <tr>
-                <td>Generated:</td>
-                <td>${new Date(rfpResponse.created_at).toLocaleDateString()}</td>
-            </tr>
-            <tr>
-                <td>Total Sections:</td>
-                <td>${sections.length}</td>
-            </tr>
-            <tr>
-                <td>Total Words:</td>
-                <td>${sections.reduce((sum, s) => sum + (s.wordCount || 0), 0).toLocaleString()}</td>
-            </tr>
-        </table>
-    </div>
-
-    ${sections.map((section, index) => `
-        <div class="section ${index > 0 ? 'page-break' : ''}">
-            <div class="section-title">${index + 1}. ${escapeHtml(section.title || 'Untitled Section')}</div>
-            <div class="section-content">
-                ${formatContent(section.content)}
-            </div>
-            <div class="section-meta">
-                Word Count: ${section.wordCount || 0} | 
-                Status: ${escapeHtml(section.status || 'generated')} | 
-                Last Modified: ${new Date(section.lastModified || rfpResponse.updated_at).toLocaleDateString()}
-            </div>
-        </div>
-    `).join('')}
-</body>
-</html>`;
-}
-
-// Helper function to generate Word-compatible content
-function generateWordContent(rfpResponse, responseData) {
-  const sections = responseData.sections || [];
-  const contract = responseData.contract || {};
-  const companyProfile = responseData.companyProfile || {};
-
-  // Generate a simplified HTML that Word can import as DOCX
-  let wordContent = `
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta charset="UTF-8">
-<title>${rfpResponse.title}</title>
-<!--[if gte mso 9]>
-<xml>
-<w:WordDocument>
-<w:View>Print</w:View>
-<w:Zoom>90</w:Zoom>
-<w:DoNotPromptForConvert/>
-<w:DoNotShowInsertionsAndDeletions/>
-</w:WordDocument>
-</xml>
-<![endif]-->
-<style>
-body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; }
-h1 { font-size: 18pt; font-weight: bold; text-align: center; }
-h2 { font-size: 14pt; font-weight: bold; color: #1f4e79; }
-.meta-table { border-collapse: collapse; width: 100%; margin: 20px 0; }
-.meta-table td { border: 1px solid #ccc; padding: 8px; }
-.meta-table td:first-child { font-weight: bold; background-color: #f2f2f2; }
-</style>
-</head>
-<body>
-<h1>${rfpResponse.title}</h1>
-<p style="text-align: center; font-style: italic;">Request for Proposal Response</p>
-
-<table class="meta-table">
-<tr><td>Contract:</td><td>${contract.title || 'N/A'}</td></tr>
-<tr><td>Agency:</td><td>${contract.agency || 'N/A'}</td></tr>
-<tr><td>Company:</td><td>${companyProfile.name || 'N/A'}</td></tr>
-<tr><td>Generated:</td><td>${new Date(rfpResponse.created_at).toLocaleDateString()}</td></tr>
-<tr><td>Total Sections:</td><td>${sections.length}</td></tr>
-<tr><td>Total Words:</td><td>${sections.reduce((sum, s) => sum + (s.wordCount || 0), 0).toLocaleString()}</td></tr>
-</table>
-
-${sections.map((section, index) => `
-<div style="page-break-before: ${index > 0 ? 'always' : 'auto'};">
-<h2>${index + 1}. ${section.title}</h2>
-<div>${section.content.replace(/\n/g, '<br>')}</div>
-<p style="font-size: 10pt; color: #666; border-top: 1px solid #eee; padding-top: 10px; margin-top: 20px;">
-Word Count: ${section.wordCount || 0} | Status: ${section.status || 'generated'} | 
-Last Modified: ${new Date(section.lastModified || rfpResponse.updated_at).toLocaleDateString()}
-</p>
-</div>
-`).join('')}
-
-</body>
-</html>`;
-
-  return wordContent;
-}
 
 // GET /api/rfp/contracts - Get contracts for RFP generation
 router.get('/contracts', async (req, res) => {
