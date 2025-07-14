@@ -152,7 +152,7 @@ const SemanticSearch: React.FC = () => {
         setResults(transformedResults);
         
         // Fix pagination hasMore calculation if backend doesn't provide it correctly
-        const paginationData = data.pagination || {};
+        const paginationData = data.pagination || { total: 0, limit: 0, offset: 0, hasMore: false };
         const actualTotal = paginationData.total || data.results.length;
         const actualLimit = pagination.limit; // Use the limit we requested
         const actualOffset = paginationData.offset || 0;
