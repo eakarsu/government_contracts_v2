@@ -20,6 +20,16 @@ async function initializeRFPTables() {
       )
     `);
 
+    // Add missing columns if they don't exist (for existing tables)
+    try {
+      await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS basic_info JSONB DEFAULT '{}'`);
+      await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS capabilities JSONB DEFAULT '{}'`);
+      await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS past_performance JSONB DEFAULT '[]'`);
+      await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS key_personnel JSONB DEFAULT '[]'`);
+    } catch (alterError) {
+      console.log('Note: Some columns may already exist:', alterError.message);
+    }
+
     // Create rfp_templates table
     await query(`
       CREATE TABLE IF NOT EXISTS rfp_templates (
@@ -224,6 +234,10 @@ router.get('/company-profiles', async (req, res) => {
         SELECT 
           id,
           company_name,
+          basic_info,
+          capabilities,
+          past_performance,
+          key_personnel,
           created_at,
           updated_at
         FROM company_profiles 
@@ -233,10 +247,10 @@ router.get('/company-profiles', async (req, res) => {
       const profiles = result.rows.map(row => ({
         id: row.id,
         companyName: row.company_name,
-        basicInfo: {}, // Default empty object since column doesn't exist yet
-        capabilities: {}, // Default empty object since column doesn't exist yet
-        pastPerformance: [], // Default empty array since column doesn't exist yet
-        keyPersonnel: [], // Default empty array since column doesn't exist yet
+        basicInfo: row.basic_info ? JSON.parse(row.basic_info) : {},
+        capabilities: row.capabilities ? JSON.parse(row.capabilities) : {},
+        pastPerformance: row.past_performance ? JSON.parse(row.past_performance) : [],
+        keyPersonnel: row.key_personnel ? JSON.parse(row.key_personnel) : [],
         createdAt: row.created_at,
         updatedAt: row.updated_at
       }));
@@ -248,7 +262,8 @@ router.get('/company-profiles', async (req, res) => {
         profiles: profiles
       });
     } catch (dbError) {
-      console.warn('Company profiles table may not exist:', dbError.message);
+      console.error('Company profiles database error:', dbError.message);
+      // If table doesn't exist or has wrong schema, return empty array
       res.json({
         success: true,
         profiles: []
