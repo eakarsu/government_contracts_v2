@@ -218,6 +218,149 @@ async function initializeRFPTables() {
       console.log('✅ [DEBUG] Sample contracts inserted successfully');
     }
 
+    // Insert comprehensive RFP template if templates table is empty
+    const templateCount = await query('SELECT COUNT(*) FROM rfp_templates');
+    if (parseInt(templateCount.rows[0].count) === 0) {
+      console.log('📋 [DEBUG] Inserting comprehensive RFP template...');
+      
+      const comprehensiveTemplate = {
+        name: 'Comprehensive Government RFP Template',
+        agency: 'General Template',
+        description: 'Complete 15-section template for government contract proposals',
+        sections: [
+          {
+            id: 'executive_summary',
+            title: 'Executive Summary',
+            description: 'High-level overview of the proposal and key value propositions',
+            requirements: ['Project understanding', 'Key benefits', 'Team qualifications', 'Value proposition'],
+            wordLimit: 1000
+          },
+          {
+            id: 'technical_approach',
+            title: 'Technical Approach',
+            description: 'Detailed technical methodology and solution architecture',
+            requirements: ['Architecture design', 'Technology stack', 'Implementation methodology', 'Technical innovation'],
+            wordLimit: 3000
+          },
+          {
+            id: 'management_approach',
+            title: 'Management Approach',
+            description: 'Project management methodology and organizational structure',
+            requirements: ['Project timeline', 'Resource allocation', 'Communication plan', 'Governance structure'],
+            wordLimit: 2000
+          },
+          {
+            id: 'past_performance',
+            title: 'Past Performance',
+            description: 'Relevant experience and successful project examples',
+            requirements: ['Similar projects', 'Client references', 'Success metrics', 'Lessons learned'],
+            wordLimit: 2500
+          },
+          {
+            id: 'key_personnel',
+            title: 'Key Personnel',
+            description: 'Team members, qualifications, and role assignments',
+            requirements: ['Team structure', 'Key qualifications', 'Role assignments', 'Availability'],
+            wordLimit: 2000
+          },
+          {
+            id: 'cost_proposal',
+            title: 'Cost Proposal',
+            description: 'Detailed pricing structure and cost justification',
+            requirements: ['Labor costs', 'Material costs', 'Overhead expenses', 'Cost justification'],
+            wordLimit: 1500
+          },
+          {
+            id: 'schedule_milestones',
+            title: 'Schedule and Milestones',
+            description: 'Project timeline with key deliverables and milestones',
+            requirements: ['Project phases', 'Key milestones', 'Dependencies', 'Critical path'],
+            wordLimit: 1500
+          },
+          {
+            id: 'risk_management',
+            title: 'Risk Management',
+            description: 'Risk identification, assessment, and mitigation strategies',
+            requirements: ['Risk identification', 'Risk assessment', 'Mitigation strategies', 'Contingency plans'],
+            wordLimit: 1500
+          },
+          {
+            id: 'quality_assurance',
+            title: 'Quality Assurance',
+            description: 'Quality control processes and testing methodologies',
+            requirements: ['QA processes', 'Testing methodology', 'Quality metrics', 'Continuous improvement'],
+            wordLimit: 1500
+          },
+          {
+            id: 'security_compliance',
+            title: 'Security and Compliance',
+            description: 'Security measures and regulatory compliance approach',
+            requirements: ['Security framework', 'Compliance requirements', 'Data protection', 'Access controls'],
+            wordLimit: 2000
+          },
+          {
+            id: 'transition_plan',
+            title: 'Transition Plan',
+            description: 'Implementation and deployment strategy',
+            requirements: ['Implementation phases', 'Deployment strategy', 'Change management', 'User training'],
+            wordLimit: 1500
+          },
+          {
+            id: 'training_support',
+            title: 'Training and Support',
+            description: 'Training programs and ongoing support services',
+            requirements: ['Training curriculum', 'Support structure', 'Documentation', 'Knowledge transfer'],
+            wordLimit: 1200
+          },
+          {
+            id: 'maintenance_sustainment',
+            title: 'Maintenance and Sustainment',
+            description: 'Long-term maintenance and system sustainment approach',
+            requirements: ['Maintenance strategy', 'Support levels', 'Performance monitoring', 'Lifecycle management'],
+            wordLimit: 1500
+          },
+          {
+            id: 'innovation_value',
+            title: 'Innovation and Added Value',
+            description: 'Innovative solutions and additional value propositions',
+            requirements: ['Innovation approach', 'Value-added services', 'Emerging technologies', 'Competitive advantages'],
+            wordLimit: 1200
+          },
+          {
+            id: 'subcontractor_teaming',
+            title: 'Subcontractor and Teaming',
+            description: 'Subcontractor relationships and teaming arrangements',
+            requirements: ['Teaming strategy', 'Subcontractor qualifications', 'Partnership agreements', 'Coordination approach'],
+            wordLimit: 1000
+          }
+        ],
+        evaluation_criteria: {
+          technical: 40,
+          cost: 30,
+          past_performance: 20,
+          management: 10
+        }
+      };
+
+      try {
+        await query(`
+          INSERT INTO rfp_templates (
+            name, agency, description, sections, evaluation_criteria
+          ) VALUES ($1, $2, $3, $4, $5)
+        `, [
+          comprehensiveTemplate.name,
+          comprehensiveTemplate.agency,
+          comprehensiveTemplate.description,
+          JSON.stringify(comprehensiveTemplate.sections),
+          JSON.stringify(comprehensiveTemplate.evaluation_criteria)
+        ]);
+        
+        console.log('✅ [DEBUG] Comprehensive RFP template inserted successfully');
+      } catch (templateError) {
+        console.error('Error inserting comprehensive template:', templateError.message);
+      }
+    }
+
     // Create company_profiles table
     await query(`
       CREATE TABLE IF NOT EXISTS company_profiles (
