@@ -568,6 +568,52 @@ function generateAttachments() {
   ];
 }
 
+// DELETE /api/rfp/company-profiles/:id
+router.delete('/company-profiles/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || isNaN(parseInt(id))) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid company profile ID is required'
+      });
+    }
+
+    // Check if the company profile exists
+    const checkResult = await query(`
+      SELECT id, company_name FROM company_profiles WHERE id = $1
+    `, [parseInt(id)]);
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Company profile not found'
+      });
+    }
+
+    const profileName = checkResult.rows[0].company_name;
+
+    // Delete the company profile
+    const deleteResult = await query(`
+      DELETE FROM company_profiles WHERE id = $1
+    `, [parseInt(id)]);
+
+    console.log(`🗑️ [DEBUG] Deleted company profile: ${profileName} (ID: ${id})`);
+
+    res.json({
+      success: true,
+      message: `Company profile "${profileName}" deleted successfully`
+    });
+  } catch (error) {
+    console.error('Error deleting company profile:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete company profile'
+    });
+  }
+});
+
 // GET /api/rfp/contracts - Get contracts for RFP generation
 router.get('/contracts', async (req, res) => {
   try {
