@@ -582,4 +582,148 @@ router.get('/proposals/:id', async (req, res) => {
   }
 });
 
+// PUT /api/ai-rfp/proposals/:id - Save draft proposal
+router.put('/proposals/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, sections } = req.body;
+    
+    console.log(`💾 [DEBUG] Saving draft for proposal ID: ${id}`);
+    
+    if (!title || !sections) {
+      return res.status(400).json({
+        success: false,
+        error: 'Title and sections are required'
+      });
+    }
+    
+    // Update proposal in database
+    const updateQuery = `
+      UPDATE proposal_drafts 
+      SET title = $1, sections = $2, updated_at = NOW()
+      WHERE id = $3
+      RETURNING *
+    `;
+    
+    const result = await proposalService.pool.query(updateQuery, [
+      title,
+      JSON.stringify(sections),
+      parseInt(id)
+    ]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Proposal not found'
+      });
+    }
+    
+    const updatedProposal = result.rows[0];
+    
+    console.log(`✅ [DEBUG] Draft saved successfully for proposal: ${updatedProposal.title}`);
+    
+    res.json({
+      success: true,
+      message: 'Draft saved successfully',
+      proposal: {
+        id: updatedProposal.id,
+        title: updatedProposal.title,
+        sections: typeof updatedProposal.sections === 'string' ? JSON.parse(updatedProposal.sections) : updatedProposal.sections,
+        updatedAt: updatedProposal.updated_at
+      }
+    });
+  } catch (error) {
+    console.error('❌ [DEBUG] Error saving draft:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save draft: ' + error.message
+    });
+  }
+});
+
+// POST /api/ai-rfp/proposals/:id/export - Export proposal in different formats
+router.post('/proposals/:id/export', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { format = 'pdf' } = req.body;
+    
+    console.log(`📄 [DEBUG] Exporting proposal ${id} as ${format.toUpperCase()}`);
+    
+    if (!['txt', 'pdf', 'docx'].includes(format)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Format must be txt, pdf, or docx'
+      });
+    }
+    
+    // Get proposal from database
+    const proposalQuery = 'SELECT * FROM proposal_drafts WHERE id = $1';
+    const result = await proposalService.pool.query(proposalQuery, [parseInt(id)]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Proposal not found'
+      });
+    }
+    
+    const proposal = result.rows[0];
+    const sections = typeof proposal.sections === 'string' ? JSON.parse(proposal.sections) : proposal.sections;
+    
+    // Generate content based on format
+    if (format === 'txt') {
+      // Generate plain text format
+      let textContent = `${proposal.title}\n`;
+      textContent += `${'='.repeat(proposal.title.length)}\n\n`;
+      textContent += `Generated: ${new Date().toLocaleDateString()}\n`;
+      textContent += `Sections: ${sections.length}\n\n`;
+
+      sections.forEach((section, index) => {
+        textContent += `${index + 1}. ${section.title}\n`;
+        textContent += `${'-'.repeat(section.title.length + 3)}\n`;
+        textContent += `${section.content}\n\n`;
+      });
+
+      const cleanTitle = proposal.title.replace(/[^a-zA-Z0-9\s\-_]/g, '').replace(/\s+/g, '_');
+      
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.txt"`);
+      res.send(textContent);
+
+    } else if (format === 'pdf') {
+      const pdfBuffer = await proposalService.generatePDF(proposal, sections);
+      
+      const cleanTitle = proposal.title
+        .replace(/[^a-zA-Z0-9\s\-_]/g, '')
+        .replace(/\s+/g, '_')
+        .substring(0, 100);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.pdf"`);
+      res.send(pdfBuffer);
+
+    } else if (format === 'docx') {
+      const docxBuffer = await proposalService.generateDOCX(proposal, sections);
+      
+      const cleanTitle = proposal.title
+        .replace(/[^a-zA-Z0-9\s\-_]/g, '')
+        .replace(/\s+/g, '_')
+        .substring(0, 100);
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.docx"`);
+      res.send(docxBuffer);
+    }
+
+    console.log(`✅ [DEBUG] Successfully exported proposal ${id} as ${format.toUpperCase()}`);
+
+  } catch (error) {
+    console.error(`❌ [DEBUG] Error exporting proposal:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to export proposal: ' + error.message
+    });
+  }
+});
+
 module.exports = router;
