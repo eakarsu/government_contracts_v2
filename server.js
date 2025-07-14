@@ -9,6 +9,11 @@ const config = require('./config/env');
 const { query, testConnection, disconnect } = require('./config/database');
 const vectorService = require('./services/vectorService');
 
+// Import Prisma Client
+const { PrismaClient } = require('@prisma/client');
+
+// Initialize Prisma Client
+const prisma = new PrismaClient();
 
 // Debug: Log that we're importing routes
 console.log('📋 [DEBUG] Importing routes...');
@@ -355,6 +360,7 @@ async function startServer() {
 process.on('SIGINT', async () => {
   console.log('Shutting down gracefully...');
   await disconnect();
+  await prisma.$disconnect();
   process.exit(0);
 });
 
