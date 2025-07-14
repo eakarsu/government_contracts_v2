@@ -7,7 +7,8 @@ const multer = require('multer');
 // Import configuration and services
 const config = require('./config/env');
 const { query, testConnection, disconnect } = require('./config/database');
-const vectorService = require('./services/vectorService');
+const VectorService = require('./services/vectorService');
+const vectorService = new VectorService();
 
 // Import Prisma Client
 const { PrismaClient } = require('@prisma/client');
