@@ -9,6 +9,8 @@ const path = require('path');
 const documentAnalyzer = require('../utils/documentAnalyzer');
 const LibreOfficeService = require('../services/libreoffice.service');
 const libreOfficeService = new LibreOfficeService();
+// At the top of documentSearch.js
+const queueService = require('../services/queueService'); // Adjust path as needed
 
 const router = express.Router();
 
