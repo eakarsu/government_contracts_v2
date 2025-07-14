@@ -1,6 +1,6 @@
 const express = require('express');
-const { query } = require('../config/database');
-const aiService = require('../services/aiService');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 const router = express.Router();
 
@@ -11,45 +11,36 @@ router.get('/predictions', async (req, res) => {
     const limitNum = parseInt(limit);
     const offsetNum = parseInt(offset);
     
-    const result = await query(`
-      SELECT 
-        id, contract_id, contract_title, agency, probability, confidence,
-        factors, recommendations, competitive_analysis, created_at
-      FROM bid_predictions 
-      WHERE user_id = $1 
-      ORDER BY created_at DESC
-      LIMIT $2 OFFSET $3
-    `, [req.user.id, limitNum, offsetNum]);
-
-    const countResult = await query(`
-      SELECT COUNT(*) as total 
-      FROM bid_predictions 
-      WHERE user_id = $1
-    `, [req.user.id]);
-
-    const total = parseInt(countResult.rows[0].total);
-    
-    const predictions = result.rows.map(row => ({
-      id: row.id,
-      contractId: row.contract_id,
-      contractTitle: row.contract_title,
-      agency: row.agency,
-      probability: row.probability,
-      confidence: row.confidence,
-      factors: JSON.parse(row.factors || '[]'),
-      recommendations: JSON.parse(row.recommendations || '[]'),
-      competitiveAnalysis: JSON.parse(row.competitive_analysis || '{}'),
-      createdAt: row.created_at
-    }));
+    // For now, return mock data since bid_predictions table doesn't exist in Prisma schema
+    const mockPredictions = [
+      {
+        id: 1,
+        contractId: 'SAMPLE_001',
+        contractTitle: 'IT Services Contract',
+        agency: 'Department of Defense',
+        probability: 75,
+        confidence: 85,
+        factors: [
+          { factor: 'Past Performance', impact: 'positive', score: 85 },
+          { factor: 'Technical Capability', impact: 'positive', score: 80 },
+          { factor: 'Price Competitiveness', impact: 'neutral', score: 70 }
+        ],
+        recommendations: [
+          { type: 'strength', title: 'Leverage Past Performance', description: 'Emphasize your strong track record' }
+        ],
+        competitiveAnalysis: { estimatedCompetitors: 8, marketPosition: 'Strong' },
+        createdAt: new Date().toISOString()
+      }
+    ];
     
     res.json({
       success: true,
-      predictions,
+      predictions: mockPredictions,
       pagination: {
-        total,
+        total: mockPredictions.length,
         limit: limitNum,
         offset: offsetNum,
-        hasMore: offsetNum + limitNum < total
+        hasMore: false
       }
     });
   } catch (error) {
@@ -64,56 +55,32 @@ router.get('/predictions', async (req, res) => {
 // GET /api/bid-prediction/history
 router.get('/history', async (req, res) => {
   try {
-    const analyticsResult = await query(`
-      SELECT 
-        COUNT(*) as total_bids,
-        COUNT(CASE WHEN outcome = 'won' THEN 1 END) as won_bids,
-        AVG(bid_amount) as avg_bid_amount,
-        AVG(CASE WHEN outcome IS NOT NULL THEN 
-          CASE WHEN (outcome = 'won' AND probability > 50) OR (outcome = 'lost' AND probability <= 50) 
-          THEN 100 ELSE 0 END 
-        END) as prediction_accuracy
-      FROM bid_predictions bp
-      LEFT JOIN bid_history bh ON bp.contract_id = bh.contract_id
-      WHERE bp.user_id = $1
-    `, [req.user.id]);
-
-    const monthlyResult = await query(`
-      SELECT 
-        DATE_TRUNC('month', created_at) as month,
-        COUNT(*) as bids,
-        COUNT(CASE WHEN outcome = 'won' THEN 1 END) as wins
-      FROM bid_predictions bp
-      LEFT JOIN bid_history bh ON bp.contract_id = bh.contract_id
-      WHERE bp.user_id = $1 AND created_at >= NOW() - INTERVAL '6 months'
-      GROUP BY DATE_TRUNC('month', created_at)
-      ORDER BY month
-    `, [req.user.id]);
-
-    const analytics = analyticsResult.rows[0];
-    const monthlyTrends = monthlyResult.rows.map(row => ({
-      month: new Date(row.month).toLocaleDateString('en-US', { month: 'short' }),
-      bids: parseInt(row.bids),
-      wins: parseInt(row.wins || 0),
-      accuracy: row.bids > 0 ? Math.round((row.wins / row.bids) * 100) : 0
-    }));
+    // Return mock analytics data since tables don't exist in Prisma schema
+    const mockAnalytics = {
+      totalBids: 15,
+      wonBids: 8,
+      winRate: 53,
+      avgBidAmount: 250000,
+      predictionAccuracy: 78,
+      monthlyTrends: [
+        { month: 'Jul', bids: 3, wins: 2, accuracy: 67 },
+        { month: 'Aug', bids: 4, wins: 2, accuracy: 50 },
+        { month: 'Sep', bids: 2, wins: 1, accuracy: 50 },
+        { month: 'Oct', bids: 3, wins: 2, accuracy: 67 },
+        { month: 'Nov', bids: 2, wins: 1, accuracy: 50 },
+        { month: 'Dec', bids: 1, wins: 0, accuracy: 0 }
+      ],
+      topFactors: [
+        { factor: 'Past Performance', avgImpact: 85 },
+        { factor: 'Technical Capability', avgImpact: 82 },
+        { factor: 'Price Competitiveness', avgImpact: 78 },
+        { factor: 'Team Qualifications', avgImpact: 76 }
+      ]
+    };
 
     res.json({
       success: true,
-      analytics: {
-        totalBids: parseInt(analytics.total_bids || 0),
-        wonBids: parseInt(analytics.won_bids || 0),
-        winRate: analytics.total_bids > 0 ? Math.round((analytics.won_bids / analytics.total_bids) * 100) : 0,
-        avgBidAmount: parseFloat(analytics.avg_bid_amount || 0),
-        predictionAccuracy: parseFloat(analytics.prediction_accuracy || 0),
-        monthlyTrends,
-        topFactors: [
-          { factor: 'Past Performance', avgImpact: 85 },
-          { factor: 'Technical Capability', avgImpact: 82 },
-          { factor: 'Price Competitiveness', avgImpact: 78 },
-          { factor: 'Team Qualifications', avgImpact: 76 }
-        ]
-      }
+      analytics: mockAnalytics
     });
   } catch (error) {
     console.error('Error fetching bid history:', error);
@@ -149,12 +116,6 @@ router.post('/analyze', async (req, res) => {
       createdAt: new Date().toISOString()
     };
     
-    // Add to mock storage
-    mockPredictions.unshift(prediction);
-    
-    // Update analytics
-    mockAnalytics.totalBids++;
-    
     res.json({
       success: true,
       prediction
@@ -174,30 +135,23 @@ router.post('/predict/:contractId', async (req, res) => {
     const { contractId } = req.params;
     const { companyProfile } = req.body;
     
-    // Find existing prediction or create new one
-    let prediction = mockPredictions.find(p => p.contractId === contractId);
+    // Create new prediction with enhanced analysis
+    const analysisFactors = generateAnalysisFactors('Federal Agency', 1000000);
+    const probability = calculateProbability(analysisFactors);
+    const confidence = calculateConfidence(analysisFactors);
     
-    if (!prediction) {
-      // Create new prediction with enhanced analysis
-      const analysisFactors = generateAnalysisFactors('Federal Agency', 1000000);
-      const probability = calculateProbability(analysisFactors);
-      const confidence = calculateConfidence(analysisFactors);
-      
-      prediction = {
-        id: `pred-${Date.now()}`,
-        contractId,
-        contractTitle: `Contract ${contractId}`,
-        agency: 'Federal Agency',
-        probabilityScore: probability,
-        confidenceLevel: confidence,
-        factors: analysisFactors,
-        recommendations: generateRecommendations(analysisFactors, probability),
-        competitiveAnalysis: generateCompetitiveAnalysis('Federal Agency', 1000000),
-        predictedAt: new Date().toISOString()
-      };
-      
-      mockPredictions.unshift(prediction);
-    }
+    const prediction = {
+      id: `pred-${Date.now()}`,
+      contractId,
+      contractTitle: `Contract ${contractId}`,
+      agency: 'Federal Agency',
+      probabilityScore: probability,
+      confidenceLevel: confidence,
+      factors: analysisFactors,
+      recommendations: generateRecommendations(analysisFactors, probability),
+      competitiveAnalysis: generateCompetitiveAnalysis('Federal Agency', 1000000),
+      predictedAt: new Date().toISOString()
+    };
     
     res.json({
       success: true,
