@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { RFPResponse } from '../types';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
+import DownloadButtons from '../components/RFP/DownloadButtons';
 
 const RFPResponseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -118,6 +119,17 @@ const RFPResponseDetail: React.FC = () => {
             Back to Dashboard
           </Link>
           <button 
+            onClick={() => {
+              const downloadSection = document.getElementById('download-section');
+              if (downloadSection) {
+                downloadSection.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
+          >
+            📄 Download
+          </button>
+          <button 
             onClick={() => navigate(`/rfp/responses/${id}/edit`)}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
@@ -201,6 +213,20 @@ const RFPResponseDetail: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Download Options */}
+      <div id="download-section" className="bg-white shadow rounded-lg">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900">📄 Download RFP Response</h2>
+        </div>
+        <div className="p-6">
+          <DownloadButtons 
+            rfpResponseId={rfpResponse.id} 
+            title={rfpResponse.title}
+            className="max-w-4xl"
+          />
+        </div>
+      </div>
 
       {/* Sections */}
       <div className="bg-white shadow rounded-lg">

@@ -621,9 +621,12 @@ class ApiService {
         throw new Error('RFP Response has been deleted');
       }
 
+      console.log(`🔍 [DEBUG] API Service getRFPResponse called with ID: ${responseId}`);
       const response = await api.get<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}`);
+      console.log('✅ [DEBUG] API Service getRFPResponse success:', response.data);
       return response.data;
     } catch (error: any) {
+      console.error('❌ [DEBUG] API Service getRFPResponse error:', error);
       // Handle 404 or other errors for missing endpoint
       if (error.response?.status === 404) {
         console.warn('RFP Response endpoint not implemented yet');
