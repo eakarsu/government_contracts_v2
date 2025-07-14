@@ -310,6 +310,58 @@ class ProposalDraftingService {
     }
   }
 
+  formatContentForPDF(content) {
+    if (!content) return '<p>No content available</p>';
+    
+    try {
+      // Clean and format content specifically for PDF generation
+      let cleanContent = this.escapeHtml(content);
+      
+      // Split into paragraphs by double newlines or single newlines
+      let paragraphs = cleanContent.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+      
+      // If no double newlines, split by single newlines but group short lines
+      if (paragraphs.length <= 1 && cleanContent.includes('\n')) {
+        const lines = cleanContent.split('\n').filter(l => l.trim().length > 0);
+        paragraphs = [];
+        let currentParagraph = '';
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine.length < 50 && currentParagraph.length > 0) {
+            // Short line, likely continuation
+            currentParagraph += ' ' + trimmedLine;
+          } else {
+            // Start new paragraph
+            if (currentParagraph) {
+              paragraphs.push(currentParagraph);
+            }
+            currentParagraph = trimmedLine;
+          }
+        }
+        
+        if (currentParagraph) {
+          paragraphs.push(currentParagraph);
+        }
+      }
+      
+      if (paragraphs.length === 0) {
+        return '<p>No content available</p>';
+      }
+      
+      // Format paragraphs with proper spacing
+      return paragraphs
+        .map(p => p.trim())
+        .filter(p => p.length > 0)
+        .map(p => `<p>${p}</p>`)
+        .join('');
+        
+    } catch (error) {
+      console.error('Error formatting content for PDF:', error);
+      return '<p>Content formatting error</p>';
+    }
+  }
+
   escapeHtml(text) {
     if (!text) return '';
     try {
@@ -428,57 +480,105 @@ class ProposalDraftingService {
         }];
       }
 
-      // Simple text-based PDF generation using basic HTML
-      const title = (proposal.title || 'Untitled Document').replace(/[<>&"']/g, '');
+      // Clean and escape content properly
+      const cleanTitle = this.escapeHtml(proposal.title || 'Untitled Document');
       const totalWords = sections.reduce((sum, s) => sum + (s.wordCount || 0), 0);
       
+      // Build HTML content with proper structure
       let htmlContent = `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RFP Response</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
     body { 
-      font-family: Arial, sans-serif; 
-      margin: 1in; 
-      line-height: 1.5; 
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 12pt;
+      line-height: 1.6;
       color: #000;
-      font-size: 11pt;
+      background: white;
+      padding: 0.75in;
+      max-width: 100%;
     }
+    
     h1 { 
-      color: #000; 
-      text-align: center; 
-      font-size: 16pt;
-      margin-bottom: 20px;
-      border-bottom: 1px solid #000;
-      padding-bottom: 10px;
+      font-size: 18pt;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 24pt;
+      border-bottom: 2pt solid #000;
+      padding-bottom: 12pt;
+      page-break-after: avoid;
     }
+    
     h2 { 
-      color: #000; 
       font-size: 14pt;
-      margin-top: 25px;
-      margin-bottom: 10px;
+      font-weight: bold;
+      margin-top: 24pt;
+      margin-bottom: 12pt;
+      page-break-after: avoid;
+      border-left: 4pt solid #333;
+      padding-left: 12pt;
     }
+    
     p { 
-      margin-bottom: 10px; 
-      text-align: left;
+      margin-bottom: 12pt;
+      text-align: justify;
+      orphans: 2;
+      widows: 2;
     }
+    
     .meta { 
-      background: #f5f5f5; 
-      padding: 10px; 
-      margin: 15px 0;
-      border: 1px solid #ccc;
+      background: #f8f8f8;
+      border: 1pt solid #ccc;
+      padding: 12pt;
+      margin: 18pt 0;
+      page-break-inside: avoid;
     }
+    
     .section { 
-      margin: 20px 0; 
+      margin: 24pt 0;
+      page-break-inside: avoid;
     }
+    
     .content {
-      margin: 10px 0;
+      margin: 12pt 0;
+    }
+    
+    .signature-area {
+      margin-top: 48pt;
+      border-top: 1pt solid #000;
+      padding-top: 24pt;
+      page-break-inside: avoid;
+    }
+    
+    .signature-line {
+      border-bottom: 1pt solid #000;
+      width: 300pt;
+      height: 24pt;
+      margin: 18pt 0;
+    }
+    
+    @page {
+      size: A4;
+      margin: 0.75in;
+    }
+    
+    @media print {
+      body { padding: 0; }
+      .section { page-break-inside: avoid; }
     }
   </style>
 </head>
 <body>
-  <h1>${title}</h1>
+  <h1>${cleanTitle}</h1>
   
   <div class="meta">
     <p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
@@ -486,14 +586,15 @@ class ProposalDraftingService {
     <p><strong>Total Words:</strong> ${totalWords.toLocaleString()}</p>
   </div>`;
 
-      // Add sections with simple formatting
+      // Process each section with proper content formatting
       sections.forEach((section, index) => {
-        const sectionTitle = (section.title || `Section ${index + 1}`).replace(/[<>&"']/g, '');
+        const sectionTitle = this.escapeHtml(section.title || `Section ${index + 1}`);
         const sectionContent = section.content || 'No content available for this section.';
         
-        // Simple paragraph formatting - split by double newlines
-        const paragraphs = sectionContent.split(/\n\s*\n/).filter(p => p.trim().length > 0);
-        const formattedContent = paragraphs.map(p => `<p>${p.replace(/[<>&"']/g, '').trim()}</p>`).join('');
+        console.log(`📄 [DEBUG] Processing section ${index + 1}: ${sectionTitle}`);
+        
+        // Format content into proper paragraphs
+        const formattedContent = this.formatContentForPDF(sectionContent);
         
         htmlContent += `
   <div class="section">
@@ -503,9 +604,9 @@ class ProposalDraftingService {
       });
 
       htmlContent += `
-  <div style="margin-top: 40px; border-top: 1px solid #000; padding-top: 20px;">
+  <div class="signature-area">
     <p><strong>Signature:</strong></p>
-    <p style="border-bottom: 1px solid #000; width: 300px; height: 20px; margin: 15px 0;"></p>
+    <div class="signature-line"></div>
     <p><strong>Date:</strong> _______________</p>
   </div>
 </body>
@@ -513,7 +614,7 @@ class ProposalDraftingService {
 
       console.log(`📄 [DEBUG] Generated HTML content length: ${htmlContent.length} characters`);
 
-      // Use Puppeteer to generate PDF
+      // Use Puppeteer to generate PDF with better options
       const puppeteer = require('puppeteer');
       const browser = await puppeteer.launch({
         headless: true,
@@ -521,32 +622,53 @@ class ProposalDraftingService {
           '--no-sandbox', 
           '--disable-setuid-sandbox', 
           '--disable-dev-shm-usage',
-          '--disable-gpu'
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
         ]
       });
       
       const page = await browser.newPage();
       
       try {
+        // Set viewport for consistent rendering
+        await page.setViewport({ width: 1200, height: 1600 });
+        
+        // Load content with proper wait conditions
         await page.setContent(htmlContent, { 
-          waitUntil: 'domcontentloaded',
-          timeout: 15000 
+          waitUntil: ['networkidle0', 'domcontentloaded'],
+          timeout: 30000 
         });
         
         console.log(`📄 [DEBUG] HTML content loaded in browser`);
         
+        // Generate PDF with optimized settings
         const pdfBuffer = await page.pdf({
           format: 'A4',
           printBackground: true,
           margin: { 
-            top: '0.5in', 
-            right: '0.5in', 
-            bottom: '0.5in', 
-            left: '0.5in' 
-          }
+            top: '0.75in', 
+            right: '0.75in', 
+            bottom: '0.75in', 
+            left: '0.75in' 
+          },
+          preferCSSPageSize: false,
+          displayHeaderFooter: false,
+          tagged: false
         });
         
         console.log(`📄 [DEBUG] PDF generated successfully, size: ${pdfBuffer.length} bytes`);
+        
+        // Validate PDF buffer
+        if (!pdfBuffer || pdfBuffer.length === 0) {
+          throw new Error('Generated PDF buffer is empty');
+        }
+        
+        // Check if buffer starts with PDF header
+        const pdfHeader = pdfBuffer.slice(0, 4).toString();
+        if (pdfHeader !== '%PDF') {
+          throw new Error('Generated buffer is not a valid PDF');
+        }
         
         return pdfBuffer;
         
@@ -556,10 +678,6 @@ class ProposalDraftingService {
       
     } catch (error) {
       console.error(`❌ [DEBUG] PDF generation error:`, error);
-      
-      // Fallback: create a simple text-based response
-      const fallbackContent = `RFP Response: ${proposal.title || 'Untitled'}\n\nGenerated: ${new Date().toLocaleDateString()}\n\nThis document could not be generated as PDF due to technical issues. Please contact support.\n\nSections: ${sections.length}`;
-      
       throw new Error(`PDF generation failed: ${error.message}`);
     }
   }
