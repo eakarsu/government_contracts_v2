@@ -320,52 +320,54 @@ class ProposalDraftingService {
     return cleanedContent;
   }
    
- convertToHTML(content) {
-  let htmlContent = content;
+  convertToHTML(content) {
+    if (!content) return '<p>No content available</p>';
+    
+    let htmlContent = content;
 
-  // Convert **text** to <strong>text</strong>
-  htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Convert **text** to <strong>text</strong>
+    htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-  // Convert ### to h3, ## to h2, # to h1 with proper spacing
-  htmlContent = htmlContent.replace(/^### (.*$)/gm, '<h3>$1</h3>');
-  htmlContent = htmlContent.replace(/^## (.*$)/gm, '<h2>$1</h2>');
-  htmlContent = htmlContent.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+    // Convert ### to h3, ## to h2, # to h1 with proper spacing
+    htmlContent = htmlContent.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+    htmlContent = htmlContent.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+    htmlContent = htmlContent.replace(/^# (.*$)/gm, '<h1>$1</h1>');
 
-  // Convert --- to horizontal rules
-  htmlContent = htmlContent.replace(/^---+$/gm, '<hr>');
+    // Convert --- to horizontal rules
+    htmlContent = htmlContent.replace(/^---+$/gm, '<hr>');
 
-  // Handle multi-line field values (like addresses) - process before single line fields
-  // Look for pattern: Label:\nValue1\nValue2\n etc.
-  htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*\n((?:(?!^[A-Z][^:]*:)[^\n]+\n?)+)/gm, function(match, label, value) {
-    const cleanValue = value.trim().replace(/\n/g, '<br>');
-    return `<p class="field-line"><strong>${label}</strong><br>${cleanValue}</p>`;
-  });
+    // Handle multi-line field values (like addresses) - process before single line fields
+    // Look for pattern: Label:\nValue1\nValue2\n etc.
+    htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*\n((?:(?!^[A-Z][^:]*:)[^\n]+\n?)+)/gm, function(match, label, value) {
+      const cleanValue = value.trim().replace(/\n/g, '<br>');
+      return `<p class="field-line"><strong>${label}</strong><br>${cleanValue}</p>`;
+    });
 
-  // Handle single-line field values (like "Phone: (804) 360-1129")
-  htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*(.+)$/gm, '<p class="field-line"><strong>$1</strong> $2</p>');
+    // Handle single-line field values (like "Phone: (804) 360-1129")
+    htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*(.+)$/gm, '<p class="field-line"><strong>$1</strong> $2</p>');
 
-  // Handle labels without values (like "Address:" on its own line) - only if not already processed
-  htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*$/gm, '<p class="field-label"><strong>$1</strong></p>');
+    // Handle labels without values (like "Address:" on its own line) - only if not already processed
+    htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*$/gm, '<p class="field-label"><strong>$1</strong></p>');
 
-  // Convert double line breaks to paragraph breaks
-  htmlContent = htmlContent.replace(/\n\n/g, '</p><p>');
+    // Convert double line breaks to paragraph breaks
+    htmlContent = htmlContent.replace(/\n\n/g, '</p><p>');
 
-  // Convert remaining single line breaks to <br> tags
-  htmlContent = htmlContent.replace(/\n/g, '<br>');
+    // Convert remaining single line breaks to <br> tags
+    htmlContent = htmlContent.replace(/\n/g, '<br>');
 
-  // Wrap remaining content in paragraphs
-  htmlContent = '<p>' + htmlContent + '</p>';
+    // Wrap remaining content in paragraphs
+    htmlContent = '<p>' + htmlContent + '</p>';
 
-  // Clean up empty paragraphs and fix nested tags
-  htmlContent = htmlContent.replace(/<p><\/p>/g, '');
-  htmlContent = htmlContent.replace(/<p>\s*<\/p>/g, '');
-  htmlContent = htmlContent.replace(/<p>(<h[1-6]>.*?<\/h[1-6]>)<\/p>/g, '$1');
-  htmlContent = htmlContent.replace(/<p>(<hr>)<\/p>/g, '$1');
-  htmlContent = htmlContent.replace(/<p>(<p class="field-line">.*?<\/p>)<\/p>/g, '$1');
-  htmlContent = htmlContent.replace(/<p>(<p class="field-label">.*?<\/p>)<\/p>/g, '$1');
+    // Clean up empty paragraphs and fix nested tags
+    htmlContent = htmlContent.replace(/<p><\/p>/g, '');
+    htmlContent = htmlContent.replace(/<p>\s*<\/p>/g, '');
+    htmlContent = htmlContent.replace(/<p>(<h[1-6]>.*?<\/h[1-6]>)<\/p>/g, '$1');
+    htmlContent = htmlContent.replace(/<p>(<hr>)<\/p>/g, '$1');
+    htmlContent = htmlContent.replace(/<p>(<p class="field-line">.*?<\/p>)<\/p>/g, '$1');
+    htmlContent = htmlContent.replace(/<p>(<p class="field-label">.*?<\/p>)<\/p>/g, '$1');
 
-  return htmlContent;
-}
+    return htmlContent;
+  }
 
  
   async updateProposalSection(proposalId, sectionId, content) {
