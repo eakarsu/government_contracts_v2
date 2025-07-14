@@ -47,10 +47,7 @@ router.post('/semantic', async (req, res) => {
     res.json({
       success: true,
       query: results.query,
-      results: {
-        contracts: results.results || [],
-        total_results: results.totalResults || 0
-      },
+      results: results.results || [],
       pagination: {
         total: results.totalResults || 0,
         limit: limit,
@@ -93,10 +90,7 @@ router.post('/hybrid', async (req, res) => {
     res.json({
       success: true,
       query: results.query,
-      results: {
-        contracts: results.results || [],
-        total_results: results.totalResults || 0
-      },
+      results: results.results || [],
       pagination: {
         total: results.totalResults || 0,
         limit: limit,
@@ -271,10 +265,7 @@ router.post('/', async (req, res) => {
     let response = {
       success: true,
       query,
-      results: {
-        contracts: searchResults.results || [],
-        total_results: searchResults.totalResults || 0
-      },
+      results: searchResults.results || [],
       pagination: {
         total: searchResults.totalResults || 0,
         limit: limit,

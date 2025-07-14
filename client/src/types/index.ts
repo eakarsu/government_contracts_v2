@@ -139,12 +139,15 @@ export interface IndexingJob {
 export interface SearchResult {
   success: boolean;
   query: string;
-  results: {
-    contracts: Contract[];
-    total_results: number;
-  };
+  results: Contract[];
   response_time: number;
   search_method: string;
+  pagination?: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
   ai_analysis?: {
     summary: string;
     key_points: string[];
@@ -155,10 +158,7 @@ export interface SearchResult {
 export interface SearchResponse {
   success: boolean;
   query: string;
-  results: {
-    contracts: Contract[];
-    total_results: number;
-  };
+  results: Contract[];
   search_method: string;
   response_time: number;
   pagination?: {
