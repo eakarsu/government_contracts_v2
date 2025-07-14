@@ -100,7 +100,7 @@ Generate ALL ${sections.length} sections in this single response. Do not include
           content: prompt
         }
       ],
-      max_tokens: 50000, // Further increased to handle all 10 sections
+      max_tokens: 4000, // Reduced to reasonable limit for Claude 3.5 Sonnet
       temperature: 0.7
     }, {
       headers: {
