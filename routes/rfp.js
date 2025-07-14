@@ -249,11 +249,11 @@ router.get('/company-profiles', async (req, res) => {
       const profiles = result.rows.map(row => ({
         id: row.id,
         companyName: row.company_name,
-        basicInfo: row.basic_info ? JSON.parse(row.basic_info) : {},
-        capabilities: row.capabilities ? JSON.parse(row.capabilities) : {},
-        pastPerformance: row.past_performance ? JSON.parse(row.past_performance) : [],
-        keyPersonnel: row.key_personnel ? JSON.parse(row.key_personnel) : [],
-        profileData: row.profile_data ? JSON.parse(row.profile_data) : {},
+        basicInfo: row.basic_info ? (typeof row.basic_info === 'string' ? JSON.parse(row.basic_info) : row.basic_info) : {},
+        capabilities: row.capabilities ? (typeof row.capabilities === 'string' ? JSON.parse(row.capabilities) : row.capabilities) : {},
+        pastPerformance: row.past_performance ? (typeof row.past_performance === 'string' ? JSON.parse(row.past_performance) : row.past_performance) : [],
+        keyPersonnel: row.key_personnel ? (typeof row.key_personnel === 'string' ? JSON.parse(row.key_personnel) : row.key_personnel) : [],
+        profileData: row.profile_data ? (typeof row.profile_data === 'string' ? JSON.parse(row.profile_data) : row.profile_data) : {},
         createdAt: row.created_at,
         updatedAt: row.updated_at
       }));
@@ -434,10 +434,10 @@ router.post('/company-profiles', async (req, res) => {
       profile: {
         id: profile.id,
         companyName: profile.company_name,
-        basicInfo: JSON.parse(profile.basic_info),
-        capabilities: JSON.parse(profile.capabilities),
-        pastPerformance: JSON.parse(profile.past_performance),
-        keyPersonnel: JSON.parse(profile.key_personnel),
+        basicInfo: typeof profile.basic_info === 'string' ? JSON.parse(profile.basic_info) : profile.basic_info,
+        capabilities: typeof profile.capabilities === 'string' ? JSON.parse(profile.capabilities) : profile.capabilities,
+        pastPerformance: typeof profile.past_performance === 'string' ? JSON.parse(profile.past_performance) : profile.past_performance,
+        keyPersonnel: typeof profile.key_personnel === 'string' ? JSON.parse(profile.key_personnel) : profile.key_personnel,
         createdAt: profile.created_at,
         updatedAt: profile.updated_at
       }
