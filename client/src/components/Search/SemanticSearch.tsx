@@ -69,7 +69,7 @@ const SemanticSearch: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [pagination, setPagination] = useState({
     total: 0,
-    limit: 20,
+    limit: 100,
     offset: 0,
     hasMore: false
   });
@@ -321,6 +321,30 @@ const SemanticSearch: React.FC = () => {
                   </svg>
                   History
                 </button>
+
+                {/* Results Per Page Selector */}
+                <div className="flex items-center space-x-2">
+                  <label htmlFor="limit" className="text-sm text-gray-700">
+                    Results per page:
+                  </label>
+                  <select
+                    id="limit"
+                    value={pagination.limit}
+                    onChange={(e) => {
+                      const newLimit = parseInt(e.target.value);
+                      setPagination(prev => ({ ...prev, limit: newLimit, offset: 0 }));
+                      if (query.trim()) {
+                        performSearch(query, filters, 0);
+                      }
+                    }}
+                    className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
               </div>
 
               {queryInfo && (
