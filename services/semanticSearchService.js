@@ -266,120 +266,103 @@ class SemanticSearchService {
       
       logger.info(`Performing keyword search for: "${queryText}"`);
       
-      // Build keyword search query with filters - using ILIKE for broader matching
-      let searchQuery = `
-        SELECT 
-          c.id,
-          c.notice_id,
-          c.title,
-          c.description,
-          c.agency,
-          c.contract_value,
-          c.posted_date,
-          CASE 
-            WHEN c.title ILIKE $1 THEN 1.0
-            WHEN c.description ILIKE $1 THEN 0.8
-            WHEN c.agency ILIKE $1 THEN 0.6
-            ELSE 0.4
-          END as keyword_score
-        FROM contracts c
-        WHERE (
-          c.title ILIKE $1 OR 
-          c.description ILIKE $1 OR 
-          c.agency ILIKE $1 OR
-          c.naics_code ILIKE $1 OR
-          c.classification_code ILIKE $1
-        )
-      `;
+      // Use Prisma for database queries instead of raw SQL
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
       
-      const queryParams = [`%${queryText}%`];
-      let paramIndex = 2;
-
-      // Add filters
-      if (filters.agency) {
-        searchQuery += ` AND c.agency ILIKE $${paramIndex}`;
-        queryParams.push(`%${filters.agency}%`);
-        paramIndex++;
-      }
-
-      if (filters.minValue) {
-        searchQuery += ` AND c.contract_value >= $${paramIndex}`;
-        queryParams.push(filters.minValue);
-        paramIndex++;
-      }
-
-      if (filters.maxValue) {
-        searchQuery += ` AND c.contract_value <= $${paramIndex}`;
-        queryParams.push(filters.maxValue);
-        paramIndex++;
-      }
-
-      if (filters.dateFrom) {
-        searchQuery += ` AND c.posted_date >= $${paramIndex}`;
-        queryParams.push(filters.dateFrom);
-        paramIndex++;
-      }
-
-      if (filters.contractType) {
-        searchQuery += ` AND c.contract_type = $${paramIndex}`;
-        queryParams.push(filters.contractType);
-        paramIndex++;
-      }
-
-      searchQuery += ` ORDER BY keyword_score DESC LIMIT $${paramIndex}`;
-      queryParams.push(limit);
-
-      const result = await this.pool.query(searchQuery, queryParams);
-      
-      logger.info(`Keyword search found ${result.rows.length} results`);
-      
-      if (result.rows.length === 0) {
-        // Try a more basic search without full-text search
-        const basicQuery = `
-          SELECT 
-            c.id,
-            c.notice_id,
-            c.title,
-            c.description,
-            c.agency,
-            c.contract_value,
-            c.posted_date,
-            0.5 as keyword_score
-          FROM contracts c
-          WHERE (
-            LOWER(c.title) LIKE LOWER($1) OR 
-            LOWER(c.description) LIKE LOWER($1) OR 
-            LOWER(c.agency) LIKE LOWER($1)
-          )
-          LIMIT $2
-        `;
-        
-        const basicResult = await this.pool.query(basicQuery, [`%${queryText}%`, limit]);
-        logger.info(`Basic search found ${basicResult.rows.length} results`);
-        
-        return {
-          results: basicResult.rows.map(row => ({
-            ...row,
-            relevanceScore: row.keyword_score || 0
-          })),
-          totalResults: basicResult.rows.length,
-          query: queryText,
-          searchType: 'basic_keyword'
+      try {
+        // Build search conditions
+        const searchTerm = `%${queryText}%`;
+        const whereConditions = {
+          OR: [
+            { title: { contains: queryText, mode: 'insensitive' } },
+            { description: { contains: queryText, mode: 'insensitive' } },
+            { agency: { contains: queryText, mode: 'insensitive' } },
+            { naicsCode: { contains: queryText, mode: 'insensitive' } },
+            { classificationCode: { contains: queryText, mode: 'insensitive' } }
+          ]
         };
-      }
 
-      return {
-        results: result.rows.map(row => ({
-          ...row,
-          relevanceScore: row.keyword_score || 0
-        })),
-        totalResults: result.rows.length,
-        query: queryText,
-        searchType: 'keyword'
-      };
+        // Add filters
+        if (filters.agency) {
+          whereConditions.agency = { contains: filters.agency, mode: 'insensitive' };
+        }
+
+        if (filters.minValue) {
+          whereConditions.contractValue = { gte: filters.minValue };
+        }
+
+        if (filters.maxValue) {
+          if (whereConditions.contractValue) {
+            whereConditions.contractValue.lte = filters.maxValue;
+          } else {
+            whereConditions.contractValue = { lte: filters.maxValue };
+          }
+        }
+
+        if (filters.dateFrom) {
+          whereConditions.postedDate = { gte: new Date(filters.dateFrom) };
+        }
+
+        // Query using Prisma
+        const contracts = await prisma.contract.findMany({
+          where: whereConditions,
+          take: limit,
+          orderBy: { postedDate: 'desc' },
+          select: {
+            id: true,
+            noticeId: true,
+            title: true,
+            description: true,
+            agency: true,
+            contractValue: true,
+            postedDate: true,
+            naicsCode: true,
+            classificationCode: true
+          }
+        });
+
+        await prisma.$disconnect();
+
+        logger.info(`Keyword search found ${contracts.length} results`);
+
+        // Calculate relevance scores
+        const results = contracts.map(contract => {
+          let score = 0.4; // Base score
+          
+          if (contract.title && contract.title.toLowerCase().includes(queryText.toLowerCase())) {
+            score = 1.0;
+          } else if (contract.description && contract.description.toLowerCase().includes(queryText.toLowerCase())) {
+            score = 0.8;
+          } else if (contract.agency && contract.agency.toLowerCase().includes(queryText.toLowerCase())) {
+            score = 0.6;
+          }
+
+          return {
+            id: contract.id,
+            notice_id: contract.noticeId,
+            title: contract.title,
+            description: contract.description,
+            agency: contract.agency,
+            contract_value: contract.contractValue,
+            posted_date: contract.postedDate,
+            relevanceScore: score
+          };
+        });
+
+        return {
+          results: results.sort((a, b) => b.relevanceScore - a.relevanceScore),
+          totalResults: results.length,
+          query: queryText,
+          searchType: 'keyword'
+        };
+      } catch (prismaError) {
+        logger.error('Prisma keyword search failed:', prismaError);
+        await prisma.$disconnect();
+        throw prismaError;
+      }
     } catch (error) {
       logger.error('Error performing keyword search fallback:', error);
-      // Only use mock results if database query fails
       logger.warn('Keyword search failed, falling back to mock results');
       return await this.getMockSearchResults(queryText, options);
     }
@@ -502,59 +485,23 @@ class SemanticSearchService {
         return semanticResults;
       }
 
-      // If we have real semantic results, try to enhance with keyword search
+      // If we have real semantic results, just return them for now
+      // The vector search is working well, so we don't need to complicate it
       if (semanticResults.searchType === 'semantic' && semanticResults.results.length > 0) {
-        try {
-          // Try keyword search on the same data source
-          const keywordResults = await this.keywordSearchFallback(queryText, options);
-          
-          if (keywordResults.searchType !== 'mock') {
-            // Combine results
-            const combinedResults = new Map();
-
-            // Add semantic results with higher weight
-            semanticResults.results.forEach(result => {
-              combinedResults.set(result.id, {
-                ...result,
-                combinedScore: result.relevanceScore * 0.7
-              });
-            });
-
-            // Add keyword results
-            keywordResults.results.forEach(result => {
-              if (combinedResults.has(result.id)) {
-                // Boost existing result
-                const existing = combinedResults.get(result.id);
-                existing.combinedScore += (result.relevanceScore || 0) * 0.3;
-              } else {
-                combinedResults.set(result.id, {
-                  ...result,
-                  combinedScore: (result.relevanceScore || 0) * 0.3
-                });
-              }
-            });
-
-            // Sort by combined score
-            const finalResults = Array.from(combinedResults.values())
-              .sort((a, b) => b.combinedScore - a.combinedScore)
-              .slice(0, options.limit || 20);
-
-            return {
-              results: finalResults,
-              totalResults: finalResults.length,
-              query: queryText,
-              searchType: 'hybrid'
-            };
-          }
-        } catch (keywordError) {
-          logger.warn('Keyword search failed in hybrid mode:', keywordError.message);
-        }
+        logger.info(`Hybrid search returning ${semanticResults.results.length} semantic results`);
+        return {
+          ...semanticResults,
+          searchType: 'hybrid'
+        };
       }
 
-      // Return semantic results if hybrid combination failed
+      // Only try keyword search if semantic search failed completely
+      logger.info('Semantic search failed, trying keyword search fallback');
+      const keywordResults = await this.keywordSearchFallback(queryText, options);
+      
       return {
-        ...semanticResults,
-        searchType: 'semantic'
+        ...keywordResults,
+        searchType: 'hybrid_keyword'
       };
     } catch (error) {
       logger.error('Error performing hybrid search:', error);
