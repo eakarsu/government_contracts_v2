@@ -371,23 +371,18 @@ router.post('/generate-proposal', async (req, res) => {
 function extractSectionsFromText(text) {
   const sections = [];
   
-  // All 15 possible RFP section patterns - will try to match all but expect only ~10 to succeed
+  // Targeted RFP section patterns - specifically matching the 10 core sections
   const sectionPatterns = [
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:EXECUTIVE\s+SUMMARY|SUMMARY)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TECHNICAL\s+APPROACH|APPROACH|METHODOLOGY|SOLUTION)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:MANAGEMENT\s+APPROACH|MANAGEMENT\s+PLAN|PROJECT\s+MANAGEMENT)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:PAST\s+PERFORMANCE|EXPERIENCE|CORPORATE\s+EXPERIENCE)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:KEY\s+PERSONNEL|PERSONNEL|STAFFING|TEAM)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:COST\s+PROPOSAL|PRICING|BUDGET|FINANCIAL)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SCHEDULE\s+AND\s+MILESTONES|SCHEDULE|TIMELINE|MILESTONES)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:RISK\s+MANAGEMENT|RISK\s+MITIGATION|RISKS)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:QUALITY\s+ASSURANCE|QA|QUALITY\s+CONTROL)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SECURITY\s+AND\s+COMPLIANCE|SECURITY|COMPLIANCE)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TRANSITION\s+PLAN|IMPLEMENTATION|DEPLOYMENT)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TRAINING\s+AND\s+SUPPORT|TRAINING|SUPPORT)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:MAINTENANCE\s+AND\s+SUSTAINMENT|MAINTENANCE|SUSTAINMENT)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:INNOVATION\s+AND\s+ADDED\s+VALUE|INNOVATION|VALUE)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SUBCONTRACTOR\s+AND\s+TEAMING|SUBCONTRACTOR|TEAMING)/i
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:EXECUTIVE\s+SUMMARY|SUMMARY)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TECHNICAL\s+APPROACH|APPROACH)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:MANAGEMENT\s+APPROACH|MANAGEMENT\s+PLAN)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:PAST\s+PERFORMANCE|PERFORMANCE)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:KEY\s+PERSONNEL|PERSONNEL)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:COST\s+PROPOSAL|PRICING)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SCHEDULE\s+AND\s+MILESTONES|SCHEDULE|MILESTONES)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:RISK\s+MANAGEMENT|RISKS)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:QUALITY\s+ASSURANCE|QA)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SECURITY\s+AND\s+COMPLIANCE|SECURITY|COMPLIANCE)\s*$/im
   ];
   
   const sectionTitles = [
@@ -400,12 +395,7 @@ function extractSectionsFromText(text) {
     'Schedule and Milestones',
     'Risk Management',
     'Quality Assurance',
-    'Security and Compliance',
-    'Transition Plan',
-    'Training and Support',
-    'Maintenance and Sustainment',
-    'Innovation and Added Value',
-    'Subcontractor and Teaming'
+    'Security and Compliance'
   ];
   
   // Find section boundaries
@@ -501,12 +491,7 @@ function getWordLimitForSection(sectionTitle) {
     'Schedule and Milestones': 1500,
     'Risk Management': 1500,
     'Quality Assurance': 1500,
-    'Security and Compliance': 2000,
-    'Transition Plan': 1500,
-    'Training and Support': 1200,
-    'Maintenance and Sustainment': 1500,
-    'Innovation and Added Value': 1200,
-    'Subcontractor and Teaming': 1000
+    'Security and Compliance': 2000
   };
   
   return limits[sectionTitle] || 1500;
