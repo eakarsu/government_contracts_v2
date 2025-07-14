@@ -291,7 +291,7 @@ class ProposalDraftingService {
     return issues;
   }
    
- async convertToHTML(content) {
+ convertToHTML(content) {
   let htmlContent = content;
 
   // Convert **text** to <strong>text</strong>
@@ -437,7 +437,9 @@ class ProposalDraftingService {
     console.log(`content : ${content}`)
 
     console.log(`📄 [DEBUG] RFP content length: ${content.length} characters`);
-    this.htmlFormattedContent = this.convertToHTML (content)
+
+    const cleanedContent = this.cleanDocumentContent(content, 'pdf');
+    const htmlFormattedContent = this.convertToHTML(cleanedContent);
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -455,7 +457,7 @@ class ProposalDraftingService {
         </style>
       </head> 
       <body>
-        ${this.htmlFormattedContent }
+        ${htmlFormattedContent}
         <div style="margin-top: 50px;">
           <p><strong>Signature:</strong></p>
           <div class="signature-line"></div>
