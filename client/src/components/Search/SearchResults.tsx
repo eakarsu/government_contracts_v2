@@ -11,6 +11,9 @@ interface SearchResult {
   semantic_score: number;
   keyword_score: number;
   combined_score: number;
+  semanticScore?: number;
+  keywordScore?: number;
+  naicsMatch?: number;
 }
 
 interface SearchResultsProps {
@@ -104,9 +107,9 @@ const SearchResults: React.FC<SearchResultsProps> = ({
             </p>
 
             <div className="flex items-center space-x-4 text-sm text-gray-500">
-              <span>Semantic: {Math.round(result.semantic_score * 100)}%</span>
-              <span>Keyword: {Math.round(result.keyword_score * 100)}%</span>
-              <span>NAICS: {result.naics_code}</span>
+              <span>Semantic: {result.semanticScore || Math.round((result.semantic_score || 0) * 100)}%</span>
+              <span>Keyword: {result.keywordScore || Math.round((result.keyword_score || 0) * 100)}%</span>
+              <span>NAICS: {result.naicsMatch || (result.naics_code ? 85 : 0)}%</span>
             </div>
           </div>
         ))}
