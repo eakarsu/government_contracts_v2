@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Upload, Wand2, Download, Save, Eye, CheckCircle, AlertCircle } from 'lucide-react';
+import DownloadButtons from '../RFP/DownloadButtons';
 
 interface RFPDocument {
   id: string;
@@ -401,17 +402,20 @@ const ProposalDrafter: React.FC = () => {
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium text-gray-900">{currentProposal.title}</h3>
-                <div className="flex gap-2">
-                  <button className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    Save Draft
-                  </button>
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2">
-                    <Download className="h-4 w-4" />
-                    Export
-                  </button>
-                </div>
               </div>
+
+              {/* Download/Save Actions */}
+              <DownloadButtons
+                mode="proposal"
+                proposalId={parseInt(currentProposal.id)}
+                title={currentProposal.title}
+                sections={currentProposal.sections}
+                onSaveDraft={() => {
+                  // Refresh the proposal data after saving
+                  loadProposal(currentProposal.id);
+                }}
+                className="mb-6"
+              />
 
               <div className="space-y-6">
                 {currentProposal.sections.map((section) => {
@@ -493,9 +497,13 @@ const ProposalDrafter: React.FC = () => {
                           >
                             Edit
                           </button>
-                          <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                            Export
-                          </button>
+                          <DownloadButtons
+                            mode="proposal"
+                            proposalId={parseInt(proposal.id)}
+                            title={proposal.title}
+                            sections={proposal.sections || []}
+                            className="inline-block"
+                          />
                         </div>
                       </div>
                     </div>
