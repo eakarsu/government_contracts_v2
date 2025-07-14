@@ -85,7 +85,9 @@ const SearchResults: React.FC<SearchResultsProps> = ({
               </h3>
               <div className="flex items-center space-x-2">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {Math.round(result.combined_score * 100)}% match
+                  {Number.isFinite(result.combined_score) ? Math.round(result.combined_score * 100) : 
+                   Number.isFinite(result.semanticScore) ? result.semanticScore :
+                   Number.isFinite(result.semantic_score) ? Math.round(result.semantic_score * 100) : 0}% match
                 </span>
               </div>
             </div>
@@ -95,7 +97,11 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                 <span className="font-medium">Agency:</span> {result.agency}
               </div>
               <div>
-                <span className="font-medium">Value:</span> ${result.estimated_value?.toLocaleString() || 'N/A'}
+                <span className="font-medium">Value:</span> {
+                  Number.isFinite(result.estimated_value) && result.estimated_value > 0 
+                    ? `$${result.estimated_value.toLocaleString()}` 
+                    : 'Not specified'
+                }
               </div>
               <div>
                 <span className="font-medium">Posted:</span> {new Date(result.posted_date).toLocaleDateString()}
