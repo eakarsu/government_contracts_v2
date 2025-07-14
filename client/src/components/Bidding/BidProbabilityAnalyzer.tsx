@@ -313,13 +313,13 @@ const BidProbabilityAnalyzer: React.FC = () => {
                       <div className="flex items-center gap-4">
                         <div className="text-center">
                           <div className={`text-3xl font-bold px-4 py-2 rounded-lg ${getProbabilityColor(prediction.probability || prediction.probabilityScore || 0)}`}>
-                            {prediction.probability || prediction.probabilityScore || 0}%
+                            {Math.round(prediction.probability || prediction.probabilityScore || 0)}%
                           </div>
                           <p className="text-sm text-gray-600 mt-1">Win Probability</p>
                         </div>
                         <div>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getConfidenceColor(prediction.confidenceLevel)}`}>
-                            {String(prediction.confidenceLevel)} confidence
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getConfidenceColor(prediction.confidence || 'medium')}`}>
+                            {prediction.confidence || 'medium'} confidence
                           </span>
                           <p className="text-sm text-gray-600 mt-1">
                             Predicted: {formatDate(prediction.predictedAt)}
@@ -353,7 +353,7 @@ const BidProbabilityAnalyzer: React.FC = () => {
                                 ></div>
                               </div>
                               <p className="text-xs text-gray-500 mt-1">
-                                Score: {factor.score || 0}%
+                                Score: {Math.round(factor.score || 0)}%
                               </p>
                             </div>
                           </div>
