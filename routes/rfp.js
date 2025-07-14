@@ -4,8 +4,10 @@ const axios = require('axios');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
+const ProposalDraftingService = require('../services/proposalDraftingService');
 
 const router = express.Router();
+const proposalService = new ProposalDraftingService();
 
 // OpenRouter configuration
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -1218,48 +1220,17 @@ router.get('/responses/:id/download/:format', async (req, res) => {
       res.send(textContent);
 
     } else if (format === 'pdf') {
-      // Generate PDF using Puppeteer
-      const htmlContent = generateHTMLContent(rfpResponse, responseData);
+      // Use ProposalDraftingService to generate PDF
+      console.log(`📄 [DEBUG] Using ProposalDraftingService to generate PDF`);
       
-      console.log(`📄 [DEBUG] Generated HTML content length: ${htmlContent.length} chars`);
-      
-      let browser;
       try {
-        browser = await puppeteer.launch({
-          headless: true,
-          args: [
-            '--no-sandbox', 
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu'
-          ]
-        });
+        // Create a proposal-like object for the service
+        const proposalForPDF = {
+          title: rfpResponse.title,
+          created_at: rfpResponse.created_at
+        };
         
-        const page = await browser.newPage();
-        
-        // Set viewport and wait for content to load
-        await page.setViewport({ width: 1200, height: 800 });
-        await page.setContent(htmlContent, { 
-          waitUntil: ['networkidle0', 'domcontentloaded'],
-          timeout: 30000
-        });
-        
-        // Generate PDF with proper options
-        const pdfBuffer = await page.pdf({
-          format: 'A4',
-          margin: {
-            top: '0.75in',
-            right: '0.75in',
-            bottom: '0.75in',
-            left: '0.75in'
-          },
-          printBackground: true,
-          preferCSSPageSize: false,
-          displayHeaderFooter: false
-        });
+        const pdfBuffer = await proposalService.generatePDF(proposalForPDF, sections);
         
         console.log(`📄 [DEBUG] Generated PDF buffer size: ${pdfBuffer.length} bytes`);
         
@@ -1276,19 +1247,37 @@ router.get('/responses/:id/download/:format', async (req, res) => {
       } catch (pdfError) {
         console.error(`❌ [DEBUG] PDF generation error:`, pdfError);
         throw new Error(`PDF generation failed: ${pdfError.message}`);
-      } finally {
-        if (browser) {
-          await browser.close();
-        }
       }
 
     } else if (format === 'docx') {
-      // Generate Word document format (simplified HTML that Word can import)
-      const wordContent = generateWordContent(rfpResponse, responseData);
+      // Use ProposalDraftingService to generate DOCX
+      console.log(`📄 [DEBUG] Using ProposalDraftingService to generate DOCX`);
       
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      res.setHeader('Content-Disposition', `attachment; filename="${rfpResponse.title.replace(/[^a-zA-Z0-9]/g, '_')}.docx"`);
-      res.send(wordContent);
+      try {
+        // Create a proposal-like object for the service
+        const proposalForDOCX = {
+          title: rfpResponse.title,
+          created_at: rfpResponse.created_at
+        };
+        
+        const docxBuffer = await proposalService.generateDOCX(proposalForDOCX, sections);
+        
+        console.log(`📄 [DEBUG] Generated DOCX buffer size: ${docxBuffer.length} bytes`);
+        
+        // Clean filename for download
+        const cleanTitle = rfpResponse.title
+          .replace(/[^a-zA-Z0-9\s\-_]/g, '')
+          .replace(/\s+/g, '_')
+          .substring(0, 100);
+        
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.docx"`);
+        res.send(docxBuffer);
+        
+      } catch (docxError) {
+        console.error(`❌ [DEBUG] DOCX generation error:`, docxError);
+        throw new Error(`DOCX generation failed: ${docxError.message}`);
+      }
     }
 
     console.log(`✅ [DEBUG] Successfully generated ${format.toUpperCase()} download for RFP response ${id}`);
