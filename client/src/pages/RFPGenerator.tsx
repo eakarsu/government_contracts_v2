@@ -64,7 +64,7 @@ const RFPGenerator: React.FC = () => {
         setTemplates([]);
       }
 
-      // Handle company profiles - try multiple response structures
+      // Handle company profiles
       if (profilesResponse) {
         console.log('🚀 [DEBUG] Checking profiles response structure...');
         
@@ -76,15 +76,19 @@ const RFPGenerator: React.FC = () => {
         } else if (Array.isArray(profilesResponse)) {
           profilesData = profilesResponse;
           console.log('✅ [DEBUG] Found profiles as direct array:', profilesData.length);
-        } else if (profilesResponse.data) {
-          profilesData = profilesResponse.data;
-          console.log('✅ [DEBUG] Found profiles in data:', profilesData.length);
-        } else if (profilesResponse.companyProfiles) {
-          profilesData = profilesResponse.companyProfiles;
-          console.log('✅ [DEBUG] Found profiles in companyProfiles:', profilesData.length);
         } else {
-          console.error('❌ [DEBUG] No profiles found in any expected structure');
-          console.error('❌ [DEBUG] Available keys:', Object.keys(profilesResponse));
+          // Try to access other possible properties using type assertion for debugging
+          const responseAny = profilesResponse as any;
+          if (responseAny.data) {
+            profilesData = responseAny.data;
+            console.log('✅ [DEBUG] Found profiles in data:', profilesData.length);
+          } else if (responseAny.companyProfiles) {
+            profilesData = responseAny.companyProfiles;
+            console.log('✅ [DEBUG] Found profiles in companyProfiles:', profilesData.length);
+          } else {
+            console.error('❌ [DEBUG] No profiles found in any expected structure');
+            console.error('❌ [DEBUG] Available keys:', Object.keys(profilesResponse));
+          }
         }
         
         setProfiles(profilesData);
