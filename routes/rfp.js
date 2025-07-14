@@ -189,6 +189,13 @@ async function initializeRFPTables() {
       )
     `);
 
+    // Ensure predicted_score column is JSONB type
+    try {
+      await query(`ALTER TABLE rfp_responses ALTER COLUMN predicted_score TYPE JSONB USING predicted_score::JSONB`);
+    } catch (alterError) {
+      console.log('Note: predicted_score column type may already be correct:', alterError.message);
+    }
+
     // Add missing columns if they don't exist (for existing tables)
     try {
       await query(`ALTER TABLE rfp_responses ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'`);
@@ -779,7 +786,7 @@ router.post('/generate', async (req, res) => {
       const contractResult = await query(`
         SELECT id, notice_id, title, agency, description
         FROM contracts 
-        WHERE notice_id = $1 OR (id = $2 AND $2 ~ '^[0-9]+$')
+        WHERE notice_id = $1 OR (CAST(id AS TEXT) = $2)
         LIMIT 1
       `, [contractId, contractId]);
 
