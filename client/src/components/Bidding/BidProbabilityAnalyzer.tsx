@@ -166,9 +166,10 @@ const BidProbabilityAnalyzer: React.FC = () => {
     return 'text-red-600 bg-red-100';
   };
 
-  const getConfidenceColor = (level: string) => {
+  const getConfidenceColor = (level: string | number) => {
     console.log('🐛 [DEBUG] getConfidenceColor - type:', typeof level, 'value:', level);
-    switch (level.toLowerCase()) {
+    const levelStr = String(level).toLowerCase();
+    switch (levelStr) {
       case 'high': return 'text-green-600 bg-green-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
       case 'low': return 'text-red-600 bg-red-100';
@@ -310,7 +311,7 @@ const BidProbabilityAnalyzer: React.FC = () => {
                         </div>
                         <div>
                           <span className={`px-3 py-1 rounded-full text-sm font-medium ${getConfidenceColor(prediction.confidenceLevel)}`}>
-                            {prediction.confidenceLevel} confidence
+                            {String(prediction.confidenceLevel)} confidence
                           </span>
                           <p className="text-sm text-gray-600 mt-1">
                             Predicted: {formatDate(prediction.predictedAt)}
