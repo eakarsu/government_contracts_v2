@@ -1,5 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
 import toast from 'react-hot-toast';
+import { contractsApi } from './contractsApi';
+import { documentsApi } from './documentsApi';
 import type {
   ApiResponse,
   Contract,
@@ -122,30 +124,17 @@ class ApiService {
     return response.data;
   }
 
-  // Contracts
+  // Contracts - delegate to contractsApi
   async fetchContracts(data: ContractFetchForm): Promise<ApiResponse> {
-    console.log('🔄 [DEBUG] API Service fetchContracts called with:', data);
-    const response = await api.post<ApiResponse>('/contracts/fetch', data, {
-      timeout: 1800000 // 30 minutes timeout
-    });
-    console.log('✅ [DEBUG] API Service fetchContracts response:', response.data);
-    return response.data;
+    return contractsApi.fetchContracts(data);
   }
 
   async fetchContractsFromSamGov(data: ContractFetchForm): Promise<ApiResponse> {
-    console.log('🔄 [DEBUG] API Service fetchContractsFromSamGov called with:', data);
-    const response = await api.post<ApiResponse>('/contracts/fetch', data, {
-      timeout: 1800000 // 30 minutes timeout
-    });
-    console.log('✅ [DEBUG] API Service fetchContractsFromSamGov response:', response.data);
-    return response.data;
+    return contractsApi.fetchContracts(data);
   }
 
   async indexContracts(limit: number = 100): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/contracts/index', { limit }, {
-      timeout: 3600000 // 1 hour timeout
-    });
-    return response.data;
+    return contractsApi.indexContracts(limit);
   }
 
   async getContracts(page: number = 1, limit: number = 20, filters?: {
@@ -162,50 +151,20 @@ class ApiService {
       totalPages: number;
     };
   }> {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-    });
-    
-    if (filters?.search) params.append('search', filters.search);
-    if (filters?.agency) params.append('agency', filters.agency);
-    if (filters?.naicsCode) params.append('naicsCode', filters.naicsCode);
-    
-    const response = await api.get<{ 
-      success: boolean;
-      data: Contract[];
-      pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-      };
-    }>(`/contracts?${params.toString()}`);
-    return response.data;
+    return contractsApi.getContracts(page, limit, filters);
   }
 
   async getContract(noticeId: string): Promise<Contract> {
-    const response = await api.get<Contract>(`/documents/contracts/${noticeId}`);
-    return response.data;
+    return contractsApi.getContract(noticeId);
   }
 
   async analyzeContract(noticeId: string): Promise<ContractAnalysis> {
-    console.log('🔍 [DEBUG] API Service analyzeContract called for:', noticeId);
-    const response = await api.post<ContractAnalysis>(`/documents/contracts/${noticeId}/analyze`);
-    console.log('🔍 [DEBUG] API Service analyzeContract raw response:', response);
-    console.log('🔍 [DEBUG] API Service analyzeContract response.data:', response.data);
-    return response.data;
+    return contractsApi.analyzeContract(noticeId);
   }
 
   // Search
   async searchContracts(data: SearchForm): Promise<SearchResult> {
-    // Ensure query is provided
-    if (!data.query || data.query.trim() === '') {
-      throw new Error('Query parameter is required');
-    }
-    
-    const response = await api.post<SearchResult>('/search', data);
-    return response.data;
+    return contractsApi.searchContracts(data);
   }
 
   async getRecommendations(criteria: {
@@ -213,8 +172,7 @@ class ApiService {
     agencies?: string[];
     keywords?: string[];
   }): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/recommendations', criteria);
-    return response.data;
+    return contractsApi.getRecommendations(criteria);
   }
 
   // Jobs
