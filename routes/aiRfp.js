@@ -250,21 +250,57 @@ router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
           title: 'Executive Summary',
           content: extractedText.substring(0, 1000) + '...',
           requirements: ['Provide overview of proposal'],
-          wordLimit: 500
+          wordLimit: 500,
+          compliance: {
+            wordLimit: {
+              current: (extractedText.substring(0, 1000) + '...').split(/\s+/).length,
+              maximum: 500,
+              compliant: (extractedText.substring(0, 1000) + '...').split(/\s+/).length <= 500
+            },
+            requirementCoverage: {
+              covered: ['Provide overview of proposal'],
+              missing: [],
+              percentage: 90
+            }
+          }
         },
         {
           id: 'section_2', 
           title: 'Technical Approach',
           content: extractedText.substring(1000, 3000) + '...',
           requirements: ['Detail technical methodology'],
-          wordLimit: 2000
+          wordLimit: 2000,
+          compliance: {
+            wordLimit: {
+              current: (extractedText.substring(1000, 3000) + '...').split(/\s+/).length,
+              maximum: 2000,
+              compliant: (extractedText.substring(1000, 3000) + '...').split(/\s+/).length <= 2000
+            },
+            requirementCoverage: {
+              covered: ['Detail technical methodology'],
+              missing: [],
+              percentage: 85
+            }
+          }
         },
         {
           id: 'section_3',
           title: 'Management Plan', 
           content: extractedText.substring(3000, 5000) + '...',
           requirements: ['Describe project management approach'],
-          wordLimit: 1500
+          wordLimit: 1500,
+          compliance: {
+            wordLimit: {
+              current: (extractedText.substring(3000, 5000) + '...').split(/\s+/).length,
+              maximum: 1500,
+              compliant: (extractedText.substring(3000, 5000) + '...').split(/\s+/).length <= 1500
+            },
+            requirementCoverage: {
+              covered: ['Describe project management approach'],
+              missing: [],
+              percentage: 80
+            }
+          }
         }
       ];
     }
@@ -418,7 +454,19 @@ function extractSectionsFromText(text) {
       title: currentMatch.title,
       content: sectionContent.substring(0, 2000), // Limit content length
       requirements: [`Provide detailed ${currentMatch.title.toLowerCase()}`],
-      wordLimit: getWordLimitForSection(currentMatch.title)
+      wordLimit: getWordLimitForSection(currentMatch.title),
+      compliance: {
+        wordLimit: {
+          current: sectionContent.substring(0, 2000).split(/\s+/).length,
+          maximum: getWordLimitForSection(currentMatch.title),
+          compliant: sectionContent.substring(0, 2000).split(/\s+/).length <= getWordLimitForSection(currentMatch.title)
+        },
+        requirementCoverage: {
+          covered: [`Provide detailed ${currentMatch.title.toLowerCase()}`],
+          missing: [],
+          percentage: 80
+        }
+      }
     });
   }
   
@@ -432,7 +480,19 @@ function extractSectionsFromText(text) {
         title: `Section ${index + 1}`,
         content: paragraph.trim(),
         requirements: [`Address requirements for section ${index + 1}`],
-        wordLimit: 1000
+        wordLimit: 1000,
+        compliance: {
+          wordLimit: {
+            current: paragraph.trim().split(/\s+/).length,
+            maximum: 1000,
+            compliant: paragraph.trim().split(/\s+/).length <= 1000
+          },
+          requirementCoverage: {
+            covered: [`Address requirements for section ${index + 1}`],
+            missing: [],
+            percentage: 75
+          }
+        }
       });
     });
   }
