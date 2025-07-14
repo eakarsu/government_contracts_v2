@@ -55,89 +55,96 @@ class SemanticSearchService {
         userId = null
       } = options;
 
-      // Generate embedding for search query
-      const queryEmbedding = await this.aiService.generateEmbedding(queryText);
+      // Try semantic search first, fallback to keyword search if embedding fails
+      try {
+        // Generate embedding for search query
+        const queryEmbedding = await this.aiService.generateEmbedding(queryText);
 
-      // Store search query if user provided
-      if (userId) {
-        await this.pool.query(
-          'INSERT INTO search_queries (user_id, query_text, query_embedding) VALUES ($1, $2, $3)',
-          [userId, queryText, JSON.stringify(queryEmbedding)]
-        );
+        // Store search query if user provided
+        if (userId) {
+          await this.pool.query(
+            'INSERT INTO search_queries (user_id, query_text, query_embedding) VALUES ($1, $2, $3)',
+            [userId, queryText, JSON.stringify(queryEmbedding)]
+          );
+        }
+
+        // Build search query with filters
+        let searchQuery = `
+          SELECT 
+            c.id,
+            c.notice_id,
+            c.title,
+            c.description,
+            c.agency,
+            c.contract_value,
+            c.posted_date,
+            ce.content_summary,
+            ce.embedding <=> $1::vector as similarity_score
+          FROM contracts c
+          JOIN contract_embeddings ce ON c.id = ce.contract_id
+          WHERE ce.embedding <=> $1::vector < $2
+        `;
+
+        const queryParams = [JSON.stringify(queryEmbedding), 1 - threshold];
+        let paramIndex = 3;
+
+        // Add filters
+        if (filters.agency) {
+          searchQuery += ` AND c.agency ILIKE $${paramIndex}`;
+          queryParams.push(`%${filters.agency}%`);
+          paramIndex++;
+        }
+
+        if (filters.minValue) {
+          searchQuery += ` AND c.contract_value >= $${paramIndex}`;
+          queryParams.push(filters.minValue);
+          paramIndex++;
+        }
+
+        if (filters.maxValue) {
+          searchQuery += ` AND c.contract_value <= $${paramIndex}`;
+          queryParams.push(filters.maxValue);
+          paramIndex++;
+        }
+
+        if (filters.dateFrom) {
+          searchQuery += ` AND c.posted_date >= $${paramIndex}`;
+          queryParams.push(filters.dateFrom);
+          paramIndex++;
+        }
+
+        if (filters.contractType) {
+          searchQuery += ` AND c.contract_type = $${paramIndex}`;
+          queryParams.push(filters.contractType);
+          paramIndex++;
+        }
+
+        searchQuery += ` ORDER BY similarity_score ASC LIMIT $${paramIndex}`;
+        queryParams.push(limit);
+
+        const result = await this.pool.query(searchQuery, queryParams);
+
+        // Update search query with results count
+        if (userId) {
+          await this.pool.query(
+            'UPDATE search_queries SET results_count = $1 WHERE user_id = $2 AND query_text = $3 ORDER BY created_at DESC LIMIT 1',
+            [result.rows.length, userId, queryText]
+          );
+        }
+
+        return {
+          results: result.rows.map(row => ({
+            ...row,
+            relevanceScore: Math.max(0, 1 - row.similarity_score)
+          })),
+          totalResults: result.rows.length,
+          query: queryText,
+          searchType: 'semantic'
+        };
+      } catch (embeddingError) {
+        logger.warn('Semantic search failed, falling back to keyword search:', embeddingError.message);
+        return await this.keywordSearchFallback(queryText, options);
       }
-
-      // Build search query with filters
-      let searchQuery = `
-        SELECT 
-          c.id,
-          c.notice_id,
-          c.title,
-          c.description,
-          c.agency,
-          c.contract_value,
-          c.posted_date,
-          ce.content_summary,
-          ce.embedding <=> $1::vector as similarity_score
-        FROM contracts c
-        JOIN contract_embeddings ce ON c.id = ce.contract_id
-        WHERE ce.embedding <=> $1::vector < $2
-      `;
-
-      const queryParams = [JSON.stringify(queryEmbedding), 1 - threshold];
-      let paramIndex = 3;
-
-      // Add filters
-      if (filters.agency) {
-        searchQuery += ` AND c.agency ILIKE $${paramIndex}`;
-        queryParams.push(`%${filters.agency}%`);
-        paramIndex++;
-      }
-
-      if (filters.minValue) {
-        searchQuery += ` AND c.contract_value >= $${paramIndex}`;
-        queryParams.push(filters.minValue);
-        paramIndex++;
-      }
-
-      if (filters.maxValue) {
-        searchQuery += ` AND c.contract_value <= $${paramIndex}`;
-        queryParams.push(filters.maxValue);
-        paramIndex++;
-      }
-
-      if (filters.dateFrom) {
-        searchQuery += ` AND c.posted_date >= $${paramIndex}`;
-        queryParams.push(filters.dateFrom);
-        paramIndex++;
-      }
-
-      if (filters.contractType) {
-        searchQuery += ` AND c.contract_type = $${paramIndex}`;
-        queryParams.push(filters.contractType);
-        paramIndex++;
-      }
-
-      searchQuery += ` ORDER BY similarity_score ASC LIMIT $${paramIndex}`;
-      queryParams.push(limit);
-
-      const result = await this.pool.query(searchQuery, queryParams);
-
-      // Update search query with results count
-      if (userId) {
-        await this.pool.query(
-          'UPDATE search_queries SET results_count = $1 WHERE user_id = $2 AND query_text = $3 ORDER BY created_at DESC LIMIT 1',
-          [result.rows.length, userId, queryText]
-        );
-      }
-
-      return {
-        results: result.rows.map(row => ({
-          ...row,
-          relevanceScore: Math.max(0, 1 - row.similarity_score)
-        })),
-        totalResults: result.rows.length,
-        query: queryText
-      };
     } catch (error) {
       logger.error('Error performing semantic search:', error);
       throw error;
@@ -182,10 +189,88 @@ class SemanticSearchService {
     }
   }
 
+  async keywordSearchFallback(queryText, options = {}) {
+    try {
+      const { limit = 20, filters = {} } = options;
+      
+      // Build keyword search query with filters
+      let searchQuery = `
+        SELECT 
+          c.id,
+          c.notice_id,
+          c.title,
+          c.description,
+          c.agency,
+          c.contract_value,
+          c.posted_date,
+          ts_rank(to_tsvector('english', c.title || ' ' || COALESCE(c.description, '')), plainto_tsquery('english', $1)) as keyword_score
+        FROM contracts c
+        WHERE to_tsvector('english', c.title || ' ' || COALESCE(c.description, '')) @@ plainto_tsquery('english', $1)
+      `;
+
+      const queryParams = [queryText];
+      let paramIndex = 2;
+
+      // Add filters
+      if (filters.agency) {
+        searchQuery += ` AND c.agency ILIKE $${paramIndex}`;
+        queryParams.push(`%${filters.agency}%`);
+        paramIndex++;
+      }
+
+      if (filters.minValue) {
+        searchQuery += ` AND c.contract_value >= $${paramIndex}`;
+        queryParams.push(filters.minValue);
+        paramIndex++;
+      }
+
+      if (filters.maxValue) {
+        searchQuery += ` AND c.contract_value <= $${paramIndex}`;
+        queryParams.push(filters.maxValue);
+        paramIndex++;
+      }
+
+      if (filters.dateFrom) {
+        searchQuery += ` AND c.posted_date >= $${paramIndex}`;
+        queryParams.push(filters.dateFrom);
+        paramIndex++;
+      }
+
+      if (filters.contractType) {
+        searchQuery += ` AND c.contract_type = $${paramIndex}`;
+        queryParams.push(filters.contractType);
+        paramIndex++;
+      }
+
+      searchQuery += ` ORDER BY keyword_score DESC LIMIT $${paramIndex}`;
+      queryParams.push(limit);
+
+      const result = await this.pool.query(searchQuery, queryParams);
+
+      return {
+        results: result.rows.map(row => ({
+          ...row,
+          relevanceScore: row.keyword_score || 0
+        })),
+        totalResults: result.rows.length,
+        query: queryText,
+        searchType: 'keyword'
+      };
+    } catch (error) {
+      logger.error('Error performing keyword search fallback:', error);
+      throw error;
+    }
+  }
+
   async hybridSearch(queryText, options = {}) {
     try {
       // Perform both semantic and keyword search
       const semanticResults = await this.semanticSearch(queryText, options);
+      
+      // If semantic search failed, it already fell back to keyword search
+      if (semanticResults.searchType === 'keyword') {
+        return semanticResults;
+      }
       
       // Keyword search
       const keywordQuery = `
@@ -245,7 +330,8 @@ class SemanticSearchService {
       };
     } catch (error) {
       logger.error('Error performing hybrid search:', error);
-      throw error;
+      // Final fallback to keyword search
+      return await this.keywordSearchFallback(queryText, options);
     }
   }
 }

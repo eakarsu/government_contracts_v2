@@ -259,6 +259,151 @@ Return structured data that can be parsed into factors, recommendations, and com
     return templates[sectionTitle] || `Detailed ${sectionTitle.toLowerCase()} content will be developed based on the specific requirements outlined in the RFP.`;
   }
 
+  async generateEmbedding(text) {
+    try {
+      if (!this.apiKey) {
+        console.warn('OpenRouter API key not configured, using fallback embedding');
+        return this.getFallbackEmbedding(text);
+      }
+
+      const response = await fetch(`${this.baseUrl}/embeddings`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': config.apiBaseUrl,
+          'X-Title': 'Government Contracts Platform'
+        },
+        body: JSON.stringify({
+          model: 'text-embedding-ada-002',
+          input: text.substring(0, 8000) // Limit text length
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Embedding generation failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data[0].embedding;
+    } catch (error) {
+      console.error('AI embedding generation error:', error);
+      return this.getFallbackEmbedding(text);
+    }
+  }
+
+  async summarizeDocument(text) {
+    try {
+      if (!this.apiKey) {
+        console.warn('OpenRouter API key not configured, using fallback summary');
+        return this.getFallbackSummary(text);
+      }
+
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': config.apiBaseUrl,
+          'X-Title': 'Government Contracts Platform'
+        },
+        body: JSON.stringify({
+          model: this.chatModel,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert at summarizing government contract documents. Provide concise, informative summaries.'
+            },
+            {
+              role: 'user',
+              content: `Summarize this document in 2-3 sentences, focusing on key requirements and opportunities:\n\n${text.substring(0, 4000)}`
+            }
+          ],
+          max_tokens: 200,
+          temperature: 0.1
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Document summarization failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      console.error('AI document summarization error:', error);
+      return this.getFallbackSummary(text);
+    }
+  }
+
+  async generateChatCompletion(messages, options = {}) {
+    try {
+      if (!this.apiKey) {
+        console.warn('OpenRouter API key not configured, using fallback response');
+        return 'AI analysis not available - API key not configured';
+      }
+
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': config.apiBaseUrl,
+          'X-Title': 'Government Contracts Platform'
+        },
+        body: JSON.stringify({
+          model: options.model || this.chatModel,
+          messages,
+          max_tokens: options.maxTokens || 1000,
+          temperature: options.temperature || 0.3
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Chat completion failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      console.error('AI chat completion error:', error);
+      return 'AI analysis temporarily unavailable';
+    }
+  }
+
+  getFallbackEmbedding(text) {
+    // Generate a simple hash-based embedding for fallback
+    const words = text.toLowerCase().split(/\s+/).slice(0, 100);
+    const embedding = new Array(384).fill(0);
+    
+    words.forEach((word, index) => {
+      const hash = this.simpleHash(word);
+      embedding[hash % 384] += 1;
+    });
+    
+    // Normalize the embedding
+    const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+    return embedding.map(val => magnitude > 0 ? val / magnitude : 0);
+  }
+
+  getFallbackSummary(text) {
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    const firstSentence = sentences[0] || 'Document content available';
+    const lastSentence = sentences[sentences.length - 1] || '';
+    
+    return `${firstSentence.trim()}. ${lastSentence.trim()}`.substring(0, 200);
+  }
+
+  simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
+  }
+
   getFallbackBidAnalysis() {
     return {
       probability: Math.floor(Math.random() * 40) + 50,
