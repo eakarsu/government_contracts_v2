@@ -56,7 +56,7 @@ const SemanticSearch: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [pagination, setPagination] = useState({
     total: 0,
-    limit: 20,
+    limit: 10,
     offset: 0,
     hasMore: false
   });
@@ -114,6 +114,8 @@ const SemanticSearch: React.FC = () => {
         const data: SearchResponse = await response.json();
         if (data.success) {
           // Always replace results for pagination (not append)
+          console.log('Search response:', data);
+          console.log('Pagination data:', data.pagination);
           setResults(data.results);
           setPagination(data.pagination);
           setQueryInfo(data.query_info);

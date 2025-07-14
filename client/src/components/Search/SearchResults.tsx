@@ -69,6 +69,10 @@ const SearchResults: React.FC<SearchResultsProps> = ({
         <h2 className="text-xl font-semibold text-gray-900">
           Search Results ({pagination.total})
         </h2>
+        {/* Debug info - remove this after testing */}
+        <div className="text-xs text-gray-500">
+          Debug: total={pagination.total}, limit={pagination.limit}, offset={pagination.offset}, hasMore={pagination.hasMore ? 'true' : 'false'}
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -122,7 +126,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
       </div>
 
       {/* Pagination Controls */}
-      {pagination.total > pagination.limit && (
+      {pagination.total > 0 && (
         <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
           <div className="flex flex-1 justify-between sm:hidden">
             <button
