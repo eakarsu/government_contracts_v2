@@ -393,8 +393,10 @@ router.post('/company-profiles', async (req, res) => {
         basic_info, 
         capabilities, 
         past_performance, 
-        key_personnel
-      ) VALUES ($1, $2, $3, $4, $5)
+        key_personnel,
+        created_at,
+        updated_at
+      ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING *
     `, [
       companyName,
