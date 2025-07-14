@@ -11,8 +11,33 @@ router.get('/predictions', async (req, res) => {
     const limitNum = parseInt(limit);
     const offsetNum = parseInt(offset);
     
+    // Helper function to ensure all objects have a string level property
+    const ensureLevel = (obj, defaultLevel = 'medium') => {
+      if (!obj || typeof obj !== 'object') return obj;
+      
+      // If it's an array, process each item
+      if (Array.isArray(obj)) {
+        return obj.map(item => ensureLevel(item, defaultLevel));
+      }
+      
+      // For objects, ensure level is a string
+      const result = { ...obj };
+      if (!result.level || typeof result.level !== 'string') {
+        result.level = String(defaultLevel);
+      }
+      
+      // Recursively process nested objects
+      Object.keys(result).forEach(key => {
+        if (typeof result[key] === 'object' && result[key] !== null) {
+          result[key] = ensureLevel(result[key], defaultLevel);
+        }
+      });
+      
+      return result;
+    };
+    
     // For now, return mock data since bid_predictions table doesn't exist in Prisma schema
-    const mockPredictions = [
+    let mockPredictions = [
       {
         id: 1,
         contractId: 'SAMPLE_001',
@@ -81,6 +106,9 @@ router.get('/predictions', async (req, res) => {
       }
     ];
     
+    // Ensure all nested objects have proper string level properties
+    mockPredictions = ensureLevel(mockPredictions, 'medium');
+    
     res.json({
       success: true,
       predictions: mockPredictions,
@@ -144,6 +172,28 @@ router.post('/analyze', async (req, res) => {
   try {
     const { contractId, contractTitle, agency, estimatedValue } = req.body;
     
+    // Helper function to ensure all objects have a string level property
+    const ensureLevel = (obj, defaultLevel = 'medium') => {
+      if (!obj || typeof obj !== 'object') return obj;
+      
+      if (Array.isArray(obj)) {
+        return obj.map(item => ensureLevel(item, defaultLevel));
+      }
+      
+      const result = { ...obj };
+      if (!result.level || typeof result.level !== 'string') {
+        result.level = String(defaultLevel);
+      }
+      
+      Object.keys(result).forEach(key => {
+        if (typeof result[key] === 'object' && result[key] !== null) {
+          result[key] = ensureLevel(result[key], defaultLevel);
+        }
+      });
+      
+      return result;
+    };
+    
     // Simulate AI analysis with realistic factors
     const analysisFactors = generateAnalysisFactors(agency, estimatedValue);
     const probability = calculateProbability(analysisFactors);
@@ -151,19 +201,23 @@ router.post('/analyze', async (req, res) => {
     const recommendations = generateRecommendations(analysisFactors, probability);
     const competitiveAnalysis = generateCompetitiveAnalysis(agency, estimatedValue);
     
-    const prediction = {
+    let prediction = {
       id: `pred-${Date.now()}`,
       contractId,
       contractTitle: contractTitle || `Contract ${contractId}`,
       agency: agency || 'Unknown Agency',
       probability,
-      confidence: confidenceResult.level,
+      confidence: String(confidenceResult.level || 'medium'),
       confidenceLevel: confidenceResult.score,
+      level: String(confidenceResult.level || 'medium'),
       factors: analysisFactors,
       recommendations,
       competitiveAnalysis,
       createdAt: new Date().toISOString()
     };
+    
+    // Ensure all nested objects have proper string level properties
+    prediction = ensureLevel(prediction, 'medium');
     
     res.json({
       success: true,
@@ -184,26 +238,52 @@ router.post('/predict/:contractId', async (req, res) => {
     const { contractId } = req.params;
     const { companyProfile } = req.body;
     
+    // Helper function to ensure all objects have a string level property
+    const ensureLevel = (obj, defaultLevel = 'medium') => {
+      if (!obj || typeof obj !== 'object') return obj;
+      
+      if (Array.isArray(obj)) {
+        return obj.map(item => ensureLevel(item, defaultLevel));
+      }
+      
+      const result = { ...obj };
+      if (!result.level || typeof result.level !== 'string') {
+        result.level = String(defaultLevel);
+      }
+      
+      Object.keys(result).forEach(key => {
+        if (typeof result[key] === 'object' && result[key] !== null) {
+          result[key] = ensureLevel(result[key], defaultLevel);
+        }
+      });
+      
+      return result;
+    };
+    
     // Create new prediction with enhanced analysis
     const analysisFactors = generateAnalysisFactors('Federal Agency', 1000000);
     const probability = calculateProbability(analysisFactors);
     const confidenceResult = calculateConfidence(analysisFactors);
     
-    const prediction = {
+    let prediction = {
       id: `pred-${Date.now()}`,
       contractId,
       contractTitle: `Contract ${contractId}`,
       agency: 'Federal Agency',
       probability: probability,
       probabilityScore: probability,
-      confidence: confidenceResult.level,
+      confidence: String(confidenceResult.level || 'medium'),
       confidenceLevel: confidenceResult.score,
+      level: String(confidenceResult.level || 'medium'),
       factors: analysisFactors,
       recommendations: generateRecommendations(analysisFactors, probability),
       competitiveAnalysis: generateCompetitiveAnalysis('Federal Agency', 1000000),
       predictedAt: new Date().toISOString(),
       createdAt: new Date().toISOString()
     };
+    
+    // Ensure all nested objects have proper string level properties
+    prediction = ensureLevel(prediction, 'medium');
     
     res.json({
       success: true,
