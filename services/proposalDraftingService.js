@@ -303,9 +303,8 @@ class ProposalDraftingService {
   }
 
   escapeHtml(text) {
-    const div = { innerHTML: '' };
-    div.textContent = text;
-    return div.innerHTML || text
+    if (!text) return '';
+    return text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -400,99 +399,155 @@ class ProposalDraftingService {
   async generatePDF(proposal, sections) {
     const puppeteer = require('puppeteer');
     
-    // Build simple HTML content
-    let htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>${proposal.title}</title>
-        <style>
-          body { 
-            font-family: Arial, sans-serif; 
-            margin: 40px; 
-            line-height: 1.6; 
-            color: #333;
-          }
-          h1 { 
-            color: #2c3e50; 
-            text-align: center; 
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
-          }
-          h2 { 
-            color: #34495e; 
-            margin-top: 30px; 
-            border-left: 4px solid #3498db;
-            padding-left: 15px;
-          }
-          p { margin-bottom: 15px; }
-          .meta { 
-            background: #f8f9fa; 
-            padding: 15px; 
-            border-radius: 5px; 
-            margin: 20px 0;
-          }
-          .section { margin: 30px 0; }
-          .signature-area { 
-            margin-top: 50px; 
-            border-top: 1px solid #ddd; 
-            padding-top: 30px;
-          }
-          .signature-line { 
-            border-bottom: 1px solid #000; 
-            width: 300px; 
-            margin: 20px 0; 
-          }
-        </style>
-      </head>
-      <body>
-        <h1>${proposal.title}</h1>
-        
-        <div class="meta">
-          <strong>Generated:</strong> ${new Date().toLocaleDateString()}<br>
-          <strong>Sections:</strong> ${sections.length}<br>
-          <strong>Total Words:</strong> ${sections.reduce((sum, s) => sum + (s.wordCount || 0), 0)}
-        </div>
-    `;
+    console.log(`📄 [DEBUG] Starting PDF generation for: ${proposal.title}`);
+    console.log(`📄 [DEBUG] Number of sections: ${sections.length}`);
+    
+    // Validate sections data
+    if (!sections || sections.length === 0) {
+      console.warn('⚠️ [DEBUG] No sections provided for PDF generation');
+      sections = [{ title: 'No Content', content: 'No content available for this document.', wordCount: 0 }];
+    }
 
-    // Add each section
+    // Build simple HTML content with proper escaping
+    const title = this.escapeHtml(proposal.title || 'Untitled Document');
+    const totalWords = sections.reduce((sum, s) => sum + (s.wordCount || 0), 0);
+    
+    let htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 40px; 
+      line-height: 1.6; 
+      color: #333;
+      font-size: 12pt;
+    }
+    h1 { 
+      color: #2c3e50; 
+      text-align: center; 
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
+      margin-bottom: 30px;
+    }
+    h2 { 
+      color: #34495e; 
+      margin-top: 30px; 
+      border-left: 4px solid #3498db;
+      padding-left: 15px;
+      page-break-after: avoid;
+    }
+    p { 
+      margin-bottom: 15px; 
+      text-align: justify;
+    }
+    .meta { 
+      background: #f8f9fa; 
+      padding: 15px; 
+      border-radius: 5px; 
+      margin: 20px 0;
+      border: 1px solid #e9ecef;
+    }
+    .section { 
+      margin: 30px 0; 
+      page-break-inside: avoid;
+    }
+    .signature-area { 
+      margin-top: 50px; 
+      border-top: 1px solid #ddd; 
+      padding-top: 30px;
+      page-break-inside: avoid;
+    }
+    .signature-line { 
+      border-bottom: 1px solid #000; 
+      width: 300px; 
+      margin: 20px 0; 
+      height: 20px;
+    }
+    @media print {
+      body { margin: 0; }
+      .section { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <h1>${title}</h1>
+  
+  <div class="meta">
+    <strong>Generated:</strong> ${new Date().toLocaleDateString()}<br>
+    <strong>Sections:</strong> ${sections.length}<br>
+    <strong>Total Words:</strong> ${totalWords.toLocaleString()}
+  </div>`;
+
+    // Add each section with proper error handling
     sections.forEach((section, index) => {
+      const sectionTitle = this.escapeHtml(section.title || `Section ${index + 1}`);
+      const sectionContent = section.content || 'No content available for this section.';
+      
+      console.log(`📄 [DEBUG] Processing section ${index + 1}: ${sectionTitle} (${sectionContent.length} chars)`);
+      
       htmlContent += `
-        <div class="section">
-          <h2>${index + 1}. ${section.title}</h2>
-          <div>${this.formatContentForHTML(section.content)}</div>
-        </div>
-      `;
+  <div class="section">
+    <h2>${index + 1}. ${sectionTitle}</h2>
+    <div>${this.formatContentForHTML(sectionContent)}</div>
+  </div>`;
     });
 
     htmlContent += `
-        <div class="signature-area">
-          <p><strong>Signature:</strong></p>
-          <div class="signature-line"></div>
-          <p><strong>Date:</strong> _______________</p>
-        </div>
-      </body>
-      </html>
-    `;
+  <div class="signature-area">
+    <p><strong>Signature:</strong></p>
+    <div class="signature-line"></div>
+    <p><strong>Date:</strong> _______________</p>
+  </div>
+</body>
+</html>`;
+
+    console.log(`📄 [DEBUG] Generated HTML content length: ${htmlContent.length} characters`);
 
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox', 
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-web-security'
+      ]
     });
     
     try {
       const page = await browser.newPage();
-      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      
+      // Set a reasonable timeout and wait for content to load
+      await page.setContent(htmlContent, { 
+        waitUntil: 'networkidle0',
+        timeout: 30000 
+      });
+      
+      console.log(`📄 [DEBUG] HTML content loaded successfully`);
       
       const pdfBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
-        margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' }
+        margin: { 
+          top: '0.75in', 
+          right: '0.75in', 
+          bottom: '0.75in', 
+          left: '0.75in' 
+        },
+        preferCSSPageSize: false
       });
+      
+      console.log(`📄 [DEBUG] PDF generated successfully, size: ${pdfBuffer.length} bytes`);
       
       return pdfBuffer;
       
+    } catch (error) {
+      console.error(`❌ [DEBUG] Error in PDF generation:`, error);
+      throw new Error(`PDF generation failed: ${error.message}`);
     } finally {
       await browser.close();
     }
