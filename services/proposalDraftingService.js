@@ -467,7 +467,6 @@ class ProposalDraftingService {
 
     console.log(`📄 [DEBUG] RFP content length: ${content.length} characters`);
 
-    //const cleanedContent = this.cleanDocumentContent(content, 'pdf');
     const htmlFormattedContent = this.convertToHTML(content);
 
     const htmlContent = `
