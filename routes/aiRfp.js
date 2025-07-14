@@ -47,6 +47,21 @@ async function initializeAIRFPTables() {
       )
     `);
 
+    // Create business_profiles table for compatibility
+    await proposalService.pool.query(`
+      CREATE TABLE IF NOT EXISTS business_profiles (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        company_name VARCHAR(255),
+        basic_info JSONB DEFAULT '{}',
+        capabilities JSONB DEFAULT '{}',
+        past_performance JSONB DEFAULT '[]',
+        key_personnel JSONB DEFAULT '[]',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
     console.log('✅ AI RFP database tables initialized successfully');
   } catch (error) {
     console.error('❌ Error initializing AI RFP tables:', error);

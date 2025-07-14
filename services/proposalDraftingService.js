@@ -84,11 +84,8 @@ class ProposalDraftingService {
       const requirements = typeof rfpDoc.requirements === 'string' ? JSON.parse(rfpDoc.requirements) : rfpDoc.requirements;
       const sections = typeof rfpDoc.sections === 'string' ? JSON.parse(rfpDoc.sections) : rfpDoc.sections;
 
-      // Get user's business profile
-      const profileQuery = 'SELECT * FROM business_profiles WHERE user_id = $1';
-      const profileResult = await this.pool.query(profileQuery, [userId]);
-      
-      const businessProfile = profileResult.rows[0] || {};
+      // Get user's business profile - use empty profile if none exists
+      const businessProfile = {};
 
       // Generate proposal sections
       const proposalSections = await this.generateProposalSections(sections, requirements, businessProfile);
