@@ -485,13 +485,13 @@ class SemanticSearchService {
         return semanticResults;
       }
 
-      // If we have real semantic results, just return them for now
+      // If we have real semantic results, just return them with the correct search type
       // The vector search is working well, so we don't need to complicate it
       if (semanticResults.searchType === 'semantic' && semanticResults.results.length > 0) {
         logger.info(`Hybrid search returning ${semanticResults.results.length} semantic results`);
         return {
           ...semanticResults,
-          searchType: 'hybrid'
+          searchType: 'semantic'
         };
       }
 
@@ -501,7 +501,7 @@ class SemanticSearchService {
       
       return {
         ...keywordResults,
-        searchType: 'hybrid_keyword'
+        searchType: 'keyword'
       };
     } catch (error) {
       logger.error('Error performing hybrid search:', error);
