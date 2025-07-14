@@ -68,6 +68,8 @@ class SemanticSearchService {
         userId = null
       } = options;
 
+      logger.info(`Starting semantic search for: "${queryText}"`);
+
       // Use vector service for semantic search
       if (this.vectorService && this.vectorService.isConnected) {
         logger.info('Using vector service for semantic search');
@@ -113,7 +115,16 @@ class SemanticSearchService {
       }
 
       // Fallback to database search if vector service unavailable
-      logger.info('Vector service unavailable, attempting database search');
+      logger.info('Vector service unavailable, falling back to keyword search');
+      
+      // Try keyword search first instead of embeddings
+      const keywordResults = await this.keywordSearchFallback(queryText, options);
+      
+      if (keywordResults.results.length > 0) {
+        return keywordResults;
+      }
+      
+      logger.info('Keyword search returned no results, trying embedding search');
       
       // Generate embedding for search query
       const queryEmbedding = await this.aiService.generateEmbedding(queryText);
@@ -246,7 +257,9 @@ class SemanticSearchService {
     try {
       const { limit = 20, filters = {} } = options;
       
-      // Build keyword search query with filters
+      logger.info(`Performing keyword search for: "${queryText}"`);
+      
+      // Build keyword search query with filters - using ILIKE for broader matching
       let searchQuery = `
         SELECT 
           c.id,
@@ -256,10 +269,23 @@ class SemanticSearchService {
           c.agency,
           c.contract_value,
           c.posted_date,
-          ts_rank(to_tsvector('english', c.title || ' ' || COALESCE(c.description, '')), plainto_tsquery('english', $1)) as keyword_score
+          CASE 
+            WHEN c.title ILIKE $1 THEN 1.0
+            WHEN c.description ILIKE $1 THEN 0.8
+            WHEN c.agency ILIKE $1 THEN 0.6
+            ELSE 0.4
+          END as keyword_score
         FROM contracts c
-        WHERE to_tsvector('english', c.title || ' ' || COALESCE(c.description, '')) @@ plainto_tsquery('english', $1)
+        WHERE (
+          c.title ILIKE $1 OR 
+          c.description ILIKE $1 OR 
+          c.agency ILIKE $1 OR
+          c.naics_code ILIKE $1 OR
+          c.classification_code ILIKE $1
+        )
       `;
+      
+      const queryParams = [`%${queryText}%`];
 
       const queryParams = [queryText];
       let paramIndex = 2;
@@ -299,6 +325,43 @@ class SemanticSearchService {
       queryParams.push(limit);
 
       const result = await this.pool.query(searchQuery, queryParams);
+      
+      logger.info(`Keyword search found ${result.rows.length} results`);
+      
+      if (result.rows.length === 0) {
+        // Try a more basic search without full-text search
+        const basicQuery = `
+          SELECT 
+            c.id,
+            c.notice_id,
+            c.title,
+            c.description,
+            c.agency,
+            c.contract_value,
+            c.posted_date,
+            0.5 as keyword_score
+          FROM contracts c
+          WHERE (
+            LOWER(c.title) LIKE LOWER($1) OR 
+            LOWER(c.description) LIKE LOWER($1) OR 
+            LOWER(c.agency) LIKE LOWER($1)
+          )
+          LIMIT $2
+        `;
+        
+        const basicResult = await this.pool.query(basicQuery, [`%${queryText}%`, limit]);
+        logger.info(`Basic search found ${basicResult.rows.length} results`);
+        
+        return {
+          results: basicResult.rows.map(row => ({
+            ...row,
+            relevanceScore: row.keyword_score || 0
+          })),
+          totalResults: basicResult.rows.length,
+          query: queryText,
+          searchType: 'basic_keyword'
+        };
+      }
 
       return {
         results: result.rows.map(row => ({

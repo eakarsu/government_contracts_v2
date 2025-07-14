@@ -178,13 +178,17 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Query parameter is required' });
     }
 
+    logger.info(`Search request: "${query}" with limit ${limit}`);
+
     // Use hybrid search by default for better results
     const searchResults = await semanticSearchService.hybridSearch(query, {
       limit,
-      threshold: 0.7,
+      threshold: 0.5, // Lower threshold for more results
       filters: {},
       userId: req.user?.id
     });
+    
+    logger.info(`Search completed: found ${searchResults.results?.length || 0} results using ${searchResults.searchType}`);
 
     const responseTime = (Date.now() - startTime) / 1000;
 
