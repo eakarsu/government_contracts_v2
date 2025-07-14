@@ -69,7 +69,7 @@ Do not include any meta-commentary or explanations - provide only the RFP sectio
 
     const generatedContent = response.data.choices[0].message.content;
     console.log(`✅ [DEBUG] Generated AI content for section: ${section.title} (${generatedContent.length} chars)`);
-    
+    console.log(`generatedContent :${generatedContent} `)
     return generatedContent;
   } catch (error) {
     console.error(`❌ [DEBUG] Error generating AI content for section ${section.title}:`, error.message);
