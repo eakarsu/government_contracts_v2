@@ -149,8 +149,8 @@ model CompanyProfile {
 model RfpResponse {
   id               Int            @id @default(autoincrement())
   contractId       String         @map("contract_id")
-  templateId       Int            @map("template_id")
-  companyProfileId Int            @map("company_profile_id")
+  templateId       Int?           @map("template_id")
+  companyProfileId Int?           @map("company_profile_id")
   title            String
   status           String         @default("draft")
   responseData     String         @map("response_data")
@@ -158,9 +158,9 @@ model RfpResponse {
   predictedScore   Float?         @map("predicted_score")
   createdAt        DateTime       @default(now()) @map("created_at")
   updatedAt        DateTime       @updatedAt @map("updated_at")
-  companyProfile   CompanyProfile @relation(fields: [companyProfileId], references: [id])
-  contract         Contract       @relation(fields: [contractId], references: [noticeId])
-  template         RfpTemplate    @relation(fields: [templateId], references: [id])
+  companyProfile   CompanyProfile? @relation(fields: [companyProfileId], references: [id])
+  contract         Contract?       @relation(fields: [contractId], references: [noticeId])
+  template         RfpTemplate?    @relation(fields: [templateId], references: [id])
   versions         RfpVersion[]
 
   @@map("rfp_responses")
