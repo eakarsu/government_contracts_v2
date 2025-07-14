@@ -189,6 +189,13 @@ async function initializeRFPTables() {
       )
     `);
 
+    // Add missing columns if they don't exist (for existing tables)
+    try {
+      await query(`ALTER TABLE rfp_responses ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'`);
+    } catch (alterError) {
+      console.log('Note: metadata column may already exist:', alterError.message);
+    }
+
     console.log('✅ RFP database tables initialized successfully');
   } catch (error) {
     console.error('❌ Error initializing RFP tables:', error);
@@ -772,9 +779,9 @@ router.post('/generate', async (req, res) => {
       const contractResult = await query(`
         SELECT id, notice_id, title, agency, description
         FROM contracts 
-        WHERE notice_id = $1 OR id = $1
+        WHERE notice_id = $1 OR (id = $2 AND $2 ~ '^[0-9]+$')
         LIMIT 1
-      `, [contractId]);
+      `, [contractId, contractId]);
 
       if (contractResult.rows.length === 0) {
         // If contract not found in database, create a mock contract for demo purposes
