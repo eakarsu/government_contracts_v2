@@ -170,7 +170,11 @@ class VectorService {
           postedDate: result.item.metadata.postedDate,
           score: result.score,
           metadata: result.item.metadata,
-          document: result.item.metadata.text
+          document: result.item.metadata.text,
+          // Add the percentage fields that the frontend expects
+          semanticScore: Math.round(result.score * 100),
+          keywordScore: 0,
+          naicsMatch: result.item.metadata.naicsCode ? 85 : 0
         }));
       
       console.log(`🔍 After filtering (threshold: ${threshold}): ${filteredResults.length} results`);
