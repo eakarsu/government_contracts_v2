@@ -81,34 +81,41 @@ class SemanticSearchService {
             filters
           });
 
-          // Store search query if user provided
-          if (userId) {
-            try {
-              await this.pool.query(
-                'INSERT INTO search_queries (user_id, query_text, results_count, created_at) VALUES ($1, $2, $3, NOW())',
-                [userId, queryText, results.length]
-              );
-            } catch (dbError) {
-              logger.warn('Failed to store search query:', dbError.message);
-            }
-          }
+          logger.info(`Vector search returned ${results.length} results`);
 
-          return {
-            results: results.map(result => ({
-              id: result.id,
-              notice_id: result.notice_id || result.noticeId,
-              title: result.title,
-              description: result.description,
-              agency: result.agency,
-              contract_value: result.contract_value || result.contractValue,
-              posted_date: result.posted_date || result.postedDate,
-              content_summary: result.summary || result.content_summary,
-              relevanceScore: result.score || result.relevanceScore || 0
-            })),
-            totalResults: results.length,
-            query: queryText,
-            searchType: 'semantic'
-          };
+          // If vector search returns results, use them
+          if (results.length > 0) {
+            // Store search query if user provided
+            if (userId) {
+              try {
+                await this.pool.query(
+                  'INSERT INTO search_queries (user_id, query_text, results_count, created_at) VALUES ($1, $2, $3, NOW())',
+                  [userId, queryText, results.length]
+                );
+              } catch (dbError) {
+                logger.warn('Failed to store search query:', dbError.message);
+              }
+            }
+
+            return {
+              results: results.map(result => ({
+                id: result.id,
+                notice_id: result.notice_id || result.noticeId,
+                title: result.title,
+                description: result.description,
+                agency: result.agency,
+                contract_value: result.contract_value || result.contractValue,
+                posted_date: result.posted_date || result.postedDate,
+                content_summary: result.summary || result.content_summary,
+                relevanceScore: result.score || result.relevanceScore || 0
+              })),
+              totalResults: results.length,
+              query: queryText,
+              searchType: 'semantic'
+            };
+          } else {
+            logger.info('Vector search returned 0 results, falling back to keyword search');
+          }
         } catch (vectorError) {
           logger.warn('Vector service search failed:', vectorError.message);
         }

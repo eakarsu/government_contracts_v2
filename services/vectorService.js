@@ -121,7 +121,9 @@ class VectorService {
     }
   }
 
-  async searchContracts(query, limit = 10) {
+  async searchContracts(query, options = {}) {
+    const { limit = 10, threshold = 0.1 } = options;
+    
     if (!this.isConnected) {
       console.warn('Vector database not connected - cannot perform vector search');
       return [];
@@ -131,15 +133,32 @@ class VectorService {
       // Generate embedding for query
       const queryEmbedding = await this.generateEmbedding(query);
       
-      // Search in contracts index
-      const results = await this.contractsIndex.queryItems(queryEmbedding, limit);
+      // Search in contracts index with higher limit for filtering
+      const searchLimit = Math.max(limit * 2, 20);
+      const results = await this.contractsIndex.queryItems(queryEmbedding, searchLimit);
       
-      return results.map(result => ({
-        id: result.item.metadata.id,
-        score: result.score,
-        metadata: result.item.metadata,
-        document: result.item.metadata.text
-      }));
+      console.log(`Vector search found ${results.length} raw results for query: "${query}"`);
+      
+      // Filter by threshold and limit
+      const filteredResults = results
+        .filter(result => result.score >= threshold)
+        .slice(0, limit)
+        .map(result => ({
+          id: result.item.metadata.id,
+          noticeId: result.item.metadata.id,
+          title: result.item.metadata.title,
+          description: result.item.metadata.text,
+          agency: result.item.metadata.agency,
+          naicsCode: result.item.metadata.naicsCode,
+          postedDate: result.item.metadata.postedDate,
+          score: result.score,
+          metadata: result.item.metadata,
+          document: result.item.metadata.text
+        }));
+      
+      console.log(`After filtering (threshold: ${threshold}): ${filteredResults.length} results`);
+      
+      return filteredResults;
     } catch (error) {
       console.error('Error searching contracts:', error);
       return [];
@@ -191,12 +210,22 @@ class VectorService {
     }
 
     try {
-      const contractsCount = await this.contractsIndex.listItems().then(items => items.length);
-      const documentsCount = await this.documentsIndex.listItems().then(items => items.length);
+      const contractsItems = await this.contractsIndex.listItems();
+      const documentsItems = await this.documentsIndex.listItems();
+      
+      console.log(`Vector DB Stats: ${contractsItems.length} contracts, ${documentsItems.length} documents indexed`);
+      
+      // Log a few sample contract titles for debugging
+      if (contractsItems.length > 0) {
+        console.log('Sample indexed contracts:');
+        contractsItems.slice(0, 3).forEach((item, index) => {
+          console.log(`  ${index + 1}. ${item.metadata.title || 'No title'} (${item.metadata.id})`);
+        });
+      }
 
       return {
-        contracts: contractsCount,
-        documents: documentsCount,
+        contracts: contractsItems.length,
+        documents: documentsItems.length,
         status: 'connected'
       };
     } catch (error) {
