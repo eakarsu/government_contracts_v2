@@ -166,43 +166,51 @@ function getLastAction(status) {
 router.get('/templates', async (req, res) => {
   try {
     // Query real templates from database
-    const result = await query(`
-      SELECT 
-        id,
-        name,
-        agency,
-        description,
-        sections,
-        evaluation_criteria,
-        created_at,
-        updated_at,
-        usage_count
-      FROM rfp_templates 
-      ORDER BY created_at DESC
-    `);
+    try {
+      const result = await query(`
+        SELECT 
+          id,
+          name,
+          agency,
+          description,
+          sections,
+          evaluation_criteria,
+          created_at,
+          updated_at
+        FROM rfp_templates 
+        ORDER BY created_at DESC
+      `);
 
-    const templates = result.rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      agency: row.agency,
-      description: row.description,
-      sections: row.sections ? JSON.parse(row.sections) : [],
-      evaluationCriteria: row.evaluation_criteria ? JSON.parse(row.evaluation_criteria) : {},
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      usageCount: row.usage_count || 0
-    }));
-    
-    res.json({
-      success: true,
-      templates: templates
-    });
+      const templates = result.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        agency: row.agency,
+        description: row.description,
+        sections: row.sections ? JSON.parse(row.sections) : [],
+        evaluationCriteria: row.evaluation_criteria ? JSON.parse(row.evaluation_criteria) : {},
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        usageCount: 0 // Default value since column doesn't exist yet
+      }));
+      
+      console.log(`📋 [DEBUG] Found ${templates.length} templates`);
+      
+      res.json({
+        success: true,
+        templates: templates
+      });
+    } catch (dbError) {
+      console.warn('Templates table may not exist:', dbError.message);
+      res.json({
+        success: true,
+        templates: []
+      });
+    }
   } catch (error) {
     console.error('Error fetching templates:', error);
-    // If table doesn't exist, return empty array instead of error
-    res.json({
-      success: true,
-      templates: []
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch templates'
     });
   }
 });
@@ -211,41 +219,46 @@ router.get('/templates', async (req, res) => {
 router.get('/company-profiles', async (req, res) => {
   try {
     // Query real company profiles from database
-    const result = await query(`
-      SELECT 
-        id,
-        company_name,
-        basic_info,
-        capabilities,
-        past_performance,
-        key_personnel,
-        created_at,
-        updated_at
-      FROM company_profiles 
-      ORDER BY created_at DESC
-    `);
+    try {
+      const result = await query(`
+        SELECT 
+          id,
+          company_name,
+          created_at,
+          updated_at
+        FROM company_profiles 
+        ORDER BY created_at DESC
+      `);
 
-    const profiles = result.rows.map(row => ({
-      id: row.id,
-      companyName: row.company_name,
-      basicInfo: row.basic_info ? JSON.parse(row.basic_info) : {},
-      capabilities: row.capabilities ? JSON.parse(row.capabilities) : {},
-      pastPerformance: row.past_performance ? JSON.parse(row.past_performance) : [],
-      keyPersonnel: row.key_personnel ? JSON.parse(row.key_personnel) : [],
-      createdAt: row.created_at,
-      updatedAt: row.updated_at
-    }));
-    
-    res.json({
-      success: true,
-      profiles: profiles
-    });
+      const profiles = result.rows.map(row => ({
+        id: row.id,
+        companyName: row.company_name,
+        basicInfo: {}, // Default empty object since column doesn't exist yet
+        capabilities: {}, // Default empty object since column doesn't exist yet
+        pastPerformance: [], // Default empty array since column doesn't exist yet
+        keyPersonnel: [], // Default empty array since column doesn't exist yet
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }));
+      
+      console.log(`📋 [DEBUG] Found ${profiles.length} company profiles`);
+      
+      res.json({
+        success: true,
+        profiles: profiles
+      });
+    } catch (dbError) {
+      console.warn('Company profiles table may not exist:', dbError.message);
+      res.json({
+        success: true,
+        profiles: []
+      });
+    }
   } catch (error) {
     console.error('Error fetching company profiles:', error);
-    // If table doesn't exist, return empty array instead of error
-    res.json({
-      success: true,
-      profiles: []
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch company profiles'
     });
   }
 });
@@ -516,5 +529,56 @@ function generateAttachments() {
     { name: 'Team_Resumes.pdf', size: '1.8 MB', type: 'pdf' }
   ];
 }
+
+// GET /api/rfp/contracts - Get contracts for RFP generation
+router.get('/contracts', async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    
+    // Get contracts from the main contracts table
+    try {
+      const result = await query(`
+        SELECT 
+          id,
+          notice_id,
+          title,
+          agency,
+          posted_date,
+          description
+        FROM contracts 
+        ORDER BY posted_date DESC NULLS LAST, created_at DESC
+        LIMIT $1
+      `, [parseInt(limit)]);
+
+      const contracts = result.rows.map(row => ({
+        id: row.id,
+        noticeId: row.notice_id,
+        title: row.title,
+        agency: row.agency,
+        postedDate: row.posted_date,
+        description: row.description?.substring(0, 200) + '...' || 'No description available'
+      }));
+      
+      console.log(`📋 [DEBUG] Found ${contracts.length} contracts for RFP generation`);
+      
+      res.json({
+        success: true,
+        contracts: contracts
+      });
+    } catch (dbError) {
+      console.warn('Contracts table may not exist:', dbError.message);
+      res.json({
+        success: true,
+        contracts: []
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching contracts for RFP:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch contracts'
+    });
+  }
+});
 
 module.exports = router;
