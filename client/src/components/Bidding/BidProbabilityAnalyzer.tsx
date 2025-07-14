@@ -4,12 +4,14 @@ import { TrendingUp, Target, BarChart3, Lightbulb, Trophy, AlertCircle } from 'l
 interface BidPrediction {
   id: string;
   contractId: string;
-  probabilityScore: number;
+  probability: number;
+  probabilityScore?: number;
   confidenceLevel: string;
   factors: Array<{
     factor: string;
     impact: string;
-    weight: number;
+    score: number;
+    weight?: number;
     description: string;
   }>;
   recommendations: Array<{
@@ -164,9 +166,11 @@ const BidProbabilityAnalyzer: React.FC = () => {
   };
 
   const getProbabilityColor = (score: number) => {
-    if (score >= 0.8) return 'text-green-600 bg-green-100';
-    if (score >= 0.6) return 'text-blue-600 bg-blue-100';
-    if (score >= 0.4) return 'text-yellow-600 bg-yellow-100';
+    // Handle both percentage (75) and decimal (0.75) formats
+    const normalizedScore = score > 1 ? score / 100 : score;
+    if (normalizedScore >= 0.8) return 'text-green-600 bg-green-100';
+    if (normalizedScore >= 0.6) return 'text-blue-600 bg-blue-100';
+    if (normalizedScore >= 0.4) return 'text-yellow-600 bg-yellow-100';
     return 'text-red-600 bg-red-100';
   };
 
@@ -308,8 +312,8 @@ const BidProbabilityAnalyzer: React.FC = () => {
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-4">
                         <div className="text-center">
-                          <div className={`text-3xl font-bold px-4 py-2 rounded-lg ${getProbabilityColor(prediction.probabilityScore)}`}>
-                            {Math.round(prediction.probabilityScore * 100)}%
+                          <div className={`text-3xl font-bold px-4 py-2 rounded-lg ${getProbabilityColor(prediction.probability || prediction.probabilityScore || 0)}`}>
+                            {prediction.probability || prediction.probabilityScore || 0}%
                           </div>
                           <p className="text-sm text-gray-600 mt-1">Win Probability</p>
                         </div>
@@ -345,11 +349,11 @@ const BidProbabilityAnalyzer: React.FC = () => {
                               <div className="w-full bg-gray-200 rounded-full h-2">
                                 <div 
                                   className="bg-blue-600 h-2 rounded-full"
-                                  style={{ width: `${factor.weight * 100}%` }}
+                                  style={{ width: `${factor.score || 0}%` }}
                                 ></div>
                               </div>
                               <p className="text-xs text-gray-500 mt-1">
-                                Weight: {Math.round(factor.weight * 100)}%
+                                Score: {factor.score || 0}%
                               </p>
                             </div>
                           </div>
