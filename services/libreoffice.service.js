@@ -67,7 +67,7 @@ class LibreOfficeService {
                 const result = await this.convertToPdfSingle(inputPath, outputDir);
                 return result;
             } catch (error) {
-                console.error(`LibreOffice conversion attempt ${attempt} failed:`, error.message);
+                console.error(`LibreOffice PDF conversion attempt ${attempt} failed:`, error.message);
                 
                 if (error.message.includes('javaldx') || 
                     error.message.includes('Java Runtime Environment') ||
@@ -75,7 +75,33 @@ class LibreOfficeService {
                     
                     if (attempt < maxRetries) {
                         const backoffDelay = 1000 * Math.pow(2, attempt - 1);
-                        console.log(`Retrying LibreOffice conversion in ${backoffDelay}ms... (attempt ${attempt + 1}/${maxRetries})`);
+                        console.log(`Retrying LibreOffice PDF conversion in ${backoffDelay}ms... (attempt ${attempt + 1}/${maxRetries})`);
+                        
+                        this.cleanupProcesses();
+                        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+                        continue;
+                    }
+                }
+                throw error;
+            }
+        }
+    }
+
+    async convertToWordWithRetry(inputPath, outputDir, maxRetries = 3) {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const result = await this.convertToWordSingle(inputPath, outputDir);
+                return result;
+            } catch (error) {
+                console.error(`LibreOffice Word conversion attempt ${attempt} failed:`, error.message);
+                
+                if (error.message.includes('javaldx') || 
+                    error.message.includes('Java Runtime Environment') ||
+                    error.message.includes('UserInstallation')) {
+                    
+                    if (attempt < maxRetries) {
+                        const backoffDelay = 1000 * Math.pow(2, attempt - 1);
+                        console.log(`Retrying LibreOffice Word conversion in ${backoffDelay}ms... (attempt ${attempt + 1}/${maxRetries})`);
                         
                         this.cleanupProcesses();
                         await new Promise(resolve => setTimeout(resolve, backoffDelay));
@@ -116,13 +142,58 @@ class LibreOfficeService {
                 `"${inputPath}"`
             ].join(' ');
 
-            console.log(`Converting with unique installation: ${userInstallDir}`);
+            console.log(`Converting to PDF with unique installation: ${userInstallDir}`);
             await execPromise(command, { timeout: 60000 });
             
             return { success: true, userInstallDir };
             
         } catch (error) {
-            throw new Error(`LibreOffice conversion failed: ${error.message}`);
+            throw new Error(`LibreOffice PDF conversion failed: ${error.message}`);
+        } finally {
+            try {
+                await execPromise(`rm -rf "${userInstallDir}"`);
+            } catch (cleanupError) {
+                console.error(`Failed to cleanup user installation directory: ${cleanupError.message}`);
+            }
+        }
+    }
+
+    async convertToWordSingle(inputPath, outputDir) {
+        const uniqueId = uuidv4();
+        const userInstallDir = `/tmp/libreoffice_${uniqueId}`;
+        
+        try {
+            await execPromise(`mkdir -p "${userInstallDir}"`);
+            
+            const platform = process.platform;
+            let libreofficePath;
+            
+            if (platform === 'darwin') {
+                libreofficePath = '/Applications/LibreOffice.app/Contents/MacOS/soffice';
+            } else if (platform === 'linux') {
+                libreofficePath = 'libreoffice';
+            } else {
+                throw new Error(`Unsupported platform: ${platform}`);
+            }
+
+            const command = [
+                `"${libreofficePath}"`,
+                '--headless',
+                '--convert-to', 'docx',
+                '--outdir', `"${outputDir}"`,
+                `-env:UserInstallation=file://${userInstallDir}`,
+                '--norestore',
+                '--invisible',
+                `"${inputPath}"`
+            ].join(' ');
+
+            console.log(`Converting to Word with unique installation: ${userInstallDir}`);
+            await execPromise(command, { timeout: 60000 });
+            
+            return { success: true, userInstallDir };
+            
+        } catch (error) {
+            throw new Error(`LibreOffice Word conversion failed: ${error.message}`);
         } finally {
             try {
                 await execPromise(`rm -rf "${userInstallDir}"`);
