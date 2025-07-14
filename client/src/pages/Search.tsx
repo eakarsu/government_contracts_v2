@@ -413,7 +413,13 @@ const Search: React.FC = () => {
             <div className="bg-white shadow rounded-lg p-6">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700">
-                  Showing {searchResult.pagination.offset + 1} to {Math.min(searchResult.pagination.offset + searchResult.pagination.limit, searchResult.pagination.total)} of {searchResult.pagination.total} results
+                  {searchResult.pagination ? (
+                    <>
+                      Showing {searchResult.pagination.offset + 1} to {Math.min(searchResult.pagination.offset + searchResult.pagination.limit, searchResult.pagination.total)} of {searchResult.pagination.total} results
+                    </>
+                  ) : (
+                    `Showing ${searchResult.results.length} results`
+                  )}
                 </div>
                 
                 <div className="flex items-center space-x-2">
