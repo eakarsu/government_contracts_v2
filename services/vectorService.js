@@ -122,7 +122,7 @@ class VectorService {
   }
 
   async searchContracts(query, options = {}) {
-    const { limit = 10, threshold = 0.1 } = options;
+    const { limit = 10, threshold = 0.01 } = options; // Much lower threshold
     
     if (!this.isConnected) {
       console.warn('Vector database not connected - cannot perform vector search');
@@ -131,17 +131,34 @@ class VectorService {
 
     try {
       // Generate embedding for query
+      console.log(`🔍 Generating embedding for query: "${query}"`);
       const queryEmbedding = await this.generateEmbedding(query);
+      console.log(`🔍 Generated embedding with length: ${queryEmbedding.length}`);
       
       // Search in contracts index with higher limit for filtering
-      const searchLimit = Math.max(limit * 2, 20);
+      const searchLimit = Math.max(limit * 3, 50);
+      console.log(`🔍 Searching contracts index with limit: ${searchLimit}`);
       const results = await this.contractsIndex.queryItems(queryEmbedding, searchLimit);
       
-      console.log(`Vector search found ${results.length} raw results for query: "${query}"`);
+      console.log(`🔍 Vector search found ${results.length} raw results for query: "${query}"`);
+      
+      // Log first few results with scores for debugging
+      if (results.length > 0) {
+        console.log('🔍 Top 3 raw results:');
+        results.slice(0, 3).forEach((result, index) => {
+          console.log(`  ${index + 1}. Score: ${result.score.toFixed(4)}, Title: ${result.item.metadata.title || 'No title'}`);
+        });
+      }
       
       // Filter by threshold and limit
       const filteredResults = results
-        .filter(result => result.score >= threshold)
+        .filter(result => {
+          const passesThreshold = result.score >= threshold;
+          if (!passesThreshold) {
+            console.log(`🔍 Filtered out result with score ${result.score.toFixed(4)} (below threshold ${threshold})`);
+          }
+          return passesThreshold;
+        })
         .slice(0, limit)
         .map(result => ({
           id: result.item.metadata.id,
@@ -156,11 +173,11 @@ class VectorService {
           document: result.item.metadata.text
         }));
       
-      console.log(`After filtering (threshold: ${threshold}): ${filteredResults.length} results`);
+      console.log(`🔍 After filtering (threshold: ${threshold}): ${filteredResults.length} results`);
       
       return filteredResults;
     } catch (error) {
-      console.error('Error searching contracts:', error);
+      console.error('❌ Error searching contracts:', error);
       return [];
     }
   }
@@ -218,15 +235,23 @@ class VectorService {
       // Log a few sample contract titles for debugging
       if (contractsItems.length > 0) {
         console.log('Sample indexed contracts:');
-        contractsItems.slice(0, 3).forEach((item, index) => {
-          console.log(`  ${index + 1}. ${item.metadata.title || 'No title'} (${item.metadata.id})`);
+        contractsItems.slice(0, 5).forEach((item, index) => {
+          console.log(`  ${index + 1}. Title: "${item.metadata.title || 'No title'}" ID: ${item.metadata.id}`);
+          console.log(`      Agency: ${item.metadata.agency || 'No agency'}`);
+          console.log(`      Text length: ${item.metadata.text?.length || 0} chars`);
         });
       }
 
       return {
         contracts: contractsItems.length,
         documents: documentsItems.length,
-        status: 'connected'
+        status: 'connected',
+        sample_contracts: contractsItems.slice(0, 5).map(item => ({
+          id: item.metadata.id,
+          title: item.metadata.title,
+          agency: item.metadata.agency,
+          textLength: item.metadata.text?.length || 0
+        }))
       };
     } catch (error) {
       console.error('Error getting collection stats:', error);

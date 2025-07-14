@@ -77,7 +77,7 @@ class SemanticSearchService {
         try {
           const results = await this.vectorService.searchContracts(queryText, {
             limit,
-            threshold,
+            threshold: 0.01, // Much lower threshold to see all results
             filters
           });
 

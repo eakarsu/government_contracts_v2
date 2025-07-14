@@ -168,6 +168,38 @@ router.post('/match/:profileId/:contractId', async (req, res) => {
   }
 });
 
+// Debug endpoint to test vector search directly
+router.get('/debug/vector/:query', async (req, res) => {
+  try {
+    const { query } = req.params;
+    const { limit = 5 } = req.query;
+
+    logger.info(`Debug vector search for: "${query}"`);
+
+    // Get vector service stats first
+    const stats = await semanticSearchService.vectorService.getCollectionStats();
+    
+    // Try direct vector search
+    const vectorResults = await semanticSearchService.vectorService.searchContracts(query, {
+      limit: parseInt(limit),
+      threshold: 0.001 // Very low threshold
+    });
+
+    res.json({
+      query,
+      vector_stats: stats,
+      raw_results: vectorResults,
+      debug_info: {
+        vector_connected: semanticSearchService.vectorService.isConnected,
+        embedding_model_loaded: !!semanticSearchService.vectorService.embedder
+      }
+    });
+  } catch (error) {
+    logger.error('Debug vector search error:', error);
+    res.status(500).json({ error: error.message, stack: error.stack });
+  }
+});
+
 // Legacy search endpoint for backward compatibility
 router.post('/', async (req, res) => {
   try {
@@ -183,7 +215,7 @@ router.post('/', async (req, res) => {
     // Use hybrid search by default for better results
     const searchResults = await semanticSearchService.hybridSearch(query, {
       limit,
-      threshold: 0.5, // Lower threshold for more results
+      threshold: 0.01, // Much lower threshold to see all results
       filters: {},
       userId: req.user?.id
     });
