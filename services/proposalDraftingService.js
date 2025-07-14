@@ -290,35 +290,53 @@ class ProposalDraftingService {
 
     return issues;
   }
+   
+ async convertToHTML(content) {
+  let htmlContent = content;
 
-  // Clean document content for different formats
-  cleanDocumentContent(content, format) {
-    let cleanedContent = content;
-    
-    if (format === 'pdf' || format === 'docx') {
-      // Remove markdown-style formatting for professional documents while preserving line breaks
-      
-      // Convert **text** to plain text but preserve the content structure
-      cleanedContent = cleanedContent.replace(/\*\*(.*?)\*\*/g, '$1');
-      
-      // Remove ### headers but keep the text and add line break after
-      cleanedContent = cleanedContent.replace(/^### (.*$)/gm, '$1\n');
-      cleanedContent = cleanedContent.replace(/^## (.*$)/gm, '$1\n');
-      cleanedContent = cleanedContent.replace(/^# (.*$)/gm, '$1\n');
-      
-      // Convert horizontal rules (---) to line breaks
-      cleanedContent = cleanedContent.replace(/^---+$/gm, '\n');
-      
-      // Preserve important line breaks - add extra line break after colons and important sections
-      cleanedContent = cleanedContent.replace(/^(.*?:)\s*$/gm, '$1\n');
-      
-      // Clean up excessive whitespace but preserve intentional spacing
-      cleanedContent = cleanedContent.replace(/\n\n\n+/g, '\n\n');
-      cleanedContent = cleanedContent.trim();
-    }
-    
-    return cleanedContent;
-  }
+  // Convert **text** to <strong>text</strong>
+  htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+  // Convert ### to h3, ## to h2, # to h1 with proper spacing
+  htmlContent = htmlContent.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+  htmlContent = htmlContent.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+  htmlContent = htmlContent.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+
+  // Convert --- to horizontal rules
+  htmlContent = htmlContent.replace(/^---+$/gm, '<hr>');
+
+  // Handle multi-line field values (like addresses) - process before single line fields
+  // Look for pattern: Label:\nValue1\nValue2\n etc.
+  htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*\n((?:(?!^[A-Z][^:]*:)[^\n]+\n?)+)/gm, function(match, label, value) {
+    const cleanValue = value.trim().replace(/\n/g, '<br>');
+    return `<p class="field-line"><strong>${label}</strong><br>${cleanValue}</p>`;
+  });
+
+  // Handle single-line field values (like "Phone: (804) 360-1129")
+  htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*(.+)$/gm, '<p class="field-line"><strong>$1</strong> $2</p>');
+
+  // Handle labels without values (like "Address:" on its own line) - only if not already processed
+  htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*$/gm, '<p class="field-label"><strong>$1</strong></p>');
+
+  // Convert double line breaks to paragraph breaks
+  htmlContent = htmlContent.replace(/\n\n/g, '</p><p>');
+
+  // Convert remaining single line breaks to <br> tags
+  htmlContent = htmlContent.replace(/\n/g, '<br>');
+
+  // Wrap remaining content in paragraphs
+  htmlContent = '<p>' + htmlContent + '</p>';
+
+  // Clean up empty paragraphs and fix nested tags
+  htmlContent = htmlContent.replace(/<p><\/p>/g, '');
+  htmlContent = htmlContent.replace(/<p>\s*<\/p>/g, '');
+  htmlContent = htmlContent.replace(/<p>(<h[1-6]>.*?<\/h[1-6]>)<\/p>/g, '$1');
+  htmlContent = htmlContent.replace(/<p>(<hr>)<\/p>/g, '$1');
+  htmlContent = htmlContent.replace(/<p>(<p class="field-line">.*?<\/p>)<\/p>/g, '$1');
+  htmlContent = htmlContent.replace(/<p>(<p class="field-label">.*?<\/p>)<\/p>/g, '$1');
+
+  return htmlContent;
+}
 
  
   async updateProposalSection(proposalId, sectionId, content) {
@@ -416,10 +434,11 @@ class ProposalDraftingService {
       content += `${section.content}\n\n`;
     });
 
-    console.log(`📄 [DEBUG] RFP content length: ${content.length} characters`);
+    console.log(`content : ${content}`)
 
-    const cleanedContent = this.cleanDocumentContent(content, 'pdf');
-    
+    console.log(`📄 [DEBUG] RFP content length: ${content.length} characters`);
+    this.htmlFormattedContent = this.convertToHTML (content)
+
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -434,9 +453,9 @@ class ProposalDraftingService {
           .field-label { margin-bottom: 5px; }
           .signature-line { border-bottom: 1px solid #000; width: 300px; margin: 20px 0; }
         </style>
-      </head>
+      </head> 
       <body>
-        ${cleanedContent}
+        ${this.htmlFormattedContent }
         <div style="margin-top: 50px;">
           <p><strong>Signature:</strong></p>
           <div class="signature-line"></div>
@@ -487,12 +506,9 @@ class ProposalDraftingService {
         content += `## ${section.title}\n\n`;
         content += `${section.content}\n\n`;
       });
-
-      // Clean the content for Word format
-      const cleanedContent = this.cleanDocumentContent(content, 'docx');
       
       // Split content into lines and process formatting
-      const lines = cleanedContent.split('\n');
+      const lines = content.split('\n');
       
       lines.forEach(line => {
         const trimmedLine = line.trim();
