@@ -131,7 +131,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
       </div>
 
       {/* Pagination Controls */}
-      {(pagination.total > pagination.limit || results.length >= pagination.limit) && (
+      {pagination.total > 0 && (
         <SearchPagination
           pagination={pagination}
           loading={loading}

@@ -16,7 +16,7 @@ interface SearchHistoryItem {
 const Search: React.FC = () => {
   const [searchForm, setSearchForm] = useState<SearchForm>({
     query: '',
-    limit: 20,
+    limit: 1000, // Set high limit to get all results
     include_analysis: true,
   });
   const [currentPage, setCurrentPage] = useState(1);
@@ -215,10 +215,10 @@ const Search: React.FC = () => {
                 onChange={(e) => handleLimitChange(parseInt(e.target.value))}
                 className="block w-24 border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
               >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
+                <option value={500}>500</option>
+                <option value={1000}>All</option>
               </select>
             </div>
 
@@ -406,10 +406,7 @@ const Search: React.FC = () => {
           </div>
 
           {/* Pagination Controls */}
-          {searchResult && (
-            (searchResult.pagination && (searchResult.pagination.total > searchResult.pagination.limit || searchResult.pagination.hasMore)) ||
-            (!searchResult.pagination && searchResult.results.length >= searchForm.limit)
-          ) && (
+          {searchResult && searchResult.results.length > 0 && (
             <div className="bg-white shadow rounded-lg p-6">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700">

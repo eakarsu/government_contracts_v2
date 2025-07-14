@@ -69,7 +69,7 @@ const SemanticSearch: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [pagination, setPagination] = useState({
     total: 0,
-    limit: 100,
+    limit: 1000, // Set very high limit to get all results
     offset: 0,
     hasMore: false
   });
@@ -342,10 +342,10 @@ const SemanticSearch: React.FC = () => {
                     }}
                     className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
                     <option value={50}>50</option>
                     <option value={100}>100</option>
+                    <option value={500}>500</option>
+                    <option value={1000}>All Results</option>
                   </select>
                 </div>
               </div>
