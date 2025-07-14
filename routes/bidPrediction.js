@@ -11,33 +11,48 @@ router.get('/predictions', async (req, res) => {
     const limitNum = parseInt(limit);
     const offsetNum = parseInt(offset);
     
-    // Helper function to ensure all objects have a string level property
-    const ensureLevel = (obj, defaultLevel = 'medium') => {
-      if (!obj || typeof obj !== 'object') return obj;
-      
-      // If it's an array, process each item
-      if (Array.isArray(obj)) {
-        return obj.map(item => ensureLevel(item, defaultLevel));
+    // Ultra-defensive function to ensure ALL objects have string level properties
+    const ensureStringLevel = (obj, defaultLevel = 'medium') => {
+      if (obj === null || obj === undefined) {
+        return obj;
       }
       
-      // For objects, ensure level is a string
-      const result = { ...obj };
-      if (!result.level || typeof result.level !== 'string') {
+      // Handle primitives
+      if (typeof obj !== 'object') {
+        return obj;
+      }
+      
+      // Handle arrays
+      if (Array.isArray(obj)) {
+        return obj.map(item => ensureStringLevel(item, defaultLevel));
+      }
+      
+      // Handle objects
+      const result = {};
+      
+      // Copy all properties and ensure level is a string
+      for (const [key, value] of Object.entries(obj)) {
+        if (key === 'level') {
+          // Force level to be a string
+          result[key] = String(value || defaultLevel);
+        } else if (typeof value === 'object' && value !== null) {
+          // Recursively process nested objects/arrays
+          result[key] = ensureStringLevel(value, defaultLevel);
+        } else {
+          result[key] = value;
+        }
+      }
+      
+      // Ensure every object has a level property as string
+      if (!result.hasOwnProperty('level')) {
         result.level = String(defaultLevel);
       }
-      
-      // Recursively process nested objects
-      Object.keys(result).forEach(key => {
-        if (typeof result[key] === 'object' && result[key] !== null) {
-          result[key] = ensureLevel(result[key], defaultLevel);
-        }
-      });
       
       return result;
     };
     
-    // For now, return mock data since bid_predictions table doesn't exist in Prisma schema
-    let mockPredictions = [
+    // Create completely safe mock data
+    const safeMockPredictions = [
       {
         id: 1,
         contractId: 'SAMPLE_001',
@@ -48,13 +63,41 @@ router.get('/predictions', async (req, res) => {
         confidenceLevel: 85,
         level: 'high',
         factors: [
-          { factor: 'Past Performance', impact: 'positive', score: 85, description: 'Strong track record in similar projects', level: 'high' },
-          { factor: 'Technical Capability', impact: 'positive', score: 80, description: 'Excellent technical expertise', level: 'high' },
-          { factor: 'Price Competitiveness', impact: 'neutral', score: 70, description: 'Competitive pricing strategy', level: 'medium' }
+          { 
+            factor: 'Past Performance', 
+            impact: 'positive', 
+            score: 85, 
+            description: 'Strong track record in similar projects', 
+            level: 'high' 
+          },
+          { 
+            factor: 'Technical Capability', 
+            impact: 'positive', 
+            score: 80, 
+            description: 'Excellent technical expertise', 
+            level: 'high' 
+          },
+          { 
+            factor: 'Price Competitiveness', 
+            impact: 'neutral', 
+            score: 70, 
+            description: 'Competitive pricing strategy', 
+            level: 'medium' 
+          }
         ],
         recommendations: [
-          { type: 'strength', title: 'Leverage Past Performance', description: 'Emphasize your strong track record in proposal', level: 'high' },
-          { type: 'improvement', title: 'Enhance Price Strategy', description: 'Consider more competitive pricing approach', level: 'medium' }
+          { 
+            type: 'strength', 
+            title: 'Leverage Past Performance', 
+            description: 'Emphasize your strong track record in proposal', 
+            level: 'high' 
+          },
+          { 
+            type: 'improvement', 
+            title: 'Enhance Price Strategy', 
+            description: 'Consider more competitive pricing approach', 
+            level: 'medium' 
+          }
         ],
         competitiveAnalysis: { 
           estimatedCompetitors: 8, 
@@ -81,13 +124,41 @@ router.get('/predictions', async (req, res) => {
         confidenceLevel: 70,
         level: 'medium',
         factors: [
-          { factor: 'Security Clearance', impact: 'positive', score: 90, description: 'All required clearances in place', level: 'high' },
-          { factor: 'Technical Capability', impact: 'positive', score: 75, description: 'Good cybersecurity expertise', level: 'medium' },
-          { factor: 'Competition Level', impact: 'negative', score: 45, description: 'High competition expected', level: 'low' }
+          { 
+            factor: 'Security Clearance', 
+            impact: 'positive', 
+            score: 90, 
+            description: 'All required clearances in place', 
+            level: 'high' 
+          },
+          { 
+            factor: 'Technical Capability', 
+            impact: 'positive', 
+            score: 75, 
+            description: 'Good cybersecurity expertise', 
+            level: 'medium' 
+          },
+          { 
+            factor: 'Competition Level', 
+            impact: 'negative', 
+            score: 45, 
+            description: 'High competition expected', 
+            level: 'low' 
+          }
         ],
         recommendations: [
-          { type: 'strength', title: 'Highlight Security Clearances', description: 'Emphasize clearance advantages', level: 'high' },
-          { type: 'risk', title: 'Address Competition', description: 'Develop strong differentiation strategy', level: 'medium' }
+          { 
+            type: 'strength', 
+            title: 'Highlight Security Clearances', 
+            description: 'Emphasize clearance advantages', 
+            level: 'high' 
+          },
+          { 
+            type: 'risk', 
+            title: 'Address Competition', 
+            description: 'Develop strong differentiation strategy', 
+            level: 'medium' 
+          }
         ],
         competitiveAnalysis: { 
           estimatedCompetitors: 12, 
@@ -106,14 +177,14 @@ router.get('/predictions', async (req, res) => {
       }
     ];
     
-    // Ensure all nested objects have proper string level properties
-    mockPredictions = ensureLevel(mockPredictions, 'medium');
+    // Apply ultra-defensive level string conversion
+    const ultraSafePredictions = ensureStringLevel(safeMockPredictions, 'medium');
     
     res.json({
       success: true,
-      predictions: mockPredictions,
+      predictions: ultraSafePredictions,
       pagination: {
-        total: mockPredictions.length,
+        total: ultraSafePredictions.length,
         limit: limitNum,
         offset: offsetNum,
         hasMore: false
