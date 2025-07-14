@@ -167,6 +167,7 @@ const BidProbabilityAnalyzer: React.FC = () => {
   };
 
   const getConfidenceColor = (level: string) => {
+    console.log('🐛 [DEBUG] getConfidenceColor - type:', typeof level, 'value:', level);
     switch (level.toLowerCase()) {
       case 'high': return 'text-green-600 bg-green-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
