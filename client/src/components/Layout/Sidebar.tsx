@@ -12,7 +12,6 @@ import {
   Database,
   Zap,
   ClipboardList,
-  Brain,
   Target,
   Wand2
 } from 'lucide-react';
@@ -33,7 +32,6 @@ const navigation = [
 ];
 
 const aiEnhancements = [
-  { name: 'AI Semantic Search', href: '/ai/semantic-search', icon: Brain },
   { name: 'Proposal Drafter', href: '/ai/proposal-drafter', icon: Wand2 },
   { name: 'Bid Analyzer', href: '/ai/bid-analyzer', icon: Target },
 ];
