@@ -344,7 +344,7 @@ router.post('/generate-proposal', async (req, res) => {
       proposal: {
         id: proposalDraft.id,
         title: proposalDraft.title,
-        sections: JSON.parse(proposalDraft.sections),
+        sections: typeof proposalDraft.sections === 'string' ? JSON.parse(proposalDraft.sections) : proposalDraft.sections,
         status: 'draft',
         version: 1,
         createdAt: proposalDraft.created_at,
