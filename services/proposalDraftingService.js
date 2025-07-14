@@ -294,22 +294,35 @@ class ProposalDraftingService {
   formatContentForHTML(content) {
     if (!content) return '<p>No content available</p>';
     
-    // Simple HTML formatting - convert line breaks to paragraphs
-    return content
-      .split('\n')
-      .filter(line => line.trim().length > 0)
-      .map(line => `<p>${this.escapeHtml(line.trim())}</p>`)
-      .join('');
+    try {
+      // Very simple formatting - just escape HTML and create paragraphs
+      const escaped = content.replace(/[<>&"']/g, '');
+      const paragraphs = escaped.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+      
+      if (paragraphs.length === 0) {
+        return '<p>No content available</p>';
+      }
+      
+      return paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
+    } catch (error) {
+      console.error('Error formatting content for HTML:', error);
+      return '<p>Content formatting error</p>';
+    }
   }
 
   escapeHtml(text) {
     if (!text) return '';
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+    try {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    } catch (error) {
+      console.error('Error escaping HTML:', error);
+      return 'Content error';
+    }
   }
 
  
@@ -397,79 +410,70 @@ class ProposalDraftingService {
   }
 
   async generatePDF(proposal, sections) {
-    const puppeteer = require('puppeteer');
-    
-    console.log(`📄 [DEBUG] Starting PDF generation for: ${proposal.title}`);
-    console.log(`📄 [DEBUG] Number of sections: ${sections.length}`);
-    
-    // Validate sections data
-    if (!sections || sections.length === 0) {
-      console.warn('⚠️ [DEBUG] No sections provided for PDF generation');
-      sections = [{ title: 'No Content', content: 'No content available for this document.', wordCount: 0 }];
-    }
+    try {
+      console.log(`📄 [DEBUG] Starting PDF generation for: ${proposal.title}`);
+      console.log(`📄 [DEBUG] Number of sections: ${sections.length}`);
+      
+      // Validate inputs
+      if (!proposal || !proposal.title) {
+        throw new Error('Proposal object with title is required');
+      }
+      
+      if (!sections || !Array.isArray(sections)) {
+        console.warn('⚠️ [DEBUG] No valid sections provided, using default');
+        sections = [{ 
+          title: 'No Content', 
+          content: 'No content available for this document.', 
+          wordCount: 0 
+        }];
+      }
 
-    // Build simple HTML content with proper escaping
-    const title = this.escapeHtml(proposal.title || 'Untitled Document');
-    const totalWords = sections.reduce((sum, s) => sum + (s.wordCount || 0), 0);
-    
-    let htmlContent = `<!DOCTYPE html>
-<html lang="en">
+      // Simple text-based PDF generation using basic HTML
+      const title = (proposal.title || 'Untitled Document').replace(/[<>&"']/g, '');
+      const totalWords = sections.reduce((sum, s) => sum + (s.wordCount || 0), 0);
+      
+      let htmlContent = `<!DOCTYPE html>
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
+  <title>RFP Response</title>
   <style>
     body { 
       font-family: Arial, sans-serif; 
-      margin: 40px; 
-      line-height: 1.6; 
-      color: #333;
-      font-size: 12pt;
+      margin: 1in; 
+      line-height: 1.5; 
+      color: #000;
+      font-size: 11pt;
     }
     h1 { 
-      color: #2c3e50; 
+      color: #000; 
       text-align: center; 
-      border-bottom: 2px solid #3498db;
+      font-size: 16pt;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #000;
       padding-bottom: 10px;
-      margin-bottom: 30px;
     }
     h2 { 
-      color: #34495e; 
-      margin-top: 30px; 
-      border-left: 4px solid #3498db;
-      padding-left: 15px;
-      page-break-after: avoid;
+      color: #000; 
+      font-size: 14pt;
+      margin-top: 25px;
+      margin-bottom: 10px;
     }
     p { 
-      margin-bottom: 15px; 
-      text-align: justify;
+      margin-bottom: 10px; 
+      text-align: left;
     }
     .meta { 
-      background: #f8f9fa; 
-      padding: 15px; 
-      border-radius: 5px; 
-      margin: 20px 0;
-      border: 1px solid #e9ecef;
+      background: #f5f5f5; 
+      padding: 10px; 
+      margin: 15px 0;
+      border: 1px solid #ccc;
     }
     .section { 
-      margin: 30px 0; 
-      page-break-inside: avoid;
-    }
-    .signature-area { 
-      margin-top: 50px; 
-      border-top: 1px solid #ddd; 
-      padding-top: 30px;
-      page-break-inside: avoid;
-    }
-    .signature-line { 
-      border-bottom: 1px solid #000; 
-      width: 300px; 
       margin: 20px 0; 
-      height: 20px;
     }
-    @media print {
-      body { margin: 0; }
-      .section { page-break-inside: avoid; }
+    .content {
+      margin: 10px 0;
     }
   </style>
 </head>
@@ -477,79 +481,86 @@ class ProposalDraftingService {
   <h1>${title}</h1>
   
   <div class="meta">
-    <strong>Generated:</strong> ${new Date().toLocaleDateString()}<br>
-    <strong>Sections:</strong> ${sections.length}<br>
-    <strong>Total Words:</strong> ${totalWords.toLocaleString()}
+    <p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
+    <p><strong>Sections:</strong> ${sections.length}</p>
+    <p><strong>Total Words:</strong> ${totalWords.toLocaleString()}</p>
   </div>`;
 
-    // Add each section with proper error handling
-    sections.forEach((section, index) => {
-      const sectionTitle = this.escapeHtml(section.title || `Section ${index + 1}`);
-      const sectionContent = section.content || 'No content available for this section.';
-      
-      console.log(`📄 [DEBUG] Processing section ${index + 1}: ${sectionTitle} (${sectionContent.length} chars)`);
-      
-      htmlContent += `
+      // Add sections with simple formatting
+      sections.forEach((section, index) => {
+        const sectionTitle = (section.title || `Section ${index + 1}`).replace(/[<>&"']/g, '');
+        const sectionContent = section.content || 'No content available for this section.';
+        
+        // Simple paragraph formatting - split by double newlines
+        const paragraphs = sectionContent.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+        const formattedContent = paragraphs.map(p => `<p>${p.replace(/[<>&"']/g, '').trim()}</p>`).join('');
+        
+        htmlContent += `
   <div class="section">
     <h2>${index + 1}. ${sectionTitle}</h2>
-    <div>${this.formatContentForHTML(sectionContent)}</div>
+    <div class="content">${formattedContent}</div>
   </div>`;
-    });
+      });
 
-    htmlContent += `
-  <div class="signature-area">
+      htmlContent += `
+  <div style="margin-top: 40px; border-top: 1px solid #000; padding-top: 20px;">
     <p><strong>Signature:</strong></p>
-    <div class="signature-line"></div>
+    <p style="border-bottom: 1px solid #000; width: 300px; height: 20px; margin: 15px 0;"></p>
     <p><strong>Date:</strong> _______________</p>
   </div>
 </body>
 </html>`;
 
-    console.log(`📄 [DEBUG] Generated HTML content length: ${htmlContent.length} characters`);
+      console.log(`📄 [DEBUG] Generated HTML content length: ${htmlContent.length} characters`);
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox', 
-        '--disable-setuid-sandbox', 
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-web-security'
-      ]
-    });
-    
-    try {
+      // Use Puppeteer to generate PDF
+      const puppeteer = require('puppeteer');
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox', 
+          '--disable-setuid-sandbox', 
+          '--disable-dev-shm-usage',
+          '--disable-gpu'
+        ]
+      });
+      
       const page = await browser.newPage();
       
-      // Set a reasonable timeout and wait for content to load
-      await page.setContent(htmlContent, { 
-        waitUntil: 'networkidle0',
-        timeout: 30000 
-      });
-      
-      console.log(`📄 [DEBUG] HTML content loaded successfully`);
-      
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: { 
-          top: '0.75in', 
-          right: '0.75in', 
-          bottom: '0.75in', 
-          left: '0.75in' 
-        },
-        preferCSSPageSize: false
-      });
-      
-      console.log(`📄 [DEBUG] PDF generated successfully, size: ${pdfBuffer.length} bytes`);
-      
-      return pdfBuffer;
+      try {
+        await page.setContent(htmlContent, { 
+          waitUntil: 'domcontentloaded',
+          timeout: 15000 
+        });
+        
+        console.log(`📄 [DEBUG] HTML content loaded in browser`);
+        
+        const pdfBuffer = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: { 
+            top: '0.5in', 
+            right: '0.5in', 
+            bottom: '0.5in', 
+            left: '0.5in' 
+          }
+        });
+        
+        console.log(`📄 [DEBUG] PDF generated successfully, size: ${pdfBuffer.length} bytes`);
+        
+        return pdfBuffer;
+        
+      } finally {
+        await browser.close();
+      }
       
     } catch (error) {
-      console.error(`❌ [DEBUG] Error in PDF generation:`, error);
+      console.error(`❌ [DEBUG] PDF generation error:`, error);
+      
+      // Fallback: create a simple text-based response
+      const fallbackContent = `RFP Response: ${proposal.title || 'Untitled'}\n\nGenerated: ${new Date().toLocaleDateString()}\n\nThis document could not be generated as PDF due to technical issues. Please contact support.\n\nSections: ${sections.length}`;
+      
       throw new Error(`PDF generation failed: ${error.message}`);
-    } finally {
-      await browser.close();
     }
   }
 
