@@ -6,6 +6,7 @@ const router = express.Router();
 // GET /api/rfp/dashboard/stats
 router.get('/dashboard/stats', async (req, res) => {
   try {
+    const userId = req.user?.id || 'anonymous';
     const statsResult = await query(`
       SELECT 
         COUNT(*) as total_rfps,
@@ -17,7 +18,7 @@ router.get('/dashboard/stats', async (req, res) => {
         SUM(estimated_value) as total_value
       FROM proposals 
       WHERE user_id = $1
-    `, [req.user.id]);
+    `, [userId]);
 
     const recentResult = await query(`
       SELECT id, title, status, updated_at
@@ -25,7 +26,7 @@ router.get('/dashboard/stats', async (req, res) => {
       WHERE user_id = $1
       ORDER BY updated_at DESC
       LIMIT 5
-    `, [req.user.id]);
+    `, [userId]);
 
     const stats = statsResult.rows[0];
     const totalRFPs = parseInt(stats.total_rfps || 0);
@@ -81,6 +82,26 @@ router.get('/responses', async (req, res) => {
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
     
+    // Mock RFP responses data
+    const mockRFPResponses = [
+      {
+        id: 1,
+        title: 'IT Infrastructure Modernization Response',
+        contractId: 'CONTRACT_001',
+        status: 'draft',
+        createdAt: '2025-01-15T00:00:00Z',
+        updatedAt: '2025-01-15T00:00:00Z'
+      },
+      {
+        id: 2,
+        title: 'Cybersecurity Assessment Response',
+        contractId: 'CONTRACT_002',
+        status: 'submitted',
+        createdAt: '2025-01-10T00:00:00Z',
+        updatedAt: '2025-01-12T00:00:00Z'
+      }
+    ];
+    
     const sortedResponses = mockRFPResponses.sort((a, b) => 
       new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
@@ -120,6 +141,28 @@ function getLastAction(status) {
 // GET /api/rfp/templates
 router.get('/templates', async (req, res) => {
   try {
+    // Mock templates data
+    const mockTemplates = [
+      {
+        id: 1,
+        name: 'Standard IT Services Template',
+        agency: 'General Services Administration',
+        description: 'Template for IT services contracts',
+        sections: [],
+        createdAt: '2025-01-01T00:00:00Z',
+        usageCount: 0
+      },
+      {
+        id: 2,
+        name: 'Defense Contract Template',
+        agency: 'Department of Defense',
+        description: 'Template for defense-related contracts',
+        sections: [],
+        createdAt: '2025-01-01T00:00:00Z',
+        usageCount: 0
+      }
+    ];
+    
     res.json({
       success: true,
       templates: mockTemplates
@@ -136,6 +179,30 @@ router.get('/templates', async (req, res) => {
 // GET /api/rfp/company-profiles
 router.get('/company-profiles', async (req, res) => {
   try {
+    // Mock company profiles data
+    const mockCompanyProfiles = [
+      {
+        id: 1,
+        companyName: 'TechCorp Solutions',
+        basicInfo: {
+          dunsNumber: '123456789',
+          cageCode: 'ABC123',
+          certifications: ['ISO 9001', 'CMMI Level 3'],
+          sizeStandard: 'Small Business',
+          naicsCode: ['541511', '541512']
+        },
+        capabilities: {
+          coreCompetencies: ['Software Development', 'System Integration'],
+          technicalSkills: ['Java', 'Python', 'AWS'],
+          securityClearances: ['Secret'],
+          methodologies: ['Agile', 'DevOps']
+        },
+        pastPerformance: [],
+        createdAt: '2025-01-01T00:00:00Z',
+        updatedAt: '2025-01-01T00:00:00Z'
+      }
+    ];
+    
     res.json({
       success: true,
       profiles: mockCompanyProfiles
@@ -165,7 +232,8 @@ router.post('/templates', async (req, res) => {
       usageCount: 0
     };
     
-    mockTemplates.push(template);
+    // Note: In a real implementation, this would save to database
+    // For now, just return the created template
     
     res.json({
       success: true,
@@ -195,7 +263,8 @@ router.post('/company-profiles', async (req, res) => {
       updatedAt: new Date().toISOString()
     };
     
-    mockCompanyProfiles.push(profile);
+    // Note: In a real implementation, this would save to database
+    // For now, just return the created profile
     
     res.json({
       success: true,
@@ -214,6 +283,30 @@ router.post('/company-profiles', async (req, res) => {
 router.get('/responses/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    // Mock RFP responses data (same as above)
+    const mockRFPResponses = [
+      {
+        id: 1,
+        title: 'IT Infrastructure Modernization Response',
+        contractId: 'CONTRACT_001',
+        status: 'draft',
+        sections: 5,
+        complianceScore: 85,
+        createdAt: '2025-01-15T00:00:00Z',
+        updatedAt: '2025-01-15T00:00:00Z'
+      },
+      {
+        id: 2,
+        title: 'Cybersecurity Assessment Response',
+        contractId: 'CONTRACT_002',
+        status: 'submitted',
+        sections: 4,
+        complianceScore: 92,
+        createdAt: '2025-01-10T00:00:00Z',
+        updatedAt: '2025-01-12T00:00:00Z'
+      }
+    ];
+    
     const response = mockRFPResponses.find(r => r.id === parseInt(id));
     
     if (!response) {

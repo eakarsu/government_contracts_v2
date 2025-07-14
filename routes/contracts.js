@@ -39,24 +39,48 @@ router.get('/', async (req, res) => {
     }
 
     // Get total count for pagination
-    const totalCount = await prisma.contract.count({ where });
+    const totalResult = await query('SELECT COUNT(*) FROM contracts');
+    const totalCount = parseInt(totalResult.rows[0].count);
 
     // Get contracts with pagination
-    const contracts = await prisma.contract.findMany({
-      where,
-      skip: offset,
-      take: parseInt(limit),
-      orderBy: { postedDate: 'desc' }
-    });
+    const result = await query(`
+      SELECT 
+        id, notice_id, title, description, agency, naics_code, 
+        classification_code, posted_date, set_aside_code, 
+        resource_links, indexed_at, created_at, updated_at,
+        contract_value
+      FROM contracts 
+      ORDER BY posted_date DESC NULLS LAST, created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [parseInt(limit), offset]);
+
+    const contracts = result.rows.map(row => ({
+      id: row.id,
+      noticeId: row.notice_id,
+      title: row.title,
+      description: row.description,
+      agency: row.agency,
+      naicsCode: row.naics_code,
+      classificationCode: row.classification_code,
+      postedDate: row.posted_date,
+      setAsideCode: row.set_aside_code,
+      resourceLinks: row.resource_links ? JSON.parse(row.resource_links) : [],
+      indexedAt: row.indexed_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      contractValue: row.contract_value
+    }));
 
     res.json({
       success: true,
-      data: contracts,
+      contracts,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
         total: totalCount,
-        totalPages: Math.ceil(totalCount / parseInt(limit))
+        totalPages: Math.ceil(totalCount / parseInt(limit)),
+        hasNext: parseInt(page) < Math.ceil(totalCount / parseInt(limit)),
+        hasPrev: parseInt(page) > 1
       }
     });
 
@@ -64,7 +88,8 @@ router.get('/', async (req, res) => {
     console.error('Failed to fetch contracts:', error);
     res.status(500).json({ 
       success: false,
-      error: error.message 
+      error: 'Failed to fetch contracts',
+      details: error.message 
     });
   }
 });
