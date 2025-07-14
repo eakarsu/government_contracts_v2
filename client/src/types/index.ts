@@ -21,6 +21,11 @@ export interface Contract {
   indexedAt?: string;
   createdAt: string;
   updatedAt: string;
+  // Search result specific fields
+  semanticScore?: number;
+  keywordScore?: number;
+  naicsMatch?: number;
+  relevanceScore?: number;
   documents?: {
     processing_queue: Array<{
       id: number;

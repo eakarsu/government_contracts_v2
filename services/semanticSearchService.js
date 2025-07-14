@@ -100,17 +100,19 @@ class SemanticSearchService {
             return {
               results: results.map(result => ({
                 id: result.id,
+                noticeId: result.notice_id || result.noticeId,
                 notice_id: result.notice_id || result.noticeId,
                 title: result.title,
                 description: result.description,
                 agency: result.agency,
                 contract_value: result.contract_value || result.contractValue,
                 posted_date: result.posted_date || result.postedDate,
+                postedDate: result.posted_date || result.postedDate,
                 content_summary: result.summary || result.content_summary,
                 relevanceScore: result.score || result.relevanceScore || 0,
                 semanticScore: Math.round((result.score || result.relevanceScore || 0) * 100),
                 keywordScore: 0,
-                naicsMatch: 0
+                naicsMatch: result.naicsCode ? 85 : 0
               })),
               totalResults: results.length,
               query: queryText,
@@ -343,16 +345,18 @@ class SemanticSearchService {
 
           return {
             id: contract.id,
+            noticeId: contract.noticeId,
             notice_id: contract.noticeId,
             title: contract.title,
             description: contract.description,
             agency: contract.agency,
             contract_value: contract.contractValue,
             posted_date: contract.postedDate,
+            postedDate: contract.postedDate,
             relevanceScore: score,
             semanticScore: 0,
             keywordScore: Math.round(score * 100),
-            naicsMatch: 0
+            naicsMatch: contract.naicsCode ? 75 : 0
           };
         });
 

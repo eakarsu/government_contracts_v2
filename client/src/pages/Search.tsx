@@ -302,23 +302,28 @@ const Search: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {searchResult.results.map((contract: Contract) => (
+                    {searchResult.results.map((contract: any) => (
                       <tr key={contract.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {contract.noticeId}
+                          {contract.noticeId || contract.notice_id}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                          {contract.title || 'Untitled'}
+                        <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
+                          <div className="truncate">{contract.title || 'Untitled'}</div>
+                          <div className="text-xs text-gray-400 mt-1 space-x-2">
+                            <span>Semantic: {contract.semanticScore || 0}%</span>
+                            <span>Keyword: {contract.keywordScore || 0}%</span>
+                            <span>NAICS: {contract.naicsMatch || 0}%</span>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {contract.agency || 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(contract.postedDate)}
+                          {formatDate(contract.postedDate || contract.posted_date)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <Link
-                            to={`/contracts/${contract.noticeId}`}
+                            to={`/contracts/${contract.noticeId || contract.notice_id}`}
                             className="text-primary-600 hover:text-primary-900"
                           >
                             View Details
