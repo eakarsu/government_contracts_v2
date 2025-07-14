@@ -84,6 +84,8 @@ Generate each section with the following EXACT format:
 
 **CRITICAL INSTRUCTION: GENERATE VERY DETAILED, COMPREHENSIVE CONTENT FOR EACH SECTION. Each section should be substantial and thorough, not brief summaries. This is a professional government RFP response that requires extensive detail and comprehensive coverage of all requirements.**
 
+**IMPORTANT: You MUST generate ALL ${sections.length} sections in this single response. Do not stop early or ask for continuation. Complete all sections even if they are shorter than ideal. Each section should be at least 1000 words but prioritize completing all sections over length.**
+
 Generate ALL ${sections.length} sections in this single response. Do not include any meta-commentary or explanations outside the section content.
 `;
 
@@ -98,7 +100,7 @@ Generate ALL ${sections.length} sections in this single response. Do not include
           content: prompt
         }
       ],
-      max_tokens: 32000, // Significantly increased for comprehensive sections
+      max_tokens: 50000, // Further increased to handle all 10 sections
       temperature: 0.7
     }, {
       headers: {
@@ -113,6 +115,12 @@ Generate ALL ${sections.length} sections in this single response. Do not include
     console.log(`✅ [DEBUG] Received comprehensive AI response (${fullResponse.length} chars)`);
     console.log(`🤖 [DEBUG] First 500 chars of AI response:`, fullResponse.substring(0, 500));
     console.log(`🤖 [DEBUG] Last 500 chars of AI response:`, fullResponse.substring(Math.max(0, fullResponse.length - 500)));
+    
+    // Print the FULL OpenRouter response for debugging
+    console.log(`🤖 [DEBUG] FULL OpenRouter Response:`);
+    console.log('='.repeat(80));
+    console.log(fullResponse);
+    console.log('='.repeat(80));
 
     // Parse the response to extract individual sections
     const parsedSections = [];
