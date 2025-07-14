@@ -21,18 +21,20 @@ router.get('/predictions', async (req, res) => {
         probability: 75,
         confidence: 'high',
         confidenceLevel: 85,
+        level: 'high',
         factors: [
-          { factor: 'Past Performance', impact: 'positive', score: 85, description: 'Strong track record in similar projects' },
-          { factor: 'Technical Capability', impact: 'positive', score: 80, description: 'Excellent technical expertise' },
-          { factor: 'Price Competitiveness', impact: 'neutral', score: 70, description: 'Competitive pricing strategy' }
+          { factor: 'Past Performance', impact: 'positive', score: 85, description: 'Strong track record in similar projects', level: 'high' },
+          { factor: 'Technical Capability', impact: 'positive', score: 80, description: 'Excellent technical expertise', level: 'high' },
+          { factor: 'Price Competitiveness', impact: 'neutral', score: 70, description: 'Competitive pricing strategy', level: 'medium' }
         ],
         recommendations: [
-          { type: 'strength', title: 'Leverage Past Performance', description: 'Emphasize your strong track record in proposal' },
-          { type: 'improvement', title: 'Enhance Price Strategy', description: 'Consider more competitive pricing approach' }
+          { type: 'strength', title: 'Leverage Past Performance', description: 'Emphasize your strong track record in proposal', level: 'high' },
+          { type: 'improvement', title: 'Enhance Price Strategy', description: 'Consider more competitive pricing approach', level: 'medium' }
         ],
         competitiveAnalysis: { 
           estimatedCompetitors: 8, 
           marketPosition: 'strong',
+          level: 'high',
           keyDifferentiators: ['Technical expertise', 'Past performance'],
           threats: ['Price competition', 'Established incumbents']
         },
@@ -46,18 +48,20 @@ router.get('/predictions', async (req, res) => {
         probability: 60,
         confidence: 'medium',
         confidenceLevel: 70,
+        level: 'medium',
         factors: [
-          { factor: 'Security Clearance', impact: 'positive', score: 90, description: 'All required clearances in place' },
-          { factor: 'Technical Capability', impact: 'positive', score: 75, description: 'Good cybersecurity expertise' },
-          { factor: 'Competition Level', impact: 'negative', score: 45, description: 'High competition expected' }
+          { factor: 'Security Clearance', impact: 'positive', score: 90, description: 'All required clearances in place', level: 'high' },
+          { factor: 'Technical Capability', impact: 'positive', score: 75, description: 'Good cybersecurity expertise', level: 'medium' },
+          { factor: 'Competition Level', impact: 'negative', score: 45, description: 'High competition expected', level: 'low' }
         ],
         recommendations: [
-          { type: 'strength', title: 'Highlight Security Clearances', description: 'Emphasize clearance advantages' },
-          { type: 'risk', title: 'Address Competition', description: 'Develop strong differentiation strategy' }
+          { type: 'strength', title: 'Highlight Security Clearances', description: 'Emphasize clearance advantages', level: 'high' },
+          { type: 'risk', title: 'Address Competition', description: 'Develop strong differentiation strategy', level: 'medium' }
         ],
         competitiveAnalysis: { 
           estimatedCompetitors: 12, 
           marketPosition: 'moderate',
+          level: 'medium',
           keyDifferentiators: ['Security clearances', 'Specialized expertise'],
           threats: ['Many qualified competitors', 'Price pressure']
         },
@@ -222,10 +226,18 @@ function generateAnalysisFactors(agency, estimatedValue) {
     baseFactors.push({ factor: 'Large Contract Experience', impact: 'positive', score: Math.floor(Math.random() * 20) + 70 });
   }
   
-  return baseFactors.map(factor => ({
-    ...factor,
-    description: getFactorDescription(factor.factor, factor.score)
-  }));
+  return baseFactors.map(factor => {
+    const score = factor.score;
+    let level = 'low';
+    if (score >= 80) level = 'high';
+    else if (score >= 60) level = 'medium';
+    
+    return {
+      ...factor,
+      level: level,
+      description: getFactorDescription(factor.factor, factor.score)
+    };
+  });
 }
 
 function getFactorDescription(factor, score) {
@@ -280,17 +292,22 @@ function generateRecommendations(factors, probability) {
   const recommendations = [];
   
   factors.forEach(factor => {
+    let level = 'medium';
     if (factor.score < 70) {
+      level = 'high';
       recommendations.push({
         type: 'improvement',
         title: `Improve ${factor.factor}`,
-        description: `Focus on strengthening ${factor.factor.toLowerCase()} to increase win probability`
+        description: `Focus on strengthening ${factor.factor.toLowerCase()} to increase win probability`,
+        level: level
       });
     } else if (factor.score > 85) {
+      level = 'high';
       recommendations.push({
         type: 'strength',
         title: `Leverage ${factor.factor}`,
-        description: `Emphasize ${factor.factor.toLowerCase()} as a key differentiator in your proposal`
+        description: `Emphasize ${factor.factor.toLowerCase()} as a key differentiator in your proposal`,
+        level: level
       });
     }
   });
@@ -299,13 +316,15 @@ function generateRecommendations(factors, probability) {
     recommendations.push({
       type: 'risk',
       title: 'Consider No-Bid Decision',
-      description: 'Low probability suggests significant challenges. Evaluate if resources are better allocated elsewhere.'
+      description: 'Low probability suggests significant challenges. Evaluate if resources are better allocated elsewhere.',
+      level: 'high'
     });
   } else if (probability > 80) {
     recommendations.push({
       type: 'opportunity',
       title: 'High Win Probability',
-      description: 'Strong position identified. Ensure proposal quality matches the opportunity.'
+      description: 'Strong position identified. Ensure proposal quality matches the opportunity.',
+      level: 'high'
     });
   }
   
