@@ -291,6 +291,83 @@ class ProposalDraftingService {
     return issues;
   }
 
+  // Clean document content for different formats
+  cleanDocumentContent(content, format) {
+    let cleanedContent = content;
+    
+    if (format === 'pdf' || format === 'docx') {
+      // Remove markdown-style formatting for professional documents while preserving line breaks
+      
+      // Convert **text** to plain text but preserve the content structure
+      cleanedContent = cleanedContent.replace(/\*\*(.*?)\*\*/g, '$1');
+      
+      // Remove ### headers but keep the text and add line break after
+      cleanedContent = cleanedContent.replace(/^### (.*$)/gm, '$1\n');
+      cleanedContent = cleanedContent.replace(/^## (.*$)/gm, '$1\n');
+      cleanedContent = cleanedContent.replace(/^# (.*$)/gm, '$1\n');
+      
+      // Convert horizontal rules (---) to line breaks
+      cleanedContent = cleanedContent.replace(/^---+$/gm, '\n');
+      
+      // Preserve important line breaks - add extra line break after colons and important sections
+      cleanedContent = cleanedContent.replace(/^(.*?:)\s*$/gm, '$1\n');
+      
+      // Clean up excessive whitespace but preserve intentional spacing
+      cleanedContent = cleanedContent.replace(/\n\n\n+/g, '\n\n');
+      cleanedContent = cleanedContent.trim();
+    }
+    
+    return cleanedContent;
+  }
+
+  // Convert content to HTML with proper formatting
+  convertToHTML(content) {
+    let htmlContent = content;
+    
+    // Convert **text** to <strong>text</strong>
+    htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Convert ### to h3, ## to h2, # to h1 with proper spacing
+    htmlContent = htmlContent.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+    htmlContent = htmlContent.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+    htmlContent = htmlContent.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+    
+    // Convert --- to horizontal rules
+    htmlContent = htmlContent.replace(/^---+$/gm, '<hr>');
+    
+    // Handle multi-line field values (like addresses) - process before single line fields
+    // Look for pattern: Label:\nValue1\nValue2\n etc.
+    htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*\n((?:(?!^[A-Z][^:]*:)[^\n]+\n?)+)/gm, function(match, label, value) {
+      const cleanValue = value.trim().replace(/\n/g, '<br>');
+      return `<p class="field-line"><strong>${label}</strong><br>${cleanValue}</p>`;
+    });
+    
+    // Handle single-line field values (like "Phone: (804) 360-1129")
+    htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*(.+)$/gm, '<p class="field-line"><strong>$1</strong> $2</p>');
+    
+    // Handle labels without values (like "Address:" on its own line) - only if not already processed
+    htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*$/gm, '<p class="field-label"><strong>$1</strong></p>');
+    
+    // Convert double line breaks to paragraph breaks
+    htmlContent = htmlContent.replace(/\n\n/g, '</p><p>');
+    
+    // Convert remaining single line breaks to <br> tags
+    htmlContent = htmlContent.replace(/\n/g, '<br>');
+    
+    // Wrap remaining content in paragraphs
+    htmlContent = '<p>' + htmlContent + '</p>';
+    
+    // Clean up empty paragraphs and fix nested tags
+    htmlContent = htmlContent.replace(/<p><\/p>/g, '');
+    htmlContent = htmlContent.replace(/<p>\s*<\/p>/g, '');
+    htmlContent = htmlContent.replace(/<p>(<h[1-6]>.*?<\/h[1-6]>)<\/p>/g, '$1');
+    htmlContent = htmlContent.replace(/<p>(<hr>)<\/p>/g, '$1');
+    htmlContent = htmlContent.replace(/<p>(<p class="field-line">.*?<\/p>)<\/p>/g, '$1');
+    htmlContent = htmlContent.replace(/<p>(<p class="field-label">.*?<\/p>)<\/p>/g, '$1');
+    
+    return htmlContent;
+  }
+
   async updateProposalSection(proposalId, sectionId, content) {
     try {
       // Get current proposal
@@ -375,47 +452,180 @@ class ProposalDraftingService {
   }
 
   async generatePDF(proposal, sections) {
-    const doc = new PDFDocument();
-    const chunks = [];
-
-    doc.on('data', chunk => chunks.push(chunk));
-    doc.on('end', () => {});
-
-    // Title page
-    doc.fontSize(20).text(proposal.title, { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(12).text(`Generated: ${new Date().toLocaleDateString()}`, { align: 'center' });
-    doc.addPage();
-
-    // Sections
-    sections.forEach(section => {
-      doc.fontSize(16).text(section.title, { underline: true });
-      doc.moveDown();
-      doc.fontSize(12).text(section.content);
-      doc.moveDown(2);
-    });
-
-    doc.end();
-
-    return new Promise((resolve) => {
-      doc.on('end', () => {
-        const pdfBuffer = Buffer.concat(chunks);
-        resolve(pdfBuffer);
-      });
-    });
-  }
-
-  async generateDOCX(proposal, sections) {
-    // Simplified DOCX generation - in production, use a proper library like docx
-    let content = `${proposal.title}\n\n`;
+    const puppeteer = require('puppeteer');
+    
+    // Build content from sections
+    let content = `# ${proposal.title}\n\n`;
     content += `Generated: ${new Date().toLocaleDateString()}\n\n`;
     
     sections.forEach(section => {
-      content += `${section.title}\n`;
+      content += `## ${section.title}\n\n`;
       content += `${section.content}\n\n`;
     });
 
-    return Buffer.from(content, 'utf8');
+    const cleanedContent = this.cleanDocumentContent(content, 'pdf');
+    const htmlFormattedContent = this.convertToHTML(cleanedContent);
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Proposal Document</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+          h1, h2, h3 { color: #333; margin-top: 30px; }
+          p { margin-bottom: 15px; }
+          .field-line { margin-bottom: 10px; }
+          .field-label { margin-bottom: 5px; }
+          .signature-line { border-bottom: 1px solid #000; width: 300px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        ${htmlFormattedContent}
+        <div style="margin-top: 50px;">
+          <p><strong>Signature:</strong></p>
+          <div class="signature-line"></div>
+          <p>Date: _______________</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    });
+    
+    try {
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' }
+      });
+      
+      return pdfBuffer;
+      
+    } finally {
+      await browser.close();
+    }
+  }
+
+  async generateDOCX(proposal, sections) {
+    const officegen = require('officegen');
+    
+    return new Promise((resolve, reject) => {
+      const docx = officegen('docx');
+      
+      // Add document properties
+      docx.setDocTitle(proposal.title);
+      docx.setDocSubject('Generated Proposal Document');
+      docx.setDocKeywords('proposal, document, generated');
+      
+      // Build content from sections
+      let content = `# ${proposal.title}\n\n`;
+      content += `Generated: ${new Date().toLocaleDateString()}\n\n`;
+      
+      sections.forEach(section => {
+        content += `## ${section.title}\n\n`;
+        content += `${section.content}\n\n`;
+      });
+
+      // Clean the content for Word format
+      const cleanedContent = this.cleanDocumentContent(content, 'docx');
+      
+      // Split content into lines and process formatting
+      const lines = cleanedContent.split('\n');
+      
+      lines.forEach(line => {
+        const trimmedLine = line.trim();
+        
+        if (trimmedLine === '') {
+          // Add empty paragraph for spacing
+          docx.createP();
+        } else if (trimmedLine.startsWith('# ')) {
+          // Main heading
+          const heading = docx.createP();
+          heading.addText(trimmedLine.substring(2), { bold: true, font_size: 16 });
+          heading.options.align = 'center';
+          // Add spacing after heading
+          docx.createP();
+        } else if (trimmedLine.startsWith('## ')) {
+          // Sub heading
+          const heading = docx.createP();
+          heading.addText(trimmedLine.substring(3), { bold: true, font_size: 14 });
+          // Add spacing after heading
+          docx.createP();
+        } else if (trimmedLine.startsWith('### ')) {
+          // Sub-sub heading
+          const heading = docx.createP();
+          heading.addText(trimmedLine.substring(4), { bold: true, font_size: 12 });
+          // Add spacing after heading
+          docx.createP();
+        } else if (trimmedLine.includes(':') && !trimmedLine.includes('**')) {
+          // Handle field labels (like "Organizer: Name")
+          const colonIndex = trimmedLine.indexOf(':');
+          const label = trimmedLine.substring(0, colonIndex + 1);
+          const value = trimmedLine.substring(colonIndex + 1).trim();
+          
+          const paragraph = docx.createP();
+          paragraph.addText(label, { bold: true });
+          if (value) {
+            paragraph.addText(' ' + value);
+          }
+          // Add line break after field
+          docx.createP();
+        } else {
+          // Regular paragraph
+          const paragraph = docx.createP();
+          
+          // Handle bold text within paragraphs
+          if (trimmedLine.includes('**')) {
+            const parts = trimmedLine.split(/(\*\*.*?\*\*)/);
+            parts.forEach(part => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                paragraph.addText(part.slice(2, -2), { bold: true });
+              } else {
+                paragraph.addText(part);
+              }
+            });
+          } else {
+            paragraph.addText(trimmedLine);
+          }
+        }
+      });
+      
+      // Add signature section
+      docx.createP();
+      docx.createP();
+      const sigLine = docx.createP();
+      sigLine.addText('_'.repeat(50));
+      const sigLabel = docx.createP();
+      sigLabel.addText('Signature');
+      docx.createP();
+      const dateLine = docx.createP();
+      dateLine.addText('Date: _________________');
+      
+      // Generate the document to buffer
+      const chunks = [];
+      const stream = docx.generate();
+      
+      stream.on('data', (chunk) => {
+        chunks.push(chunk);
+      });
+      
+      stream.on('end', () => {
+        const buffer = Buffer.concat(chunks);
+        resolve(buffer);
+      });
+      
+      stream.on('error', (err) => {
+        reject(err);
+      });
+    });
   }
 
   async getProposalsByUser(userId) {
