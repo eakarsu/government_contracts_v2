@@ -81,8 +81,8 @@ class ProposalDraftingService {
       }
 
       const rfpDoc = rfpResult.rows[0];
-      const requirements = JSON.parse(rfpDoc.requirements);
-      const sections = JSON.parse(rfpDoc.sections);
+      const requirements = typeof rfpDoc.requirements === 'string' ? JSON.parse(rfpDoc.requirements) : rfpDoc.requirements;
+      const sections = typeof rfpDoc.sections === 'string' ? JSON.parse(rfpDoc.sections) : rfpDoc.sections;
 
       // Get user's business profile
       const profileQuery = 'SELECT * FROM business_profiles WHERE user_id = $1';
@@ -401,7 +401,7 @@ class ProposalDraftingService {
       // Recalculate compliance
       const rfpQuery = 'SELECT requirements FROM rfp_documents WHERE id = $1';
       const rfpResult = await this.pool.query(rfpQuery, [proposal.rfp_document_id]);
-      const requirements = JSON.parse(rfpResult.rows[0].requirements);
+      const requirements = typeof rfpResult.rows[0].requirements === 'string' ? JSON.parse(rfpResult.rows[0].requirements) : rfpResult.rows[0].requirements;
       
       const complianceStatus = await this.checkCompliance(sections, requirements);
 
