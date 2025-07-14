@@ -473,4 +473,4 @@ class VectorService {
   }
 }
 
-module.exports = new VectorService();
+module.exports = VectorService;
