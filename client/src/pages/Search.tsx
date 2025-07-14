@@ -62,7 +62,9 @@ const Search: React.FC = () => {
       if (data.pagination) {
         const total = data.pagination.total;
         const limit = data.pagination.limit;
-        setTotalPages(Math.ceil(total / limit));
+        const calculatedPages = Math.ceil(total / limit);
+        console.log('Search.tsx pagination debug:', { total, limit, calculatedPages });
+        setTotalPages(calculatedPages);
       }
     },
   });
@@ -394,7 +396,7 @@ const Search: React.FC = () => {
           </div>
 
           {/* Pagination Controls */}
-          {searchResult && searchResult.pagination && totalPages > 1 && (
+          {searchResult && searchResult.pagination && searchResult.pagination.total > searchResult.pagination.limit && (
             <div className="bg-white shadow rounded-lg p-6">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700">

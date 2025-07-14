@@ -126,6 +126,7 @@ const SemanticSearch: React.FC = () => {
           };
           
           console.log('Fixed pagination:', fixedPagination);
+          console.log('Should show pagination?', fixedPagination.total > fixedPagination.limit);
           setPagination(fixedPagination);
           setQueryInfo(data.query_info);
         } else {
