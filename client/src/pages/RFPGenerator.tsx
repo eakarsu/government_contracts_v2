@@ -27,14 +27,14 @@ const RFPGenerator: React.FC = () => {
     try {
       setLoading(true);
       const [contractsResponse, templatesResponse, profilesResponse] = await Promise.all([
-        // Use getContracts instead of searchContracts to avoid empty query issue
-        apiService.getContracts(1, 100),
+        // Use searchContracts with empty query to get all contracts
+        apiService.searchContracts('', {}, 1, 100),
         apiService.getRFPTemplates(),
         apiService.getCompanyProfiles()
       ]);
 
       if (contractsResponse.success) {
-        setContracts(contractsResponse.data || []);
+        setContracts(contractsResponse.results || []);
       }
 
       if (templatesResponse.success) {
