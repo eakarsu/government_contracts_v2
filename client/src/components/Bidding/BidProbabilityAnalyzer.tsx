@@ -385,13 +385,13 @@ const BidProbabilityAnalyzer: React.FC = () => {
                         <div className="p-3 border border-gray-200 rounded-lg">
                           <p className="text-sm text-gray-600">Estimated Competitors</p>
                           <p className="text-2xl font-bold text-gray-900">
-                            {prediction.competitiveAnalysis.estimated_competitors}
+                            {prediction.competitiveAnalysis.estimated_competitors || prediction.competitiveAnalysis.estimatedCompetitors}
                           </p>
                         </div>
                         <div className="p-3 border border-gray-200 rounded-lg">
                           <p className="text-sm text-gray-600 mb-2">Your Advantages</p>
                           <div className="space-y-1">
-                            {prediction.competitiveAnalysis.company_advantages.map((advantage, index) => (
+                            {(prediction.competitiveAnalysis.company_advantages || []).map((advantage, index) => (
                               <span key={index} className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded text-xs mr-1">
                                 {advantage}
                               </span>
@@ -401,7 +401,7 @@ const BidProbabilityAnalyzer: React.FC = () => {
                         <div className="p-3 border border-gray-200 rounded-lg">
                           <p className="text-sm text-gray-600 mb-2">Areas to Improve</p>
                           <div className="space-y-1">
-                            {prediction.competitiveAnalysis.potential_weaknesses.map((weakness, index) => (
+                            {(prediction.competitiveAnalysis.potential_weaknesses || []).map((weakness, index) => (
                               <span key={index} className="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs mr-1">
                                 {weakness}
                               </span>

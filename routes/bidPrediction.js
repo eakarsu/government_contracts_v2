@@ -472,10 +472,33 @@ function generateCompetitiveAnalysis(agency, estimatedValue) {
   if (position === 'strong') level = 'high';
   else if (position === 'weak') level = 'low';
   
+  const advantages = [
+    'Technical innovation',
+    'Cost effectiveness', 
+    'Past performance',
+    'Team expertise',
+    'Security clearances',
+    'Industry experience'
+  ];
+  
+  const weaknesses = [
+    'Price competition',
+    'Limited resources',
+    'Technical requirements',
+    'Timeline constraints',
+    'Established incumbents',
+    'Market saturation'
+  ];
+  
   return {
+    estimated_competitors: competitorCount,
+    market_position: position,
+    level: level,
+    company_advantages: advantages.slice(0, Math.floor(Math.random() * 3) + 2),
+    potential_weaknesses: weaknesses.slice(0, Math.floor(Math.random() * 2) + 2),
+    // Keep the old structure for backward compatibility
     estimatedCompetitors: competitorCount,
     marketPosition: position,
-    level: level,
     keyDifferentiators: [
       { name: 'Technical innovation', level: 'high' },
       { name: 'Cost effectiveness', level: 'medium' },
