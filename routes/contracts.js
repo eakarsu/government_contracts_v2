@@ -1,6 +1,6 @@
 const express = require('express');
 const axios = require('axios');
-const { prisma } = require('../config/database');
+const { query } = require('../config/database');
 const vectorService = require('../services/vectorService');
 const config = require('../config/env');
 
@@ -38,38 +38,49 @@ router.get('/', async (req, res) => {
       where.naicsCode = naicsCode;
     }
 
-    // Get total count for pagination
-    const totalResult = await query('SELECT COUNT(*) FROM contracts');
-    const totalCount = parseInt(totalResult.rows[0].count);
+    // Check if contracts table exists, if not return empty result
+    let totalCount = 0;
+    let contracts = [];
 
-    // Get contracts with pagination
-    const result = await query(`
-      SELECT 
-        id, notice_id, title, description, agency, naics_code, 
-        classification_code, posted_date, set_aside_code, 
-        resource_links, indexed_at, created_at, updated_at,
-        contract_value
-      FROM contracts 
-      ORDER BY posted_date DESC NULLS LAST, created_at DESC
-      LIMIT $1 OFFSET $2
-    `, [parseInt(limit), offset]);
+    try {
+      // Get total count for pagination
+      const totalResult = await query('SELECT COUNT(*) FROM contracts');
+      totalCount = parseInt(totalResult.rows[0].count);
 
-    const contracts = result.rows.map(row => ({
-      id: row.id,
-      noticeId: row.notice_id,
-      title: row.title,
-      description: row.description,
-      agency: row.agency,
-      naicsCode: row.naics_code,
-      classificationCode: row.classification_code,
-      postedDate: row.posted_date,
-      setAsideCode: row.set_aside_code,
-      resourceLinks: row.resource_links ? JSON.parse(row.resource_links) : [],
-      indexedAt: row.indexed_at,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      contractValue: row.contract_value
-    }));
+      // Get contracts with pagination
+      const result = await query(`
+        SELECT 
+          id, notice_id, title, description, agency, naics_code, 
+          classification_code, posted_date, set_aside_code, 
+          resource_links, indexed_at, created_at, updated_at,
+          contract_value
+        FROM contracts 
+        ORDER BY posted_date DESC NULLS LAST, created_at DESC
+        LIMIT $1 OFFSET $2
+      `, [parseInt(limit), offset]);
+
+      contracts = result.rows.map(row => ({
+        id: row.id,
+        noticeId: row.notice_id,
+        title: row.title,
+        description: row.description,
+        agency: row.agency,
+        naicsCode: row.naics_code,
+        classificationCode: row.classification_code,
+        postedDate: row.posted_date,
+        setAsideCode: row.set_aside_code,
+        resourceLinks: row.resource_links ? JSON.parse(row.resource_links) : [],
+        indexedAt: row.indexed_at,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        contractValue: row.contract_value
+      }));
+    } catch (dbError) {
+      console.warn('Contracts table may not exist:', dbError.message);
+      // Return empty result if table doesn't exist
+      totalCount = 0;
+      contracts = [];
+    }
 
     res.json({
       success: true,
@@ -131,14 +142,13 @@ router.post('/fetch', async (req, res) => {
     }
 
     // Create indexing job record
-    const job = await prisma.indexingJob.create({
-      data: {
-        jobType: 'contracts',
-        status: 'running',
-        startDate,
-        endDate
-      }
-    });
+    const jobResult = await query(`
+      INSERT INTO indexing_jobs (job_type, status, start_date, end_date, created_at)
+      VALUES ($1, $2, $3, $4, NOW())
+      RETURNING id
+    `, ['contracts', 'running', startDate, endDate]);
+    
+    const job = { id: jobResult.rows[0].id };
 
     try {
       // Fetch contracts from SAM.gov
@@ -173,15 +183,34 @@ router.post('/fetch', async (req, res) => {
           
           if (!contractDetails.noticeId) continue;
 
-          // Upsert contract
-          const contract = await prisma.contract.upsert({
-            where: { noticeId: contractDetails.noticeId },
-            update: {
-              ...contractDetails,
-              updatedAt: new Date()
-            },
-            create: contractDetails
-          });
+          // Upsert contract using raw SQL
+          await query(`
+            INSERT INTO contracts (
+              notice_id, title, description, agency, naics_code, 
+              classification_code, posted_date, set_aside_code, resource_links
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ON CONFLICT (notice_id) 
+            DO UPDATE SET 
+              title = EXCLUDED.title,
+              description = EXCLUDED.description,
+              agency = EXCLUDED.agency,
+              naics_code = EXCLUDED.naics_code,
+              classification_code = EXCLUDED.classification_code,
+              posted_date = EXCLUDED.posted_date,
+              set_aside_code = EXCLUDED.set_aside_code,
+              resource_links = EXCLUDED.resource_links,
+              updated_at = NOW()
+          `, [
+            contractDetails.noticeId,
+            contractDetails.title,
+            contractDetails.description,
+            contractDetails.agency,
+            contractDetails.naicsCode,
+            contractDetails.classificationCode,
+            contractDetails.postedDate,
+            contractDetails.setAsideCode,
+            JSON.stringify(contractDetails.resourceLinks)
+          ]);
 
           processedCount++;
         } catch (error) {
@@ -191,15 +220,11 @@ router.post('/fetch', async (req, res) => {
       }
 
       // Update job status
-      await prisma.indexingJob.update({
-        where: { id: job.id },
-        data: {
-          status: 'completed',
-          recordsProcessed: processedCount,
-          errorsCount,
-          completedAt: new Date()
-        }
-      });
+      await query(`
+        UPDATE indexing_jobs 
+        SET status = $1, records_processed = $2, errors_count = $3, completed_at = NOW()
+        WHERE id = $4
+      `, ['completed', processedCount, errorsCount, job.id]);
 
       res.json({
         success: true,
@@ -210,14 +235,11 @@ router.post('/fetch', async (req, res) => {
       });
 
     } catch (error) {
-      await prisma.indexingJob.update({
-        where: { id: job.id },
-        data: {
-          status: 'failed',
-          errorDetails: error.message,
-          completedAt: new Date()
-        }
-      });
+      await query(`
+        UPDATE indexing_jobs 
+        SET status = $1, error_details = $2, completed_at = NOW()
+        WHERE id = $3
+      `, ['failed', error.message, job.id]);
       throw error;
     }
 
@@ -233,10 +255,13 @@ router.post('/index', async (req, res) => {
     const { limit = 100 } = req.body;
 
     // Get contracts that haven't been indexed yet
-    const contracts = await prisma.contract.findMany({
-      where: { indexedAt: null },
-      take: limit
-    });
+    const result = await query(`
+      SELECT * FROM contracts 
+      WHERE indexed_at IS NULL 
+      LIMIT $1
+    `, [limit]);
+    
+    const contracts = result.rows;
 
     if (contracts.length === 0) {
       const totalIndexed = await prisma.contract.count({
@@ -250,12 +275,13 @@ router.post('/index', async (req, res) => {
     }
 
     // Create indexing job
-    const job = await prisma.indexingJob.create({
-      data: {
-        jobType: 'contracts_indexing',
-        status: 'running'
-      }
-    });
+    const jobResult = await query(`
+      INSERT INTO indexing_jobs (job_type, status, created_at)
+      VALUES ($1, $2, NOW())
+      RETURNING id
+    `, ['contracts_indexing', 'running']);
+    
+    const job = { id: jobResult.rows[0].id };
 
     let indexedCount = 0;
     let errorsCount = 0;
