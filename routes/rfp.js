@@ -27,6 +27,110 @@ async function initializeRFPTables() {
       )
     `);
 
+    // Insert sample contracts if table is empty
+    const contractCount = await query('SELECT COUNT(*) FROM contracts');
+    if (parseInt(contractCount.rows[0].count) === 0) {
+      console.log('📋 [DEBUG] Inserting sample contracts for testing...');
+      
+      const sampleContracts = [
+        {
+          notice_id: 'W912DY-25-R-0001',
+          title: 'IT Infrastructure Modernization Services',
+          agency: 'Department of Defense',
+          description: 'The Department of Defense requires comprehensive IT infrastructure modernization services including cloud migration, cybersecurity implementation, and system integration. This contract will support the modernization of legacy systems and implementation of new technologies to enhance operational efficiency.',
+          posted_date: '2025-01-15',
+          response_date: '2025-02-15',
+          set_aside: 'Small Business',
+          naics_code: '541512',
+          contract_value: 5000000.00,
+          place_of_performance: 'Washington, DC'
+        },
+        {
+          notice_id: 'GS-35F-0119Y',
+          title: 'Cybersecurity Assessment and Implementation',
+          agency: 'General Services Administration',
+          description: 'GSA seeks qualified contractors to provide comprehensive cybersecurity assessment services, vulnerability testing, and security implementation for federal agencies. Services include risk assessment, penetration testing, security architecture design, and ongoing monitoring.',
+          posted_date: '2025-01-10',
+          response_date: '2025-02-10',
+          set_aside: 'Unrestricted',
+          naics_code: '541511',
+          contract_value: 3500000.00,
+          place_of_performance: 'Multiple Locations'
+        },
+        {
+          notice_id: 'VA-261-25-R-0003',
+          title: 'Healthcare Data Analytics Platform',
+          agency: 'Department of Veterans Affairs',
+          description: 'The VA requires development and implementation of a comprehensive healthcare data analytics platform to improve patient care and operational efficiency. The platform must integrate with existing VA systems and provide real-time analytics capabilities.',
+          posted_date: '2025-01-08',
+          response_date: '2025-02-08',
+          set_aside: 'SDVOSB',
+          naics_code: '541511',
+          contract_value: 8000000.00,
+          place_of_performance: 'Nationwide'
+        },
+        {
+          notice_id: 'NASA-JSC-25-001',
+          title: 'Mission Control Software Development',
+          agency: 'National Aeronautics and Space Administration',
+          description: 'NASA Johnson Space Center requires software development services for next-generation mission control systems. The contractor will develop, test, and maintain critical software systems used for space mission operations and astronaut safety.',
+          posted_date: '2025-01-05',
+          response_date: '2025-02-05',
+          set_aside: 'Unrestricted',
+          naics_code: '541511',
+          contract_value: 12000000.00,
+          place_of_performance: 'Houston, TX'
+        },
+        {
+          notice_id: 'DHS-CISA-25-R-001',
+          title: 'National Cybersecurity Framework Implementation',
+          agency: 'Department of Homeland Security',
+          description: 'DHS CISA seeks contractors to assist with implementation of the National Cybersecurity Framework across federal agencies. Services include framework assessment, implementation planning, training, and ongoing support for cybersecurity initiatives.',
+          posted_date: '2025-01-03',
+          response_date: '2025-02-03',
+          set_aside: 'Small Business',
+          naics_code: '541690',
+          contract_value: 6500000.00,
+          place_of_performance: 'Washington, DC'
+        }
+      ];
+
+      for (const contract of sampleContracts) {
+        try {
+          await query(`
+            INSERT INTO contracts (
+              notice_id, title, agency, description, posted_date, response_date,
+              set_aside, naics_code, contract_value, place_of_performance,
+              contact_info, requirements
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          `, [
+            contract.notice_id,
+            contract.title,
+            contract.agency,
+            contract.description,
+            contract.posted_date,
+            contract.response_date,
+            contract.set_aside,
+            contract.naics_code,
+            contract.contract_value,
+            contract.place_of_performance,
+            JSON.stringify({ email: 'contracting@agency.gov', phone: '(555) 123-4567' }),
+            JSON.stringify({ 
+              security_clearance: contract.naics_code === '541511' ? 'Secret' : 'None',
+              experience_years: 5,
+              certifications: ['ISO 27001', 'FedRAMP']
+            })
+          ]);
+        } catch (insertError) {
+          if (insertError.code !== '23505') { // Ignore duplicate key errors
+            console.error('Error inserting sample contract:', insertError.message);
+          }
+        }
+      }
+      
+      console.log('✅ [DEBUG] Sample contracts inserted successfully');
+    }
+
     // Create company_profiles table
     await query(`
       CREATE TABLE IF NOT EXISTS company_profiles (
