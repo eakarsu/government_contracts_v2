@@ -116,7 +116,17 @@ const SemanticSearch: React.FC = () => {
           console.log('Search response results count:', data.results.length);
           console.log('Pagination data:', data.pagination);
           setResults(data.results);
-          setPagination(data.pagination);
+          
+          // Fix pagination hasMore calculation if backend doesn't provide it correctly
+          const fixedPagination = {
+            total: data.pagination?.total || data.results.length,
+            limit: data.pagination?.limit || 20,
+            offset: data.pagination?.offset || 0,
+            hasMore: data.pagination?.hasMore || (data.pagination?.offset + data.pagination?.limit < data.pagination?.total)
+          };
+          
+          console.log('Fixed pagination:', fixedPagination);
+          setPagination(fixedPagination);
           setQueryInfo(data.query_info);
         } else {
           setError('Search failed. Please try again.');
