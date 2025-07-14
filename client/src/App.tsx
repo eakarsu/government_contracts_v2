@@ -28,7 +28,6 @@ import RFPResponseEdit from './pages/RFPResponseEdit';
 // AI Enhancement Components
 import ProposalDrafter from './components/Proposals/ProposalDrafter';
 import BidProbabilityAnalyzer from './components/Bidding/BidProbabilityAnalyzer';
-import SemanticSearch from './components/Search/SemanticSearch';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -67,7 +66,6 @@ function App() {
               <Route path="/rfp/responses/:id/edit" element={<RFPResponseEdit />} />
               
               {/* AI Enhancement Routes */}
-              <Route path="/ai/semantic-search" element={<SemanticSearch />} />
               <Route path="/ai/proposal-drafter" element={<ProposalDrafter />} />
               <Route path="/ai/bid-analyzer" element={<BidProbabilityAnalyzer />} />
               
