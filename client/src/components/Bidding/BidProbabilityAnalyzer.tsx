@@ -22,6 +22,10 @@ interface BidPrediction {
     company_advantages: string[];
     potential_weaknesses: string[];
     market_position: string;
+    // Backward compatibility fields
+    estimatedCompetitors?: number;
+    keyDifferentiators?: Array<{ name: string; level: string }>;
+    threats?: Array<{ name: string; level: string }>;
   };
   predictedAt: string;
 }
@@ -385,7 +389,7 @@ const BidProbabilityAnalyzer: React.FC = () => {
                         <div className="p-3 border border-gray-200 rounded-lg">
                           <p className="text-sm text-gray-600">Estimated Competitors</p>
                           <p className="text-2xl font-bold text-gray-900">
-                            {prediction.competitiveAnalysis.estimated_competitors || prediction.competitiveAnalysis.estimatedCompetitors}
+                            {prediction.competitiveAnalysis.estimated_competitors || prediction.competitiveAnalysis.estimatedCompetitors || 0}
                           </p>
                         </div>
                         <div className="p-3 border border-gray-200 rounded-lg">
