@@ -310,24 +310,9 @@ const Search: React.FC = () => {
                         <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
                           <div className="truncate">{contract.title || 'Untitled'}</div>
                           <div className="text-xs text-gray-400 mt-1 space-x-2">
-                            <span>Semantic: {(() => {
-                              console.log('🐛 [DEBUG] semanticScore - type:', typeof contract.semanticScore, 'value:', contract.semanticScore);
-                              const score = contract.semanticScore || 0;
-                              console.log('🐛 [DEBUG] semanticScore after fallback - type:', typeof score, 'value:', score);
-                              return score;
-                            })()}%</span>
-                            <span>Keyword: {(() => {
-                              console.log('🐛 [DEBUG] keywordScore - type:', typeof contract.keywordScore, 'value:', contract.keywordScore);
-                              const score = contract.keywordScore || 0;
-                              console.log('🐛 [DEBUG] keywordScore after fallback - type:', typeof score, 'value:', score);
-                              return score;
-                            })()}%</span>
-                            <span>NAICS: {(() => {
-                              console.log('🐛 [DEBUG] naicsMatch - type:', typeof contract.naicsMatch, 'value:', contract.naicsMatch);
-                              const score = contract.naicsMatch || 0;
-                              console.log('🐛 [DEBUG] naicsMatch after fallback - type:', typeof score, 'value:', score);
-                              return score;
-                            })()}%</span>
+                            <span>Semantic: {Number.isFinite(contract.semanticScore) ? contract.semanticScore : 0}%</span>
+                            <span>Keyword: {Number.isFinite(contract.keywordScore) ? contract.keywordScore : 0}%</span>
+                            <span>NAICS: {Number.isFinite(contract.naicsMatch) ? contract.naicsMatch : 0}%</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

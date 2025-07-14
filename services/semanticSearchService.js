@@ -110,22 +110,9 @@ class SemanticSearchService {
                 postedDate: result.posted_date || result.postedDate,
                 content_summary: result.summary || result.content_summary,
                 relevanceScore: result.score || result.relevanceScore || 0,
-                semanticScore: (() => {
-                  const rawScore = result.score || result.relevanceScore || 0;
-                  const score = Math.round(rawScore * 100);
-                  console.log('🐛 [DEBUG] semanticSearchService semanticScore - rawScore:', rawScore, 'rounded:', score, 'type:', typeof score);
-                  return score;
-                })(),
-                keywordScore: (() => {
-                  const score = 0;
-                  console.log('🐛 [DEBUG] semanticSearchService keywordScore - value:', score, 'type:', typeof score);
-                  return score;
-                })(),
-                naicsMatch: (() => {
-                  const score = result.naicsCode ? 85 : 0;
-                  console.log('🐛 [DEBUG] semanticSearchService naicsMatch - naicsCode:', result.naicsCode, 'score:', score, 'type:', typeof score);
-                  return score;
-                })()
+                semanticScore: Math.round((result.score || result.relevanceScore || 0) * 100),
+                keywordScore: 0,
+                naicsMatch: result.naicsCode ? 85 : 0
               })),
               totalResults: results.length,
               query: queryText,
@@ -367,21 +354,9 @@ class SemanticSearchService {
             posted_date: contract.postedDate,
             postedDate: contract.postedDate,
             relevanceScore: score,
-            semanticScore: (() => {
-              const semanticScore = 0;
-              console.log('🐛 [DEBUG] keywordSearch semanticScore - value:', semanticScore, 'type:', typeof semanticScore);
-              return semanticScore;
-            })(),
-            keywordScore: (() => {
-              const keywordScore = Math.round(score * 100);
-              console.log('🐛 [DEBUG] keywordSearch keywordScore - score:', score, 'rounded:', keywordScore, 'type:', typeof keywordScore);
-              return keywordScore;
-            })(),
-            naicsMatch: (() => {
-              const naicsScore = contract.naicsCode ? 75 : 0;
-              console.log('🐛 [DEBUG] keywordSearch naicsMatch - naicsCode:', contract.naicsCode, 'score:', naicsScore, 'type:', typeof naicsScore);
-              return naicsScore;
-            })()
+            semanticScore: 0,
+            keywordScore: Math.round(score * 100),
+            naicsMatch: contract.naicsCode ? 75 : 0
           };
         });
 

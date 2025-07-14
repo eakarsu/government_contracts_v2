@@ -172,21 +172,9 @@ class VectorService {
           metadata: result.item.metadata,
           document: result.item.metadata.text,
           // Add the percentage fields that the frontend expects
-          semanticScore: (() => {
-            const score = Math.round(result.score * 100);
-            console.log('🐛 [DEBUG] vectorService semanticScore - score:', result.score, 'rounded:', score, 'type:', typeof score);
-            return score;
-          })(),
-          keywordScore: (() => {
-            const score = 0;
-            console.log('🐛 [DEBUG] vectorService keywordScore - value:', score, 'type:', typeof score);
-            return score;
-          })(),
-          naicsMatch: (() => {
-            const score = result.item.metadata.naicsCode ? 85 : 0;
-            console.log('🐛 [DEBUG] vectorService naicsMatch - naicsCode:', result.item.metadata.naicsCode, 'score:', score, 'type:', typeof score);
-            return score;
-          })()
+          semanticScore: Math.round(result.score * 100),
+          keywordScore: 0,
+          naicsMatch: result.item.metadata.naicsCode ? 85 : 0
         }));
       
       console.log(`🔍 After filtering (threshold: ${threshold}): ${filteredResults.length} results`);
