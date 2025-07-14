@@ -19,6 +19,8 @@ const Search: React.FC = () => {
     limit: 20,
     include_analysis: true,
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -51,18 +53,43 @@ const Search: React.FC = () => {
   };
 
   const searchMutation = useMutation({
-    mutationFn: (data: SearchForm) => apiService.searchContracts(data),
+    mutationFn: (data: SearchForm & { offset?: number }) => apiService.searchContracts(data),
     onSuccess: (data) => {
       setSearchResult(data);
       saveSearchToHistory(searchForm, data);
+      
+      // Calculate pagination info
+      if (data.pagination) {
+        const total = data.pagination.total;
+        const limit = data.pagination.limit;
+        setTotalPages(Math.ceil(total / limit));
+      }
     },
   });
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearch = (e: React.FormEvent, page: number = 1) => {
+    e?.preventDefault();
     if (searchForm.query.trim()) {
       setShowHistory(false);
-      searchMutation.mutate(searchForm);
+      setCurrentPage(page);
+      const offset = (page - 1) * searchForm.limit;
+      searchMutation.mutate({ ...searchForm, offset });
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      handleSearch(null as any, page);
+    }
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setSearchForm({ ...searchForm, limit: newLimit });
+    setCurrentPage(1);
+    if (searchResult) {
+      // Re-search with new limit
+      const offset = 0;
+      searchMutation.mutate({ ...searchForm, limit: newLimit, offset });
     }
   };
 
@@ -70,6 +97,14 @@ const Search: React.FC = () => {
     setSearchForm(historyItem.form);
     setSearchResult(historyItem.result);
     setShowHistory(false);
+    setCurrentPage(1);
+    
+    // Calculate pagination for history item
+    if (historyItem.result.pagination) {
+      const total = historyItem.result.pagination.total;
+      const limit = historyItem.result.pagination.limit;
+      setTotalPages(Math.ceil(total / limit));
+    }
   };
 
   const clearSearchHistory = () => {
@@ -160,17 +195,19 @@ const Search: React.FC = () => {
           <div className="flex items-center space-x-4">
             <div>
               <label htmlFor="limit" className="block text-sm font-medium text-gray-700 mb-1">
-                Results Limit
+                Results Per Page
               </label>
-              <input
-                type="number"
+              <select
                 id="limit"
                 value={searchForm.limit}
-                onChange={(e) => setSearchForm({ ...searchForm, limit: parseInt(e.target.value) || 20 })}
+                onChange={(e) => handleLimitChange(parseInt(e.target.value))}
                 className="block w-24 border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
-                min="1"
-                max="100"
-              />
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
             </div>
 
             <div className="flex items-center">
@@ -201,6 +238,8 @@ const Search: React.FC = () => {
                 onClick={() => {
                   setSearchResult(null);
                   setSearchForm({ query: '', limit: 20, include_analysis: true });
+                  setCurrentPage(1);
+                  setTotalPages(0);
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
@@ -225,7 +264,7 @@ const Search: React.FC = () => {
           {/* Search Summary */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Search Results</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div className="bg-blue-50 p-4 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">
                   {searchResult.pagination?.total || searchResult.results.length}
@@ -242,11 +281,24 @@ const Search: React.FC = () => {
                 <div className="text-2xl font-bold text-purple-600">
                   {searchResult.results.length}
                 </div>
-                <div className="text-sm text-purple-600">Displayed</div>
+                <div className="text-sm text-purple-600">Showing</div>
+              </div>
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-orange-600">
+                  {currentPage} / {totalPages}
+                </div>
+                <div className="text-sm text-orange-600">Page</div>
               </div>
             </div>
-            <div className="text-sm text-gray-600">
-              Query: <span className="font-medium">"{searchResult.query}"</span>
+            <div className="flex justify-between items-center text-sm text-gray-600">
+              <div>
+                Query: <span className="font-medium">"{searchResult.query}"</span>
+              </div>
+              {searchResult.pagination && (
+                <div>
+                  Showing {searchResult.pagination.offset + 1}-{Math.min(searchResult.pagination.offset + searchResult.pagination.limit, searchResult.pagination.total)} of {searchResult.pagination.total} results
+                </div>
+              )}
             </div>
           </div>
 
@@ -340,6 +392,106 @@ const Search: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Pagination Controls */}
+          {searchResult && searchResult.pagination && totalPages > 1 && (
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Showing {searchResult.pagination.offset + 1} to {Math.min(searchResult.pagination.offset + searchResult.pagination.limit, searchResult.pagination.total)} of {searchResult.pagination.total} results
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  {/* First Page */}
+                  <button
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage === 1 || searchMutation.isPending}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    First
+                  </button>
+                  
+                  {/* Previous Page */}
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || searchMutation.isPending}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  
+                  {/* Page Numbers */}
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          disabled={searchMutation.isPending}
+                          className={`px-3 py-2 text-sm font-medium rounded-md ${
+                            currentPage === pageNum
+                              ? 'text-primary-600 bg-primary-50 border border-primary-300'
+                              : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Next Page */}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages || searchMutation.isPending}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                  
+                  {/* Last Page */}
+                  <button
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={currentPage === totalPages || searchMutation.isPending}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Last
+                  </button>
+                </div>
+              </div>
+              
+              {/* Page Jump */}
+              <div className="mt-4 flex items-center justify-center space-x-2">
+                <span className="text-sm text-gray-700">Go to page:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max={totalPages}
+                  value={currentPage}
+                  onChange={(e) => {
+                    const page = parseInt(e.target.value);
+                    if (page >= 1 && page <= totalPages) {
+                      handlePageChange(page);
+                    }
+                  }}
+                  className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                  disabled={searchMutation.isPending}
+                />
+                <span className="text-sm text-gray-700">of {totalPages}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
