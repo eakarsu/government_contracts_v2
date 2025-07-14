@@ -26,6 +26,7 @@ async function initializeRFPTables() {
       await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS capabilities JSONB DEFAULT '{}'`);
       await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS past_performance JSONB DEFAULT '[]'`);
       await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS key_personnel JSONB DEFAULT '[]'`);
+      await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS profile_data JSONB DEFAULT '{}'`);
     } catch (alterError) {
       console.log('Note: Some columns may already exist:', alterError.message);
     }
@@ -238,6 +239,7 @@ router.get('/company-profiles', async (req, res) => {
           capabilities,
           past_performance,
           key_personnel,
+          profile_data,
           created_at,
           updated_at
         FROM company_profiles 
@@ -251,6 +253,7 @@ router.get('/company-profiles', async (req, res) => {
         capabilities: row.capabilities ? JSON.parse(row.capabilities) : {},
         pastPerformance: row.past_performance ? JSON.parse(row.past_performance) : [],
         keyPersonnel: row.key_personnel ? JSON.parse(row.key_personnel) : [],
+        profileData: row.profile_data ? JSON.parse(row.profile_data) : {},
         createdAt: row.created_at,
         updatedAt: row.updated_at
       }));
@@ -381,10 +384,26 @@ router.post('/company-profiles', async (req, res) => {
         capabilities JSONB DEFAULT '{}',
         past_performance JSONB DEFAULT '[]',
         key_personnel JSONB DEFAULT '[]',
+        profile_data JSONB DEFAULT '{}',
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       )
     `);
+
+    // Add missing columns if they don't exist (for existing tables)
+    try {
+      await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS profile_data JSONB DEFAULT '{}'`);
+    } catch (alterError) {
+      console.log('Note: profile_data column may already exist:', alterError.message);
+    }
+
+    // Prepare the complete profile data
+    const profileData = {
+      basicInfo,
+      capabilities,
+      pastPerformance,
+      keyPersonnel
+    };
 
     // Insert the new company profile
     const result = await query(`
@@ -394,16 +413,18 @@ router.post('/company-profiles', async (req, res) => {
         capabilities, 
         past_performance, 
         key_personnel,
+        profile_data,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
       RETURNING *
     `, [
       companyName,
       JSON.stringify(basicInfo),
       JSON.stringify(capabilities),
       JSON.stringify(pastPerformance),
-      JSON.stringify(keyPersonnel)
+      JSON.stringify(keyPersonnel),
+      JSON.stringify(profileData)
     ]);
 
     const profile = result.rows[0];
