@@ -73,7 +73,9 @@ export class ContractsApiService {
       throw new Error('Query parameter is required');
     }
     
+    console.log('🔍 [DEBUG] Contracts API sending search request:', data);
     const response = await api.post<SearchResult>('/search', data);
+    console.log('🔍 [DEBUG] Contracts API received search response:', response.data);
     return response.data;
   }
 
