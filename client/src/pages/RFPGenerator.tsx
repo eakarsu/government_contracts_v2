@@ -27,8 +27,8 @@ const RFPGenerator: React.FC = () => {
     try {
       setLoading(true);
       const [contractsResponse, templatesResponse, profilesResponse] = await Promise.all([
-        // Use searchContracts with empty query to get all contracts
-        apiService.searchContracts({ query: '', limit: 100, include_analysis: false }),
+        // Use searchContracts with a wildcard query to get all contracts
+        apiService.searchContracts({ query: '*', limit: 100, include_analysis: false }),
         apiService.getRFPTemplates(),
         apiService.getCompanyProfiles()
       ]);
