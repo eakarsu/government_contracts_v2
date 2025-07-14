@@ -343,45 +343,55 @@ router.get('/responses', async (req, res) => {
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
     
-    // Mock RFP responses data
-    const mockRFPResponses = [
-      {
-        id: 1,
-        title: 'IT Infrastructure Modernization Response',
-        contractId: 'CONTRACT_001',
-        status: 'draft',
-        createdAt: '2025-01-15T00:00:00Z',
-        updatedAt: '2025-01-15T00:00:00Z'
-      },
-      {
-        id: 2,
-        title: 'Cybersecurity Assessment Response',
-        contractId: 'CONTRACT_002',
-        status: 'submitted',
-        createdAt: '2025-01-10T00:00:00Z',
-        updatedAt: '2025-01-12T00:00:00Z'
-      }
-    ];
+    console.log(`🔍 [DEBUG] Fetching RFP responses - page: ${pageNum}, limit: ${limitNum}`);
+
+    // Get total count
+    const countResult = await query('SELECT COUNT(*) FROM rfp_responses');
+    const totalCount = parseInt(countResult.rows[0].count);
+
+    // Query real RFP responses from database
+    const result = await query(`
+      SELECT 
+        id,
+        contract_id,
+        template_id,
+        company_profile_id,
+        title,
+        status,
+        created_at,
+        updated_at
+      FROM rfp_responses 
+      ORDER BY updated_at DESC, created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [limitNum, offset]);
+
+    const responses = result.rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      contractId: row.contract_id,
+      templateId: row.template_id,
+      companyProfileId: row.company_profile_id,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    }));
+
+    const totalPages = Math.ceil(totalCount / limitNum);
     
-    const sortedResponses = mockRFPResponses.sort((a, b) => 
-      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
-    
-    const paginatedResponses = sortedResponses.slice(offset, offset + limitNum);
-    const totalPages = Math.ceil(mockRFPResponses.length / limitNum);
+    console.log(`✅ [DEBUG] Found ${responses.length} RFP responses (total: ${totalCount})`);
     
     res.json({
       success: true,
-      responses: paginatedResponses,
+      responses: responses,
       pagination: {
-        total: mockRFPResponses.length,
+        total: totalCount,
         page: pageNum,
         limit: limitNum,
         totalPages
       }
     });
   } catch (error) {
-    console.error('Error fetching RFP responses:', error);
+    console.error('❌ [DEBUG] Error fetching RFP responses:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch RFP responses'
@@ -681,54 +691,97 @@ router.post('/company-profiles', async (req, res) => {
 router.get('/responses/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    // Mock RFP responses data (same as above)
-    const mockRFPResponses = [
-      {
-        id: 1,
-        title: 'IT Infrastructure Modernization Response',
-        contractId: 'CONTRACT_001',
-        status: 'draft',
-        sections: 5,
-        complianceScore: 85,
-        createdAt: '2025-01-15T00:00:00Z',
-        updatedAt: '2025-01-15T00:00:00Z'
-      },
-      {
-        id: 2,
-        title: 'Cybersecurity Assessment Response',
-        contractId: 'CONTRACT_002',
-        status: 'submitted',
-        sections: 4,
-        complianceScore: 92,
-        createdAt: '2025-01-10T00:00:00Z',
-        updatedAt: '2025-01-12T00:00:00Z'
-      }
-    ];
-    
-    const response = mockRFPResponses.find(r => r.id === parseInt(id));
-    
-    if (!response) {
+
+    if (!id || isNaN(parseInt(id))) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid RFP response ID is required'
+      });
+    }
+
+    console.log(`🔍 [DEBUG] Fetching RFP response with ID: ${id}`);
+
+    // Query the actual RFP response from database
+    const responseResult = await query(`
+      SELECT 
+        id,
+        contract_id,
+        template_id,
+        company_profile_id,
+        title,
+        status,
+        response_data,
+        compliance_status,
+        predicted_score,
+        metadata,
+        created_at,
+        updated_at
+      FROM rfp_responses 
+      WHERE id = $1
+    `, [parseInt(id)]);
+
+    if (responseResult.rows.length === 0) {
+      console.log(`❌ [DEBUG] RFP response ${id} not found in database`);
       return res.status(404).json({
         success: false,
         error: 'RFP response not found'
       });
     }
+
+    const rfpResponse = responseResult.rows[0];
+    console.log(`✅ [DEBUG] Found RFP response: ${rfpResponse.title}`);
+
+    // Parse JSON data safely
+    const responseData = typeof rfpResponse.response_data === 'string' 
+      ? JSON.parse(rfpResponse.response_data) 
+      : rfpResponse.response_data;
     
-    // Add detailed response data
+    const complianceStatus = typeof rfpResponse.compliance_status === 'string' 
+      ? JSON.parse(rfpResponse.compliance_status) 
+      : rfpResponse.compliance_status;
+    
+    const predictedScore = typeof rfpResponse.predicted_score === 'string' 
+      ? JSON.parse(rfpResponse.predicted_score) 
+      : rfpResponse.predicted_score;
+    
+    const metadata = typeof rfpResponse.metadata === 'string' 
+      ? JSON.parse(rfpResponse.metadata) 
+      : rfpResponse.metadata;
+
+    // Build the detailed response
     const detailedResponse = {
-      ...response,
-      sections: generateDetailedSections(response.sections),
-      complianceDetails: generateComplianceDetails(response.complianceScore),
-      timeline: generateTimeline(response),
-      attachments: generateAttachments()
+      id: rfpResponse.id,
+      title: rfpResponse.title,
+      contractId: rfpResponse.contract_id,
+      templateId: rfpResponse.template_id,
+      companyProfileId: rfpResponse.company_profile_id,
+      status: rfpResponse.status,
+      createdAt: rfpResponse.created_at,
+      updatedAt: rfpResponse.updated_at,
+      sections: responseData.sections || [],
+      contract: responseData.contract || {},
+      template: responseData.template || {},
+      companyProfile: responseData.companyProfile || {},
+      customInstructions: responseData.customInstructions,
+      focusAreas: responseData.focusAreas,
+      complianceDetails: complianceStatus,
+      predictedScore: predictedScore,
+      metadata: metadata,
+      timeline: [
+        { date: rfpResponse.created_at, event: 'RFP response created', type: 'created' },
+        { date: rfpResponse.updated_at, event: 'Last updated', type: 'updated' }
+      ],
+      attachments: [] // No attachments for now
     };
+
+    console.log(`✅ [DEBUG] Returning RFP response with ${detailedResponse.sections.length} sections`);
     
     res.json({
       success: true,
       response: detailedResponse
     });
   } catch (error) {
-    console.error('Error fetching RFP response:', error);
+    console.error('❌ [DEBUG] Error fetching RFP response:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch RFP response'
