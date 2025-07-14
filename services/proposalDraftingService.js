@@ -593,8 +593,11 @@ class ProposalDraftingService {
         
         console.log(`📄 [DEBUG] Processing section ${index + 1}: ${sectionTitle}`);
         
-        // Format content into proper paragraphs
-        const formattedContent = this.formatContentForPDF(sectionContent);
+        // Simple content formatting - just escape and create paragraphs
+        const paragraphs = sectionContent.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+        const formattedContent = paragraphs.length > 0 
+          ? paragraphs.map(p => `<p>${this.escapeHtml(p.trim())}</p>`).join('')
+          : `<p>${this.escapeHtml(sectionContent)}</p>`;
         
         htmlContent += `
   <div class="section">
@@ -614,47 +617,38 @@ class ProposalDraftingService {
 
       console.log(`📄 [DEBUG] Generated HTML content length: ${htmlContent.length} characters`);
 
-      // Use Puppeteer to generate PDF with better options
+      // Use Puppeteer to generate PDF with simpler options
       const puppeteer = require('puppeteer');
       const browser = await puppeteer.launch({
         headless: true,
         args: [
           '--no-sandbox', 
           '--disable-setuid-sandbox', 
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--disable-web-security',
-          '--disable-features=VizDisplayCompositor'
+          '--disable-dev-shm-usage'
         ]
       });
       
       const page = await browser.newPage();
       
       try {
-        // Set viewport for consistent rendering
-        await page.setViewport({ width: 1200, height: 1600 });
-        
-        // Load content with proper wait conditions
+        // Load content with simpler wait conditions
         await page.setContent(htmlContent, { 
-          waitUntil: ['networkidle0', 'domcontentloaded'],
-          timeout: 30000 
+          waitUntil: 'domcontentloaded',
+          timeout: 15000 
         });
         
         console.log(`📄 [DEBUG] HTML content loaded in browser`);
         
-        // Generate PDF with optimized settings
+        // Generate PDF with basic settings
         const pdfBuffer = await page.pdf({
           format: 'A4',
           printBackground: true,
           margin: { 
-            top: '0.75in', 
-            right: '0.75in', 
-            bottom: '0.75in', 
-            left: '0.75in' 
-          },
-          preferCSSPageSize: false,
-          displayHeaderFooter: false,
-          tagged: false
+            top: '1in', 
+            right: '1in', 
+            bottom: '1in', 
+            left: '1in' 
+          }
         });
         
         console.log(`📄 [DEBUG] PDF generated successfully, size: ${pdfBuffer.length} bytes`);
@@ -664,11 +658,7 @@ class ProposalDraftingService {
           throw new Error('Generated PDF buffer is empty');
         }
         
-        // Check if buffer starts with PDF header
-        const pdfHeader = pdfBuffer.slice(0, 4).toString();
-        if (pdfHeader !== '%PDF') {
-          throw new Error('Generated buffer is not a valid PDF');
-        }
+        console.log(`📄 [DEBUG] PDF buffer first 10 bytes: ${pdfBuffer.slice(0, 10).toString('hex')}`);
         
         return pdfBuffer;
         
