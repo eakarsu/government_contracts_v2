@@ -44,7 +44,7 @@ const RFPGenerator: React.FC = () => {
 
       // Handle contracts
       if (contractsResponse && contractsResponse.success) {
-        const contractsData = contractsResponse.results || contractsResponse.data || [];
+        const contractsData = contractsResponse.results || [];
         setContracts(contractsData);
         console.log('✅ [DEBUG] Loaded contracts:', contractsData.length);
       } else {
@@ -54,7 +54,7 @@ const RFPGenerator: React.FC = () => {
 
       // Handle templates
       if (templatesResponse && templatesResponse.success) {
-        const templatesData = templatesResponse.templates || templatesResponse.data || [];
+        const templatesData = templatesResponse.templates || [];
         setTemplates(templatesData);
         console.log('✅ [DEBUG] Loaded templates:', templatesData.length);
       } else {
@@ -62,9 +62,9 @@ const RFPGenerator: React.FC = () => {
         setTemplates([]);
       }
 
-      // Handle company profiles - try multiple possible response structures
+      // Handle company profiles
       if (profilesResponse && profilesResponse.success) {
-        const profilesData = profilesResponse.profiles || profilesResponse.data || profilesResponse.companyProfiles || [];
+        const profilesData = profilesResponse.profiles || [];
         setProfiles(profilesData);
         console.log('✅ [DEBUG] Loaded profiles:', profilesData.length);
       } else {
