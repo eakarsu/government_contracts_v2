@@ -400,16 +400,23 @@ router.post('/generate-proposal', async (req, res) => {
 function extractSectionsFromText(text) {
   const sections = [];
   
-  // Common RFP section patterns
+  // Common RFP section patterns - expanded to recognize more sections
   const sectionPatterns = [
     /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:EXECUTIVE\s+SUMMARY|SUMMARY)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TECHNICAL\s+APPROACH|APPROACH|METHODOLOGY)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:MANAGEMENT\s+PLAN|PROJECT\s+MANAGEMENT)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:PAST\s+PERFORMANCE|EXPERIENCE)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:COST\s+PROPOSAL|PRICING|BUDGET)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:PERSONNEL|STAFFING|TEAM)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SCHEDULE|TIMELINE)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:QUALITY\s+ASSURANCE|QA)/i
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TECHNICAL\s+APPROACH|APPROACH|METHODOLOGY|SOLUTION)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:MANAGEMENT\s+PLAN|PROJECT\s+MANAGEMENT|PROGRAM\s+MANAGEMENT)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:PAST\s+PERFORMANCE|EXPERIENCE|CORPORATE\s+EXPERIENCE)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:COST\s+PROPOSAL|PRICING|BUDGET|FINANCIAL)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:PERSONNEL|STAFFING|TEAM|KEY\s+PERSONNEL)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SCHEDULE|TIMELINE|PROJECT\s+SCHEDULE)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:QUALITY\s+ASSURANCE|QA|QUALITY\s+CONTROL)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SECURITY\s+PLAN|SECURITY|CYBERSECURITY)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:RISK\s+MANAGEMENT|RISK\s+MITIGATION|RISKS)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TRANSITION\s+PLAN|IMPLEMENTATION|DEPLOYMENT)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TRAINING|KNOWLEDGE\s+TRANSFER)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:MAINTENANCE|SUPPORT|SUSTAINMENT)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:COMPLIANCE|REGULATORY|STANDARDS)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:DELIVERABLES|PRODUCTS|OUTCOMES)/i
   ];
   
   const sectionTitles = [
@@ -420,7 +427,14 @@ function extractSectionsFromText(text) {
     'Cost Proposal',
     'Personnel',
     'Schedule',
-    'Quality Assurance'
+    'Quality Assurance',
+    'Security Plan',
+    'Risk Management',
+    'Transition Plan',
+    'Training',
+    'Maintenance',
+    'Compliance',
+    'Deliverables'
   ];
   
   // Find section boundaries
@@ -474,7 +488,7 @@ function extractSectionsFromText(text) {
   if (sections.length === 0) {
     const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 100);
     
-    paragraphs.slice(0, 5).forEach((paragraph, index) => {
+    paragraphs.slice(0, 10).forEach((paragraph, index) => {
       sections.push({
         id: `section_${index + 1}`,
         title: `Section ${index + 1}`,
@@ -510,7 +524,14 @@ function getWordLimitForSection(sectionTitle) {
     'Cost Proposal': 800,
     'Personnel': 1200,
     'Schedule': 600,
-    'Quality Assurance': 800
+    'Quality Assurance': 800,
+    'Security Plan': 1000,
+    'Risk Management': 800,
+    'Transition Plan': 1200,
+    'Training': 600,
+    'Maintenance': 800,
+    'Compliance': 1000,
+    'Deliverables': 1000
   };
   
   return limits[sectionTitle] || 1000;
