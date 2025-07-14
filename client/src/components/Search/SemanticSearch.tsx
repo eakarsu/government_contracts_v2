@@ -110,7 +110,7 @@ const SemanticSearch: React.FC = () => {
       // Use the same API service as the working Search page
       const searchData = {
         query: searchQuery,
-        filters: searchFilters,
+        ...searchFilters,
         limit: pagination.limit,
         offset,
         include_analysis: true
