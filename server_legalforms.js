@@ -946,6 +946,8 @@ async function generatePDF(content, filename) {
         body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
         h1, h2, h3 { color: #333; margin-top: 30px; }
         p { margin-bottom: 15px; }
+        .field-line { margin-bottom: 10px; }
+        .field-label { margin-bottom: 5px; }
         .signature-line { border-bottom: 1px solid #000; width: 300px; margin: 20px 0; }
       </style>
     </head>
@@ -975,9 +977,9 @@ async function generatePDF(content, filename) {
       margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' }
     });
     
-    // Fix: Use only the filename, not full path
+    // Use only the filename, not full path
     const safeFilename = path.basename(filename);
-    const fullPath = path.join(__dirname, 'uploads', safeFilename);
+    const fullPath = path.join(uploadDir, safeFilename);
     
     // Ensure directory exists
     await fs.mkdir(path.dirname(fullPath), { recursive: true });
@@ -985,7 +987,7 @@ async function generatePDF(content, filename) {
     // Write the PDF buffer to file
     await fs.writeFile(fullPath, pdfBuffer);
     
-    return fullPath;
+    return safeFilename; // Return just the filename for consistency
     
   } finally {
     await browser.close();
@@ -996,10 +998,12 @@ async function generatePDF(content, filename) {
 // Endpoint that works with file-based approach
 app.post('/generate-pdf', async (req, res) => {
   try {
+    const { content, formType } = req.body;
     const filename = `${formType}_${Date.now()}.pdf`;
-    const filePath = await generatePDF(documentContent, filename);
+    const generatedFilename = await generatePDF(content, filename);
     
-    // Send file and optionally clean up
+    // Send file path for download
+    const filePath = path.join(uploadDir, generatedFilename);
     res.download(filePath, (err) => {
       if (err) {
         console.error('Error sending file:', err);
@@ -1099,12 +1103,16 @@ async function generateWord(content, filename) {
     const dateLine = docx.createP();
     dateLine.addText('Date: _________________');
     
+    // Create full file path
+    const safeFilename = path.basename(filename);
+    const fullPath = path.join(uploadDir, safeFilename);
+    
     // Generate the document
-    const output = require('fs').createWriteStream(filename);
+    const output = require('fs').createWriteStream(fullPath);
     docx.generate(output);
     
     output.on('close', () => {
-      resolve(filename);
+      resolve(safeFilename); // Return just the filename for consistency
     });
     
     output.on('error', (err) => {
@@ -1166,13 +1174,12 @@ app.post('/generate', validateCompliance, async (req, res) => {
     switch (format) {
       case 'pdf':
         filename = `${baseFilename}.pdf`;
-        await generatePDF(document, filename );
+        filename = await generatePDF(document, filename);
         break;
         
       case 'docx':
         filename = `${baseFilename}.docx`;
-        filepath = path.join(uploadDir, filename);
-        await generateWord(document, filepath);
+        filename = await generateWord(document, filename);
         break;
         
       default: // txt
