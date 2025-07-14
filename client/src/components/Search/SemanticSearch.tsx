@@ -94,7 +94,7 @@ const SemanticSearch: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/search', {
+      const response = await fetch('/api/search/contracts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,6 +104,7 @@ const SemanticSearch: React.FC = () => {
           filters: searchFilters,
           limit: pagination.limit,
           offset,
+          include_analysis: true,
           includeSemanticSearch: true
         })
       });
