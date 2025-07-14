@@ -89,6 +89,9 @@ CREATE TABLE company_profiles (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Clean up orphaned rfp_responses data that references non-existent company_profiles
+DELETE FROM rfp_responses WHERE company_profile_id IS NOT NULL;
+
 -- RFP Templates table
 CREATE TABLE IF NOT EXISTS rfp_templates (
     id SERIAL PRIMARY KEY,
