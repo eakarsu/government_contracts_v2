@@ -126,7 +126,7 @@ const Search: React.FC = () => {
                   <div className="flex-1">
                     <div className="font-medium text-gray-900">"{item.query}"</div>
                     <div className="text-sm text-gray-500 mt-1">
-                      {item.result.results.total_results} results • {new Date(item.timestamp).toLocaleString()}
+                      {item.result.pagination?.total || item.result.results.length} results • {new Date(item.timestamp).toLocaleString()}
                     </div>
                   </div>
                   <div className="text-xs text-gray-400 ml-4">
@@ -228,7 +228,7 @@ const Search: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div className="bg-blue-50 p-4 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">
-                  {searchResult.results.total_results}
+                  {searchResult.pagination?.total || searchResult.results.length}
                 </div>
                 <div className="text-sm text-blue-600">Total Results</div>
               </div>
@@ -240,7 +240,7 @@ const Search: React.FC = () => {
               </div>
               <div className="bg-purple-50 p-4 rounded-lg">
                 <div className="text-2xl font-bold text-purple-600">
-                  {searchResult.results.contracts.length}
+                  {searchResult.results.length}
                 </div>
                 <div className="text-sm text-purple-600">Displayed</div>
               </div>
@@ -279,7 +279,7 @@ const Search: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900">Contracts</h3>
             </div>
 
-            {searchResult.results.contracts.length > 0 ? (
+            {searchResult.results.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -302,7 +302,7 @@ const Search: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {searchResult.results.contracts.map((contract: Contract) => (
+                    {searchResult.results.map((contract: Contract) => (
                       <tr key={contract.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {contract.noticeId}
