@@ -204,22 +204,54 @@ router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
       });
     }
 
-    // Analyze document with AI
-    const analysis = await aiService.analyzeDocument(extractedText, 'rfp');
-
-    // Safely extract and convert analysis data
-    let requirements = {};
-    let sections = [];
+    // Analyze document with AI and extract sections
+    let analysis, requirements = {}, sections = [];
     
     try {
+      // First try to analyze with AI service
+      analysis = await aiService.analyzeDocument(extractedText, 'rfp');
+      
       if (analysis && typeof analysis === 'object') {
         requirements = analysis.requirements || {};
         sections = analysis.sections || [];
       }
     } catch (analysisError) {
-      console.error('Error processing analysis results:', analysisError);
-      requirements = {};
-      sections = [];
+      console.error('Error with AI analysis:', analysisError);
+    }
+    
+    // If AI analysis didn't produce sections, extract them manually
+    if (!sections || sections.length === 0) {
+      console.log('🔍 [DEBUG] AI analysis produced no sections, extracting manually...');
+      sections = extractSectionsFromText(extractedText);
+      console.log(`📄 [DEBUG] Manually extracted ${sections.length} sections`);
+    }
+    
+    // If still no sections, create default sections
+    if (!sections || sections.length === 0) {
+      console.log('⚠️ [DEBUG] No sections found, creating default sections');
+      sections = [
+        {
+          id: 'section_1',
+          title: 'Executive Summary',
+          content: extractedText.substring(0, 1000) + '...',
+          requirements: ['Provide overview of proposal'],
+          wordLimit: 500
+        },
+        {
+          id: 'section_2', 
+          title: 'Technical Approach',
+          content: extractedText.substring(1000, 3000) + '...',
+          requirements: ['Detail technical methodology'],
+          wordLimit: 2000
+        },
+        {
+          id: 'section_3',
+          title: 'Management Plan', 
+          content: extractedText.substring(3000, 5000) + '...',
+          requirements: ['Describe project management approach'],
+          wordLimit: 1500
+        }
+      ];
     }
 
     // Store RFP document in database
@@ -312,6 +344,102 @@ router.post('/generate-proposal', async (req, res) => {
     });
   }
 });
+
+// Helper function to extract sections from text manually
+function extractSectionsFromText(text) {
+  const sections = [];
+  
+  // Common RFP section patterns
+  const sectionPatterns = [
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:EXECUTIVE\s+SUMMARY|SUMMARY)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TECHNICAL\s+APPROACH|APPROACH|METHODOLOGY)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:MANAGEMENT\s+PLAN|PROJECT\s+MANAGEMENT)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:PAST\s+PERFORMANCE|EXPERIENCE)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:COST\s+PROPOSAL|PRICING|BUDGET)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:PERSONNEL|STAFFING|TEAM)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SCHEDULE|TIMELINE)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:QUALITY\s+ASSURANCE|QA)/i
+  ];
+  
+  const sectionTitles = [
+    'Executive Summary',
+    'Technical Approach', 
+    'Management Plan',
+    'Past Performance',
+    'Cost Proposal',
+    'Personnel',
+    'Schedule',
+    'Quality Assurance'
+  ];
+  
+  // Find section boundaries
+  const matches = [];
+  sectionPatterns.forEach((pattern, index) => {
+    const match = text.match(pattern);
+    if (match) {
+      matches.push({
+        index: match.index,
+        title: sectionTitles[index],
+        id: `section_${index + 1}`
+      });
+    }
+  });
+  
+  // Sort by position in text
+  matches.sort((a, b) => a.index - b.index);
+  
+  // Extract content for each section
+  for (let i = 0; i < matches.length; i++) {
+    const currentMatch = matches[i];
+    const nextMatch = matches[i + 1];
+    
+    const startIndex = currentMatch.index;
+    const endIndex = nextMatch ? nextMatch.index : text.length;
+    
+    const sectionContent = text.substring(startIndex, endIndex).trim();
+    
+    sections.push({
+      id: currentMatch.id,
+      title: currentMatch.title,
+      content: sectionContent.substring(0, 2000), // Limit content length
+      requirements: [`Provide detailed ${currentMatch.title.toLowerCase()}`],
+      wordLimit: getWordLimitForSection(currentMatch.title)
+    });
+  }
+  
+  // If no sections found by pattern matching, split by paragraphs
+  if (sections.length === 0) {
+    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 100);
+    
+    paragraphs.slice(0, 5).forEach((paragraph, index) => {
+      sections.push({
+        id: `section_${index + 1}`,
+        title: `Section ${index + 1}`,
+        content: paragraph.trim(),
+        requirements: [`Address requirements for section ${index + 1}`],
+        wordLimit: 1000
+      });
+    });
+  }
+  
+  return sections;
+}
+
+// Helper function to get word limits for different sections
+function getWordLimitForSection(sectionTitle) {
+  const limits = {
+    'Executive Summary': 500,
+    'Technical Approach': 2000,
+    'Management Plan': 1500,
+    'Past Performance': 1000,
+    'Cost Proposal': 800,
+    'Personnel': 1200,
+    'Schedule': 600,
+    'Quality Assurance': 800
+  };
+  
+  return limits[sectionTitle] || 1000;
+}
 
 // Helper function to generate realistic section content
 function generateSectionContent(sectionTitle) {
