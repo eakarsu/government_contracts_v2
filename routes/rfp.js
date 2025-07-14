@@ -191,9 +191,22 @@ async function initializeRFPTables() {
 
     // Ensure predicted_score column is JSONB type
     try {
-      await query(`ALTER TABLE rfp_responses ALTER COLUMN predicted_score TYPE JSONB USING predicted_score::JSONB`);
+      // First check if the column exists and its type
+      const columnInfo = await query(`
+        SELECT data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'rfp_responses' AND column_name = 'predicted_score'
+      `);
+      
+      if (columnInfo.rows.length > 0 && columnInfo.rows[0].data_type !== 'jsonb') {
+        console.log('🔧 [DEBUG] Converting predicted_score column to JSONB type...');
+        // Drop and recreate the column as JSONB
+        await query(`ALTER TABLE rfp_responses DROP COLUMN IF EXISTS predicted_score`);
+        await query(`ALTER TABLE rfp_responses ADD COLUMN predicted_score JSONB DEFAULT '{}'`);
+        console.log('✅ [DEBUG] predicted_score column converted to JSONB');
+      }
     } catch (alterError) {
-      console.log('Note: predicted_score column type may already be correct:', alterError.message);
+      console.log('Note: predicted_score column type conversion issue:', alterError.message);
     }
 
     // Add missing columns if they don't exist (for existing tables)
