@@ -266,26 +266,9 @@ Return structured data that can be parsed into factors, recommendations, and com
         return this.getFallbackEmbedding(text);
       }
 
-      const response = await fetch(`${this.baseUrl}/embeddings`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': config.apiBaseUrl,
-          'X-Title': 'Government Contracts Platform'
-        },
-        body: JSON.stringify({
-          model: 'text-embedding-ada-002',
-          input: text.substring(0, 8000) // Limit text length
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Embedding generation failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data.data[0].embedding;
+      // OpenRouter doesn't have embeddings endpoint, use fallback
+      console.warn('OpenRouter embeddings not available, using fallback');
+      return this.getFallbackEmbedding(text);
     } catch (error) {
       console.error('AI embedding generation error:', error);
       return this.getFallbackEmbedding(text);
