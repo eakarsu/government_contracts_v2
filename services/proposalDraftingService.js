@@ -291,35 +291,6 @@ class ProposalDraftingService {
     return issues;
   }
 
-  // Clean document content for different formats
-  cleanDocumentContent(content, format) {
-    let cleanedContent = content;
-    
-    if (format === 'pdf' || format === 'docx') {
-      // Remove markdown-style formatting for professional documents while preserving line breaks
-      
-      // Convert **text** to plain text but preserve the content structure
-      cleanedContent = cleanedContent.replace(/\*\*(.*?)\*\*/g, '$1');
-      
-      // Remove ### headers but keep the text and add line break after
-      cleanedContent = cleanedContent.replace(/^### (.*$)/gm, '$1\n');
-      cleanedContent = cleanedContent.replace(/^## (.*$)/gm, '$1\n');
-      cleanedContent = cleanedContent.replace(/^# (.*$)/gm, '$1\n');
-      
-      // Convert horizontal rules (---) to line breaks
-      cleanedContent = cleanedContent.replace(/^---+$/gm, '\n');
-      
-      // Preserve important line breaks - add extra line break after colons and important sections
-      cleanedContent = cleanedContent.replace(/^(.*?:)\s*$/gm, '$1\n');
-      
-      // Clean up excessive whitespace but preserve intentional spacing
-      cleanedContent = cleanedContent.replace(/\n\n\n+/g, '\n\n');
-      cleanedContent = cleanedContent.trim();
-    }
-    
-    return cleanedContent;
-  }
-   
   convertToHTML(content) {
     if (!content) return '<p>No content available</p>';
     
@@ -367,6 +338,35 @@ class ProposalDraftingService {
     htmlContent = htmlContent.replace(/<p>(<p class="field-label">.*?<\/p>)<\/p>/g, '$1');
 
     return htmlContent;
+  }
+
+  // Clean document content for different formats
+  cleanDocumentContent(content, format) {
+    let cleanedContent = content;
+    
+    if (format === 'pdf' || format === 'docx') {
+      // Remove markdown-style formatting for professional documents while preserving line breaks
+      
+      // Convert **text** to plain text but preserve the content structure
+      cleanedContent = cleanedContent.replace(/\*\*(.*?)\*\*/g, '$1');
+      
+      // Remove ### headers but keep the text and add line break after
+      cleanedContent = cleanedContent.replace(/^### (.*$)/gm, '$1\n');
+      cleanedContent = cleanedContent.replace(/^## (.*$)/gm, '$1\n');
+      cleanedContent = cleanedContent.replace(/^# (.*$)/gm, '$1\n');
+      
+      // Convert horizontal rules (---) to line breaks
+      cleanedContent = cleanedContent.replace(/^---+$/gm, '\n');
+      
+      // Preserve important line breaks - add extra line break after colons and important sections
+      cleanedContent = cleanedContent.replace(/^(.*?:)\s*$/gm, '$1\n');
+      
+      // Clean up excessive whitespace but preserve intentional spacing
+      cleanedContent = cleanedContent.replace(/\n\n\n+/g, '\n\n');
+      cleanedContent = cleanedContent.trim();
+    }
+    
+    return cleanedContent;
   }
 
  
