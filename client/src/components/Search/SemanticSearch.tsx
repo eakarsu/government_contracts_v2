@@ -27,22 +27,35 @@ interface SearchResult {
   semantic_score: number;
   keyword_score: number;
   combined_score: number;
+  // Additional properties that might come from Contract type
+  id?: number;
+  noticeId?: string;
+  notice_id?: string;
+  postedDate?: string;
+  posted_date?: string;
+  semanticScore?: number;
+  keywordScore?: number;
+  naicsMatch?: number;
 }
 
 interface SearchResponse {
   success: boolean;
   results: SearchResult[];
-  pagination: {
+  pagination?: {
     total: number;
     limit: number;
     offset: number;
     hasMore: boolean;
   };
-  query_info: {
+  query_info?: {
     original_query: string;
     semantic_results_count: number;
     keyword_results_count: number;
   };
+  ai_analysis?: any;
+  query?: string;
+  search_method?: string;
+  response_time?: number;
 }
 
 const SemanticSearch: React.FC = () => {
@@ -111,20 +124,38 @@ const SemanticSearch: React.FC = () => {
         // Always replace results for pagination (not append)
         console.log('Search response results count:', data.results.length);
         console.log('Pagination data:', data.pagination);
-        setResults(data.results);
+        
+        // Transform Contract[] to SearchResult[] if needed
+        const transformedResults = data.results.map((result: any) => ({
+          contract_id: result.contract_id || result.noticeId || result.notice_id || result.id?.toString(),
+          title: result.title || 'Untitled',
+          description: result.description || '',
+          agency: result.agency || 'N/A',
+          naics_code: result.naics_code || result.naicsCode || '',
+          estimated_value: result.estimated_value || 0,
+          posted_date: result.posted_date || result.postedDate || '',
+          semantic_score: result.semantic_score || result.semanticScore || 0,
+          keyword_score: result.keyword_score || result.keywordScore || 0,
+          combined_score: result.combined_score || result.semanticScore || 0,
+          ...result // Keep all original properties
+        }));
+        
+        setResults(transformedResults);
         
         // Fix pagination hasMore calculation if backend doesn't provide it correctly
+        const paginationData = data.pagination || {};
         const fixedPagination = {
-          total: data.pagination?.total || data.results.length,
-          limit: data.pagination?.limit || 20,
-          offset: data.pagination?.offset || 0,
-          hasMore: data.pagination?.hasMore || (data.pagination?.offset + data.pagination?.limit < data.pagination?.total)
+          total: paginationData.total || data.results.length,
+          limit: paginationData.limit || 20,
+          offset: paginationData.offset || 0,
+          hasMore: paginationData.hasMore || 
+                   ((paginationData.offset || 0) + (paginationData.limit || 20) < (paginationData.total || data.results.length))
         };
         
         console.log('Fixed pagination:', fixedPagination);
         console.log('Should show pagination?', fixedPagination.total > fixedPagination.limit);
         setPagination(fixedPagination);
-        setQueryInfo(data.query_info);
+        setQueryInfo(data.query_info || null);
       } else {
         setError('Search failed. Please try again.');
       }
