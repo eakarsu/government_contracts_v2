@@ -537,7 +537,7 @@ class ProposalDraftingService {
       sections.forEach((section, index) => {
         const sectionTitle = (section.title || `Section ${index + 1}`).replace(/[<>&"']/g, '');
         const sectionContent = section.content || 'No content available for this section.';
-        
+        console.log (` content : ${sectionContent}`)
         // Simple paragraph formatting
         const paragraphs = sectionContent.split(/\n\s*\n/).filter(p => p.trim().length > 0);
         const formattedContent = paragraphs.length > 0 
