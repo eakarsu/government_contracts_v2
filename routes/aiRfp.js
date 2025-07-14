@@ -14,6 +14,48 @@ const proposalService = new ProposalDraftingService();
 
 const router = express.Router();
 
+// Initialize database tables for AI RFP system
+async function initializeAIRFPTables() {
+  try {
+    // Create rfp_documents table
+    await proposalService.pool.query(`
+      CREATE TABLE IF NOT EXISTS rfp_documents (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        contract_id VARCHAR(255),
+        original_filename VARCHAR(255) NOT NULL,
+        file_path VARCHAR(500),
+        parsed_content JSONB DEFAULT '{}',
+        requirements JSONB DEFAULT '{}',
+        sections JSONB DEFAULT '[]',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    // Create proposal_drafts table
+    await proposalService.pool.query(`
+      CREATE TABLE IF NOT EXISTS proposal_drafts (
+        id SERIAL PRIMARY KEY,
+        rfp_document_id INTEGER REFERENCES rfp_documents(id),
+        user_id INTEGER,
+        title VARCHAR(255) NOT NULL,
+        sections JSONB DEFAULT '[]',
+        compliance_status JSONB DEFAULT '{}',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    console.log('✅ AI RFP database tables initialized successfully');
+  } catch (error) {
+    console.error('❌ Error initializing AI RFP tables:', error);
+  }
+}
+
+// Initialize tables when the module loads
+initializeAIRFPTables();
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -165,22 +207,40 @@ router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
     // Analyze document with AI
     const analysis = await aiService.analyzeDocument(extractedText, 'rfp');
 
-    // For now, just return success without storing in database
-    // This can be implemented later when the proper schema is defined
-    const mockDocument = {
-      id: Date.now(),
-      filename: originalFilename,
-      contractId: contractId || null,
-      requirements: analysis?.requirements || {},
-      sections: analysis?.sections || [],
-      uploadedAt: new Date().toISOString(),
-      hasAnalysis: true
-    };
+    // Store RFP document in database
+    const insertQuery = `
+      INSERT INTO rfp_documents (
+        user_id, contract_id, original_filename, file_path,
+        parsed_content, requirements, sections
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `;
+
+    const values = [
+      1, // Default user ID for now
+      contractId || null,
+      originalFilename,
+      filePath,
+      JSON.stringify({ content: extractedText.substring(0, 10000) }),
+      JSON.stringify(analysis?.requirements || {}),
+      JSON.stringify(analysis?.sections || [])
+    ];
+
+    const result = await proposalService.pool.query(insertQuery, values);
+    const document = result.rows[0];
 
     res.json({
       success: true,
       message: 'RFP document uploaded and analyzed successfully',
-      document: mockDocument
+      document: {
+        id: document.id,
+        filename: document.original_filename,
+        contractId: document.contract_id,
+        requirements: JSON.parse(document.requirements),
+        sections: JSON.parse(document.sections),
+        uploadedAt: document.created_at,
+        hasAnalysis: true
+      }
     });
 
   } catch (error) {
