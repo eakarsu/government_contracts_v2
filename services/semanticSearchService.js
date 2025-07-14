@@ -286,8 +286,6 @@ class SemanticSearchService {
       `;
       
       const queryParams = [`%${queryText}%`];
-
-      const queryParams = [queryText];
       let paramIndex = 2;
 
       // Add filters
