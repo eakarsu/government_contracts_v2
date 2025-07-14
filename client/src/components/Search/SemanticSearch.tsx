@@ -56,7 +56,7 @@ const SemanticSearch: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [pagination, setPagination] = useState({
     total: 0,
-    limit: 10,
+    limit: 20,
     offset: 0,
     hasMore: false
   });
@@ -102,19 +102,18 @@ const SemanticSearch: React.FC = () => {
         body: JSON.stringify({
           query: searchQuery,
           filters: searchFilters,
-          options: {
-            limit: pagination.limit,
-            offset,
-            includeSemanticSearch: true
-          }
+          limit: pagination.limit,
+          offset,
+          includeSemanticSearch: true
         })
       });
 
       if (response.ok) {
         const data: SearchResponse = await response.json();
+        console.log('Full search response:', data);
         if (data.success) {
           // Always replace results for pagination (not append)
-          console.log('Search response:', data);
+          console.log('Search response results count:', data.results.length);
           console.log('Pagination data:', data.pagination);
           setResults(data.results);
           setPagination(data.pagination);
