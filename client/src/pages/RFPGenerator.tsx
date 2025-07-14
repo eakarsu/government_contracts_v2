@@ -442,6 +442,19 @@ const RFPGenerator: React.FC = () => {
               {generating ? (generationProgress || 'Generating...') : 'Generate RFP Response'}
             </button>
           </div>
+
+          {/* Download Options Info */}
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <h3 className="text-sm font-medium text-blue-800 mb-2">📄 Download Options</h3>
+            <p className="text-sm text-blue-600">
+              After generating your RFP response, you'll be able to download it in multiple formats:
+            </p>
+            <ul className="text-sm text-blue-600 mt-2 ml-4 list-disc">
+              <li><strong>Text (.txt)</strong> - Plain text format for easy editing</li>
+              <li><strong>PDF (.pdf)</strong> - Professional formatted document for submission</li>
+              <li><strong>Word (.docx)</strong> - Microsoft Word format for further editing</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

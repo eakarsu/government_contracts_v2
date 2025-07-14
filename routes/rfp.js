@@ -1,6 +1,9 @@
 const express = require('express');
 const { query } = require('../config/database');
 const axios = require('axios');
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
 
 const router = express.Router();
 
@@ -1142,6 +1145,322 @@ router.post('/generate', async (req, res) => {
     });
   }
 });
+
+// GET /api/rfp/responses/:id/download/:format - Download RFP response in different formats
+router.get('/responses/:id/download/:format', async (req, res) => {
+  try {
+    const { id, format } = req.params;
+
+    if (!id || isNaN(parseInt(id))) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid RFP response ID is required'
+      });
+    }
+
+    if (!['txt', 'pdf', 'docx'].includes(format)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Format must be txt, pdf, or docx'
+      });
+    }
+
+    console.log(`📄 [DEBUG] Generating ${format.toUpperCase()} download for RFP response ${id}`);
+
+    // Get the RFP response data
+    const responseResult = await query(`
+      SELECT 
+        id,
+        title,
+        response_data,
+        created_at,
+        updated_at
+      FROM rfp_responses 
+      WHERE id = $1
+    `, [parseInt(id)]);
+
+    if (responseResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'RFP response not found'
+      });
+    }
+
+    const rfpResponse = responseResult.rows[0];
+    const responseData = typeof rfpResponse.response_data === 'string' 
+      ? JSON.parse(rfpResponse.response_data) 
+      : rfpResponse.response_data;
+
+    const sections = responseData.sections || [];
+    const contract = responseData.contract || {};
+    const companyProfile = responseData.companyProfile || {};
+
+    // Generate content based on format
+    if (format === 'txt') {
+      // Generate plain text format
+      let textContent = `${rfpResponse.title}\n`;
+      textContent += `${'='.repeat(rfpResponse.title.length)}\n\n`;
+      textContent += `Contract: ${contract.title || 'N/A'}\n`;
+      textContent += `Agency: ${contract.agency || 'N/A'}\n`;
+      textContent += `Company: ${companyProfile.name || 'N/A'}\n`;
+      textContent += `Generated: ${new Date(rfpResponse.created_at).toLocaleDateString()}\n\n`;
+
+      sections.forEach((section, index) => {
+        textContent += `${index + 1}. ${section.title}\n`;
+        textContent += `${'-'.repeat(section.title.length + 3)}\n`;
+        textContent += `${section.content}\n\n`;
+        textContent += `Word Count: ${section.wordCount || 0}\n`;
+        textContent += `Status: ${section.status || 'generated'}\n\n`;
+      });
+
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', `attachment; filename="${rfpResponse.title.replace(/[^a-zA-Z0-9]/g, '_')}.txt"`);
+      res.send(textContent);
+
+    } else if (format === 'pdf') {
+      // Generate PDF using Puppeteer
+      const htmlContent = generateHTMLContent(rfpResponse, responseData);
+      
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+      
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        margin: {
+          top: '1in',
+          right: '1in',
+          bottom: '1in',
+          left: '1in'
+        },
+        printBackground: true
+      });
+      
+      await browser.close();
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${rfpResponse.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`);
+      res.send(pdfBuffer);
+
+    } else if (format === 'docx') {
+      // Generate Word document format (simplified HTML that Word can import)
+      const wordContent = generateWordContent(rfpResponse, responseData);
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${rfpResponse.title.replace(/[^a-zA-Z0-9]/g, '_')}.docx"`);
+      res.send(wordContent);
+    }
+
+    console.log(`✅ [DEBUG] Successfully generated ${format.toUpperCase()} download for RFP response ${id}`);
+
+  } catch (error) {
+    console.error(`❌ [DEBUG] Error generating ${req.params.format} download:`, error);
+    res.status(500).json({
+      success: false,
+      error: `Failed to generate ${req.params.format} download`
+    });
+  }
+});
+
+// Helper function to generate HTML content for PDF
+function generateHTMLContent(rfpResponse, responseData) {
+  const sections = responseData.sections || [];
+  const contract = responseData.contract || {};
+  const companyProfile = responseData.companyProfile || {};
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${rfpResponse.title}</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 0;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2em;
+            border-bottom: 2px solid #333;
+            padding-bottom: 1em;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 0.5em;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #666;
+        }
+        .meta-info {
+            margin: 2em 0;
+            padding: 1em;
+            background-color: #f5f5f5;
+            border-left: 4px solid #007cba;
+        }
+        .meta-info table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .meta-info td {
+            padding: 0.5em;
+            border-bottom: 1px solid #ddd;
+        }
+        .meta-info td:first-child {
+            font-weight: bold;
+            width: 150px;
+        }
+        .section {
+            margin: 2em 0;
+            page-break-inside: avoid;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007cba;
+            border-bottom: 1px solid #007cba;
+            padding-bottom: 0.5em;
+            margin-bottom: 1em;
+        }
+        .section-content {
+            text-align: justify;
+            margin-bottom: 1em;
+        }
+        .section-meta {
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #eee;
+            padding-top: 0.5em;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+        @media print {
+            body { margin: 0; }
+            .page-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">${rfpResponse.title}</div>
+        <div class="subtitle">Request for Proposal Response</div>
+    </div>
+
+    <div class="meta-info">
+        <table>
+            <tr>
+                <td>Contract:</td>
+                <td>${contract.title || 'N/A'}</td>
+            </tr>
+            <tr>
+                <td>Agency:</td>
+                <td>${contract.agency || 'N/A'}</td>
+            </tr>
+            <tr>
+                <td>Company:</td>
+                <td>${companyProfile.name || 'N/A'}</td>
+            </tr>
+            <tr>
+                <td>Generated:</td>
+                <td>${new Date(rfpResponse.created_at).toLocaleDateString()}</td>
+            </tr>
+            <tr>
+                <td>Total Sections:</td>
+                <td>${sections.length}</td>
+            </tr>
+            <tr>
+                <td>Total Words:</td>
+                <td>${sections.reduce((sum, s) => sum + (s.wordCount || 0), 0).toLocaleString()}</td>
+            </tr>
+        </table>
+    </div>
+
+    ${sections.map((section, index) => `
+        <div class="section ${index > 0 ? 'page-break' : ''}">
+            <div class="section-title">${index + 1}. ${section.title}</div>
+            <div class="section-content">${section.content.replace(/\n/g, '<br>')}</div>
+            <div class="section-meta">
+                Word Count: ${section.wordCount || 0} | 
+                Status: ${section.status || 'generated'} | 
+                Last Modified: ${new Date(section.lastModified || rfpResponse.updated_at).toLocaleDateString()}
+            </div>
+        </div>
+    `).join('')}
+</body>
+</html>`;
+}
+
+// Helper function to generate Word-compatible content
+function generateWordContent(rfpResponse, responseData) {
+  const sections = responseData.sections || [];
+  const contract = responseData.contract || {};
+  const companyProfile = responseData.companyProfile || {};
+
+  // Generate a simplified HTML that Word can import as DOCX
+  let wordContent = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<title>${rfpResponse.title}</title>
+<!--[if gte mso 9]>
+<xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>90</w:Zoom>
+<w:DoNotPromptForConvert/>
+<w:DoNotShowInsertionsAndDeletions/>
+</w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; }
+h1 { font-size: 18pt; font-weight: bold; text-align: center; }
+h2 { font-size: 14pt; font-weight: bold; color: #1f4e79; }
+.meta-table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+.meta-table td { border: 1px solid #ccc; padding: 8px; }
+.meta-table td:first-child { font-weight: bold; background-color: #f2f2f2; }
+</style>
+</head>
+<body>
+<h1>${rfpResponse.title}</h1>
+<p style="text-align: center; font-style: italic;">Request for Proposal Response</p>
+
+<table class="meta-table">
+<tr><td>Contract:</td><td>${contract.title || 'N/A'}</td></tr>
+<tr><td>Agency:</td><td>${contract.agency || 'N/A'}</td></tr>
+<tr><td>Company:</td><td>${companyProfile.name || 'N/A'}</td></tr>
+<tr><td>Generated:</td><td>${new Date(rfpResponse.created_at).toLocaleDateString()}</td></tr>
+<tr><td>Total Sections:</td><td>${sections.length}</td></tr>
+<tr><td>Total Words:</td><td>${sections.reduce((sum, s) => sum + (s.wordCount || 0), 0).toLocaleString()}</td></tr>
+</table>
+
+${sections.map((section, index) => `
+<div style="page-break-before: ${index > 0 ? 'always' : 'auto'};">
+<h2>${index + 1}. ${section.title}</h2>
+<div>${section.content.replace(/\n/g, '<br>')}</div>
+<p style="font-size: 10pt; color: #666; border-top: 1px solid #eee; padding-top: 10px; margin-top: 20px;">
+Word Count: ${section.wordCount || 0} | Status: ${section.status || 'generated'} | 
+Last Modified: ${new Date(section.lastModified || rfpResponse.updated_at).toLocaleDateString()}
+</p>
+</div>
+`).join('')}
+
+</body>
+</html>`;
+
+  return wordContent;
+}
 
 // GET /api/rfp/contracts - Get contracts for RFP generation
 router.get('/contracts', async (req, res) => {
