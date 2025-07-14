@@ -97,7 +97,7 @@ Generate ALL ${sections.length} sections in this single response. Do not include
           content: prompt
         }
       ],
-      max_tokens: 16000, // Significantly increased for comprehensive sections
+      max_tokens: 32000, // Significantly increased for comprehensive sections
       temperature: 0.7
     }, {
       headers: {
