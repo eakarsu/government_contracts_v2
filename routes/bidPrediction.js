@@ -35,8 +35,14 @@ router.get('/predictions', async (req, res) => {
           estimatedCompetitors: 8, 
           marketPosition: 'strong',
           level: 'high',
-          keyDifferentiators: ['Technical expertise', 'Past performance'],
-          threats: ['Price competition', 'Established incumbents']
+          keyDifferentiators: [
+            { name: 'Technical expertise', level: 'high' },
+            { name: 'Past performance', level: 'high' }
+          ],
+          threats: [
+            { name: 'Price competition', level: 'medium' },
+            { name: 'Established incumbents', level: 'medium' }
+          ]
         },
         createdAt: new Date().toISOString()
       },
@@ -62,8 +68,14 @@ router.get('/predictions', async (req, res) => {
           estimatedCompetitors: 12, 
           marketPosition: 'moderate',
           level: 'medium',
-          keyDifferentiators: ['Security clearances', 'Specialized expertise'],
-          threats: ['Many qualified competitors', 'Price pressure']
+          keyDifferentiators: [
+            { name: 'Security clearances', level: 'high' },
+            { name: 'Specialized expertise', level: 'medium' }
+          ],
+          threats: [
+            { name: 'Many qualified competitors', level: 'high' },
+            { name: 'Price pressure', level: 'medium' }
+          ]
         },
         createdAt: new Date().toISOString()
       }
@@ -336,20 +348,26 @@ function generateCompetitiveAnalysis(agency, estimatedValue) {
   const positions = ['strong', 'moderate', 'weak'];
   const position = positions[Math.floor(Math.random() * positions.length)];
   
+  // Determine level based on market position
+  let level = 'medium';
+  if (position === 'strong') level = 'high';
+  else if (position === 'weak') level = 'low';
+  
   return {
     estimatedCompetitors: competitorCount,
     marketPosition: position,
+    level: level,
     keyDifferentiators: [
-      'Technical innovation',
-      'Cost effectiveness',
-      'Past performance',
-      'Team expertise'
+      { name: 'Technical innovation', level: 'high' },
+      { name: 'Cost effectiveness', level: 'medium' },
+      { name: 'Past performance', level: 'high' },
+      { name: 'Team expertise', level: 'medium' }
     ].slice(0, Math.floor(Math.random() * 3) + 2),
     threats: [
-      'Established incumbents',
-      'Price competition',
-      'Technical requirements',
-      'Timeline constraints'
+      { name: 'Established incumbents', level: 'medium' },
+      { name: 'Price competition', level: 'high' },
+      { name: 'Technical requirements', level: 'medium' },
+      { name: 'Timeline constraints', level: 'low' }
     ].slice(0, Math.floor(Math.random() * 2) + 2)
   };
 }
