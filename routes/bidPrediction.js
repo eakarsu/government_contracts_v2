@@ -11,56 +11,30 @@ router.get('/predictions', async (req, res) => {
     const limitNum = parseInt(limit);
     const offsetNum = parseInt(offset);
     
-    console.log('🐛 [DEBUG] Starting bid predictions endpoint');
-    
-    // Ultra-defensive function to ensure ALL objects have string level properties
-    const ensureStringLevel = (obj, defaultLevel = 'medium', path = 'root') => {
-      console.log(`🐛 [DEBUG] ensureStringLevel called for path: ${path}, type: ${typeof obj}, value:`, obj);
+    // Simple function to ensure level properties are strings
+    const ensureStringLevel = (obj, defaultLevel = 'medium') => {
+      if (!obj || typeof obj !== 'object') return obj;
       
-      if (obj === null || obj === undefined) {
-        console.log(`🐛 [DEBUG] ${path} is null/undefined, returning as-is`);
-        return obj;
-      }
-      
-      // Handle primitives
-      if (typeof obj !== 'object') {
-        console.log(`🐛 [DEBUG] ${path} is primitive (${typeof obj}), returning as-is`);
-        return obj;
-      }
-      
-      // Handle arrays
       if (Array.isArray(obj)) {
-        console.log(`🐛 [DEBUG] ${path} is array with ${obj.length} items`);
-        return obj.map((item, index) => ensureStringLevel(item, defaultLevel, `${path}[${index}]`));
+        return obj.map(item => ensureStringLevel(item, defaultLevel));
       }
       
-      // Handle objects
-      const result = {};
-      console.log(`🐛 [DEBUG] ${path} is object with keys:`, Object.keys(obj));
+      const result = { ...obj };
       
-      // Copy all properties and ensure level is a string
-      for (const [key, value] of Object.entries(obj)) {
-        if (key === 'level') {
-          const originalValue = value;
-          const originalType = typeof value;
-          // Force level to be a string
-          result[key] = String(value || defaultLevel);
-          console.log(`🐛 [DEBUG] ${path}.level: CONVERTED from ${originalType}(${originalValue}) to string(${result[key]})`);
-        } else if (typeof value === 'object' && value !== null) {
-          // Recursively process nested objects/arrays
-          result[key] = ensureStringLevel(value, defaultLevel, `${path}.${key}`);
-        } else {
-          result[key] = value;
+      // Ensure level is a string
+      if (result.level !== undefined) {
+        result.level = String(result.level);
+      } else {
+        result.level = defaultLevel;
+      }
+      
+      // Process nested objects
+      Object.keys(result).forEach(key => {
+        if (typeof result[key] === 'object' && result[key] !== null) {
+          result[key] = ensureStringLevel(result[key], defaultLevel);
         }
-      }
+      });
       
-      // Ensure every object has a level property as string
-      if (!result.hasOwnProperty('level')) {
-        result.level = String(defaultLevel);
-        console.log(`🐛 [DEBUG] ${path}: ADDED missing level property as string(${result.level})`);
-      }
-      
-      console.log(`🐛 [DEBUG] ${path} final result level:`, typeof result.level, result.level);
       return result;
     };
     
@@ -190,58 +164,19 @@ router.get('/predictions', async (req, res) => {
       }
     ];
     
-    // Apply ultra-defensive level string conversion
-    console.log('🐛 [DEBUG] About to process safeMockPredictions:', safeMockPredictions.length, 'items');
-    const ultraSafePredictions = ensureStringLevel(safeMockPredictions, 'medium', 'predictions');
-    
-    console.log('🐛 [DEBUG] Final predictions data being sent to frontend:');
-    ultraSafePredictions.forEach((prediction, index) => {
-      console.log(`🐛 [DEBUG] Prediction ${index}:`);
-      console.log(`🐛 [DEBUG]   - id: ${prediction.id}`);
-      console.log(`🐛 [DEBUG]   - level: ${typeof prediction.level}(${prediction.level})`);
-      console.log(`🐛 [DEBUG]   - confidence: ${typeof prediction.confidence}(${prediction.confidence})`);
-      
-      if (prediction.factors) {
-        console.log(`🐛 [DEBUG]   - factors (${prediction.factors.length} items):`);
-        prediction.factors.forEach((factor, fIndex) => {
-          console.log(`🐛 [DEBUG]     Factor ${fIndex}: level=${typeof factor.level}(${factor.level})`);
-        });
-      }
-      
-      if (prediction.recommendations) {
-        console.log(`🐛 [DEBUG]   - recommendations (${prediction.recommendations.length} items):`);
-        prediction.recommendations.forEach((rec, rIndex) => {
-          console.log(`🐛 [DEBUG]     Recommendation ${rIndex}: level=${typeof rec.level}(${rec.level})`);
-        });
-      }
-      
-      if (prediction.competitiveAnalysis) {
-        console.log(`🐛 [DEBUG]   - competitiveAnalysis: level=${typeof prediction.competitiveAnalysis.level}(${prediction.competitiveAnalysis.level})`);
-        if (prediction.competitiveAnalysis.keyDifferentiators) {
-          prediction.competitiveAnalysis.keyDifferentiators.forEach((diff, dIndex) => {
-            console.log(`🐛 [DEBUG]     KeyDiff ${dIndex}: level=${typeof diff.level}(${diff.level})`);
-          });
-        }
-        if (prediction.competitiveAnalysis.threats) {
-          prediction.competitiveAnalysis.threats.forEach((threat, tIndex) => {
-            console.log(`🐛 [DEBUG]     Threat ${tIndex}: level=${typeof threat.level}(${threat.level})`);
-          });
-        }
-      }
-    });
+    // Ensure all level properties are strings
+    const processedPredictions = ensureStringLevel(safeMockPredictions, 'medium');
     
     const responseData = {
       success: true,
-      predictions: ultraSafePredictions,
+      predictions: processedPredictions,
       pagination: {
-        total: ultraSafePredictions.length,
+        total: processedPredictions.length,
         limit: limitNum,
         offset: offsetNum,
         hasMore: false
       }
     };
-    
-    console.log('🐛 [DEBUG] Final response data structure:', JSON.stringify(responseData, null, 2));
     
     res.json(responseData);
   } catch (error) {
@@ -256,8 +191,6 @@ router.get('/predictions', async (req, res) => {
 // GET /api/bid-prediction/history
 router.get('/history', async (req, res) => {
   try {
-    console.log('🐛 [DEBUG] Bid history endpoint called');
-    
     // Return mock analytics data since tables don't exist in Prisma schema
     const mockAnalytics = {
       totalBids: 15,
@@ -281,8 +214,6 @@ router.get('/history', async (req, res) => {
       ]
     };
 
-    console.log('🐛 [DEBUG] Sending history analytics with level properties:', mockAnalytics);
-
     res.json({
       success: true,
       analytics: mockAnalytics
@@ -301,33 +232,6 @@ router.post('/analyze', async (req, res) => {
   try {
     const { contractId, contractTitle, agency, estimatedValue } = req.body;
     
-    console.log('🐛 [DEBUG] Analyze endpoint called with:', { contractId, contractTitle, agency, estimatedValue });
-    
-    // Helper function to ensure all objects have a string level property
-    const ensureLevel = (obj, defaultLevel = 'medium', path = 'analyze') => {
-      console.log(`🐛 [DEBUG] ensureLevel (analyze) called for ${path}:`, typeof obj, obj);
-      
-      if (!obj || typeof obj !== 'object') return obj;
-      
-      if (Array.isArray(obj)) {
-        return obj.map((item, index) => ensureLevel(item, defaultLevel, `${path}[${index}]`));
-      }
-      
-      const result = { ...obj };
-      if (!result.level || typeof result.level !== 'string') {
-        const oldLevel = result.level;
-        result.level = String(defaultLevel);
-        console.log(`🐛 [DEBUG] ${path}: Fixed level from ${typeof oldLevel}(${oldLevel}) to string(${result.level})`);
-      }
-      
-      Object.keys(result).forEach(key => {
-        if (typeof result[key] === 'object' && result[key] !== null) {
-          result[key] = ensureLevel(result[key], defaultLevel, `${path}.${key}`);
-        }
-      });
-      
-      return result;
-    };
     
     // Simulate AI analysis with realistic factors
     const analysisFactors = generateAnalysisFactors(agency, estimatedValue);
@@ -352,13 +256,7 @@ router.post('/analyze', async (req, res) => {
     };
     
     // Ensure all nested objects have proper string level properties
-    console.log('🐛 [DEBUG] Before ensureLevel in analyze:', prediction);
-    prediction = ensureLevel(prediction, 'medium', 'analyzePrediction');
-    console.log('🐛 [DEBUG] After ensureLevel in analyze:', prediction);
-    
-    console.log('🐛 [DEBUG] Final analyze response prediction level checks:');
-    console.log(`🐛 [DEBUG] - prediction.level: ${typeof prediction.level}(${prediction.level})`);
-    console.log(`🐛 [DEBUG] - prediction.confidence: ${typeof prediction.confidence}(${prediction.confidence})`);
+    prediction = ensureLevel(prediction, 'medium');
     
     res.json({
       success: true,
