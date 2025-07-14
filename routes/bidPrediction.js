@@ -19,16 +19,48 @@ router.get('/predictions', async (req, res) => {
         contractTitle: 'IT Services Contract',
         agency: 'Department of Defense',
         probability: 75,
-        confidence: 85,
+        confidence: 'high',
+        confidenceLevel: 85,
         factors: [
-          { factor: 'Past Performance', impact: 'positive', score: 85 },
-          { factor: 'Technical Capability', impact: 'positive', score: 80 },
-          { factor: 'Price Competitiveness', impact: 'neutral', score: 70 }
+          { factor: 'Past Performance', impact: 'positive', score: 85, description: 'Strong track record in similar projects' },
+          { factor: 'Technical Capability', impact: 'positive', score: 80, description: 'Excellent technical expertise' },
+          { factor: 'Price Competitiveness', impact: 'neutral', score: 70, description: 'Competitive pricing strategy' }
         ],
         recommendations: [
-          { type: 'strength', title: 'Leverage Past Performance', description: 'Emphasize your strong track record' }
+          { type: 'strength', title: 'Leverage Past Performance', description: 'Emphasize your strong track record in proposal' },
+          { type: 'improvement', title: 'Enhance Price Strategy', description: 'Consider more competitive pricing approach' }
         ],
-        competitiveAnalysis: { estimatedCompetitors: 8, marketPosition: 'Strong' },
+        competitiveAnalysis: { 
+          estimatedCompetitors: 8, 
+          marketPosition: 'strong',
+          keyDifferentiators: ['Technical expertise', 'Past performance'],
+          threats: ['Price competition', 'Established incumbents']
+        },
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 2,
+        contractId: 'SAMPLE_002',
+        contractTitle: 'Cybersecurity Services',
+        agency: 'Department of Homeland Security',
+        probability: 60,
+        confidence: 'medium',
+        confidenceLevel: 70,
+        factors: [
+          { factor: 'Security Clearance', impact: 'positive', score: 90, description: 'All required clearances in place' },
+          { factor: 'Technical Capability', impact: 'positive', score: 75, description: 'Good cybersecurity expertise' },
+          { factor: 'Competition Level', impact: 'negative', score: 45, description: 'High competition expected' }
+        ],
+        recommendations: [
+          { type: 'strength', title: 'Highlight Security Clearances', description: 'Emphasize clearance advantages' },
+          { type: 'risk', title: 'Address Competition', description: 'Develop strong differentiation strategy' }
+        ],
+        competitiveAnalysis: { 
+          estimatedCompetitors: 12, 
+          marketPosition: 'moderate',
+          keyDifferentiators: ['Security clearances', 'Specialized expertise'],
+          threats: ['Many qualified competitors', 'Price pressure']
+        },
         createdAt: new Date().toISOString()
       }
     ];
@@ -99,7 +131,7 @@ router.post('/analyze', async (req, res) => {
     // Simulate AI analysis with realistic factors
     const analysisFactors = generateAnalysisFactors(agency, estimatedValue);
     const probability = calculateProbability(analysisFactors);
-    const confidence = calculateConfidence(analysisFactors);
+    const confidenceResult = calculateConfidence(analysisFactors);
     const recommendations = generateRecommendations(analysisFactors, probability);
     const competitiveAnalysis = generateCompetitiveAnalysis(agency, estimatedValue);
     
@@ -109,7 +141,8 @@ router.post('/analyze', async (req, res) => {
       contractTitle: contractTitle || `Contract ${contractId}`,
       agency: agency || 'Unknown Agency',
       probability,
-      confidence,
+      confidence: confidenceResult.level,
+      confidenceLevel: confidenceResult.score,
       factors: analysisFactors,
       recommendations,
       competitiveAnalysis,
@@ -138,19 +171,22 @@ router.post('/predict/:contractId', async (req, res) => {
     // Create new prediction with enhanced analysis
     const analysisFactors = generateAnalysisFactors('Federal Agency', 1000000);
     const probability = calculateProbability(analysisFactors);
-    const confidence = calculateConfidence(analysisFactors);
+    const confidenceResult = calculateConfidence(analysisFactors);
     
     const prediction = {
       id: `pred-${Date.now()}`,
       contractId,
       contractTitle: `Contract ${contractId}`,
       agency: 'Federal Agency',
+      probability: probability,
       probabilityScore: probability,
-      confidenceLevel: confidence,
+      confidence: confidenceResult.level,
+      confidenceLevel: confidenceResult.score,
       factors: analysisFactors,
       recommendations: generateRecommendations(analysisFactors, probability),
       competitiveAnalysis: generateCompetitiveAnalysis('Federal Agency', 1000000),
-      predictedAt: new Date().toISOString()
+      predictedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
     };
     
     res.json({
@@ -222,8 +258,22 @@ function calculateProbability(factors) {
 function calculateConfidence(factors) {
   const avgScore = factors.reduce((sum, f) => sum + f.score, 0) / factors.length;
   const variance = factors.reduce((sum, f) => sum + Math.pow(f.score - avgScore, 2), 0) / factors.length;
-  const confidence = Math.max(60, Math.min(95, 100 - Math.sqrt(variance)));
-  return Math.floor(confidence);
+  const confidenceScore = Math.max(60, Math.min(95, 100 - Math.sqrt(variance)));
+  
+  // Return both numeric score and text level
+  let confidenceLevel;
+  if (confidenceScore >= 80) {
+    confidenceLevel = 'high';
+  } else if (confidenceScore >= 60) {
+    confidenceLevel = 'medium';
+  } else {
+    confidenceLevel = 'low';
+  }
+  
+  return {
+    score: Math.floor(confidenceScore),
+    level: confidenceLevel
+  };
 }
 
 function generateRecommendations(factors, probability) {
@@ -264,7 +314,7 @@ function generateRecommendations(factors, probability) {
 
 function generateCompetitiveAnalysis(agency, estimatedValue) {
   const competitorCount = Math.floor(Math.random() * 10) + 5;
-  const positions = ['Strong', 'Moderate', 'Weak'];
+  const positions = ['strong', 'moderate', 'weak'];
   const position = positions[Math.floor(Math.random() * positions.length)];
   
   return {
