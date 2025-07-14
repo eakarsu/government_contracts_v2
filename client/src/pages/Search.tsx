@@ -63,8 +63,18 @@ const Search: React.FC = () => {
         const total = data.pagination.total;
         const limit = data.pagination.limit;
         const calculatedPages = Math.ceil(total / limit);
-        console.log('Search.tsx pagination debug:', { total, limit, calculatedPages });
+        console.log('Search.tsx pagination debug:', { total, limit, calculatedPages, hasMore: data.pagination.hasMore });
         setTotalPages(calculatedPages);
+        
+        // If we have more results available than what's shown, ensure pagination appears
+        if (total > limit || data.pagination.hasMore) {
+          console.log('Should show pagination controls');
+        }
+      } else {
+        // Fallback: if no pagination data, assume there might be more results
+        console.log('No pagination data received, using fallback logic');
+        const estimatedTotal = data.results.length >= searchForm.limit ? data.results.length * 2 : data.results.length;
+        setTotalPages(Math.ceil(estimatedTotal / searchForm.limit));
       }
     },
   });
@@ -396,7 +406,10 @@ const Search: React.FC = () => {
           </div>
 
           {/* Pagination Controls */}
-          {searchResult && searchResult.pagination && (searchResult.pagination.total > searchResult.pagination.limit || searchResult.results.length >= searchResult.pagination.limit) && (
+          {searchResult && (
+            (searchResult.pagination && (searchResult.pagination.total > searchResult.pagination.limit || searchResult.pagination.hasMore)) ||
+            (!searchResult.pagination && searchResult.results.length >= searchForm.limit)
+          ) && (
             <div className="bg-white shadow rounded-lg p-6">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700">
