@@ -1,13 +1,24 @@
 const { Pool } = require('pg');
 const AIService = require('./aiService');
+const VectorService = require('./vectorService');
 const logger = require('../utils/logger');
 
 class SemanticSearchService {
   constructor() {
     this.aiService = AIService;
+    this.vectorService = new VectorService();
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL
     });
+  }
+
+  async initialize() {
+    try {
+      await this.vectorService.initialize();
+      logger.info('Vector service initialized successfully');
+    } catch (error) {
+      logger.warn('Vector service initialization failed:', error.message);
+    }
   }
 
   async indexContract(contractId, content) {
@@ -55,102 +66,117 @@ class SemanticSearchService {
         userId = null
       } = options;
 
+      // Use vector service for semantic search
+      if (this.vectorService && this.vectorService.isConnected) {
+        logger.info('Using vector service for semantic search');
+        
+        try {
+          const results = await this.vectorService.searchContracts(queryText, {
+            limit,
+            threshold,
+            filters
+          });
+
+          // Store search query if user provided
+          if (userId) {
+            try {
+              await this.pool.query(
+                'INSERT INTO search_queries (user_id, query_text, results_count, created_at) VALUES ($1, $2, $3, NOW())',
+                [userId, queryText, results.length]
+              );
+            } catch (dbError) {
+              logger.warn('Failed to store search query:', dbError.message);
+            }
+          }
+
+          return {
+            results: results.map(result => ({
+              id: result.id,
+              notice_id: result.notice_id || result.noticeId,
+              title: result.title,
+              description: result.description,
+              agency: result.agency,
+              contract_value: result.contract_value || result.contractValue,
+              posted_date: result.posted_date || result.postedDate,
+              content_summary: result.summary || result.content_summary,
+              relevanceScore: result.score || result.relevanceScore || 0
+            })),
+            totalResults: results.length,
+            query: queryText,
+            searchType: 'semantic'
+          };
+        } catch (vectorError) {
+          logger.warn('Vector service search failed:', vectorError.message);
+        }
+      }
+
+      // Fallback to database search if vector service unavailable
+      logger.info('Vector service unavailable, attempting database search');
+      
       // Generate embedding for search query
       const queryEmbedding = await this.aiService.generateEmbedding(queryText);
 
-      // Store search query if user provided
-      if (userId) {
-        try {
-          await this.pool.query(
-            'INSERT INTO search_queries (user_id, query_text, query_embedding) VALUES ($1, $2, $3)',
-            [userId, queryText, JSON.stringify(queryEmbedding)]
-          );
-        } catch (dbError) {
-          logger.warn('Failed to store search query:', dbError.message);
+      // Try database search with vector extension
+      try {
+        let searchQuery = `
+          SELECT 
+            id,
+            notice_id,
+            title,
+            description,
+            agency,
+            contract_value,
+            posted_date,
+            embedding <=> $1::vector as similarity_score
+          FROM contract_embeddings
+          WHERE embedding <=> $1::vector < $2
+        `;
+
+        const queryParams = [JSON.stringify(queryEmbedding), 1 - threshold];
+        let paramIndex = 3;
+
+        // Add filters
+        if (filters.agency) {
+          searchQuery += ` AND agency ILIKE $${paramIndex}`;
+          queryParams.push(`%${filters.agency}%`);
+          paramIndex++;
         }
-      }
 
-      // Build search query with filters
-      let searchQuery = `
-        SELECT 
-          c.id,
-          c.notice_id,
-          c.title,
-          c.description,
-          c.agency,
-          c.contract_value,
-          c.posted_date,
-          ce.content_summary,
-          ce.embedding <=> $1::vector as similarity_score
-        FROM contracts c
-        JOIN contract_embeddings ce ON c.id = ce.contract_id
-        WHERE ce.embedding <=> $1::vector < $2
-      `;
-
-      const queryParams = [JSON.stringify(queryEmbedding), 1 - threshold];
-      let paramIndex = 3;
-
-      // Add filters
-      if (filters.agency) {
-        searchQuery += ` AND c.agency ILIKE $${paramIndex}`;
-        queryParams.push(`%${filters.agency}%`);
-        paramIndex++;
-      }
-
-      if (filters.minValue) {
-        searchQuery += ` AND c.contract_value >= $${paramIndex}`;
-        queryParams.push(filters.minValue);
-        paramIndex++;
-      }
-
-      if (filters.maxValue) {
-        searchQuery += ` AND c.contract_value <= $${paramIndex}`;
-        queryParams.push(filters.maxValue);
-        paramIndex++;
-      }
-
-      if (filters.dateFrom) {
-        searchQuery += ` AND c.posted_date >= $${paramIndex}`;
-        queryParams.push(filters.dateFrom);
-        paramIndex++;
-      }
-
-      if (filters.contractType) {
-        searchQuery += ` AND c.contract_type = $${paramIndex}`;
-        queryParams.push(filters.contractType);
-        paramIndex++;
-      }
-
-      searchQuery += ` ORDER BY similarity_score ASC LIMIT $${paramIndex}`;
-      queryParams.push(limit);
-
-      const result = await this.pool.query(searchQuery, queryParams);
-
-      // Update search query with results count
-      if (userId) {
-        try {
-          await this.pool.query(
-            'UPDATE search_queries SET results_count = $1 WHERE user_id = $2 AND query_text = $3 ORDER BY created_at DESC LIMIT 1',
-            [result.rows.length, userId, queryText]
-          );
-        } catch (dbError) {
-          logger.warn('Failed to update search query results count:', dbError.message);
+        if (filters.minValue) {
+          searchQuery += ` AND contract_value >= $${paramIndex}`;
+          queryParams.push(filters.minValue);
+          paramIndex++;
         }
+
+        if (filters.maxValue) {
+          searchQuery += ` AND contract_value <= $${paramIndex}`;
+          queryParams.push(filters.maxValue);
+          paramIndex++;
+        }
+
+        searchQuery += ` ORDER BY similarity_score ASC LIMIT $${paramIndex}`;
+        queryParams.push(limit);
+
+        const result = await this.pool.query(searchQuery, queryParams);
+
+        return {
+          results: result.rows.map(row => ({
+            ...row,
+            relevanceScore: Math.max(0, 1 - row.similarity_score)
+          })),
+          totalResults: result.rows.length,
+          query: queryText,
+          searchType: 'semantic'
+        };
+      } catch (dbError) {
+        logger.warn('Database vector search failed:', dbError.message);
       }
 
-      return {
-        results: result.rows.map(row => ({
-          ...row,
-          relevanceScore: Math.max(0, 1 - row.similarity_score)
-        })),
-        totalResults: result.rows.length,
-        query: queryText,
-        searchType: 'semantic'
-      };
+      // Final fallback to mock results
+      logger.warn('All search methods failed, using mock results');
+      return await this.getMockSearchResults(queryText, options);
     } catch (error) {
       logger.error('Error performing semantic search:', error);
-      // Fallback to mock results only if vector search fails
-      logger.warn('Vector search failed, falling back to mock results');
       return await this.getMockSearchResults(queryText, options);
     }
   }
@@ -398,74 +424,70 @@ class SemanticSearchService {
 
   async hybridSearch(queryText, options = {}) {
     try {
-      // Perform both semantic and keyword search
+      // Perform semantic search first
       const semanticResults = await this.semanticSearch(queryText, options);
       
-      // If semantic search failed and returned mock data, just return it
+      // If semantic search returned mock data, just return it
       if (semanticResults.searchType === 'mock') {
         return semanticResults;
       }
-      
-      // Keyword search
-      const keywordQuery = `
-        SELECT 
-          c.id,
-          c.notice_id,
-          c.title,
-          c.description,
-          c.agency,
-          c.contract_value,
-          c.posted_date,
-          ts_rank(to_tsvector('english', c.title || ' ' || COALESCE(c.description, '')), plainto_tsquery('english', $1)) as keyword_score
-        FROM contracts c
-        WHERE to_tsvector('english', c.title || ' ' || COALESCE(c.description, '')) @@ plainto_tsquery('english', $1)
-        ORDER BY keyword_score DESC
-        LIMIT $2
-      `;
 
-      const keywordResult = await this.pool.query(keywordQuery, [queryText, options.limit || 20]);
+      // If we have real semantic results, try to enhance with keyword search
+      if (semanticResults.searchType === 'semantic' && semanticResults.results.length > 0) {
+        try {
+          // Try keyword search on the same data source
+          const keywordResults = await this.keywordSearchFallback(queryText, options);
+          
+          if (keywordResults.searchType !== 'mock') {
+            // Combine results
+            const combinedResults = new Map();
 
-      // Combine and deduplicate results
-      const combinedResults = new Map();
+            // Add semantic results with higher weight
+            semanticResults.results.forEach(result => {
+              combinedResults.set(result.id, {
+                ...result,
+                combinedScore: result.relevanceScore * 0.7
+              });
+            });
 
-      // Add semantic results with higher weight
-      semanticResults.results.forEach(result => {
-        combinedResults.set(result.id, {
-          ...result,
-          combinedScore: result.relevanceScore * 0.7
-        });
-      });
+            // Add keyword results
+            keywordResults.results.forEach(result => {
+              if (combinedResults.has(result.id)) {
+                // Boost existing result
+                const existing = combinedResults.get(result.id);
+                existing.combinedScore += (result.relevanceScore || 0) * 0.3;
+              } else {
+                combinedResults.set(result.id, {
+                  ...result,
+                  combinedScore: (result.relevanceScore || 0) * 0.3
+                });
+              }
+            });
 
-      // Add keyword results
-      keywordResult.rows.forEach(result => {
-        if (combinedResults.has(result.id)) {
-          // Boost existing result
-          const existing = combinedResults.get(result.id);
-          existing.combinedScore += result.keyword_score * 0.3;
-        } else {
-          combinedResults.set(result.id, {
-            ...result,
-            relevanceScore: result.keyword_score,
-            combinedScore: result.keyword_score * 0.3
-          });
+            // Sort by combined score
+            const finalResults = Array.from(combinedResults.values())
+              .sort((a, b) => b.combinedScore - a.combinedScore)
+              .slice(0, options.limit || 20);
+
+            return {
+              results: finalResults,
+              totalResults: finalResults.length,
+              query: queryText,
+              searchType: 'hybrid'
+            };
+          }
+        } catch (keywordError) {
+          logger.warn('Keyword search failed in hybrid mode:', keywordError.message);
         }
-      });
+      }
 
-      // Sort by combined score
-      const finalResults = Array.from(combinedResults.values())
-        .sort((a, b) => b.combinedScore - a.combinedScore)
-        .slice(0, options.limit || 20);
-
+      // Return semantic results if hybrid combination failed
       return {
-        results: finalResults,
-        totalResults: finalResults.length,
-        query: queryText,
-        searchType: 'hybrid'
+        ...semanticResults,
+        searchType: 'semantic'
       };
     } catch (error) {
       logger.error('Error performing hybrid search:', error);
-      // Final fallback to mock search
-      logger.warn('Hybrid search failed, falling back to mock results');
       return await this.getMockSearchResults(queryText, options);
     }
   }

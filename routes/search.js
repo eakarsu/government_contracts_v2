@@ -13,6 +13,16 @@ const pool = new Pool({
 const semanticSearchService = new SemanticSearchService();
 const opportunityMatchingService = new OpportunityMatchingService();
 
+// Initialize services
+(async () => {
+  try {
+    await semanticSearchService.initialize();
+    logger.info('Semantic search service initialized');
+  } catch (error) {
+    logger.warn('Failed to initialize semantic search service:', error.message);
+  }
+})();
+
 // Semantic search endpoint
 router.post('/semantic', async (req, res) => {
   try {
