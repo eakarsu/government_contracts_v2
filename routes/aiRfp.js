@@ -207,6 +207,21 @@ router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
     // Analyze document with AI
     const analysis = await aiService.analyzeDocument(extractedText, 'rfp');
 
+    // Safely extract and convert analysis data
+    let requirements = {};
+    let sections = [];
+    
+    try {
+      if (analysis && typeof analysis === 'object') {
+        requirements = analysis.requirements || {};
+        sections = analysis.sections || [];
+      }
+    } catch (analysisError) {
+      console.error('Error processing analysis results:', analysisError);
+      requirements = {};
+      sections = [];
+    }
+
     // Store RFP document in database
     const insertQuery = `
       INSERT INTO rfp_documents (
@@ -222,8 +237,8 @@ router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
       originalFilename,
       filePath,
       JSON.stringify({ content: extractedText.substring(0, 10000) }),
-      JSON.stringify(analysis?.requirements || {}),
-      JSON.stringify(analysis?.sections || [])
+      JSON.stringify(requirements),
+      JSON.stringify(sections)
     ];
 
     const result = await proposalService.pool.query(insertQuery, values);
@@ -236,8 +251,8 @@ router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
         id: document.id,
         filename: document.original_filename,
         contractId: document.contract_id,
-        requirements: JSON.parse(document.requirements),
-        sections: JSON.parse(document.sections),
+        requirements: typeof document.requirements === 'string' ? JSON.parse(document.requirements) : document.requirements,
+        sections: typeof document.sections === 'string' ? JSON.parse(document.sections) : document.sections,
         uploadedAt: document.created_at,
         hasAnalysis: true
       }
