@@ -152,13 +152,21 @@ const SemanticSearch: React.FC = () => {
         setResults(transformedResults);
         
         // Fix pagination hasMore calculation if backend doesn't provide it correctly
-        const paginationData = data.pagination || { total: 0, limit: 20, offset: 0, hasMore: false };
+        const paginationData = data.pagination || {};
+        const actualTotal = paginationData.total || data.results.length;
+        const actualLimit = pagination.limit; // Use the limit we requested
+        const actualOffset = paginationData.offset || 0;
+        
+        // If we got more results than our limit, we know there are more pages
+        const hasMoreResults = data.results.length >= actualLimit || 
+                              (actualTotal > actualLimit) ||
+                              (actualOffset + actualLimit < actualTotal);
+        
         const fixedPagination = {
-          total: paginationData.total || data.results.length,
-          limit: paginationData.limit || 20,
-          offset: paginationData.offset || 0,
-          hasMore: paginationData.hasMore || 
-                   ((paginationData.offset || 0) + (paginationData.limit || 20) < (paginationData.total || data.results.length))
+          total: actualTotal,
+          limit: actualLimit,
+          offset: actualOffset,
+          hasMore: hasMoreResults
         };
         
         console.log('Fixed pagination:', fixedPagination);

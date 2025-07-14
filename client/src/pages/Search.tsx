@@ -61,7 +61,7 @@ const Search: React.FC = () => {
       // Calculate pagination info
       if (data.pagination) {
         const total = data.pagination.total;
-        const limit = data.pagination.limit;
+        const limit = searchForm.limit; // Use the limit we requested, not what backend says
         const calculatedPages = Math.ceil(total / limit);
         console.log('Search.tsx pagination debug:', { total, limit, calculatedPages, hasMore: data.pagination.hasMore });
         setTotalPages(calculatedPages);
@@ -71,10 +71,13 @@ const Search: React.FC = () => {
           console.log('Should show pagination controls');
         }
       } else {
-        // Fallback: if no pagination data, assume there might be more results
+        // Fallback: if no pagination data, calculate based on results
         console.log('No pagination data received, using fallback logic');
-        const estimatedTotal = data.results.length >= searchForm.limit ? data.results.length * 2 : data.results.length;
-        setTotalPages(Math.ceil(estimatedTotal / searchForm.limit));
+        const total = data.results.length;
+        const limit = searchForm.limit;
+        // If we got exactly the limit, assume there might be more
+        const estimatedTotal = total >= limit ? total * 2 : total;
+        setTotalPages(Math.ceil(estimatedTotal / limit));
       }
     },
   });

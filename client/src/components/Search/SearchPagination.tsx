@@ -19,8 +19,8 @@ const SearchPagination: React.FC<SearchPaginationProps> = ({
   const currentPage = Math.floor(pagination.offset / pagination.limit) + 1;
   const totalPages = Math.ceil(pagination.total / pagination.limit);
 
-  // Always show pagination if there are results
-  if (pagination.total === 0) {
+  // Show pagination if there are enough results to warrant it
+  if (pagination.total === 0 || pagination.total <= pagination.limit) {
     return null;
   }
 
