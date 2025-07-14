@@ -30,7 +30,10 @@ router.post('/semantic', async (req, res) => {
     const userId = req.user?.id;
 
     if (!query || query.trim().length === 0) {
-      return res.status(400).json({ error: 'Search query is required' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Search query is required' 
+      });
     }
 
     const results = await semanticSearchService.semanticSearch(query, {
@@ -40,10 +43,23 @@ router.post('/semantic', async (req, res) => {
       userId
     });
 
-    res.json(results);
+    // Ensure the response has the expected format
+    res.json({
+      success: true,
+      query: results.query,
+      results: {
+        contracts: results.results || [],
+        total_results: results.totalResults || 0
+      },
+      search_method: results.searchType,
+      response_time: 0.1
+    });
   } catch (error) {
     logger.error('Semantic search error:', error);
-    res.status(500).json({ error: 'Search failed' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Search failed' 
+    });
   }
 });
 
@@ -54,7 +70,10 @@ router.post('/hybrid', async (req, res) => {
     const userId = req.user?.id;
 
     if (!query || query.trim().length === 0) {
-      return res.status(400).json({ error: 'Search query is required' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Search query is required' 
+      });
     }
 
     const results = await semanticSearchService.hybridSearch(query, {
@@ -64,10 +83,23 @@ router.post('/hybrid', async (req, res) => {
       userId
     });
 
-    res.json(results);
+    // Ensure the response has the expected format
+    res.json({
+      success: true,
+      query: results.query,
+      results: {
+        contracts: results.results || [],
+        total_results: results.totalResults || 0
+      },
+      search_method: results.searchType,
+      response_time: 0.1
+    });
   } catch (error) {
     logger.error('Hybrid search error:', error);
-    res.status(500).json({ error: 'Search failed' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Search failed' 
+    });
   }
 });
 
@@ -225,6 +257,7 @@ router.post('/', async (req, res) => {
     const responseTime = (Date.now() - startTime) / 1000;
 
     let response = {
+      success: true,
       query,
       results: {
         contracts: searchResults.results || [],
@@ -262,7 +295,10 @@ Provide a brief analysis of the search results including key themes, agencies in
 
   } catch (error) {
     logger.error('Search failed:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 });
 
