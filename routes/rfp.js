@@ -1221,30 +1221,66 @@ router.get('/responses/:id/download/:format', async (req, res) => {
       // Generate PDF using Puppeteer
       const htmlContent = generateHTMLContent(rfpResponse, responseData);
       
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
+      console.log(`📄 [DEBUG] Generated HTML content length: ${htmlContent.length} chars`);
       
-      const page = await browser.newPage();
-      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-      
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        margin: {
-          top: '1in',
-          right: '1in',
-          bottom: '1in',
-          left: '1in'
-        },
-        printBackground: true
-      });
-      
-      await browser.close();
-
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${rfpResponse.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`);
-      res.send(pdfBuffer);
+      let browser;
+      try {
+        browser = await puppeteer.launch({
+          headless: true,
+          args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+          ]
+        });
+        
+        const page = await browser.newPage();
+        
+        // Set viewport and wait for content to load
+        await page.setViewport({ width: 1200, height: 800 });
+        await page.setContent(htmlContent, { 
+          waitUntil: ['networkidle0', 'domcontentloaded'],
+          timeout: 30000
+        });
+        
+        // Generate PDF with proper options
+        const pdfBuffer = await page.pdf({
+          format: 'A4',
+          margin: {
+            top: '0.75in',
+            right: '0.75in',
+            bottom: '0.75in',
+            left: '0.75in'
+          },
+          printBackground: true,
+          preferCSSPageSize: false,
+          displayHeaderFooter: false
+        });
+        
+        console.log(`📄 [DEBUG] Generated PDF buffer size: ${pdfBuffer.length} bytes`);
+        
+        // Clean filename for download
+        const cleanTitle = rfpResponse.title
+          .replace(/[^a-zA-Z0-9\s\-_]/g, '')
+          .replace(/\s+/g, '_')
+          .substring(0, 100);
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.pdf"`);
+        res.send(pdfBuffer);
+        
+      } catch (pdfError) {
+        console.error(`❌ [DEBUG] PDF generation error:`, pdfError);
+        throw new Error(`PDF generation failed: ${pdfError.message}`);
+      } finally {
+        if (browser) {
+          await browser.close();
+        }
+      }
 
     } else if (format === 'docx') {
       // Generate Word document format (simplified HTML that Word can import)
@@ -1272,104 +1308,163 @@ function generateHTMLContent(rfpResponse, responseData) {
   const contract = responseData.contract || {};
   const companyProfile = responseData.companyProfile || {};
 
-  return `
-<!DOCTYPE html>
-<html>
+  // Escape HTML content to prevent malformed HTML
+  const escapeHtml = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
+  // Clean and format content for PDF
+  const formatContent = (content) => {
+    if (!content) return 'No content available';
+    
+    // Escape HTML and convert newlines to paragraphs
+    const escaped = escapeHtml(content);
+    return escaped
+      .split('\n')
+      .filter(line => line.trim().length > 0)
+      .map(line => `<p>${line.trim()}</p>`)
+      .join('');
+  };
+
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>${rfpResponse.title}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(rfpResponse.title || 'RFP Response')}</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: 'Times New Roman', serif;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
             line-height: 1.6;
             color: #333;
-            max-width: 8.5in;
-            margin: 0 auto;
-            padding: 0;
+            background: white;
+            padding: 1in;
         }
+        
         .header {
             text-align: center;
             margin-bottom: 2em;
             border-bottom: 2px solid #333;
             padding-bottom: 1em;
         }
+        
         .title {
-            font-size: 24px;
+            font-size: 20pt;
             font-weight: bold;
             margin-bottom: 0.5em;
+            color: #000;
         }
+        
         .subtitle {
-            font-size: 14px;
+            font-size: 14pt;
             color: #666;
+            font-style: italic;
         }
+        
         .meta-info {
             margin: 2em 0;
             padding: 1em;
-            background-color: #f5f5f5;
+            background-color: #f8f9fa;
             border-left: 4px solid #007cba;
+            border-radius: 4px;
         }
-        .meta-info table {
+        
+        .meta-table {
             width: 100%;
             border-collapse: collapse;
+            margin: 0;
         }
-        .meta-info td {
+        
+        .meta-table td {
             padding: 0.5em;
             border-bottom: 1px solid #ddd;
+            vertical-align: top;
         }
-        .meta-info td:first-child {
+        
+        .meta-table td:first-child {
             font-weight: bold;
             width: 150px;
+            color: #555;
         }
+        
         .section {
             margin: 2em 0;
             page-break-inside: avoid;
         }
+        
         .section-title {
-            font-size: 18px;
+            font-size: 16pt;
             font-weight: bold;
             color: #007cba;
-            border-bottom: 1px solid #007cba;
+            border-bottom: 2px solid #007cba;
             padding-bottom: 0.5em;
             margin-bottom: 1em;
         }
+        
         .section-content {
             text-align: justify;
             margin-bottom: 1em;
         }
+        
+        .section-content p {
+            margin-bottom: 1em;
+        }
+        
         .section-meta {
-            font-size: 12px;
+            font-size: 10pt;
             color: #666;
             border-top: 1px solid #eee;
             padding-top: 0.5em;
+            margin-top: 1em;
         }
+        
         .page-break {
             page-break-before: always;
         }
+        
         @media print {
-            body { margin: 0; }
-            .page-break { page-break-before: always; }
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            .page-break {
+                page-break-before: always;
+            }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <div class="title">${rfpResponse.title}</div>
+        <div class="title">${escapeHtml(rfpResponse.title || 'RFP Response')}</div>
         <div class="subtitle">Request for Proposal Response</div>
     </div>
 
     <div class="meta-info">
-        <table>
+        <table class="meta-table">
             <tr>
                 <td>Contract:</td>
-                <td>${contract.title || 'N/A'}</td>
+                <td>${escapeHtml(contract.title || 'N/A')}</td>
             </tr>
             <tr>
                 <td>Agency:</td>
-                <td>${contract.agency || 'N/A'}</td>
+                <td>${escapeHtml(contract.agency || 'N/A')}</td>
             </tr>
             <tr>
                 <td>Company:</td>
-                <td>${companyProfile.name || 'N/A'}</td>
+                <td>${escapeHtml(companyProfile.name || 'N/A')}</td>
             </tr>
             <tr>
                 <td>Generated:</td>
@@ -1388,11 +1483,13 @@ function generateHTMLContent(rfpResponse, responseData) {
 
     ${sections.map((section, index) => `
         <div class="section ${index > 0 ? 'page-break' : ''}">
-            <div class="section-title">${index + 1}. ${section.title}</div>
-            <div class="section-content">${section.content.replace(/\n/g, '<br>')}</div>
+            <div class="section-title">${index + 1}. ${escapeHtml(section.title || 'Untitled Section')}</div>
+            <div class="section-content">
+                ${formatContent(section.content)}
+            </div>
             <div class="section-meta">
                 Word Count: ${section.wordCount || 0} | 
-                Status: ${section.status || 'generated'} | 
+                Status: ${escapeHtml(section.status || 'generated')} | 
                 Last Modified: ${new Date(section.lastModified || rfpResponse.updated_at).toLocaleDateString()}
             </div>
         </div>
