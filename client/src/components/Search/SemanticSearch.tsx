@@ -116,6 +116,8 @@ const SemanticSearch: React.FC = () => {
         include_analysis: true
       };
 
+      console.log('Sending search request with:', searchData);
+
       const data = await apiService.searchContracts(searchData);
       console.log('Full search response:', data);
       

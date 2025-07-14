@@ -396,7 +396,7 @@ const Search: React.FC = () => {
           </div>
 
           {/* Pagination Controls */}
-          {searchResult && searchResult.pagination && searchResult.pagination.total > searchResult.pagination.limit && (
+          {searchResult && searchResult.pagination && (searchResult.pagination.total > searchResult.pagination.limit || searchResult.results.length >= searchResult.pagination.limit) && (
             <div className="bg-white shadow rounded-lg p-6">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700">
