@@ -261,18 +261,73 @@ Return structured data that can be parsed into factors, recommendations, and com
 
   async generateEmbedding(text) {
     try {
-      if (!this.apiKey) {
-        console.warn('OpenRouter API key not configured, using fallback embedding');
-        return this.getFallbackEmbedding(text);
+      // Try OpenAI embeddings first if API key is available
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (openaiKey) {
+        console.log('Using OpenAI embeddings service');
+        return await this.generateOpenAIEmbedding(text, openaiKey);
       }
 
-      // OpenRouter doesn't have embeddings endpoint, use fallback
-      console.warn('OpenRouter embeddings not available, using fallback');
+      // Try Hugging Face embeddings as fallback
+      const hfKey = process.env.HUGGINGFACE_API_KEY;
+      if (hfKey) {
+        console.log('Using Hugging Face embeddings service');
+        return await this.generateHuggingFaceEmbedding(text, hfKey);
+      }
+
+      // Use local transformer model if available
+      if (this.vectorService && this.vectorService.embedder) {
+        console.log('Using local transformer embeddings');
+        return await this.vectorService.generateEmbedding(text);
+      }
+
+      console.warn('No embedding service available, using fallback');
       return this.getFallbackEmbedding(text);
     } catch (error) {
       console.error('AI embedding generation error:', error);
       return this.getFallbackEmbedding(text);
     }
+  }
+
+  async generateOpenAIEmbedding(text, apiKey) {
+    const response = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'text-embedding-3-small',
+        input: text.substring(0, 8000) // Limit text length
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI embedding failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data[0].embedding;
+  }
+
+  async generateHuggingFaceEmbedding(text, apiKey) {
+    const response = await fetch('https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        inputs: text.substring(0, 8000)
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Hugging Face embedding failed: ${response.statusText}`);
+    }
+
+    const embedding = await response.json();
+    return Array.isArray(embedding[0]) ? embedding[0] : embedding;
   }
 
   async summarizeDocument(text) {

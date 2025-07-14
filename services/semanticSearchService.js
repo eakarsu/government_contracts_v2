@@ -10,6 +10,8 @@ class SemanticSearchService {
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL
     });
+    // Pass vector service to AI service for local embeddings
+    this.aiService.vectorService = this.vectorService;
   }
 
   async initialize() {
