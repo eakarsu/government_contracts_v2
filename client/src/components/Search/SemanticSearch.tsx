@@ -113,11 +113,8 @@ const SemanticSearch: React.FC = () => {
       if (response.ok) {
         const data: SearchResponse = await response.json();
         if (data.success) {
-          if (offset === 0) {
-            setResults(data.results);
-          } else {
-            setResults(prev => [...prev, ...data.results]);
-          }
+          // Always replace results for pagination (not append)
+          setResults(data.results);
           setPagination(data.pagination);
           setQueryInfo(data.query_info);
         } else {
@@ -153,10 +150,27 @@ const SemanticSearch: React.FC = () => {
     }
   };
 
-  const handleLoadMore = () => {
-    if (pagination.hasMore && !loading) {
-      performSearch(query, filters, pagination.offset + pagination.limit);
+  const handleLoadMore = (action?: 'prev' | 'next' | 'page', page?: number) => {
+    if (loading) return;
+    
+    let newOffset = pagination.offset;
+    
+    if (action === 'prev') {
+      newOffset = Math.max(0, pagination.offset - pagination.limit);
+    } else if (action === 'next') {
+      newOffset = pagination.offset + pagination.limit;
+    } else if (action === 'page' && page) {
+      newOffset = (page - 1) * pagination.limit;
+    } else {
+      // Default behavior (original load more)
+      if (pagination.hasMore) {
+        newOffset = pagination.offset + pagination.limit;
+      } else {
+        return;
+      }
     }
+    
+    performSearch(query, filters, newOffset);
   };
 
   const expandQuery = async () => {
