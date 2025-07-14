@@ -8,33 +8,16 @@ const router = express.Router();
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-// Function to generate all RFP sections in one comprehensive request
-async function generateAllRFPSectionsWithAI(contract, template, profile, sections, customInstructions, focusAreas) {
+// Function to generate RFP content using OpenRouter for individual sections
+async function generateRFPContentWithAI(contract, template, profile, section, customInstructions, focusAreas) {
   if (!OPENROUTER_API_KEY) {
     console.warn('⚠️ [DEBUG] OpenRouter API key not configured, using placeholder content');
-    return sections.map(section => ({
-      title: section.title,
-      content: `[Placeholder content for ${section.title}]\n\nThis section would contain AI-generated content based on the contract requirements and company capabilities.`
-    }));
+    return `[Placeholder content for ${section.title}]\n\nThis section would contain AI-generated content based on the contract requirements and company capabilities.`;
   }
 
   try {
-    // Build comprehensive prompt for all sections
-    const sectionsPrompt = sections.map((section, index) => `
-**SECTION ${index + 1}: ${section.title}**
-- Description: ${section.description || 'Standard RFP section'}
-- Requirements: ${JSON.stringify(section.requirements || [])}
-- Expected Length: ${section.title.toLowerCase().includes('executive') ? '2000-3500 words' : 
-                   section.title.toLowerCase().includes('technical') ? '3000-5000 words' :
-                   section.title.toLowerCase().includes('management') ? '2500-4000 words' :
-                   section.title.toLowerCase().includes('cost') ? '2000-3000 words' :
-                   section.title.toLowerCase().includes('past') ? '2500-4000 words' :
-                   section.title.toLowerCase().includes('approach') ? '3000-5000 words' :
-                   '2000-3500 words'}
-`).join('\n');  
-
     const prompt = `
-You are an expert RFP response writer. Generate a comprehensive, professional RFP response with ALL sections below in a SINGLE response.
+You are an expert RFP response writer. Generate a comprehensive, professional response for the following RFP section:
 
 **CONTRACT INFORMATION:**
 - Title: ${contract.title}
@@ -48,49 +31,30 @@ You are an expert RFP response writer. Generate a comprehensive, professional RF
 - Past Performance: ${JSON.stringify(profile.past_performance || [])}
 - Key Personnel: ${JSON.stringify(profile.key_personnel || [])}
 
-**TEMPLATE INFORMATION:**
-- Template: ${template.name}
-- Agency: ${template.agency}
-
-**SECTIONS TO GENERATE:**
-${sectionsPrompt}
+**SECTION TO GENERATE:**
+- Title: ${section.title}
+- Description: ${section.description || 'Standard RFP section'}
+- Requirements: ${JSON.stringify(section.requirements || [])}
 
 **ADDITIONAL INSTRUCTIONS:**
 ${customInstructions ? `Custom Instructions: ${customInstructions}` : 'Follow standard government contracting best practices.'}
 ${focusAreas && focusAreas.length > 0 ? `Focus Areas: ${focusAreas.join(', ')}` : ''}
 
-**RESPONSE FORMAT REQUIREMENTS:**
-Generate each section with the following EXACT format:
+Generate a comprehensive, professional response that:
+1. Directly addresses the section requirements and evaluation criteria
+2. Highlights relevant company capabilities and experience
+3. Uses specific examples from past performance when applicable
+4. Maintains a professional, confident tone
+5. Is between 1500-3000 words depending on section importance
+6. Includes specific technical details and methodologies
+7. Demonstrates understanding of the agency's mission and objectives
+8. Provides quantifiable benefits and outcomes
+9. Addresses risk mitigation and quality assurance
 
-===SECTION_START: [Section Title]===
-[Section content here - comprehensive, professional, and tailored to the contract requirements]
-===SECTION_END: [Section Title]===
+**CRITICAL: Generate substantial, detailed content (1500-3000 words). This is a professional government RFP response that requires comprehensive coverage.**
 
-**GENERATION GUIDELINES:**
-1. Each section should directly address the specific requirements and evaluation criteria
-2. Highlight relevant company capabilities, experience, and differentiators
-3. Use specific examples from past performance when applicable
-4. Maintain a professional, confident, and persuasive tone throughout
-5. Ensure consistency across all sections (same company voice, aligned technical approach)
-6. Address the agency's specific needs and demonstrate understanding of their mission
-7. Include quantifiable benefits and outcomes where possible
-8. Follow government contracting writing standards and best practices
-9. WRITE COMPREHENSIVE, DETAILED CONTENT - Do not summarize or abbreviate
-10. Include specific technical details, methodologies, and implementation approaches
-11. Provide detailed project examples with metrics and outcomes
-12. Address risk mitigation strategies and quality assurance measures
-13. Include detailed staffing plans and organizational charts where relevant
-14. Provide comprehensive cost justifications and value propositions
-
-**CRITICAL INSTRUCTION: GENERATE VERY DETAILED, COMPREHENSIVE CONTENT FOR EACH SECTION. Each section should be substantial and thorough, not brief summaries. This is a professional government RFP response that requires extensive detail and comprehensive coverage of all requirements.**
-
-**IMPORTANT: You MUST generate ALL ${sections.length} sections in this single response. Do not stop early or ask for continuation. Complete all sections even if they are shorter than ideal. Each section should be at least 1000 words but prioritize completing all sections over length.**
-
-Generate ALL ${sections.length} sections in this single response. Do not include any meta-commentary or explanations outside the section content.
+Do not include any meta-commentary or explanations - provide only the RFP section content.
 `;
-
-    console.log(`🤖 [DEBUG] Sending comprehensive prompt for ${sections.length} sections to OpenRouter...`);
-    console.log(`🤖 [DEBUG] OpenRouter API Key configured: ${OPENROUTER_API_KEY ? 'YES' : 'NO'}`);
 
     const response = await axios.post(`${OPENROUTER_BASE_URL}/chat/completions`, {
       model: 'anthropic/claude-3.5-sonnet',
@@ -100,7 +64,7 @@ Generate ALL ${sections.length} sections in this single response. Do not include
           content: prompt
         }
       ],
-      max_tokens: 4000, // Reduced to reasonable limit for Claude 3.5 Sonnet
+      max_tokens: 4000,
       temperature: 0.7
     }, {
       headers: {
@@ -111,147 +75,13 @@ Generate ALL ${sections.length} sections in this single response. Do not include
       }
     });
 
-    const fullResponse = response.data.choices[0].message.content;
-    console.log(`✅ [DEBUG] Received comprehensive AI response (${fullResponse.length} chars)`);
-    console.log(`🤖 [DEBUG] First 500 chars of AI response:`, fullResponse.substring(0, 500));
-    console.log(`🤖 [DEBUG] Last 500 chars of AI response:`, fullResponse.substring(Math.max(0, fullResponse.length - 500)));
+    const generatedContent = response.data.choices[0].message.content;
+    console.log(`✅ [DEBUG] Generated AI content for section: ${section.title} (${generatedContent.length} chars)`);
     
-    // Print the FULL OpenRouter response for debugging
-    console.log(`🤖 [DEBUG] FULL OpenRouter Response:`);
-    console.log('='.repeat(80));
-    console.log(fullResponse);
-    console.log('='.repeat(80));
-
-    // Parse the response to extract individual sections
-    const parsedSections = [];
-    const sectionRegex = /===SECTION_START:\s*(.+?)===\s*([\s\S]*?)\s*===SECTION_END:\s*\1===/g;
-    let match;
-
-    console.log(`🔍 [DEBUG] Attempting to parse sections using regex...`);
-    
-    while ((match = sectionRegex.exec(fullResponse)) !== null) {
-      const sectionTitle = match[1].trim();
-      const sectionContent = match[2].trim();
-      
-      parsedSections.push({
-        title: sectionTitle,
-        content: sectionContent
-      });
-      
-      console.log(`✅ [DEBUG] Parsed section: ${sectionTitle} (${sectionContent.length} chars)`);
-    }
-
-    console.log(`🔍 [DEBUG] Regex parsing found ${parsedSections.length} sections out of ${sections.length} expected`);
-
-    // If parsing failed, fall back to splitting by section titles
-    if (parsedSections.length === 0) {
-      console.warn('⚠️ [DEBUG] Section parsing failed, attempting fallback method...');
-      console.log('🔍 [DEBUG] Looking for section titles in response...');
-      
-      // Check if the response contains any of our section titles
-      sections.forEach(section => {
-        const titleFound = fullResponse.toLowerCase().includes(section.title.toLowerCase());
-        console.log(`🔍 [DEBUG] Section "${section.title}" found in response: ${titleFound}`);
-      });
-      
-      // Try to split the response by section titles more aggressively
-      let remainingContent = fullResponse;
-      
-      sections.forEach((section, index) => {
-        const nextSectionTitle = index < sections.length - 1 ? sections[index + 1].title : null;
-        
-        console.log(`🔍 [DEBUG] Processing section ${index + 1}/${sections.length}: ${section.title}`);
-        
-        // Look for the section title in various formats
-        const titlePatterns = [
-          new RegExp(`${section.title}[\\s\\S]*?(?=${nextSectionTitle ? nextSectionTitle : '$'})`, 'i'),
-          new RegExp(`\\b${section.title}\\b[\\s\\S]*?(?=${nextSectionTitle ? `\\b${nextSectionTitle}\\b` : '$'})`, 'i'),
-          new RegExp(`${section.title.replace(/\s+/g, '\\s+')}[\\s\\S]*?(?=${nextSectionTitle ? nextSectionTitle.replace(/\s+/g, '\\s+') : '$'})`, 'i')
-        ];
-        
-        let content = '';
-        for (const pattern of titlePatterns) {
-          const match = remainingContent.match(pattern);
-          if (match && match[0].length > 100) { // Ensure we got substantial content
-            content = match[0].replace(new RegExp(`^.*?${section.title}`, 'i'), '').trim();
-            content = content.replace(/^[:\-\s=]+/, '').trim(); // Remove leading colons, dashes, spaces, equals
-            console.log(`✅ [DEBUG] Found content for ${section.title}: ${content.length} chars`);
-            break;
-          }
-        }
-        
-        // If still no content, try to extract a reasonable chunk
-        if (!content && remainingContent.length > 500) {
-          const chunkSize = Math.max(3000, Math.floor(remainingContent.length / (sections.length - index)));
-          content = remainingContent.substring(0, chunkSize);
-          remainingContent = remainingContent.substring(chunkSize);
-          console.log(`⚠️ [DEBUG] Using chunk method for ${section.title}: ${content.length} chars`);
-        }
-        
-        // If still no content, create substantial placeholder content
-        if (!content || content.length < 500) {
-          content = `# ${section.title}
-
-Our comprehensive approach to ${section.title.toLowerCase()} for ${contract.title} demonstrates ${profile.company_name}'s deep understanding of ${contract.agency} requirements and our proven ability to deliver exceptional results.
-
-## Overview
-${profile.company_name} brings extensive experience in government contracting and a thorough understanding of the specific challenges and requirements associated with ${section.title.toLowerCase()}. Our approach is designed to meet and exceed all evaluation criteria while providing maximum value to ${contract.agency}.
-
-## Our Approach
-We have developed a systematic methodology for ${section.title.toLowerCase()} that incorporates industry best practices, lessons learned from previous similar engagements, and innovative solutions tailored to your specific needs. Our team of experienced professionals will ensure that all aspects of ${section.title.toLowerCase()} are addressed comprehensively and effectively.
-
-## Key Differentiators
-- Proven track record with similar government contracts
-- Deep understanding of ${contract.agency} mission and objectives  
-- Experienced team with relevant security clearances
-- Innovative approaches that deliver measurable results
-- Strong commitment to quality and compliance
-- Comprehensive risk management and mitigation strategies
-
-## Implementation Strategy
-Our implementation strategy for ${section.title.toLowerCase()} is based on proven methodologies and best practices developed through years of successful government contracting experience. We will work closely with your team to ensure seamless integration and optimal outcomes.
-
-## Quality Assurance
-We maintain rigorous quality assurance processes throughout all phases of ${section.title.toLowerCase()} to ensure deliverables meet or exceed all specified requirements and quality standards.
-
-## Conclusion
-${profile.company_name} is uniquely positioned to deliver exceptional results for ${section.title.toLowerCase()}. Our combination of technical expertise, government contracting experience, and commitment to excellence makes us the ideal partner for this critical initiative.`;
-          console.log(`🔧 [DEBUG] Generated substantial placeholder for ${section.title}: ${content.length} chars`);
-        }
-        
-        parsedSections.push({
-          title: section.title,
-          content: content
-        });
-      });
-    }
-
-    // Ensure we have content for all requested sections and minimum length
-    sections.forEach(section => {
-      let existingSection = parsedSections.find(p => p.title === section.title);
-      
-      if (!existingSection) {
-        parsedSections.push({
-          title: section.title,
-          content: `Comprehensive professional RFP response content for ${section.title} section, specifically tailored to ${contract.title} requirements and highlighting ${profile.company_name} capabilities, experience, and technical approach. This section addresses all evaluation criteria and demonstrates our understanding of the agency's mission and objectives.`
-        });
-      } else if (existingSection.content.length < 1000) {
-        // If content is too short, enhance it
-        existingSection.content += `\n\nAdditional comprehensive details for ${section.title}: Our approach leverages proven methodologies and industry best practices to deliver exceptional results. We bring extensive experience in similar projects and a deep understanding of government requirements and compliance standards.`;
-      }
-    });
-
-    console.log(`✅ [DEBUG] Successfully generated ${parsedSections.length} sections`);
-    return parsedSections;
-
+    return generatedContent;
   } catch (error) {
-    console.error(`❌ [DEBUG] Error generating comprehensive AI content:`, error.message);
-    
-    // Return fallback content for all sections
-    return sections.map(section => ({
-      title: section.title,
-      content: `[AI generation failed for ${section.title}]\n\nThis section would contain professional RFP response content addressing the requirements for ${section.title}. Please review and complete manually.`
-    }));
+    console.error(`❌ [DEBUG] Error generating AI content for section ${section.title}:`, error.message);
+    return `[AI generation failed for ${section.title}]\n\nThis section would contain professional RFP response content addressing the requirements for ${section.title}. Please review and complete manually.`;
   }
 }
 
@@ -1169,25 +999,24 @@ router.post('/generate', async (req, res) => {
     // Generate a title for the RFP response
     const responseTitle = `${contract.title} - ${profile.company_name} Response`;
 
-    console.log('🤖 [DEBUG] Starting comprehensive AI content generation for all sections...');
+    console.log('🤖 [DEBUG] Starting AI content generation for individual sections...');
     const startTime = Date.now();
 
-    // Generate AI content for all sections in one request
-    const aiGeneratedSections = await generateAllRFPSectionsWithAI(
-      contract, 
-      template, 
-      profile, 
-      templateSections, 
-      customInstructions, 
-      focusAreas
-    );
-
-    // Process the AI-generated sections
-    const generatedSections = templateSections.map((section, index) => {
-      const aiSection = aiGeneratedSections.find(ai => ai.title === section.title) || aiGeneratedSections[index];
-      const content = aiSection ? aiSection.content : `Professional content for ${section.title}`;
+    // Generate AI content for each section individually
+    const generatedSections = [];
+    for (const section of templateSections) {
+      console.log(`🤖 [DEBUG] Generating content for section: ${section.title}`);
       
-      return {
+      const content = await generateRFPContentWithAI(
+        contract, 
+        template, 
+        profile, 
+        section, 
+        customInstructions, 
+        focusAreas
+      );
+      
+      generatedSections.push({
         id: section.id || `section_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         title: section.title,
         content: content,
@@ -1196,13 +1025,13 @@ router.post('/generate', async (req, res) => {
         lastModified: new Date().toISOString(),
         requirements: section.requirements || [],
         description: section.description || ''
-      };
-    });
+      });
+    }
 
     const endTime = Date.now();
     const generationTime = Math.round((endTime - startTime) / 1000);
 
-    console.log(`✅ [DEBUG] Comprehensive AI content generation completed in ${generationTime} seconds`);
+    console.log(`✅ [DEBUG] AI content generation completed in ${generationTime} seconds`);
     console.log(`✅ [DEBUG] Generated ${generatedSections.length} sections with total ${generatedSections.reduce((sum, s) => sum + s.wordCount, 0)} words`);
 
     // Create the RFP response record
