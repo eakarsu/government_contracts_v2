@@ -471,47 +471,96 @@ class ProposalDraftingService {
         }];
       }
 
-      // Use the working PDF generation logic from server_legalforms.js
       const puppeteer = require('puppeteer');
       
-      // Build content from sections
-      let content = `# ${proposal.title}\n\n`;
-      content += `Generated: ${new Date().toLocaleDateString()}\n\n`;
-      
-      sections.forEach(section => {
-        content += `## ${section.title}\n\n`;
-        content += `${section.content}\n\n`;
+      // Create simple, clean HTML content
+      let htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${proposal.title}</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 1in; 
+      line-height: 1.5; 
+      color: #000;
+    }
+    h1 { 
+      text-align: center; 
+      margin-bottom: 30px;
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+    }
+    h2 { 
+      margin-top: 30px; 
+      margin-bottom: 15px;
+      color: #333;
+    }
+    p { 
+      margin-bottom: 12px; 
+      text-align: justify;
+    }
+    .meta { 
+      background: #f5f5f5; 
+      padding: 15px; 
+      margin: 20px 0;
+      border: 1px solid #ddd;
+    }
+    .section { 
+      margin: 25px 0; 
+      page-break-inside: avoid;
+    }
+    .signature { 
+      margin-top: 50px; 
+      border-top: 1px solid #333; 
+      padding-top: 20px;
+    }
+    .sig-line { 
+      border-bottom: 1px solid #000; 
+      width: 300px; 
+      height: 20px; 
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>${proposal.title}</h1>
+  
+  <div class="meta">
+    <p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
+    <p><strong>Sections:</strong> ${sections.length}</p>
+    <p><strong>Total Words:</strong> ${sections.reduce((sum, s) => sum + (s.wordCount || 0), 0)}</p>
+  </div>`;
+
+      // Add each section with simple formatting
+      sections.forEach((section, index) => {
+        const sectionTitle = (section.title || `Section ${index + 1}`).replace(/[<>&"']/g, '');
+        const sectionContent = section.content || 'No content available for this section.';
+        
+        // Simple paragraph formatting
+        const paragraphs = sectionContent.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+        const formattedContent = paragraphs.length > 0 
+          ? paragraphs.map(p => `<p>${p.replace(/[<>&"']/g, '').trim()}</p>`).join('')
+          : `<p>${sectionContent.replace(/[<>&"']/g, '')}</p>`;
+        
+        htmlContent += `
+  <div class="section">
+    <h2>${index + 1}. ${sectionTitle}</h2>
+    ${formattedContent}
+  </div>`;
       });
 
-      // Clean the content for PDF format
-      const cleanedContent = this.cleanDocumentContent(content, 'pdf');
-      const htmlFormattedContent = this.convertToHTML(cleanedContent);
-      
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Legal Document</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-            h1, h2, h3 { color: #333; margin-top: 30px; }
-            p { margin-bottom: 15px; }
-            .field-line { margin-bottom: 10px; }
-            .field-label { margin-bottom: 5px; }
-            .signature-line { border-bottom: 1px solid #000; width: 300px; margin: 20px 0; }
-          </style>
-        </head>
-        <body>
-          ${htmlFormattedContent}
-          <div style="margin-top: 50px;">
-            <p><strong>Signature:</strong></p>
-            <div class="signature-line"></div>
-            <p>Date: _______________</p>
-          </div>
-        </body>
-        </html>
-      `;
+      htmlContent += `
+  <div class="signature">
+    <p><strong>Signature:</strong></p>
+    <div class="sig-line"></div>
+    <p><strong>Date:</strong> _______________</p>
+  </div>
+</body>
+</html>`;
+
+      console.log(`📄 [DEBUG] Generated HTML content length: ${htmlContent.length} characters`);
 
       const browser = await puppeteer.launch({
         headless: true,
@@ -520,12 +569,23 @@ class ProposalDraftingService {
       
       try {
         const page = await browser.newPage();
-        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        
+        await page.setContent(htmlContent, { 
+          waitUntil: 'domcontentloaded',
+          timeout: 15000 
+        });
+        
+        console.log(`📄 [DEBUG] HTML content loaded in browser`);
         
         const pdfBuffer = await page.pdf({
           format: 'A4',
           printBackground: true,
-          margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' }
+          margin: { 
+            top: '0.75in', 
+            right: '0.75in', 
+            bottom: '0.75in', 
+            left: '0.75in' 
+          }
         });
         
         console.log(`📄 [DEBUG] PDF generated successfully, size: ${pdfBuffer.length} bytes`);
