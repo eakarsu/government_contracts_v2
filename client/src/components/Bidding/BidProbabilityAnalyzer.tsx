@@ -6,6 +6,7 @@ interface BidPrediction {
   contractId: string;
   probability: number;
   probabilityScore?: number;
+  confidence?: string;
   confidenceLevel: string;
   factors: Array<{
     factor: string;
@@ -318,8 +319,8 @@ const BidProbabilityAnalyzer: React.FC = () => {
                           <p className="text-sm text-gray-600 mt-1">Win Probability</p>
                         </div>
                         <div>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getConfidenceColor(prediction.confidence || 'medium')}`}>
-                            {prediction.confidence || 'medium'} confidence
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getConfidenceColor(prediction.confidence || prediction.confidenceLevel || 'medium')}`}>
+                            {prediction.confidence || prediction.confidenceLevel || 'medium'} confidence
                           </span>
                           <p className="text-sm text-gray-600 mt-1">
                             Predicted: {formatDate(prediction.predictedAt)}
