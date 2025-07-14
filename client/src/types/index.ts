@@ -137,16 +137,40 @@ export interface IndexingJob {
 
 // Search Types
 export interface SearchResult {
+  success: boolean;
   query: string;
   results: {
     contracts: Contract[];
     total_results: number;
   };
   response_time: number;
+  search_method: string;
   ai_analysis?: {
     summary: string;
     key_points: string[];
     recommendations: string[];
+  };
+}
+
+export interface SearchResponse {
+  success: boolean;
+  query: string;
+  results: {
+    contracts: Contract[];
+    total_results: number;
+  };
+  search_method: string;
+  response_time: number;
+  pagination?: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+  query_info?: {
+    original_query: string;
+    processed_query: string;
+    search_type: string;
   };
 }
 

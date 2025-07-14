@@ -51,6 +51,12 @@ router.post('/semantic', async (req, res) => {
         contracts: results.results || [],
         total_results: results.totalResults || 0
       },
+      pagination: {
+        total: results.totalResults || 0,
+        limit: limit,
+        offset: 0,
+        hasMore: false
+      },
       search_method: results.searchType,
       response_time: 0.1
     });
@@ -90,6 +96,12 @@ router.post('/hybrid', async (req, res) => {
       results: {
         contracts: results.results || [],
         total_results: results.totalResults || 0
+      },
+      pagination: {
+        total: results.totalResults || 0,
+        limit: limit,
+        offset: 0,
+        hasMore: false
       },
       search_method: results.searchType,
       response_time: 0.1
@@ -262,6 +274,12 @@ router.post('/', async (req, res) => {
       results: {
         contracts: searchResults.results || [],
         total_results: searchResults.totalResults || 0
+      },
+      pagination: {
+        total: searchResults.totalResults || 0,
+        limit: limit,
+        offset: 0,
+        hasMore: false
       },
       response_time: responseTime,
       search_method: searchResults.searchType || 'hybrid'
