@@ -7,10 +7,9 @@ const mammoth = require('mammoth');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const config = require('../config/env');
-const AIService = require('../services/aiService');
+const aiService = require('../services/aiService');
 const ProposalDraftingService = require('../services/proposalDraftingService');
 
-const aiService = new AIService();
 const proposalService = new ProposalDraftingService();
 
 const router = express.Router();
