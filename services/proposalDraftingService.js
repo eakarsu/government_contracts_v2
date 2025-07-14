@@ -291,90 +291,81 @@ class ProposalDraftingService {
     return issues;
   }
 
-  formatContentForHTML(content) {
-    if (!content) return '<p>No content available</p>';
+  // Clean document content for different formats
+  cleanDocumentContent(content, format) {
+    let cleanedContent = content;
     
-    try {
-      // Very simple formatting - just escape HTML and create paragraphs
-      const escaped = content.replace(/[<>&"']/g, '');
-      const paragraphs = escaped.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+    if (format === 'pdf' || format === 'docx') {
+      // Remove markdown-style formatting for professional documents while preserving line breaks
       
-      if (paragraphs.length === 0) {
-        return '<p>No content available</p>';
-      }
+      // Convert **text** to plain text but preserve the content structure
+      cleanedContent = cleanedContent.replace(/\*\*(.*?)\*\*/g, '$1');
       
-      return paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
-    } catch (error) {
-      console.error('Error formatting content for HTML:', error);
-      return '<p>Content formatting error</p>';
+      // Remove ### headers but keep the text and add line break after
+      cleanedContent = cleanedContent.replace(/^### (.*$)/gm, '$1\n');
+      cleanedContent = cleanedContent.replace(/^## (.*$)/gm, '$1\n');
+      cleanedContent = cleanedContent.replace(/^# (.*$)/gm, '$1\n');
+      
+      // Convert horizontal rules (---) to line breaks
+      cleanedContent = cleanedContent.replace(/^---+$/gm, '\n');
+      
+      // Preserve important line breaks - add extra line break after colons and important sections
+      cleanedContent = cleanedContent.replace(/^(.*?:)\s*$/gm, '$1\n');
+      
+      // Clean up excessive whitespace but preserve intentional spacing
+      cleanedContent = cleanedContent.replace(/\n\n\n+/g, '\n\n');
+      cleanedContent = cleanedContent.trim();
     }
+    
+    return cleanedContent;
   }
 
-  formatContentForPDF(content) {
-    if (!content) return '<p>No content available</p>';
+  // Convert content to HTML with proper formatting
+  convertToHTML(content) {
+    let htmlContent = content;
     
-    try {
-      // Clean and format content specifically for PDF generation
-      let cleanContent = this.escapeHtml(content);
-      
-      // Split into paragraphs by double newlines or single newlines
-      let paragraphs = cleanContent.split(/\n\s*\n/).filter(p => p.trim().length > 0);
-      
-      // If no double newlines, split by single newlines but group short lines
-      if (paragraphs.length <= 1 && cleanContent.includes('\n')) {
-        const lines = cleanContent.split('\n').filter(l => l.trim().length > 0);
-        paragraphs = [];
-        let currentParagraph = '';
-        
-        for (const line of lines) {
-          const trimmedLine = line.trim();
-          if (trimmedLine.length < 50 && currentParagraph.length > 0) {
-            // Short line, likely continuation
-            currentParagraph += ' ' + trimmedLine;
-          } else {
-            // Start new paragraph
-            if (currentParagraph) {
-              paragraphs.push(currentParagraph);
-            }
-            currentParagraph = trimmedLine;
-          }
-        }
-        
-        if (currentParagraph) {
-          paragraphs.push(currentParagraph);
-        }
-      }
-      
-      if (paragraphs.length === 0) {
-        return '<p>No content available</p>';
-      }
-      
-      // Format paragraphs with proper spacing
-      return paragraphs
-        .map(p => p.trim())
-        .filter(p => p.length > 0)
-        .map(p => `<p>${p}</p>`)
-        .join('');
-        
-    } catch (error) {
-      console.error('Error formatting content for PDF:', error);
-      return '<p>Content formatting error</p>';
-    }
-  }
-
-  escapeHtml(text) {
-    if (!text) return '';
-    try {
-      return String(text)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    } catch (error) {
-      console.error('Error escaping HTML:', error);
-      return 'Content error';
-    }
+    // Convert **text** to <strong>text</strong>
+    htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Convert ### to h3, ## to h2, # to h1 with proper spacing
+    htmlContent = htmlContent.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+    htmlContent = htmlContent.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+    htmlContent = htmlContent.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+    
+    // Convert --- to horizontal rules
+    htmlContent = htmlContent.replace(/^---+$/gm, '<hr>');
+    
+    // Handle multi-line field values (like addresses) - process before single line fields
+    // Look for pattern: Label:\nValue1\nValue2\n etc.
+    htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*\n((?:(?!^[A-Z][^:]*:)[^\n]+\n?)+)/gm, function(match, label, value) {
+      const cleanValue = value.trim().replace(/\n/g, '<br>');
+      return `<p class="field-line"><strong>${label}</strong><br>${cleanValue}</p>`;
+    });
+    
+    // Handle single-line field values (like "Phone: (804) 360-1129")
+    htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*(.+)$/gm, '<p class="field-line"><strong>$1</strong> $2</p>');
+    
+    // Handle labels without values (like "Address:" on its own line) - only if not already processed
+    htmlContent = htmlContent.replace(/^([A-Z][^:]*:)\s*$/gm, '<p class="field-label"><strong>$1</strong></p>');
+    
+    // Convert double line breaks to paragraph breaks
+    htmlContent = htmlContent.replace(/\n\n/g, '</p><p>');
+    
+    // Convert remaining single line breaks to <br> tags
+    htmlContent = htmlContent.replace(/\n/g, '<br>');
+    
+    // Wrap remaining content in paragraphs
+    htmlContent = '<p>' + htmlContent + '</p>';
+    
+    // Clean up empty paragraphs and fix nested tags
+    htmlContent = htmlContent.replace(/<p><\/p>/g, '');
+    htmlContent = htmlContent.replace(/<p>\s*<\/p>/g, '');
+    htmlContent = htmlContent.replace(/<p>(<h[1-6]>.*?<\/h[1-6]>)<\/p>/g, '$1');
+    htmlContent = htmlContent.replace(/<p>(<hr>)<\/p>/g, '$1');
+    htmlContent = htmlContent.replace(/<p>(<p class="field-line">.*?<\/p>)<\/p>/g, '$1');
+    htmlContent = htmlContent.replace(/<p>(<p class="field-label">.*?<\/p>)<\/p>/g, '$1');
+    
+    return htmlContent;
   }
 
  
@@ -480,185 +471,64 @@ class ProposalDraftingService {
         }];
       }
 
-      // Clean and escape content properly
-      const cleanTitle = this.escapeHtml(proposal.title || 'Untitled Document');
-      const totalWords = sections.reduce((sum, s) => sum + (s.wordCount || 0), 0);
+      // Use the working PDF generation logic from server_legalforms.js
+      const puppeteer = require('puppeteer');
       
-      // Build HTML content with proper structure
-      let htmlContent = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RFP Response</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body { 
-      font-family: 'Times New Roman', Times, serif;
-      font-size: 12pt;
-      line-height: 1.6;
-      color: #000;
-      background: white;
-      padding: 0.75in;
-      max-width: 100%;
-    }
-    
-    h1 { 
-      font-size: 18pt;
-      font-weight: bold;
-      text-align: center;
-      margin-bottom: 24pt;
-      border-bottom: 2pt solid #000;
-      padding-bottom: 12pt;
-      page-break-after: avoid;
-    }
-    
-    h2 { 
-      font-size: 14pt;
-      font-weight: bold;
-      margin-top: 24pt;
-      margin-bottom: 12pt;
-      page-break-after: avoid;
-      border-left: 4pt solid #333;
-      padding-left: 12pt;
-    }
-    
-    p { 
-      margin-bottom: 12pt;
-      text-align: justify;
-      orphans: 2;
-      widows: 2;
-    }
-    
-    .meta { 
-      background: #f8f8f8;
-      border: 1pt solid #ccc;
-      padding: 12pt;
-      margin: 18pt 0;
-      page-break-inside: avoid;
-    }
-    
-    .section { 
-      margin: 24pt 0;
-      page-break-inside: avoid;
-    }
-    
-    .content {
-      margin: 12pt 0;
-    }
-    
-    .signature-area {
-      margin-top: 48pt;
-      border-top: 1pt solid #000;
-      padding-top: 24pt;
-      page-break-inside: avoid;
-    }
-    
-    .signature-line {
-      border-bottom: 1pt solid #000;
-      width: 300pt;
-      height: 24pt;
-      margin: 18pt 0;
-    }
-    
-    @page {
-      size: A4;
-      margin: 0.75in;
-    }
-    
-    @media print {
-      body { padding: 0; }
-      .section { page-break-inside: avoid; }
-    }
-  </style>
-</head>
-<body>
-  <h1>${cleanTitle}</h1>
-  
-  <div class="meta">
-    <p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
-    <p><strong>Sections:</strong> ${sections.length}</p>
-    <p><strong>Total Words:</strong> ${totalWords.toLocaleString()}</p>
-  </div>`;
-
-      // Process each section with proper content formatting
-      sections.forEach((section, index) => {
-        const sectionTitle = this.escapeHtml(section.title || `Section ${index + 1}`);
-        const sectionContent = section.content || 'No content available for this section.';
-        
-        console.log(`📄 [DEBUG] Processing section ${index + 1}: ${sectionTitle}`);
-        
-        // Simple content formatting - just escape and create paragraphs
-        const paragraphs = sectionContent.split(/\n\s*\n/).filter(p => p.trim().length > 0);
-        const formattedContent = paragraphs.length > 0 
-          ? paragraphs.map(p => `<p>${this.escapeHtml(p.trim())}</p>`).join('')
-          : `<p>${this.escapeHtml(sectionContent)}</p>`;
-        
-        htmlContent += `
-  <div class="section">
-    <h2>${index + 1}. ${sectionTitle}</h2>
-    <div class="content">${formattedContent}</div>
-  </div>`;
+      // Build content from sections
+      let content = `# ${proposal.title}\n\n`;
+      content += `Generated: ${new Date().toLocaleDateString()}\n\n`;
+      
+      sections.forEach(section => {
+        content += `## ${section.title}\n\n`;
+        content += `${section.content}\n\n`;
       });
 
-      htmlContent += `
-  <div class="signature-area">
-    <p><strong>Signature:</strong></p>
-    <div class="signature-line"></div>
-    <p><strong>Date:</strong> _______________</p>
-  </div>
-</body>
-</html>`;
+      // Clean the content for PDF format
+      const cleanedContent = this.cleanDocumentContent(content, 'pdf');
+      const htmlFormattedContent = this.convertToHTML(cleanedContent);
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Legal Document</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+            h1, h2, h3 { color: #333; margin-top: 30px; }
+            p { margin-bottom: 15px; }
+            .field-line { margin-bottom: 10px; }
+            .field-label { margin-bottom: 5px; }
+            .signature-line { border-bottom: 1px solid #000; width: 300px; margin: 20px 0; }
+          </style>
+        </head>
+        <body>
+          ${htmlFormattedContent}
+          <div style="margin-top: 50px;">
+            <p><strong>Signature:</strong></p>
+            <div class="signature-line"></div>
+            <p>Date: _______________</p>
+          </div>
+        </body>
+        </html>
+      `;
 
-      console.log(`📄 [DEBUG] Generated HTML content length: ${htmlContent.length} characters`);
-
-      // Use Puppeteer to generate PDF with simpler options
-      const puppeteer = require('puppeteer');
       const browser = await puppeteer.launch({
         headless: true,
-        args: [
-          '--no-sandbox', 
-          '--disable-setuid-sandbox', 
-          '--disable-dev-shm-usage'
-        ]
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
       });
       
-      const page = await browser.newPage();
-      
       try {
-        // Load content with simpler wait conditions
-        await page.setContent(htmlContent, { 
-          waitUntil: 'domcontentloaded',
-          timeout: 15000 
-        });
+        const page = await browser.newPage();
+        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
         
-        console.log(`📄 [DEBUG] HTML content loaded in browser`);
-        
-        // Generate PDF with basic settings
         const pdfBuffer = await page.pdf({
           format: 'A4',
           printBackground: true,
-          margin: { 
-            top: '1in', 
-            right: '1in', 
-            bottom: '1in', 
-            left: '1in' 
-          }
+          margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' }
         });
         
         console.log(`📄 [DEBUG] PDF generated successfully, size: ${pdfBuffer.length} bytes`);
-        
-        // Validate PDF buffer
-        if (!pdfBuffer || pdfBuffer.length === 0) {
-          throw new Error('Generated PDF buffer is empty');
-        }
-        
-        console.log(`📄 [DEBUG] PDF buffer first 10 bytes: ${pdfBuffer.slice(0, 10).toString('hex')}`);
         
         return pdfBuffer;
         
