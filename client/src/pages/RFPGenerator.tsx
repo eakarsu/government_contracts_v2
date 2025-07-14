@@ -26,6 +26,9 @@ const RFPGenerator: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      
+      console.log('🚀 [DEBUG] Loading RFP Generator data...');
+      
       const [contractsResponse, templatesResponse, profilesResponse] = await Promise.all([
         // Use searchContracts with a wildcard query to get all contracts
         apiService.searchContracts({ query: '*', limit: 100, include_analysis: false }),
@@ -33,18 +36,34 @@ const RFPGenerator: React.FC = () => {
         apiService.getCompanyProfiles()
       ]);
 
+      console.log('🚀 [DEBUG] API Responses:', {
+        contracts: contractsResponse,
+        templates: templatesResponse,
+        profiles: profilesResponse
+      });
+
       if (contractsResponse.success) {
         setContracts(contractsResponse.results || []);
+        console.log('✅ [DEBUG] Loaded contracts:', contractsResponse.results?.length || 0);
+      } else {
+        console.error('❌ [DEBUG] Contracts failed:', contractsResponse);
       }
 
       if (templatesResponse.success) {
         setTemplates(templatesResponse.templates || []);
+        console.log('✅ [DEBUG] Loaded templates:', templatesResponse.templates?.length || 0);
+      } else {
+        console.error('❌ [DEBUG] Templates failed:', templatesResponse);
       }
 
       if (profilesResponse.success) {
         setProfiles(profilesResponse.profiles || []);
+        console.log('✅ [DEBUG] Loaded profiles:', profilesResponse.profiles?.length || 0);
+      } else {
+        console.error('❌ [DEBUG] Profiles failed:', profilesResponse);
       }
     } catch (err: any) {
+      console.error('❌ [DEBUG] LoadData error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
