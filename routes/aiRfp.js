@@ -400,41 +400,31 @@ router.post('/generate-proposal', async (req, res) => {
 function extractSectionsFromText(text) {
   const sections = [];
   
-  // Common RFP section patterns - expanded to recognize more sections
+  // Common RFP section patterns - limited to top 10 most common sections
   const sectionPatterns = [
     /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:EXECUTIVE\s+SUMMARY|SUMMARY)/i,
     /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TECHNICAL\s+APPROACH|APPROACH|METHODOLOGY|SOLUTION)/i,
     /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:MANAGEMENT\s+PLAN|PROJECT\s+MANAGEMENT|PROGRAM\s+MANAGEMENT)/i,
     /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:PAST\s+PERFORMANCE|EXPERIENCE|CORPORATE\s+EXPERIENCE)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:COST\s+PROPOSAL|PRICING|BUDGET|FINANCIAL)/i,
     /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:PERSONNEL|STAFFING|TEAM|KEY\s+PERSONNEL)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:COST\s+PROPOSAL|PRICING|BUDGET|FINANCIAL)/i,
     /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SCHEDULE|TIMELINE|PROJECT\s+SCHEDULE)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:QUALITY\s+ASSURANCE|QA|QUALITY\s+CONTROL)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SECURITY\s+PLAN|SECURITY|CYBERSECURITY)/i,
     /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:RISK\s+MANAGEMENT|RISK\s+MITIGATION|RISKS)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TRANSITION\s+PLAN|IMPLEMENTATION|DEPLOYMENT)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TRAINING|KNOWLEDGE\s+TRANSFER)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:MAINTENANCE|SUPPORT|SUSTAINMENT)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:COMPLIANCE|REGULATORY|STANDARDS)/i,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:DELIVERABLES|PRODUCTS|OUTCOMES)/i
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:QUALITY\s+ASSURANCE|QA|QUALITY\s+CONTROL)/i,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SECURITY\s+PLAN|SECURITY|CYBERSECURITY|COMPLIANCE)/i
   ];
   
   const sectionTitles = [
     'Executive Summary',
     'Technical Approach', 
-    'Management Plan',
+    'Management Approach',
     'Past Performance',
+    'Key Personnel',
     'Cost Proposal',
-    'Personnel',
-    'Schedule',
-    'Quality Assurance',
-    'Security Plan',
+    'Schedule and Milestones',
     'Risk Management',
-    'Transition Plan',
-    'Training',
-    'Maintenance',
-    'Compliance',
-    'Deliverables'
+    'Quality Assurance',
+    'Security and Compliance'
   ];
   
   // Find section boundaries
@@ -517,24 +507,19 @@ function extractSectionsFromText(text) {
 // Helper function to get word limits for different sections
 function getWordLimitForSection(sectionTitle) {
   const limits = {
-    'Executive Summary': 500,
-    'Technical Approach': 2000,
-    'Management Plan': 1500,
-    'Past Performance': 1000,
-    'Cost Proposal': 800,
-    'Personnel': 1200,
-    'Schedule': 600,
-    'Quality Assurance': 800,
-    'Security Plan': 1000,
-    'Risk Management': 800,
-    'Transition Plan': 1200,
-    'Training': 600,
-    'Maintenance': 800,
-    'Compliance': 1000,
-    'Deliverables': 1000
+    'Executive Summary': 1000,
+    'Technical Approach': 3000,
+    'Management Approach': 2000,
+    'Past Performance': 2500,
+    'Key Personnel': 2000,
+    'Cost Proposal': 1500,
+    'Schedule and Milestones': 1500,
+    'Risk Management': 1500,
+    'Quality Assurance': 1500,
+    'Security and Compliance': 2000
   };
   
-  return limits[sectionTitle] || 1000;
+  return limits[sectionTitle] || 1500;
 }
 
 // Helper function to generate realistic section content
