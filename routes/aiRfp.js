@@ -7,6 +7,11 @@ const mammoth = require('mammoth');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const config = require('../config/env');
+const AIService = require('../services/aiService');
+const ProposalDraftingService = require('../services/proposalDraftingService');
+
+const aiService = new AIService();
+const proposalService = new ProposalDraftingService();
 
 const router = express.Router();
 
@@ -43,19 +48,33 @@ const upload = multer({
 // GET /api/ai-rfp/documents
 router.get('/documents', async (req, res) => {
   try {
-    // For now, return empty array since we don't have rfp_documents table
-    // This can be implemented later when the proper schema is defined
-    const documents = [];
+    console.log('🔍 [DEBUG] Fetching RFP documents');
+    
+    // Get RFP documents from database
+    const documentsQuery = 'SELECT * FROM rfp_documents ORDER BY created_at DESC';
+    const result = await proposalService.pool.query(documentsQuery);
+    
+    const documents = result.rows.map(doc => ({
+      id: doc.id,
+      filename: doc.original_filename,
+      contractId: doc.contract_id,
+      requirements: JSON.parse(doc.requirements || '{}'),
+      sections: JSON.parse(doc.sections || '[]'),
+      uploadedAt: doc.created_at,
+      hasAnalysis: true
+    }));
+
+    console.log(`✅ [DEBUG] Found ${documents.length} RFP documents`);
 
     res.json({
       success: true,
       documents
     });
   } catch (error) {
-    console.error('Error fetching RFP documents:', error);
+    console.error('❌ [DEBUG] Error fetching RFP documents:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch RFP documents'
+      error: 'Failed to fetch RFP documents: ' + error.message
     });
   }
 });
@@ -63,19 +82,34 @@ router.get('/documents', async (req, res) => {
 // GET /api/ai-rfp/proposals
 router.get('/proposals', async (req, res) => {
   try {
-    // For now, return empty array since we don't have proposals table
-    // This can be implemented later when the proper schema is defined
-    const proposals = [];
+    console.log('🔍 [DEBUG] Fetching proposals');
+    
+    // Get proposals from database
+    const proposalsQuery = 'SELECT * FROM proposal_drafts ORDER BY created_at DESC';
+    const result = await proposalService.pool.query(proposalsQuery);
+    
+    const proposals = result.rows.map(proposal => ({
+      id: proposal.id,
+      title: proposal.title,
+      rfpDocumentId: proposal.rfp_document_id,
+      status: 'draft',
+      version: 1,
+      createdAt: proposal.created_at,
+      updatedAt: proposal.updated_at,
+      sectionsCount: JSON.parse(proposal.sections || '[]').length
+    }));
+
+    console.log(`✅ [DEBUG] Found ${proposals.length} proposals`);
 
     res.json({
       success: true,
       proposals
     });
   } catch (error) {
-    console.error('Error fetching proposals:', error);
+    console.error('❌ [DEBUG] Error fetching proposals:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch proposals'
+      error: 'Failed to fetch proposals: ' + error.message
     });
   }
 });
@@ -168,67 +202,39 @@ router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
 // POST /api/ai-rfp/generate-proposal
 router.post('/generate-proposal', async (req, res) => {
   try {
-    const { rfpDocumentId, title } = req.body;
+    const { rfpDocumentId, title, userId = 1 } = req.body;
     
-    // Find the RFP document
-    const rfpDoc = mockDocuments.find(doc => doc.id === rfpDocumentId);
-    if (!rfpDoc) {
-      return res.status(404).json({
+    console.log(`🚀 [DEBUG] Generating proposal for RFP document: ${rfpDocumentId}`);
+    
+    if (!rfpDocumentId || !title) {
+      return res.status(400).json({
         success: false,
-        error: 'RFP document not found'
+        error: 'RFP document ID and title are required'
       });
     }
     
-    // Generate realistic proposal sections based on RFP requirements
-    const generatedSections = rfpDoc.sections.map(section => {
-      const sampleContent = generateSectionContent(section.title);
-      const wordCount = sampleContent.split(/\s+/).length;
-      
-      return {
-        id: `${section.id}-${Date.now()}`,
-        sectionId: section.id,
-        title: section.title,
-        content: sampleContent,
-        wordCount,
-        status: 'generated',
-        compliance: {
-          wordLimit: { 
-            current: wordCount, 
-            maximum: section.wordLimit, 
-            compliant: wordCount <= section.wordLimit 
-          },
-          requirementCoverage: { 
-            covered: getRandomRequirements(section.title), 
-            missing: [], 
-            percentage: Math.floor(Math.random() * 20) + 80 
-          }
-        },
-        lastModified: new Date().toISOString(),
-        modifiedBy: 'AI Assistant'
-      };
-    });
+    // Use the ProposalDraftingService to create a proposal draft
+    const proposalDraft = await proposalService.createProposalDraft(rfpDocumentId, userId, title);
     
-    const proposal = {
-      id: `prop-${Date.now()}`,
-      title: title || `Proposal for ${rfpDoc.filename}`,
-      sections: generatedSections,
-      status: 'draft',
-      version: 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    mockProposals.push(proposal);
+    console.log(`✅ [DEBUG] Proposal draft created with ID: ${proposalDraft.id}`);
     
     res.json({
       success: true,
-      proposal
+      proposal: {
+        id: proposalDraft.id,
+        title: proposalDraft.title,
+        sections: JSON.parse(proposalDraft.sections),
+        status: 'draft',
+        version: 1,
+        createdAt: proposalDraft.created_at,
+        updatedAt: proposalDraft.updated_at
+      }
     });
   } catch (error) {
-    console.error('Error generating proposal:', error);
+    console.error('❌ [DEBUG] Error generating proposal:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to generate proposal'
+      error: 'Failed to generate proposal: ' + error.message
     });
   }
 });
@@ -279,26 +285,41 @@ router.get('/proposals/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Mock proposal data
-    const proposal = {
-      id,
-      title: 'Sample Proposal',
-      sections: [],
-      status: 'draft',
-      version: 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    console.log(`🔍 [DEBUG] Fetching proposal with ID: ${id}`);
+    
+    // Get proposal from database using ProposalDraftingService
+    const proposalQuery = 'SELECT * FROM proposal_drafts WHERE id = $1';
+    const result = await proposalService.pool.query(proposalQuery, [parseInt(id)]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Proposal not found'
+      });
+    }
+    
+    const proposal = result.rows[0];
+    const sections = JSON.parse(proposal.sections);
+    
+    console.log(`✅ [DEBUG] Found proposal: ${proposal.title} with ${sections.length} sections`);
     
     res.json({
       success: true,
-      proposal
+      proposal: {
+        id: proposal.id,
+        title: proposal.title,
+        sections: sections,
+        status: 'draft',
+        version: 1,
+        createdAt: proposal.created_at,
+        updatedAt: proposal.updated_at
+      }
     });
   } catch (error) {
-    console.error('Error fetching proposal:', error);
+    console.error('❌ [DEBUG] Error fetching proposal:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch proposal'
+      error: 'Failed to fetch proposal: ' + error.message
     });
   }
 });
