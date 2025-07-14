@@ -16,7 +16,7 @@ interface SearchHistoryItem {
 const Search: React.FC = () => {
   const [searchForm, setSearchForm] = useState<SearchForm>({
     query: '',
-    limit: 1000, // Set high limit to get all results
+    limit: 20, // Set default to 20 results per page
     include_analysis: true,
   });
   const [currentPage, setCurrentPage] = useState(1);
@@ -226,6 +226,8 @@ const Search: React.FC = () => {
                 onChange={(e) => handleLimitChange(parseInt(e.target.value))}
                 className="block w-24 border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
               >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
                 <option value={500}>500</option>
