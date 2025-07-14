@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from '../../hooks/useDebounce';
+import { apiService } from '../../services/api';
 import SearchFiltersComponent from './SearchFilters';
 import SearchResults from './SearchResults';
 import SearchSuggestions from './SearchSuggestions';
@@ -94,45 +95,36 @@ const SemanticSearch: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/search/contracts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: searchQuery,
-          filters: searchFilters,
-          limit: pagination.limit,
-          offset,
-          include_analysis: true,
-          includeSemanticSearch: true
-        })
-      });
+      // Use the same API service as the working Search page
+      const searchData = {
+        query: searchQuery,
+        filters: searchFilters,
+        limit: pagination.limit,
+        offset,
+        include_analysis: true
+      };
 
-      if (response.ok) {
-        const data: SearchResponse = await response.json();
-        console.log('Full search response:', data);
-        if (data.success) {
-          // Always replace results for pagination (not append)
-          console.log('Search response results count:', data.results.length);
-          console.log('Pagination data:', data.pagination);
-          setResults(data.results);
-          
-          // Fix pagination hasMore calculation if backend doesn't provide it correctly
-          const fixedPagination = {
-            total: data.pagination?.total || data.results.length,
-            limit: data.pagination?.limit || 20,
-            offset: data.pagination?.offset || 0,
-            hasMore: data.pagination?.hasMore || (data.pagination?.offset + data.pagination?.limit < data.pagination?.total)
-          };
-          
-          console.log('Fixed pagination:', fixedPagination);
-          console.log('Should show pagination?', fixedPagination.total > fixedPagination.limit);
-          setPagination(fixedPagination);
-          setQueryInfo(data.query_info);
-        } else {
-          setError('Search failed. Please try again.');
-        }
+      const data = await apiService.searchContracts(searchData);
+      console.log('Full search response:', data);
+      
+      if (data.success) {
+        // Always replace results for pagination (not append)
+        console.log('Search response results count:', data.results.length);
+        console.log('Pagination data:', data.pagination);
+        setResults(data.results);
+        
+        // Fix pagination hasMore calculation if backend doesn't provide it correctly
+        const fixedPagination = {
+          total: data.pagination?.total || data.results.length,
+          limit: data.pagination?.limit || 20,
+          offset: data.pagination?.offset || 0,
+          hasMore: data.pagination?.hasMore || (data.pagination?.offset + data.pagination?.limit < data.pagination?.total)
+        };
+        
+        console.log('Fixed pagination:', fixedPagination);
+        console.log('Should show pagination?', fixedPagination.total > fixedPagination.limit);
+        setPagination(fixedPagination);
+        setQueryInfo(data.query_info);
       } else {
         setError('Search failed. Please try again.');
       }
