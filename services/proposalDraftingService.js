@@ -416,7 +416,7 @@ class ProposalDraftingService {
       content += `${section.content}\n\n`;
     });
 
-    print (` rfp content :${content}`)
+    console.log(`📄 [DEBUG] RFP content length: ${content.length} characters`);
 
     const cleanedContent = this.cleanDocumentContent(content, 'pdf');
     
