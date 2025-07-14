@@ -107,7 +107,10 @@ class SemanticSearchService {
                 contract_value: result.contract_value || result.contractValue,
                 posted_date: result.posted_date || result.postedDate,
                 content_summary: result.summary || result.content_summary,
-                relevanceScore: result.score || result.relevanceScore || 0
+                relevanceScore: result.score || result.relevanceScore || 0,
+                semanticScore: Math.round((result.score || result.relevanceScore || 0) * 100),
+                keywordScore: 0,
+                naicsMatch: 0
               })),
               totalResults: results.length,
               query: queryText,
@@ -346,7 +349,10 @@ class SemanticSearchService {
             agency: contract.agency,
             contract_value: contract.contractValue,
             posted_date: contract.postedDate,
-            relevanceScore: score
+            relevanceScore: score,
+            semanticScore: 0,
+            keywordScore: Math.round(score * 100),
+            naicsMatch: 0
           };
         });
 
@@ -382,7 +388,10 @@ class SemanticSearchService {
         contract_value: 5000000,
         posted_date: '2025-01-15T00:00:00Z',
         content_summary: 'Large-scale IT modernization project requiring cloud expertise and security clearances.',
-        relevanceScore: 0.95
+        relevanceScore: 0.95,
+        semanticScore: 95,
+        keywordScore: 85,
+        naicsMatch: 90
       },
       {
         id: 'CONTRACT_002',
@@ -393,7 +402,10 @@ class SemanticSearchService {
         contract_value: 3200000,
         posted_date: '2025-01-10T00:00:00Z',
         content_summary: 'Cybersecurity project focusing on assessment and implementation of security controls.',
-        relevanceScore: 0.88
+        relevanceScore: 0.88,
+        semanticScore: 88,
+        keywordScore: 92,
+        naicsMatch: 85
       },
       {
         id: 'CONTRACT_003',
@@ -404,7 +416,10 @@ class SemanticSearchService {
         contract_value: 2800000,
         posted_date: '2025-01-08T00:00:00Z',
         content_summary: 'Software development project for homeland security applications.',
-        relevanceScore: 0.82
+        relevanceScore: 0.82,
+        semanticScore: 82,
+        keywordScore: 78,
+        naicsMatch: 80
       },
       {
         id: 'CONTRACT_004',
@@ -415,7 +430,10 @@ class SemanticSearchService {
         contract_value: 4500000,
         posted_date: '2025-01-05T00:00:00Z',
         content_summary: 'Healthcare IT integration project for veterans affairs systems.',
-        relevanceScore: 0.75
+        relevanceScore: 0.75,
+        semanticScore: 75,
+        keywordScore: 70,
+        naicsMatch: 88
       },
       {
         id: 'CONTRACT_005',
@@ -426,7 +444,10 @@ class SemanticSearchService {
         contract_value: 1800000,
         posted_date: '2025-01-03T00:00:00Z',
         content_summary: 'Data analytics platform development for energy sector applications.',
-        relevanceScore: 0.70
+        relevanceScore: 0.70,
+        semanticScore: 70,
+        keywordScore: 65,
+        naicsMatch: 75
       }
     ];
 
