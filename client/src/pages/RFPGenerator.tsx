@@ -29,38 +29,47 @@ const RFPGenerator: React.FC = () => {
       
       console.log('🚀 [DEBUG] Loading RFP Generator data...');
       
-      const [contractsResponse, templatesResponse, profilesResponse] = await Promise.all([
-        // Use searchContracts with a wildcard query to get all contracts
-        apiService.searchContracts({ query: '*', limit: 100, include_analysis: false }),
-        apiService.getRFPTemplates(),
-        apiService.getCompanyProfiles()
-      ]);
+      // Load data sequentially to better debug issues
+      console.log('🚀 [DEBUG] Loading contracts...');
+      const contractsResponse = await apiService.searchContracts({ query: '*', limit: 100, include_analysis: false });
+      console.log('🚀 [DEBUG] Contracts response:', contractsResponse);
 
-      console.log('🚀 [DEBUG] API Responses:', {
-        contracts: contractsResponse,
-        templates: templatesResponse,
-        profiles: profilesResponse
-      });
+      console.log('🚀 [DEBUG] Loading templates...');
+      const templatesResponse = await apiService.getRFPTemplates();
+      console.log('🚀 [DEBUG] Templates response:', templatesResponse);
 
-      if (contractsResponse.success) {
-        setContracts(contractsResponse.results || []);
-        console.log('✅ [DEBUG] Loaded contracts:', contractsResponse.results?.length || 0);
+      console.log('🚀 [DEBUG] Loading company profiles...');
+      const profilesResponse = await apiService.getCompanyProfiles();
+      console.log('🚀 [DEBUG] Company profiles response:', profilesResponse);
+
+      // Handle contracts
+      if (contractsResponse && contractsResponse.success) {
+        const contractsData = contractsResponse.results || contractsResponse.data || [];
+        setContracts(contractsData);
+        console.log('✅ [DEBUG] Loaded contracts:', contractsData.length);
       } else {
         console.error('❌ [DEBUG] Contracts failed:', contractsResponse);
+        setContracts([]);
       }
 
-      if (templatesResponse.success) {
-        setTemplates(templatesResponse.templates || []);
-        console.log('✅ [DEBUG] Loaded templates:', templatesResponse.templates?.length || 0);
+      // Handle templates
+      if (templatesResponse && templatesResponse.success) {
+        const templatesData = templatesResponse.templates || templatesResponse.data || [];
+        setTemplates(templatesData);
+        console.log('✅ [DEBUG] Loaded templates:', templatesData.length);
       } else {
         console.error('❌ [DEBUG] Templates failed:', templatesResponse);
+        setTemplates([]);
       }
 
-      if (profilesResponse.success) {
-        setProfiles(profilesResponse.profiles || []);
-        console.log('✅ [DEBUG] Loaded profiles:', profilesResponse.profiles?.length || 0);
+      // Handle company profiles - try multiple possible response structures
+      if (profilesResponse && profilesResponse.success) {
+        const profilesData = profilesResponse.profiles || profilesResponse.data || profilesResponse.companyProfiles || [];
+        setProfiles(profilesData);
+        console.log('✅ [DEBUG] Loaded profiles:', profilesData.length);
       } else {
         console.error('❌ [DEBUG] Profiles failed:', profilesResponse);
+        setProfiles([]);
       }
     } catch (err: any) {
       console.error('❌ [DEBUG] LoadData error:', err);
