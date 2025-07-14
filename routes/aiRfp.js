@@ -99,8 +99,8 @@ router.get('/documents', async (req, res) => {
       id: doc.id,
       filename: doc.original_filename,
       contractId: doc.contract_id,
-      requirements: JSON.parse(doc.requirements || '{}'),
-      sections: JSON.parse(doc.sections || '[]'),
+      requirements: typeof doc.requirements === 'string' ? JSON.parse(doc.requirements || '{}') : (doc.requirements || {}),
+      sections: typeof doc.sections === 'string' ? JSON.parse(doc.sections || '[]') : (doc.sections || []),
       uploadedAt: doc.created_at,
       hasAnalysis: true
     }));
@@ -137,7 +137,7 @@ router.get('/proposals', async (req, res) => {
       version: 1,
       createdAt: proposal.created_at,
       updatedAt: proposal.updated_at,
-      sectionsCount: JSON.parse(proposal.sections || '[]').length
+      sectionsCount: typeof proposal.sections === 'string' ? JSON.parse(proposal.sections || '[]').length : (proposal.sections || []).length
     }));
 
     console.log(`✅ [DEBUG] Found ${proposals.length} proposals`);
@@ -373,7 +373,7 @@ router.get('/proposals/:id', async (req, res) => {
     }
     
     const proposal = result.rows[0];
-    const sections = JSON.parse(proposal.sections);
+    const sections = typeof proposal.sections === 'string' ? JSON.parse(proposal.sections) : proposal.sections;
     
     console.log(`✅ [DEBUG] Found proposal: ${proposal.title} with ${sections.length} sections`);
     
