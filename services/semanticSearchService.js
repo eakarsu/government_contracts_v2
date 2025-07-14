@@ -85,17 +85,8 @@ class SemanticSearchService {
 
           // If vector search returns results, use them
           if (results.length > 0) {
-            // Store search query if user provided
-            if (userId) {
-              try {
-                await this.pool.query(
-                  'INSERT INTO search_queries (user_id, query_text, results_count, created_at) VALUES ($1, $2, $3, NOW())',
-                  [userId, queryText, results.length]
-                );
-              } catch (dbError) {
-                logger.warn('Failed to store search query:', dbError.message);
-              }
-            }
+            // Skip storing search query since search_queries table doesn't exist
+            // Search history is handled by frontend localStorage
 
             return {
               results: results.map(result => ({
@@ -207,62 +198,35 @@ class SemanticSearchService {
   }
 
   async getSearchSuggestions(partialQuery, limit = 5) {
-    try {
-      // Get recent similar searches from database
-      const query = `
-        SELECT DISTINCT query_text, COUNT(*) as frequency
-        FROM search_queries 
-        WHERE query_text ILIKE $1
-        GROUP BY query_text
-        ORDER BY frequency DESC, MAX(created_at) DESC
-        LIMIT $2
-      `;
+    // Use predefined suggestions based on common government contract terms
+    const suggestions = [
+      'cybersecurity services',
+      'IT infrastructure',
+      'software development',
+      'cloud migration',
+      'data analytics',
+      'healthcare IT',
+      'network security',
+      'system integration',
+      'consulting services',
+      'maintenance and support',
+      'training services',
+      'research and development',
+      'construction services',
+      'professional services',
+      'equipment procurement',
+      'facility management'
+    ];
 
-      const result = await this.pool.query(query, [`%${partialQuery}%`, limit]);
-      return result.rows.map(row => row.query_text);
-    } catch (error) {
-      logger.warn('Database search suggestions failed, using fallback:', error.message);
-      // Fallback to mock suggestions only if database query fails
-      const mockSuggestions = [
-        'cybersecurity services',
-        'IT infrastructure',
-        'software development',
-        'cloud migration',
-        'data analytics',
-        'healthcare IT',
-        'network security',
-        'system integration'
-      ];
-
-      return mockSuggestions
-        .filter(suggestion => suggestion.toLowerCase().includes(partialQuery.toLowerCase()))
-        .slice(0, limit);
-    }
+    return suggestions
+      .filter(suggestion => suggestion.toLowerCase().includes(partialQuery.toLowerCase()))
+      .slice(0, limit);
   }
 
   async getSearchHistory(userId, limit = 10) {
-    try {
-      const query = `
-        SELECT query_text, results_count, created_at
-        FROM search_queries
-        WHERE user_id = $1
-        ORDER BY created_at DESC
-        LIMIT $2
-      `;
-
-      const result = await this.pool.query(query, [userId, limit]);
-      return result.rows;
-    } catch (error) {
-      logger.warn('Database search history failed, using fallback:', error.message);
-      // Fallback to mock history only if database query fails
-      const mockHistory = [
-        { query_text: 'cybersecurity services', results_count: 5, created_at: new Date(Date.now() - 86400000) },
-        { query_text: 'IT infrastructure', results_count: 8, created_at: new Date(Date.now() - 172800000) },
-        { query_text: 'software development', results_count: 12, created_at: new Date(Date.now() - 259200000) }
-      ];
-
-      return mockHistory.slice(0, limit);
-    }
+    // Return empty array since we're not storing search history in database
+    // The frontend handles search history via localStorage
+    return [];
   }
 
   async keywordSearchFallback(queryText, options = {}) {
