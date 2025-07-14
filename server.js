@@ -114,14 +114,29 @@ app.use('/api/search', searchRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/recommendations', recommendationsRouter);
 
+// Simple auth middleware that provides a default user for development
+const devAuthMiddleware = (req, res, next) => {
+  // In development, provide a default user
+  req.user = req.user || { id: 'dev-user-1', email: 'dev@example.com' };
+  next();
+};
+
 // Mount RFP routes at /api/rfp/*
-app.use('/api/rfp', rfpRouter);
+app.use('/api/rfp', devAuthMiddleware, rfpRouter);
 
 // Mount document processing routes at /api/documents/processing/*
 app.use('/api/documents/processing', documentProcessingRouter);
 
+// Simple auth middleware that provides a default user for development
+const devAuthMiddleware = (req, res, next) => {
+  // In development, provide a default user
+  req.user = req.user || { id: 'dev-user-1', email: 'dev@example.com' };
+  next();
+};
+
 // New AI-powered routes
 app.use('/api/auth', authRoutes);
+app.use('/api/rfp', devAuthMiddleware); // Add auth middleware to RFP routes
 app.use('/api/ai-rfp', authMiddleware, aiRfpRoutes);
 app.use('/api/bid-prediction', authMiddleware, bidPredictionRoutes);
 
