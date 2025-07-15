@@ -22,6 +22,12 @@ class NLPService {
         };
       }
 
+      if (!this.apiKey) {
+        console.warn('OpenRouter API key not configured, using fallback extraction');
+        return this.fallbackEntityExtraction(text);
+      }
+
+      console.log('🔍 Sending to OpenRouter for entity extraction:', text);
       const response = await axios.post(`${this.baseURL}/chat/completions`, {
         model: "anthropic/claude-3-haiku-20240307",
         messages: [{
@@ -46,12 +52,15 @@ Query: "${text}"`
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': config.apiBaseUrl || 'http://localhost:3010'
-        }
+        },
+        timeout: 10000
       });
 
+      console.log('✅ OpenRouter entity extraction successful');
       return this.parseEntityResponse(response.data.choices[0].message.content);
     } catch (error) {
-      console.error('Entity extraction error:', error.message);
+      console.error('❌ Entity extraction error:', error.message);
+      console.error('❌ Using fallback extraction');
       return this.fallbackEntityExtraction(text);
     }
   }
@@ -63,6 +72,12 @@ Query: "${text}"`
         return { intent: 'DISCOVERY', confidence: 0.5, sub_intent: 'general' };
       }
 
+      if (!this.apiKey) {
+        console.warn('OpenRouter API key not configured, using fallback classification');
+        return { intent: 'DISCOVERY', confidence: 0.5, sub_intent: 'general' };
+      }
+
+      console.log('🔍 Sending to OpenRouter for intent classification:', query);
       const response = await axios.post(`${this.baseURL}/chat/completions`, {
         model: "anthropic/claude-3-haiku-20240307",
         messages: [{
@@ -85,12 +100,15 @@ Return JSON: {"intent": "DISCOVERY", "confidence": 0.85, "sub_intent": "new_oppo
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': config.apiBaseUrl || 'http://localhost:3010'
-        }
+        },
+        timeout: 10000
       });
 
+      console.log('✅ OpenRouter intent classification successful');
       return JSON.parse(response.data.choices[0].message.content);
     } catch (error) {
-      console.error('Intent classification error:', error.message);
+      console.error('❌ Intent classification error:', error.message);
+      console.error('❌ Using fallback classification');
       return { intent: 'DISCOVERY', confidence: 0.5, sub_intent: 'general' };
     }
   }
@@ -132,14 +150,21 @@ Format: {"original": ["expanded", "terms"]}`
 
   parseEntityResponse(content) {
     try {
+      console.log('📄 Parsing OpenRouter response:', content);
+      
       // Extract JSON from response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
+        console.log('✅ Successfully parsed entities:', parsed);
+        return parsed;
       }
     } catch (error) {
-      console.error('JSON parsing error:', error);
+      console.error('❌ JSON parsing error:', error);
+      console.error('❌ Response content:', content);
     }
+    
+    console.log('⚠️ Using fallback entity extraction');
     return this.fallbackEntityExtraction(content);
   }
 
