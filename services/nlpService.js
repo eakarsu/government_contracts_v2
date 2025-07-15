@@ -29,31 +29,39 @@ class NLPService {
 
       console.log('🔍 Sending to OpenRouter for entity extraction:', text);
       const response = await axios.post(`${this.baseURL}/chat/completions`, {
-        model: "anthropic/claude-3-haiku-20240307",
-        messages: [{
-          role: "user",
-          content: `Extract entities from this search query: "${text}"
-          
-Return JSON with these fields:
-- amounts: array of objects with {value, currency, operator}
-- locations: array of strings (states, cities, regions)
-- dates: array of objects with {type, value, relative}
-- naics_codes: array of strings or descriptions
-- set_aside_codes: array of strings
-- contract_types: array of strings
-- keywords: array of important keywords
+        model: "anthropic/claude-sonnet-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are a contract search assistant. Extract entities from queries and return valid JSON only."
+          },
+          {
+            role: "user",
+            content: `Extract entities from: "${text}"
 
-Query: "${text}"`
-        }],
-        max_tokens: 300,
-        temperature: 0.1
+Return valid JSON with:
+{
+  "amounts": [],
+  "locations": [],
+  "dates": [],
+  "naics_codes": [],
+  "set_aside_codes": [],
+  "contract_types": [],
+  "keywords": []
+}`
+          }
+        ],
+        max_tokens: 400,
+        temperature: 0.1,
+        response_format: { "type": "json_object" }
       }, {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': config.apiBaseUrl || 'http://localhost:3010'
+          'HTTP-Referer': config.apiBaseUrl || 'http://localhost:3010',
+          'X-Title': 'Government Contracts NLP'
         },
-        timeout: 10000
+        timeout: 15000
       });
 
       console.log('✅ OpenRouter entity extraction successful');
@@ -79,33 +87,46 @@ Query: "${text}"`
 
       console.log('🔍 Sending to OpenRouter for intent classification:', query);
       const response = await axios.post(`${this.baseURL}/chat/completions`, {
-        model: "anthropic/claude-3-haiku-20240307",
-        messages: [{
-          role: "user",
-          content: `Classify the intent of this contract search query: "${query}"
+        model: "anthropic/claude-sonnet-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are a contract search assistant. Classify user intent and return valid JSON only."
+          },
+          {
+            role: "user",
+            content: `Classify intent for: "${query}"
 
-Possible intents:
-- DISCOVERY: looking for new opportunities
-- COMPARISON: comparing contracts or vendors
-- ALERT: setting up notifications
-- ANALYTICS: seeking trends or statistics
-- DETAILS: wanting specific contract information
-
-Return JSON: {"intent": "DISCOVERY", "confidence": 0.85, "sub_intent": "new_opportunities"}`
-        }],
-        max_tokens: 150,
-        temperature: 0.1
+Return valid JSON:
+{
+  "intent": "DISCOVERY|COMPARISON|ALERT|ANALYTICS|DETAILS",
+  "confidence": 0.8,
+  "sub_intent": "specific_type"
+}`
+          }
+        ],
+        max_tokens: 200,
+        temperature: 0.1,
+        response_format: { "type": "json_object" }
       }, {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': config.apiBaseUrl || 'http://localhost:3010'
+          'HTTP-Referer': config.apiBaseUrl || 'http://localhost:3010',
+          'X-Title': 'Government Contracts NLP'
         },
-        timeout: 10000
+        timeout: 15000
       });
 
       console.log('✅ OpenRouter intent classification successful');
-      return JSON.parse(response.data.choices[0].message.content);
+      const content = response.data.choices[0].message.content;
+      // Clean up markdown formatting
+      const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      return { intent: 'DISCOVERY', confidence: 0.5, sub_intent: 'general' };
     } catch (error) {
       console.error('❌ Intent classification error:', error.message);
       console.error('❌ Using fallback classification');
@@ -116,7 +137,7 @@ Return JSON: {"intent": "DISCOVERY", "confidence": 0.85, "sub_intent": "new_oppo
   async expandTerms(terms) {
     try {
       const response = await axios.post(`${this.baseURL}/chat/completions`, {
-        model: "anthropic/claude-3-haiku-20240307",
+        model: "anthropic/claude-sonnet-4",
         messages: [{
           role: "user",
           content: `Expand these contract search terms with synonyms and related concepts:
@@ -152,8 +173,11 @@ Format: {"original": ["expanded", "terms"]}`
     try {
       console.log('📄 Parsing OpenRouter response:', content);
       
+      // Clean up markdown formatting
+      const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      
       // Extract JSON from response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         console.log('✅ Successfully parsed entities:', parsed);
@@ -184,7 +208,7 @@ Format: {"original": ["expanded", "terms"]}`
     
     // Regex-based fallback for common patterns
     const patterns = {
-      amounts: /\$(\d+(?:,\d{3})*(?:\.\d{2})?)|(\d+(?:,\d{3})*)\s*(?:dollars?|USD)/gi,
+      amounts: /\$(\d+(?:,\d{3})*(?:\.\d{2})?)(?:[KkMm])?|(\d+(?:,\d{3})*)(?:[KkMm])?\s*(?:dollars?|USD)/gi,
       locations: /\b(?:Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New\s+Hampshire|New\s+Jersey|New\s+Mexico|New\s+York|North\s+Carolina|North\s+Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode\s+Island|South\s+Carolina|South\s+Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West\s+Virginia|Wisconsin|Wyoming)\b/gi,
       dates: /\b(?:next\s+week|next\s+month|this\s+month|within\s+\d+\s+days?)\b/gi,
       naics: /\b(?:54\d{3}|56\d{3}|62\d{3}|81\d{3})\b/g,
@@ -203,7 +227,16 @@ Format: {"original": ["expanded", "terms"]}`
     // Extract amounts
     let match;
     while ((match = patterns.amounts.exec(text)) !== null) {
-      const value = parseInt(match[1] || match[2].replace(/,/g, ''));
+      let value = parseInt(match[1] || match[2].replace(/,/g, ''));
+      
+      // Handle K (thousands) and M (millions)
+      const amountText = match[0] || '';
+      if (amountText.toLowerCase().includes('k')) {
+        value = value * 1000;
+      } else if (amountText.toLowerCase().includes('m')) {
+        value = value * 1000000;
+      }
+      
       entities.amounts.push({
         value,
         currency: 'USD',

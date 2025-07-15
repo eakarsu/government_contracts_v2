@@ -105,6 +105,9 @@ class QueryParser {
     // Handle dates
     if (entities.dates && entities.dates.length > 0) {
       criteria.dateRange = this.parseDateRange(entities.dates[0]);
+    } else if (entities.dates && Array.isArray(entities.dates) && entities.dates.length > 0) {
+      // Handle string dates from OpenRouter
+      criteria.dateRange = this.parseDateRange({ value: entities.dates[0] });
     }
 
     // Handle keywords - ensure we always have at least one keyword
@@ -158,15 +161,19 @@ class QueryParser {
       }
     }
 
-    // Keywords
+    // Keywords - use broader search terms
     if (criteria.keywords.length > 0) {
       where.OR = where.OR || [];
       criteria.keywords.forEach(keyword => {
-        where.OR.push(
-          { title: { contains: keyword, mode: 'insensitive' } },
-          { description: { contains: keyword, mode: 'insensitive' } },
-          { agency: { contains: keyword, mode: 'insensitive' } }
-        );
+        // Expand common terms
+        const expandedTerms = this.expandKeywords(keyword);
+        expandedTerms.forEach(term => {
+          where.OR.push(
+            { title: { contains: term, mode: 'insensitive' } },
+            { description: { contains: term, mode: 'insensitive' } },
+            { agency: { contains: term, mode: 'insensitive' } }
+          );
+        });
       });
     }
 
@@ -254,8 +261,9 @@ class QueryParser {
     const now = new Date();
     const range = { from: null, to: null };
 
-    if (dateEntity.type === 'relative') {
-      switch (dateEntity.value.toLowerCase()) {
+    if (dateEntity.type === 'relative' || typeof dateEntity.value === 'string') {
+      const value = dateEntity.value || dateEntity;
+      switch (value.toLowerCase()) {
         case 'next week':
           range.from = now;
           range.to = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -274,8 +282,8 @@ class QueryParser {
           range.to = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
           break;
         default:
-          range.from = now;
-          range.to = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          range.from = new Date(now.getFullYear(), now.getMonth(), 1);
+          range.to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       }
     }
 
@@ -388,6 +396,36 @@ class QueryParser {
     }
     
     return `before ${range.to.toLocaleDateString()}`;
+  }
+
+  expandKeywords(keyword) {
+    const expansionMap = {
+      'cybersecurity': ['security', 'system', 'software', 'technology', 'digital', 'IT', 'computer', 'network', 'information', 'data', 'circuit', 'electronic', 'upgrade'],
+      'opportunities': ['opportunity', 'solicitation', 'request', 'RFP', 'RFQ', 'notice', 'award', 'contract', 'acquisition', 'purchase'],
+      'IT': ['technology', 'software', 'system', 'computer', 'digital', 'network', 'electronic', 'circuit', 'upgrade', 'databus'],
+      'construction': ['maintenance', 'repair', 'facility', 'infrastructure', 'building', 'engineering', 'construction', 'support', 'service'],
+      'consulting': ['consultant', 'advisory', 'professional', 'services', 'support', 'assistance', 'expert', 'solution'],
+      'small business': ['small', 'sba', 'set-aside', 'minority', 'women', 'veteran', 'disadvantaged']
+    };
+
+    let terms = [keyword];
+    
+    // Always include the original keyword
+    terms.push(keyword);
+    
+    // Check for exact matches
+    if (expansionMap[keyword.toLowerCase()]) {
+      terms = [...terms, ...expansionMap[keyword.toLowerCase()]];
+    }
+
+    // Check for partial matches
+    Object.entries(expansionMap).forEach(([key, values]) => {
+      if (keyword.toLowerCase().includes(key)) {
+        terms = [...terms, ...values];
+      }
+    });
+
+    return [...new Set(terms)]; // Remove duplicates
   }
 }
 
