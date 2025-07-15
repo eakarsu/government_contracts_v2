@@ -13,7 +13,8 @@ import {
   Zap,
   ClipboardList,
   Target,
-  Wand2
+  Wand2,
+  Sparkles
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -25,6 +26,7 @@ interface SidebarProps {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Search', href: '/search', icon: Search },
+  { name: 'NLP Search', href: '/nlp-search', icon: Sparkles },
   { name: 'RFP System', href: '/rfp', icon: ClipboardList },
   { name: 'Jobs', href: '/jobs', icon: BarChart3 },
   { name: 'Documents', href: '/documents', icon: Upload },

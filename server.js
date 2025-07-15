@@ -36,6 +36,7 @@ const aiRfpRoutes = require('./routes/aiRfp');
 const complianceRoutes = require('./routes/compliance');
 const documentAnalysisRoutes = require('./routes/documentAnalysis');
 const bidPredictionRoutes = require('./routes/bidPrediction');
+const nlpSearchRoutes = require('./routes/nlpSearch');
 
 // Import middleware
 const { rateLimiter, statusRateLimiter } = require('./middleware/rateLimiter');
@@ -131,6 +132,7 @@ app.use('/api/documents/processing', documentProcessingRouter);
 app.use('/api/auth', authRoutes);
 app.use('/api/ai-rfp', authMiddleware, aiRfpRoutes);
 app.use('/api/bid-prediction', authMiddleware, bidPredictionRoutes);
+app.use('/api/nlp', nlpSearchRoutes);
 
 // Debug: Log when routers are loaded
 console.log('📋 [DEBUG] Contracts router mounted at /api/contracts');
@@ -140,6 +142,7 @@ console.log('📋 [DEBUG] Jobs router mounted at /api/jobs');
 console.log('📋 [DEBUG] Recommendations router mounted at /api/recommendations');
 console.log('📋 [DEBUG] RFP router mounted at /api/rfp');
 console.log('📋 [DEBUG] Document processing router mounted at /api/documents/processing');
+console.log('📋 [DEBUG] NLP search router mounted at /api/nlp');
 
 // Test that routes are properly loaded
 app.get('/api/test-routes', (req, res) => {

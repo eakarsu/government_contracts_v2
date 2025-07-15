@@ -240,40 +240,44 @@ class SemanticSearchService {
       const prisma = new PrismaClient();
       
       try {
-        // Build search conditions
-        const searchTerm = `%${queryText}%`;
-        const whereConditions = {
-          OR: [
-            { title: { contains: queryText, mode: 'insensitive' } },
-            { description: { contains: queryText, mode: 'insensitive' } },
-            { agency: { contains: queryText, mode: 'insensitive' } },
-            { naicsCode: { contains: queryText, mode: 'insensitive' } },
-            { classificationCode: { contains: queryText, mode: 'insensitive' } }
-          ]
-        };
+        // Build search conditions using keywords from query
+        const keywords = queryText.toLowerCase().split(/\s+/).filter(k => k.length > 2);
+        let whereConditions = {};
+        
+        if (keywords.length > 0) {
+          // Search for any keyword in any field
+          whereConditions = {
+            OR: []
+          };
+          
+          keywords.forEach(keyword => {
+            whereConditions.OR.push(
+              { title: { contains: keyword, mode: 'insensitive' } },
+              { description: { contains: keyword, mode: 'insensitive' } },
+              { agency: { contains: keyword, mode: 'insensitive' } }
+            );
+          });
+        } else {
+          // Simple search for the whole query
+          whereConditions = {
+            OR: [
+              { title: { contains: queryText, mode: 'insensitive' } },
+              { description: { contains: queryText, mode: 'insensitive' } },
+              { agency: { contains: queryText, mode: 'insensitive' } }
+            ]
+          };
+        }
 
         // Add filters
         if (filters.agency) {
           whereConditions.agency = { contains: filters.agency, mode: 'insensitive' };
         }
 
-        if (filters.minValue) {
-          whereConditions.contractValue = { gte: filters.minValue };
-        }
-
-        if (filters.maxValue) {
-          if (whereConditions.contractValue) {
-            whereConditions.contractValue.lte = filters.maxValue;
-          } else {
-            whereConditions.contractValue = { lte: filters.maxValue };
-          }
-        }
-
         if (filters.dateFrom) {
           whereConditions.postedDate = { gte: new Date(filters.dateFrom) };
         }
 
-        // Query using Prisma
+        // Query using Prisma - get ALL matching contracts
         const contracts = await prisma.contract.findMany({
           where: whereConditions,
           take: limit,
@@ -284,27 +288,86 @@ class SemanticSearchService {
             title: true,
             description: true,
             agency: true,
-            contractValue: true,
             postedDate: true,
             naicsCode: true,
-            classificationCode: true
+            classificationCode: true,
+            setAsideCode: true,
+            resourceLinks: true
           }
         });
 
         await prisma.$disconnect();
 
         logger.info(`Keyword search found ${contracts.length} results`);
-
-        // Calculate relevance scores
-        const results = contracts.map(contract => {
-          let score = 0.4; // Base score
+        
+        if (contracts.length === 0) {
+          // Return all contracts if no specific matches
+          logger.info('No specific matches, returning recent contracts');
+          const allContracts = await prisma.contract.findMany({
+            take: Math.min(limit, 10),
+            orderBy: { postedDate: 'desc' },
+            select: {
+              id: true,
+              noticeId: true,
+              title: true,
+              description: true,
+              agency: true,
+              postedDate: true,
+              naicsCode: true,
+              classificationCode: true,
+              setAsideCode: true,
+              resourceLinks: true
+            }
+          });
           
-          if (contract.title && contract.title.toLowerCase().includes(queryText.toLowerCase())) {
+          const allResults = allContracts.map(contract => ({
+            id: contract.id,
+            noticeId: contract.noticeId,
+            notice_id: contract.noticeId,
+            title: contract.title,
+            description: contract.description,
+            agency: contract.agency,
+            posted_date: contract.postedDate,
+            postedDate: contract.postedDate,
+            relevanceScore: 0.3,
+            semanticScore: 0,
+            keywordScore: 30,
+            naicsMatch: contract.naicsCode ? 50 : 0,
+            setAsideCode: contract.setAsideCode,
+            resourceLinks: contract.resourceLinks
+          }));
+          
+          return {
+            results: allResults,
+            totalResults: allResults.length,
+            query: queryText,
+            searchType: 'database'
+          };
+        }
+
+        // Calculate relevance scores for actual results
+        const results = contracts.map(contract => {
+          let score = 0.5; // Base score
+          let keywordScore = 50;
+          
+          const searchLower = queryText.toLowerCase();
+          const titleLower = (contract.title || '').toLowerCase();
+          const descLower = (contract.description || '').toLowerCase();
+          
+          if (titleLower.includes(searchLower)) {
             score = 1.0;
-          } else if (contract.description && contract.description.toLowerCase().includes(queryText.toLowerCase())) {
+            keywordScore = 100;
+          } else if (descLower.includes(searchLower)) {
             score = 0.8;
-          } else if (contract.agency && contract.agency.toLowerCase().includes(queryText.toLowerCase())) {
-            score = 0.6;
+            keywordScore = 80;
+          } else {
+            // Partial matches
+            const allText = `${titleLower} ${descLower}`.toLowerCase();
+            const matchingKeywords = keywords.filter(k => allText.includes(k));
+            if (matchingKeywords.length > 0) {
+              score = 0.6 + (matchingKeywords.length * 0.1);
+              keywordScore = 60 + (matchingKeywords.length * 10);
+            }
           }
 
           return {
@@ -314,13 +377,15 @@ class SemanticSearchService {
             title: contract.title,
             description: contract.description,
             agency: contract.agency,
-            contract_value: contract.contractValue,
             posted_date: contract.postedDate,
             postedDate: contract.postedDate,
-            relevanceScore: score,
+            naicsCode: contract.naicsCode,
+            relevanceScore: Math.min(score, 1.0),
             semanticScore: 0,
-            keywordScore: Math.round(score * 100),
-            naicsMatch: contract.naicsCode ? 75 : 0
+            keywordScore: Math.min(keywordScore, 100),
+            naicsMatch: contract.naicsCode ? 50 : 0,
+            setAsideCode: contract.setAsideCode,
+            resourceLinks: contract.resourceLinks
           };
         });
 
@@ -333,7 +398,14 @@ class SemanticSearchService {
       } catch (prismaError) {
         logger.error('Prisma keyword search failed:', prismaError);
         await prisma.$disconnect();
-        throw prismaError;
+        // Don't throw, just return empty with error indication
+        return {
+          results: [],
+          totalResults: 0,
+          query: queryText,
+          searchType: 'keyword',
+          error: 'Database search failed'
+        };
       }
     } catch (error) {
       logger.error('Error performing keyword search fallback:', error);

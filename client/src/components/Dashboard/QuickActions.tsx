@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../../services/api';
 import LoadingSpinner from '../UI/LoadingSpinner';
+import { useNavigate } from 'react-router-dom';
 
 const QuickActions: React.FC = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [nlpQuery, setNlpQuery] = useState('');
 
   const fetchContractsMutation = useMutation({
     mutationFn: () => apiService.fetchContracts({ limit: 100, offset: 0 }),
@@ -93,6 +96,28 @@ const QuickActions: React.FC = () => {
     }),
     onError: (error: any) => {
       console.error('Document search error:', error);
+    },
+  });
+
+  // NLP Search mutations
+  const nlpSearchMutation = useMutation({
+    mutationFn: (query: string) => apiService.naturalLanguageSearch({
+      query,
+      includeSemantic: true,
+      userContext: {}
+    }),
+    onSuccess: () => {
+      navigate('/nlp-search');
+    },
+    onError: (error: any) => {
+      console.error('NLP search error:', error);
+    },
+  });
+
+  const getNLPSuggestionsMutation = useMutation({
+    mutationFn: () => apiService.getNLPSuggestions(),
+    onError: (error: any) => {
+      console.error('NLP suggestions error:', error);
     },
   });
 
@@ -189,6 +214,56 @@ const QuickActions: React.FC = () => {
             'Auto Queue & Process'
           )}
         </button>
+
+        {/* NLP Search Section */}
+        <div className="border-t pt-4 mt-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">✨ NLP Search</h4>
+          
+          {/* Quick NLP Search Input */}
+          <div className="space-y-2 mb-3">
+            <input
+              type="text"
+              value={nlpQuery}
+              onChange={(e) => setNlpQuery(e.target.value)}
+              placeholder="Ask about contracts..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && nlpQuery.trim()) {
+                  nlpSearchMutation.mutate(nlpQuery);
+                }
+              }}
+            />
+            <button
+              onClick={() => nlpQuery.trim() && nlpSearchMutation.mutate(nlpQuery)}
+              disabled={nlpSearchMutation.isPending || !nlpQuery.trim()}
+              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
+            >
+              {nlpSearchMutation.isPending ? (
+                <LoadingSpinner size="sm" color="white" />
+              ) : (
+                '✨ NLP Search'
+              )}
+            </button>
+          </div>
+
+          {/* Quick NLP Examples */}
+          <div className="space-y-1">
+            {[
+              'IT contracts under $500K',
+              'Construction in California',
+              'Small business opportunities'
+            ].map((example) => (
+              <button
+                key={example}
+                onClick={() => nlpSearchMutation.mutate(example)}
+                disabled={nlpSearchMutation.isPending}
+                className="w-full text-left px-3 py-1.5 border border-gray-200 rounded-md text-xs text-gray-700 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+              >
+                {example}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Document Search Section */}
         <div className="border-t pt-4 mt-4">
@@ -343,6 +418,13 @@ const QuickActions: React.FC = () => {
         </div>
       ) : null}
 
+      {/* NLP Search Success Messages */}
+      {nlpSearchMutation.isSuccess ? (
+        <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-md">
+          <div className="text-purple-800 text-sm">✨ NLP search completed! Redirecting to results...</div>
+        </div>
+      ) : null}
+
       {/* Error Messages */}
       {fetchContractsMutation.error ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
@@ -443,6 +525,15 @@ const QuickActions: React.FC = () => {
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
             Error resetting queue: {resetQueueMutation.error instanceof Error ? resetQueueMutation.error.message : 'Unknown error'}
+          </div>
+        </div>
+      ) : null}
+
+      {/* NLP Search Error Messages */}
+      {nlpSearchMutation.error ? (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-red-800 text-sm">
+            ✨ NLP search error: {nlpSearchMutation.error instanceof Error ? nlpSearchMutation.error.message : 'Unknown error'}
           </div>
         </div>
       ) : null}
