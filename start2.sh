@@ -159,7 +159,7 @@ echo "Vector Database: Vectra (Pure Node.js - embedded)"
 echo "Press Ctrl+C to stop all servers"
 
 # Start the API server in background
-PORT=3010 BROWSER=none npm run dev &
+PORT=5011 BROWSER=none npm run dev &
 SERVER_PID=$!
 echo $SERVER_PID > logs/server.pid
 
@@ -177,7 +177,7 @@ if [ -d "client" ]; then
   echo "🎉 Both servers are running!"
   echo ""
   echo "📊 Services:"
-  echo " • Node.js API Server:  http://localhost:3010"
+  echo " • Node.js API Server:  http://localhost:5011"
   echo " • React Client:        http://localhost:3001"
   echo " • Vector Database:     Vectra (embedded in Node.js)"
   echo ""
