@@ -217,9 +217,9 @@ class ApiService {
   }
 
   async getQueueStatus(): Promise<{ success: boolean; queue_status: QueueStatus }> {
-    console.log('📊 [DEBUG] API Service: Calling getQueueStatus endpoint...');
+    //console.log('📊 [DEBUG] API Service: Calling getQueueStatus endpoint...');
     const response = await api.get<{ success: boolean; queue_status: QueueStatus }>('/documents/queue/status');
-    console.log('📊 [DEBUG] API Service: getQueueStatus response:', response.data);
+    //console.log('📊 [DEBUG] API Service: getQueueStatus response:', response.data);
     return response.data;
   }
 

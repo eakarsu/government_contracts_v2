@@ -1,7 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const { query } = require('../config/database');
-const vectorService = require('../services/vectorService');
+const VectorService = require('../services/vectorService');
 const config = require('../config/env');
 
 const router = express.Router();
@@ -105,6 +105,42 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get single contract by noticeId - VECTOR DATABASE ONLY
+router.get('/:noticeId', async (req, res) => {
+  try {
+    const { noticeId } = req.params;
+    
+    // Get the vector service from the global instance
+    const vectorService = require('../server').vectorService;
+    
+    if (!vectorService || !vectorService.isConnected) {
+      return res.status(503).json({
+        success: false,
+        error: 'Vector database not available'
+      });
+    }
+    
+    // Get contract directly from vector database by ID
+    const contract = await vectorService.getContractById(noticeId);
+    
+    if (!contract) {
+      return res.status(404).json({
+        success: false,
+        error: 'Contract not found in vector database'
+      });
+    }
+    
+    res.json(contract);
+  } catch (error) {
+    console.error('Error fetching contract from vector DB:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch contract from vector database',
+      details: error.message
+    });
+  }
+});
+
 // Helper function to format dates for SAM.gov API (MM/dd/yyyy format)
 function formatDateForSAM(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -124,15 +160,18 @@ router.post('/fetch', async (req, res) => {
 
     // Auto-expand search range if no dates provided
     if (!startDate && !endDate) {
-      const oldestContract = await prisma.contract.findFirst({
-        orderBy: { postedDate: 'asc' },
-        where: { postedDate: { not: null } }
-      });
+      const oldestContractResult = await query(`
+        SELECT posted_date FROM contracts 
+        WHERE posted_date IS NOT NULL 
+        ORDER BY posted_date ASC 
+        LIMIT 1
+      `);
+      const oldestContract = oldestContractResult.rows[0];
 
-      if (oldestContract?.postedDate) {
-        startDate = new Date(oldestContract.postedDate);
+      if (oldestContract?.posted_date) {
+        startDate = new Date(oldestContract.posted_date);
         startDate.setDate(startDate.getDate() - 30);
-        endDate = new Date(oldestContract.postedDate);
+        endDate = new Date(oldestContract.posted_date);
         endDate.setDate(endDate.getDate() - 1);
       } else {
         endDate = new Date();
@@ -293,10 +332,11 @@ router.post('/index', async (req, res) => {
           await vectorService.indexContract(contract);
           
           // Mark as indexed
-          await prisma.contract.update({
-            where: { id: contract.id },
-            data: { indexedAt: new Date() }
-          });
+          await query(`
+            UPDATE contracts 
+            SET indexed_at = NOW() 
+            WHERE id = $1
+          `, [contract.id]);
           
           indexedCount++;
           
@@ -305,21 +345,17 @@ router.post('/index', async (req, res) => {
             console.log(`Indexed ${indexedCount} contracts so far...`);
           }
         } catch (error) {
-          console.error(`Error indexing contract ${contract.noticeId}:`, error);
+          console.error(`Error indexing contract ${contract.notice_id}:`, error);
           errorsCount++;
         }
       }
 
       // Update job status
-      await prisma.indexingJob.update({
-        where: { id: job.id },
-        data: {
-          status: 'completed',
-          recordsProcessed: indexedCount,
-          errorsCount,
-          completedAt: new Date()
-        }
-      });
+      await query(`
+        UPDATE indexing_jobs 
+        SET status = $1, records_processed = $2, errors_count = $3, completed_at = NOW()
+        WHERE id = $4
+      `, ['completed', indexedCount, errorsCount, job.id]);
 
       res.json({
         success: true,
@@ -329,14 +365,11 @@ router.post('/index', async (req, res) => {
       });
 
     } catch (error) {
-      await prisma.indexingJob.update({
-        where: { id: job.id },
-        data: {
-          status: 'failed',
-          errorDetails: error.message,
-          completedAt: new Date()
-        }
-      });
+      await query(`
+        UPDATE indexing_jobs 
+        SET status = $1, error_details = $2, completed_at = NOW()
+        WHERE id = $3
+      `, ['failed', error.message, job.id]);
       throw error;
     }
 
@@ -386,30 +419,37 @@ router.post('/search', async (req, res) => {
 
     if (!use_vector || contracts.length === 0) {
       // Fallback to database search
-      contracts = await prisma.contract.findMany({
-        where: {
-          OR: [
-            { title: { contains: query, mode: 'insensitive' } },
-            { description: { contains: query, mode: 'insensitive' } },
-            { agency: { contains: query, mode: 'insensitive' } }
-          ]
-        },
-        take: Math.min(limit, 50),
-        orderBy: { postedDate: 'desc' }
-      });
+      const searchResult = await query(`
+        SELECT * FROM contracts 
+        WHERE title ILIKE $1 OR description ILIKE $1 OR agency ILIKE $1
+        ORDER BY posted_date DESC NULLS LAST, created_at DESC
+        LIMIT $2
+      `, [`%${query}%`, Math.min(limit, 50)]);
+      
+      contracts = searchResult.rows.map(row => ({
+        id: row.id,
+        noticeId: row.notice_id,
+        title: row.title,
+        description: row.description,
+        agency: row.agency,
+        naicsCode: row.naics_code,
+        classificationCode: row.classification_code,
+        postedDate: row.posted_date,
+        setAsideCode: row.set_aside_code,
+        resourceLinks: row.resource_links ? JSON.parse(row.resource_links) : [],
+        indexedAt: row.indexed_at,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }));
     }
 
     const responseTime = (Date.now() - startTime) / 1000;
 
     // Log search query
-    await prisma.searchQuery.create({
-      data: {
-        queryText: query,
-        resultsCount: contracts.length,
-        responseTime,
-        userIp: req.ip
-      }
-    });
+    await query(`
+      INSERT INTO search_queries (query_text, results_count, response_time, user_ip, created_at)
+      VALUES ($1, $2, $3, $4, NOW())
+    `, [query, contracts.length, responseTime, req.ip]);
 
     res.json({
       query,
@@ -432,9 +472,11 @@ router.post('/:noticeId/analyze', async (req, res) => {
   try {
     const { noticeId } = req.params;
     
-    const contract = await prisma.contract.findUnique({
-      where: { noticeId }
-    });
+    const contractResult = await query(
+      'SELECT * FROM contracts WHERE notice_id = $1',
+      [noticeId]
+    );
+    const contract = contractResult.rows[0];
 
     if (!contract) {
       return res.status(404).json({ error: 'Contract not found' });

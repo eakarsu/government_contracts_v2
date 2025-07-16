@@ -1,12 +1,10 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
 const nlpService = require('../services/nlpService');
 const queryParser = require('../services/queryParser');
 const logger = require('../utils/logger');
 const config = require('../config/env');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Natural language search endpoint
 router.post('/natural', async (req, res) => {
@@ -46,24 +44,37 @@ router.post('/natural', async (req, res) => {
       parsedQuery.intent = { intent: 'DISCOVERY', confidence: 0.5, sub_intent: 'general' };
     }
     
-    // Step 2: Execute database search
-    const dbResults = await prisma.contract.findMany({
-      ...parsedQuery.prismaQuery,
-      select: {
-        id: true,
-        noticeId: true,
-        title: true,
-        description: true,
-        agency: true,
-        naicsCode: true,
-        classificationCode: true,
-        postedDate: true,
-        setAsideCode: true,
-        resourceLinks: true,
-        indexedAt: true,
-        createdAt: true
+    // Step 2: Execute vector database search
+    let vectorResults = [];
+    try {
+      const vectorService = require('../server').vectorService;
+      if (vectorService && vectorService.isConnected) {
+        const searchResult = await vectorService.searchContracts(
+          parsedQuery.parsedCriteria.keywords.join(' '), 
+          { limit: 50, threshold: 0.1 }
+        );
+        
+        // Map vector results to contract format
+        vectorResults = searchResult.map(result => ({
+          id: result.id,
+          noticeId: result.id,
+          title: result.title,
+          description: result.description,
+          agency: result.agency,
+          naicsCode: result.naicsCode,
+          classificationCode: null,
+          postedDate: result.postedDate,
+          setAsideCode: result.setAsideCode,
+          resourceLinks: result.resourceLinks || [],
+          indexedAt: new Date(),
+          createdAt: new Date()
+        }));
+      } else {
+        logger.warn('Vector service not available, falling back to empty results');
       }
-    });
+    } catch (error) {
+      logger.warn('Vector search failed:', error.message);
+    }
 
     // Step 3: Semantic search (optional)
     let semanticResults = [];
@@ -83,13 +94,13 @@ router.post('/natural', async (req, res) => {
     }
 
     // Step 4: Merge and rank results
-    const finalResults = await mergeAndRankResults(dbResults, semanticResults, parsedQuery);
+    const finalResults = await mergeAndRankResults(vectorResults, semanticResults, parsedQuery);
 
     // Step 5: Generate explanation
     const explanation = await queryParser.generateQueryExplanation(parsedQuery);
 
-    // Log search for analytics
-    await logSearch(query, parsedQuery, finalResults.length, userId);
+    // Log search for analytics (skip PostgreSQL logging)
+    // await logSearch(query, parsedQuery, finalResults.length, userId);
 
     res.json({
       success: true,
@@ -233,14 +244,14 @@ router.post('/personalized-suggestions', async (req, res) => {
 });
 
 // Helper functions
-async function mergeAndRankResults(dbResults, semanticResults, parsedQuery) {
+async function mergeAndRankResults(vectorResults, semanticResults, parsedQuery) {
   const semanticMap = new Map();
   semanticResults.forEach(result => {
     semanticMap.set(result.id, result.score);
   });
 
   // Combine and score results
-  const combined = dbResults.map(contract => {
+  const combined = vectorResults.map(contract => {
     const semanticScore = semanticMap.get(contract.id) || 0;
     const keywordScore = calculateKeywordScore(contract, parsedQuery.parsedCriteria.keywords);
     const relevanceScore = calculateRelevanceScore(contract, parsedQuery.parsedCriteria);
@@ -326,20 +337,7 @@ async function generateSearchSuggestions(partialQuery, limit) {
     .slice(0, limit);
 }
 
-async function logSearch(query, parsedQuery, resultCount, userId) {
-  try {
-    await prisma.searchQuery.create({
-      data: {
-        queryText: query,
-        resultsCount: resultCount,
-        responseTime: Date.now(),
-        userIp: userId || 'anonymous'
-      }
-    });
-  } catch (error) {
-    logger.warn('Failed to log search query:', error);
-  }
-}
+// PostgreSQL logging function removed - vector-only search
 
 function validateQuery(parsedQuery) {
   const issues = [];

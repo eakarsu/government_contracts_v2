@@ -267,6 +267,41 @@ class VectorService {
     }
   }
 
+  async getContractById(noticeId) {
+    if (!this.isConnected) {
+      console.warn('Vector database not connected - cannot get contract by ID');
+      return null;
+    }
+
+    try {
+      console.log(`🔍 Searching vector database for contract ID: ${noticeId}`);
+      const contractsItems = await this.contractsIndex.listItems();
+      
+      const contract = contractsItems.find(item => item.metadata.id === noticeId);
+      
+      if (contract) {
+        console.log(`✅ Found contract in vector DB: ${noticeId}`);
+        return {
+          id: contract.metadata.id,
+          noticeId: contract.metadata.id,
+          title: contract.metadata.title,
+          description: contract.metadata.text,
+          agency: contract.metadata.agency,
+          naicsCode: contract.metadata.naicsCode,
+          postedDate: contract.metadata.postedDate,
+          setAsideCode: contract.metadata.setAsideCode,
+          resourceLinks: []
+        };
+      }
+      
+      console.log(`❌ Contract not found in vector DB: ${noticeId}`);
+      return null;
+    } catch (error) {
+      console.error('Error getting contract by ID:', error);
+      return null;
+    }
+  }
+
   async getDetailedDocumentStats() {
     if (!this.isConnected) {
       return {

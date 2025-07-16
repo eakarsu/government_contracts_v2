@@ -37,6 +37,7 @@ const complianceRoutes = require('./routes/compliance');
 const documentAnalysisRoutes = require('./routes/documentAnalysis');
 const bidPredictionRoutes = require('./routes/bidPrediction');
 const nlpSearchRoutes = require('./routes/nlpSearch');
+const aiFeaturesRoutes = require('./routes/aiFeatures');
 
 // Import middleware
 const { rateLimiter, statusRateLimiter } = require('./middleware/rateLimiter');
@@ -133,6 +134,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/ai-rfp', authMiddleware, aiRfpRoutes);
 app.use('/api/bid-prediction', authMiddleware, bidPredictionRoutes);
 app.use('/api/nlp', nlpSearchRoutes);
+app.use('/api/ai', aiFeaturesRoutes);
 
 // Debug: Log when routers are loaded
 console.log('📋 [DEBUG] Contracts router mounted at /api/contracts');
@@ -143,6 +145,7 @@ console.log('📋 [DEBUG] Recommendations router mounted at /api/recommendations
 console.log('📋 [DEBUG] RFP router mounted at /api/rfp');
 console.log('📋 [DEBUG] Document processing router mounted at /api/documents/processing');
 console.log('📋 [DEBUG] NLP search router mounted at /api/nlp');
+console.log('📋 [DEBUG] AI features router mounted at /api/ai');
 
 // Test that routes are properly loaded
 app.get('/api/test-routes', (req, res) => {
@@ -383,3 +386,6 @@ process.on('SIGINT', async () => {
 
 // Start the server
 startServer();
+
+// Export vector service for routes
+module.exports.vectorService = vectorService;

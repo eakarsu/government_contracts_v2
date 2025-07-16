@@ -29,6 +29,7 @@ import RFPResponseEdit from './pages/RFPResponseEdit';
 // AI Enhancement Components
 import ProposalDrafter from './components/Proposals/ProposalDrafter';
 import BidProbabilityAnalyzer from './components/Bidding/BidProbabilityAnalyzer';
+import AIAnalysisResults from './pages/AIAnalysisResults';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -70,6 +71,10 @@ function App() {
               {/* AI Enhancement Routes */}
               <Route path="/ai/proposal-drafter" element={<ProposalDrafter />} />
               <Route path="/ai/bid-analyzer" element={<BidProbabilityAnalyzer />} />
+              <Route path="/ai/analysis-results/:contractId" element={<AIAnalysisResults />} />
+              <Route path="/ai/win-probability/:contractId" element={<AIAnalysisResults type="probability" />} />
+              <Route path="/ai/similar-contracts/:contractId" element={<AIAnalysisResults type="similarity" />} />
+              <Route path="/ai/bid-strategy/:contractId" element={<AIAnalysisResults type="strategy" />} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>

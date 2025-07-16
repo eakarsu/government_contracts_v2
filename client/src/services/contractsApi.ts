@@ -56,7 +56,7 @@ export class ContractsApiService {
   }
 
   async getContract(noticeId: string): Promise<Contract> {
-    const response = await api.get<Contract>(`/documents/contracts/${noticeId}`);
+    const response = await api.get<Contract>(`/contracts/${noticeId}`);
     return response.data;
   }
 

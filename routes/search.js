@@ -1,14 +1,10 @@
 const express = require('express');
-const { Pool } = require('pg');
 const AIService = require('../services/aiService');
 const SemanticSearchService = require('../services/semanticSearchService');
 const OpportunityMatchingService = require('../services/opportunityMatchingService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
-});
 
 const semanticSearchService = new SemanticSearchService();
 const opportunityMatchingService = new OpportunityMatchingService();
@@ -238,27 +234,27 @@ router.get('/debug/vector/:query', async (req, res) => {
   }
 });
 
-// Legacy search endpoint for backward compatibility
+// Legacy search endpoint - VECTOR DATABASE ONLY
 router.post('/', async (req, res) => {
   try {
     const startTime = Date.now();
-    const { query, limit = 10, use_vector = true, include_analysis = false } = req.body;
+    const { query, limit = 10, include_analysis = false } = req.body;
 
     if (!query) {
       return res.status(400).json({ error: 'Query parameter is required' });
     }
 
-    logger.info(`Search request: "${query}" with limit ${limit}`);
+    logger.info(`Vector search request: "${query}" with limit ${limit}`);
 
-    // Use hybrid search by default for better results
-    const searchResults = await semanticSearchService.hybridSearch(query, {
+    // Use vector search exclusively
+    const searchResults = await semanticSearchService.semanticSearch(query, {
       limit,
       threshold: 0.01, // Much lower threshold to see all results
       filters: {},
       userId: req.user?.id
     });
     
-    logger.info(`Search completed: found ${searchResults.results?.length || 0} results using ${searchResults.searchType}`);
+    logger.info(`Vector search completed: found ${searchResults.results?.length || 0} results`);
 
     const responseTime = (Date.now() - startTime) / 1000;
 
@@ -273,7 +269,7 @@ router.post('/', async (req, res) => {
         hasMore: false
       },
       response_time: responseTime,
-      search_method: searchResults.searchType || 'hybrid'
+      search_method: 'vector_semantic'
     };
 
     // Add AI analysis if requested
@@ -303,7 +299,7 @@ Provide a brief analysis of the search results including key themes, agencies in
     res.json(response);
 
   } catch (error) {
-    logger.error('Search failed:', error);
+    logger.error('Vector search failed:', error);
     res.status(500).json({ 
       success: false,
       error: error.message 

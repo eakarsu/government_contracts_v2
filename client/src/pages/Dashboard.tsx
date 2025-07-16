@@ -8,7 +8,10 @@ import {
   Clock,
   AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Brain,
+  Target,
+  DollarSign
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
@@ -16,6 +19,8 @@ import StatsCard from '../components/Dashboard/StatsCard';
 import RecentJobs from '../components/Dashboard/RecentJobs';
 import QueueStatus from '../components/Dashboard/QueueStatus';
 import QuickActions from '../components/Dashboard/QuickActions';
+import AIInsights from '../components/Dashboard/AIInsights';
+import AIQuickActions from '../components/Dashboard/AIQuickActions';
 import DocumentDownload from '../components/Dashboard/DocumentDownload';
 
 const Dashboard: React.FC = () => {
@@ -62,7 +67,7 @@ const Dashboard: React.FC = () => {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="mt-2 text-gray-600">
-          Monitor contract indexing, document processing, and system status
+          Monitor contract indexing, AI insights, document processing, and system status
         </p>
       </div>
 
@@ -93,8 +98,8 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* AI Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
         <StatsCard
           title="Total Contracts"
           value={stats?.contracts_in_db || 0}
@@ -108,17 +113,39 @@ const Dashboard: React.FC = () => {
           color="green"
         />
         <StatsCard
-          title="Indexed Documents"
-          value={stats?.documents_indexed || 0}
-          icon={<Zap className="h-6 w-6" />}
+          title="AI Opportunities"
+          value={0}
+          icon={<Brain className="h-6 w-6" />}
           color="purple"
         />
         <StatsCard
-          title="Downloaded Files"
-          value={stats?.downloaded_files || 0}
-          icon={<TrendingUp className="h-6 w-6" />}
+          title="AI Insights"
+          value={0}
+          icon={<Target className="h-6 w-6" />}
           color="orange"
         />
+        <StatsCard
+          title="Win Probability"
+          value="85%"
+          icon={<TrendingUp className="h-6 w-6" />}
+          color="green"
+        />
+        <StatsCard
+          title="AI Savings"
+          value="$12K"
+          icon={<DollarSign className="h-6 w-6" />}
+          color="purple"
+        />
+      </div>
+
+      {/* AI Insights Section */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2">
+          <AIInsights userId="current-user" />
+        </div>
+        <div className="xl:col-span-1">
+          <AIQuickActions />
+        </div>
       </div>
 
       {/* Main Content Grid */}
