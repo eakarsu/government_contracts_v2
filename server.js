@@ -345,6 +345,23 @@ app.use((error, req, res, next) => {
 // Use the error handler middleware
 app.use(errorHandler);
 
+// In your server.js or app.js
+app.use((req, res, next) => {
+  // Allow specific hosts
+  const allowedHosts = [
+    'localhost',
+    '127.0.0.1',
+    'contracts.orderlybite.com'
+  ];
+  
+  if (allowedHosts.includes(req.get('host'))) {
+    next();
+  } else {
+    res.status(400).send('Invalid Host header');
+  }
+});
+
+
 // Initialize services and start server
 async function startServer() {
   try {

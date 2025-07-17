@@ -2,9 +2,9 @@ require('dotenv').config();
 
 const config = {
   // Server
-  port: process.env.PORT || 5011,
+  port: process.env.PORT || 5013,
   nodeEnv: process.env.NODE_ENV || 'development',
-  apiBaseUrl: process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5011}`,
+  apiBaseUrl: process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5013}`,
   
   // Database
   databaseUrl: process.env.DATABASE_URL || 'postgresql://localhost:5432/government_contracts',

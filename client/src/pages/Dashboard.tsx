@@ -20,7 +20,6 @@ import RecentJobs from '../components/Dashboard/RecentJobs';
 import QueueStatus from '../components/Dashboard/QueueStatus';
 import QuickActions from '../components/Dashboard/QuickActions';
 import AIInsights from '../components/Dashboard/AIInsights';
-import AIQuickActions from '../components/Dashboard/AIQuickActions';
 import DocumentDownload from '../components/Dashboard/DocumentDownload';
 
 const Dashboard: React.FC = () => {
@@ -140,11 +139,8 @@ const Dashboard: React.FC = () => {
 
       {/* AI Insights Section */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2">
+        <div className="xl:col-span-3">
           <AIInsights userId="current-user" />
-        </div>
-        <div className="xl:col-span-1">
-          <AIQuickActions />
         </div>
       </div>
 

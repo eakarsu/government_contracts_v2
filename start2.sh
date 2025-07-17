@@ -159,7 +159,7 @@ echo "Vector Database: Vectra (Pure Node.js - embedded)"
 echo "Press Ctrl+C to stop all servers"
 
 # Start the API server in background
-PORT=5011 BROWSER=none npm run dev &
+PORT=5013 BROWSER=none npm run dev &
 SERVER_PID=$!
 echo $SERVER_PID > logs/server.pid
 
@@ -168,6 +168,18 @@ sleep 3
 # Start the React client
 if [ -d "client" ]; then
   echo "Starting React client..."
+  #add
+  #server code
+  #echo "Building React client..."
+  #  cd client
+  #  npm run build
+  #  cd ..
+  #  # Remove old build dir if it exists
+  #  rm -rf public
+  #  # Copy built client to your backend's static directory
+  #  mkdir -p public
+  #  cp -r client/build/* public/
+  #add local
   cd client
   PORT=3001 BROWSER=none npm start &
   CLIENT_PID=$!
@@ -177,7 +189,7 @@ if [ -d "client" ]; then
   echo "🎉 Both servers are running!"
   echo ""
   echo "📊 Services:"
-  echo " • Node.js API Server:  http://localhost:5011"
+  echo " • Node.js API Server:  http://localhost:5013"
   echo " • React Client:        http://localhost:3001"
   echo " • Vector Database:     Vectra (embedded in Node.js)"
   echo ""

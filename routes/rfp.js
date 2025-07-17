@@ -345,8 +345,8 @@ async function initializeRFPTables() {
       try {
         await query(`
           INSERT INTO rfp_templates (
-            name, agency, description, sections, evaluation_criteria
-          ) VALUES ($1, $2, $3, $4, $5)
+            name, agency, description, sections, evaluation_criteria, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, NOW())
         `, [
           comprehensiveTemplate.name,
           comprehensiveTemplate.agency,
