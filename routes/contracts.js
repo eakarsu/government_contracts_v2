@@ -327,7 +327,7 @@ router.post('/fetch', async (req, res) => {
             classificationCode: contractData.classificationCode,
             postedDate: contractData.postedDate ? new Date(contractData.postedDate) : null,
             setAsideCode: contractData.typeOfSetAsideCode,
-            resourceLinks: contractData.resourceLinks || []
+            resourceLinks: Array.isArray(contractData.resourceLinks) ? contractData.resourceLinks : []
           };
           
           if (!contractDetails.noticeId) continue;
@@ -359,7 +359,7 @@ router.post('/fetch', async (req, res) => {
             contractDetails.classificationCode,
             contractDetails.postedDate,
             contractDetails.setAsideCode,
-            JSON.stringify(contractDetails.resourceLinks)
+            JSON.stringify(contractDetails.resourceLinks || [])
           ]);
 
           processedCount++;

@@ -364,7 +364,9 @@ router.post('/generate-proposal', async (req, res) => {
       console.warn('AI service unavailable, generating with fallback content');
     }
     
-    // Use the ProposalDraftingService to create a proposal draft
+    // Use the improved createProposalDraft method with concurrent AI calls and timeout handling
+    console.log('🚀 [DEBUG] Creating proposal with improved timeout handling');
+    
     const proposalDraft = await proposalService.createProposalDraft(rfpDocumentId, userId, title);
     
     console.log(`✅ [DEBUG] Proposal draft created with ID: ${proposalDraft.id}`);

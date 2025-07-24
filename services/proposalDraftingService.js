@@ -138,16 +138,28 @@ class ProposalDraftingService {
   async generateProposalSections(sections, requirements, businessProfile) {
     const proposalSections = [];
 
-    for (const section of sections) {
+    // Make AI calls concurrent instead of sequential to avoid timeout
+    const sectionPromises = sections.map(async (section, index) => {
       try {
-        const sectionContent = await this.aiService.generateProposalSection(
-          section.requirements || section.content,
-          section.title,
-          businessProfile
-        );
+        // Add timeout per section (10 seconds)
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(`Section ${section.title} timed out`)), 10000);
+        });
 
-        proposalSections.push({
-          id: `section_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        const sectionContent = await Promise.race([
+          this.aiService.generateProposalSection(
+            section.requirements || section.content,
+            section.title,
+            businessProfile
+          ),
+          timeoutPromise
+        ]).catch(error => {
+          console.warn(`⚠️ AI generation failed for ${section.title}, using fallback:`, error.message);
+          return `[This section is being generated. Please edit with your specific content for ${section.title}.]`;
+        });
+
+        return {
+          id: `section_${Date.now()}_${index}`,
           title: section.title,
           content: sectionContent,
           requirements: section.requirements || [],
@@ -166,11 +178,11 @@ class ProposalDraftingService {
               percentage: 85
             }
           }
-        });
+        };
       } catch (error) {
         logger.error(`Error generating section ${section.title}:`, error);
-        proposalSections.push({
-          id: `section_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        return {
+          id: `section_${Date.now()}_${index}`,
           title: section.title,
           content: 'Error generating content. Please edit manually.',
           requirements: section.requirements || [],
@@ -189,8 +201,60 @@ class ProposalDraftingService {
               percentage: 0
             }
           }
-        });
+        };
       }
+    });
+
+    // Execute all section generations concurrently with 30 second total timeout
+    try {
+      const totalTimeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Total proposal generation timed out after 30 seconds')), 30000);
+      });
+
+      const results = await Promise.race([
+        Promise.allSettled(sectionPromises),
+        totalTimeoutPromise
+      ]);
+
+      // Extract results from Promise.allSettled
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          proposalSections.push(result.value);
+        } else {
+          console.error(`Section ${index} failed:`, result.reason);
+          proposalSections.push({
+            id: `section_${Date.now()}_${index}`,
+            title: sections[index]?.title || `Section ${index + 1}`,
+            content: 'Failed to generate content. Please edit manually.',
+            requirements: sections[index]?.requirements || [],
+            wordCount: 0,
+            status: 'error',
+            lastModified: new Date().toISOString(),
+            compliance: {
+              wordLimit: { current: 0, maximum: 5000, compliant: true },
+              requirementCoverage: { covered: [], missing: [], percentage: 0 }
+            }
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Total timeout reached, using fallback sections:', error);
+      // Create fallback sections if everything fails
+      sections.forEach((section, index) => {
+        proposalSections.push({
+          id: `section_${Date.now()}_${index}`,
+          title: section.title,
+          content: `[This section needs to be completed. Please add content for ${section.title}.]`,
+          requirements: section.requirements || [],
+          wordCount: 0,
+          status: 'pending',
+          lastModified: new Date().toISOString(),
+          compliance: {
+            wordLimit: { current: 0, maximum: section.wordLimit || 5000, compliant: true },
+            requirementCoverage: { covered: [], missing: section.requirements || [], percentage: 0 }
+          }
+        });
+      });
     }
 
     return proposalSections;
