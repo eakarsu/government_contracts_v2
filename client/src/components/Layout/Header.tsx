@@ -59,7 +59,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, config }) => {
           </button>
 
           {/* Feature indicators */}
-          {config && (
+          {config && config.features && (
             <div className="hidden lg:flex items-center space-x-2">
               {config.features.samGovApi && (
                 <span className="badge-success">SAM.gov</span>

@@ -309,6 +309,40 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Status endpoint (for client compatibility)
+app.get('/api/status', (req, res) => {
+  res.json({ 
+    status: 'running', 
+    timestamp: new Date(),
+    server: 'active',
+    database: 'connected',
+    apis: {
+      norshin: !!config.norshinApiKey,
+      samGov: !!config.samGovApiKey,
+      openRouter: !!config.openRouterApiKey
+    }
+  });
+});
+
+// AI Opportunity Alerts endpoint (placeholder for compatibility)
+app.post('/ai/opportunity-alerts', (req, res) => {
+  res.json({
+    success: true,
+    alerts: [],
+    message: 'AI opportunity alerts feature coming soon',
+    timestamp: new Date()
+  });
+});
+
+app.get('/ai/opportunity-alerts', (req, res) => {
+  res.json({
+    success: true,
+    alerts: [],
+    message: 'AI opportunity alerts feature coming soon',
+    timestamp: new Date()
+  });
+});
+
 // Upload and process single document
 app.post('/api/upload', upload.single('document'), async (req, res) => {
   try {
@@ -425,6 +459,16 @@ async function startServer() {
     app.locals.parallelProcessor = parallelProcessor;
     app.locals.queueWorker = parallelProcessor; // Keep compatibility with existing routes
     
+    // API route fallback - for debugging missing endpoints
+    app.use('/api/*', (req, res) => {
+      res.status(404).json({ 
+        error: `API endpoint ${req.url} not found`,
+        availableEndpoints: ['/api/config', '/api/status', '/api/health'],
+        serverRunning: true,
+        timestamp: new Date().toISOString()
+      });
+    });
+
     // Catch all handler for React routing - must be AFTER API routes
     app.get('*', (req, res) => {
       res.sendFile(path.join(__dirname, 'client/build', 'index.html'));

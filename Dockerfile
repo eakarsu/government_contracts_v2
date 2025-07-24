@@ -3,27 +3,69 @@ FROM node:24-slim
 # Set environment variables for non-interactive package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies including full PostgreSQL server
-RUN apt-get update && apt-get install -y \
+# Configure apt retry logic and enable main repository
+RUN mkdir -p /etc/apt/apt.conf.d && \
+    printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' > /etc/apt/apt.conf.d/99-retries
+
+# Ensure we have proper sources configured and update with debugging
+RUN echo "deb http://deb.debian.org/debian bookworm main" > /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian bookworm-updates main" >> /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian-security bookworm-security main" >> /etc/apt/sources.list && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get clean
+
+# Update package lists with retry logic and verification
+RUN for i in 1 2 3; do \
+        echo "Attempt $i: Updating package lists..." && \
+        apt-get update && \
+        echo "Update successful, verifying packages..." && \
+        apt-cache search git | head -5 && \
+        break || \
+        (echo "Update failed, attempt $i/3" && sleep 5); \
+    done
+
+# Install system dependencies in stages to identify issues
+RUN apt-get install -y --no-install-recommends \
+    curl \
+    wget \
+    gnupg \
+    ca-certificates \
+    software-properties-common
+
+# Install build tools
+RUN apt-get install -y --no-install-recommends \
+    build-essential \
     libffi-dev \
     libssl-dev \
-    build-essential \
+    git
+
+# Install database components
+RUN apt-get install -y --no-install-recommends \
     sqlite3 \
     libsqlite3-dev \
-    postgresql-15 \
     postgresql-client-15 \
-    postgresql-contrib-15 \
-    libpq-dev \
-    libreoffice \
+    libpq-dev
+
+# Try to install PostgreSQL server (may not be available in all architectures)
+RUN apt-get install -y --no-install-recommends postgresql-15 postgresql-contrib-15 || \
+    echo "PostgreSQL server not available for this architecture, skipping..."
+
+# Install document processing tools
+RUN apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-eng \
     imagemagick \
-    poppler-utils \
-    openjdk-17-jre-headless \
-    git \
-    curl \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
+    poppler-utils
+
+# Install LibreOffice (may be large, consider removing if not essential)
+RUN apt-get install -y --no-install-recommends libreoffice || \
+    echo "LibreOffice not available, skipping..."
+
+# Install Java
+RUN apt-get install -y --no-install-recommends openjdk-17-jre-headless
+
+# Clean up
+RUN rm -rf /var/lib/apt/lists/* && apt-get clean
 
 # Set Java environment variables
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
@@ -36,17 +78,17 @@ RUN mkdir -p /root/.config/libreoffice/4/user/config && \
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better Docker layer caching
 COPY package*.json ./
 
 # Install Node.js dependencies
-RUN npm ci --only=production
+RUN npm ci --only=production && npm cache clean --force
+
+# Install nodemon globally
+RUN npm install -g nodemon && npm cache clean --force
 
 # Copy application code
 COPY . .
-
-# Install nodemon globally
-RUN npm install -g nodemon
 
 # Create necessary directories
 RUN mkdir -p downloaded_documents temp_downloads temp_conversions vector_indexes temp_images uploads documents logs

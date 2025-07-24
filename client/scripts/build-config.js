@@ -17,6 +17,16 @@ if (fs.existsSync(envPath)) {
       break;
     }
   }
+} else {
+  // For hosted/production environment without .env file
+  if (process.env.NODE_ENV === 'production') {
+    apiBaseUrl = '/api'; // Use relative path in production
+  }
+}
+
+// Override for production builds - always use relative path when building for hosting
+if (process.env.NODE_ENV === 'production' || process.argv.includes('--production')) {
+  apiBaseUrl = '/api';
 }
 
 // Create config.js in public folder only (no longer needed for runtime)

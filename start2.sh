@@ -45,7 +45,8 @@ start_client_hosting() {
   if [ -d "client" ]; then
     echo "Building React client for hosting..."
     cd client
-    npm run build
+    # Set NODE_ENV for production build
+    NODE_ENV=production npm run build
     cd ..
     # Remove old build dir if it exists
     rm -rf public
@@ -53,6 +54,14 @@ start_client_hosting() {
     mkdir -p public
     cp -r client/build/* public/
     echo "✅ React client built and served from backend"
+    
+    # Debug: Show generated config
+    if [ -f "public/config.js" ]; then
+      echo "🔧 Generated config.js:"
+      cat public/config.js
+    else
+      echo "⚠️ No config.js found in build"
+    fi
   else
     echo "❌ Client directory not found"
   fi
