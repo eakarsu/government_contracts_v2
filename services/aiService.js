@@ -112,7 +112,28 @@ Return only the section content, no additional formatting.`
       }
 
       const data = await response.json();
-      return data.choices[0].message.content;
+      const content = data.choices[0].message.content;
+      
+      // Validate generated content quality
+      if (!content || content.length < 100) {
+        console.warn('AI generated content too short, using fallback');
+        return this.getFallbackSectionContent(sectionTitle);
+      }
+      
+      // Check for common AI refusal patterns
+      const refusalPatterns = [
+        /i cannot/i,
+        /i'm not able to/i,
+        /as an ai/i,
+        /i don't have access/i
+      ];
+      
+      if (refusalPatterns.some(pattern => pattern.test(content))) {
+        console.warn('AI refused to generate content, using fallback');
+        return this.getFallbackSectionContent(sectionTitle);
+      }
+      
+      return content;
     } catch (error) {
       console.error('AI section generation error:', error);
       return this.getFallbackSectionContent(sectionTitle);
@@ -363,11 +384,19 @@ Return structured data that can be parsed into factors, recommendations, and com
       });
 
       if (!response.ok) {
-        throw new Error(`Document summarization failed: ${response.statusText}`);
+        throw new Error(`AI summarization failed: ${response.statusText}`);
       }
 
       const data = await response.json();
-      return data.choices[0].message.content;
+      const summary = data.choices[0].message.content;
+      
+      // Validate summary quality
+      if (!summary || summary.length < 20) {
+        console.warn('AI summary too short, using fallback');
+        return this.getFallbackSummary(text);
+      }
+      
+      return summary;
     } catch (error) {
       console.error('AI document summarization error:', error);
       return this.getFallbackSummary(text);
@@ -460,6 +489,55 @@ Return structured data that can be parsed into factors, recommendations, and com
         threats: ['Competition', 'Pricing']
       }
     };
+  }
+
+  // Add method to check if API is configured and working
+  async healthCheck() {
+    try {
+      if (!this.apiKey) {
+        return {
+          status: 'degraded',
+          message: 'API key not configured - using fallback responses',
+          capabilities: ['fallback_analysis', 'fallback_generation']
+        };
+      }
+
+      // Test with a simple completion
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': config.apiBaseUrl,
+          'X-Title': 'Government Contracts Platform'
+        },
+        body: JSON.stringify({
+          model: this.chatModel,
+          messages: [{ role: 'user', content: 'Test: respond with "OK"' }],
+          max_tokens: 10
+        })
+      });
+
+      if (response.ok) {
+        return {
+          status: 'healthy',
+          message: 'AI service fully operational',
+          capabilities: ['document_analysis', 'proposal_generation', 'bid_analysis', 'summarization']
+        };
+      } else {
+        return {
+          status: 'error',
+          message: `API error: ${response.statusText}`,
+          capabilities: ['fallback_only']
+        };
+      }
+    } catch (error) {
+      return {
+        status: 'error',
+        message: `Connection error: ${error.message}`,
+        capabilities: ['fallback_only']
+      };
+    }
   }
 }
 

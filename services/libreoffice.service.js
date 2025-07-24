@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const execPromise = util.promisify(exec);
 
 class LibreOfficeSemaphore {
-    constructor(maxConcurrent = 2) {
+    constructor(maxConcurrent = 10) { // Balanced at 10 to match document worker concurrency
         this.maxConcurrent = maxConcurrent;
         this.running = 0;
         this.queue = [];
@@ -34,7 +34,7 @@ class LibreOfficeSemaphore {
 
 class LibreOfficeService {
     constructor() {
-        this.semaphore = new LibreOfficeSemaphore(2);
+        this.semaphore = new LibreOfficeSemaphore(10); // Match 10 document worker concurrency for optimal performance
         this.setupCleanup();
     }
 
@@ -143,7 +143,7 @@ class LibreOfficeService {
             ].join(' ');
 
             console.log(`Converting to PDF with unique installation: ${userInstallDir}`);
-            await execPromise(command, { timeout: 60000 });
+            await execPromise(command, { timeout: 300000 }); // Increased to 5 minutes
             
             return { success: true, userInstallDir };
             
@@ -188,7 +188,7 @@ class LibreOfficeService {
             ].join(' ');
 
             console.log(`Converting to Word with unique installation: ${userInstallDir}`);
-            await execPromise(command, { timeout: 60000 });
+            await execPromise(command, { timeout: 300000 }); // Increased to 5 minutes
             
             return { success: true, userInstallDir };
             

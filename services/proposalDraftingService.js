@@ -82,7 +82,25 @@ class ProposalDraftingService {
 
       const rfpDoc = rfpResult.rows[0];
       const requirements = typeof rfpDoc.requirements === 'string' ? JSON.parse(rfpDoc.requirements) : rfpDoc.requirements;
-      const sections = typeof rfpDoc.sections === 'string' ? JSON.parse(rfpDoc.sections) : rfpDoc.sections;
+      
+      // Always use the standard 15 sections instead of extracted sections
+      const sections = [
+        { title: 'Executive Summary', requirements: ['Provide a high-level overview of your proposed solution'], wordLimit: 1500 },
+        { title: 'Technical Approach', requirements: ['Detail your technical methodology and implementation strategy'], wordLimit: 3000 },
+        { title: 'Management Approach', requirements: ['Describe your project management methodology and team structure'], wordLimit: 2500 },
+        { title: 'Past Performance', requirements: ['Provide relevant examples of similar work and client references'], wordLimit: 2000 },
+        { title: 'Key Personnel', requirements: ['Identify key team members and their qualifications'], wordLimit: 2000 },
+        { title: 'Cost Proposal', requirements: ['Provide detailed cost breakdown and pricing rationale'], wordLimit: 2000 },
+        { title: 'Schedule and Milestones', requirements: ['Present project timeline with key milestones'], wordLimit: 1500 },
+        { title: 'Risk Management', requirements: ['Identify potential risks and mitigation strategies'], wordLimit: 1500 },
+        { title: 'Quality Assurance', requirements: ['Describe quality control processes and standards'], wordLimit: 1500 },
+        { title: 'Security and Compliance', requirements: ['Detail security measures and regulatory compliance'], wordLimit: 2000 },
+        { title: 'Transition Plan', requirements: ['Describe transition from current to operational state'], wordLimit: 1500 },
+        { title: 'Training and Support', requirements: ['Detail training programs and ongoing support'], wordLimit: 1500 },
+        { title: 'Maintenance and Sustainment', requirements: ['Explain long-term maintenance and sustainment planning'], wordLimit: 1500 },
+        { title: 'Innovation and Added Value', requirements: ['Highlight innovative approaches and value-added services'], wordLimit: 1500 },
+        { title: 'Subcontractor and Teaming', requirements: ['Describe subcontractor relationships and teaming arrangements'], wordLimit: 1500 }
+      ];
 
       // Get user's business profile - use empty profile if none exists
       const businessProfile = {};
@@ -96,8 +114,8 @@ class ProposalDraftingService {
       // Create proposal draft
       const query = `
         INSERT INTO proposal_drafts (
-          rfp_document_id, user_id, title, sections, compliance_status
-        ) VALUES ($1, $2, $3, $4, $5)
+          rfp_document_id, user_id, title, sections, compliance_status, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
         RETURNING *
       `;
 

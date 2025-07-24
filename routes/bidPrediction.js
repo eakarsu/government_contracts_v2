@@ -193,6 +193,49 @@ router.get('/predictions', async (req, res) => {
 // GET /api/bid-prediction/history
 router.get('/history', async (req, res) => {
   try {
+    // Return mock bid history data since tables don't exist in Prisma schema
+    const mockBidHistory = [
+      {
+        id: '1',
+        contractId: 'FA8232-25-R-B013',
+        contractTitle: 'F-16 MIL-STD-1553 Databus Upgrade',
+        agency: 'Department of Air Force',
+        contractValue: 2500000,
+        bidAmount: 2350000,
+        outcome: 'Won',
+        winProbability: 0.78,
+        actualResult: true,
+        lessonsLearned: 'Strong technical approach and competitive pricing were key factors.',
+        recordedAt: '2024-11-15T10:30:00Z'
+      },
+      {
+        id: '2',
+        contractId: 'N0001924C0012',
+        contractTitle: 'Navy IT Infrastructure Modernization',
+        agency: 'Department of Navy',
+        contractValue: 1800000,
+        bidAmount: 1750000,
+        outcome: 'Lost',
+        winProbability: 0.65,
+        actualResult: false,
+        lessonsLearned: 'Incumbent had significant advantages. Need stronger past performance examples.',
+        recordedAt: '2024-10-22T14:15:00Z'
+      },
+      {
+        id: '3',
+        contractId: 'W912DY24C0087',
+        contractTitle: 'Army Base Security Systems',
+        agency: 'U.S. Army Corps of Engineers',
+        contractValue: 3200000,
+        bidAmount: 2950000,
+        outcome: 'Won',
+        winProbability: 0.82,
+        actualResult: true,
+        lessonsLearned: 'Excellent security clearance coverage and local presence were decisive.',
+        recordedAt: '2024-09-08T16:45:00Z'
+      }
+    ];
+
     // Return mock analytics data since tables don't exist in Prisma schema
     const mockAnalytics = {
       totalBids: 15,
@@ -218,6 +261,7 @@ router.get('/history', async (req, res) => {
 
     res.json({
       success: true,
+      bidHistory: mockBidHistory,
       analytics: mockAnalytics
     });
   } catch (error) {

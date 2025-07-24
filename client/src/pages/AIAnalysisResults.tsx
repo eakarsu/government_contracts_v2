@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, Target, Clock, DollarSign, AlertTriangle } from 'lucide-react';
 import api from '../services/api';
+import { useAINavigation } from '../contexts/AINavigationContext';
 
 interface AnalysisData {
   contract: {
@@ -86,9 +87,16 @@ interface AIAnalysisResultsProps {
 const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehensive' }) => {
   const navigate = useNavigate();
   const { contractId } = useParams();
+  const [searchParams] = useSearchParams();
+  const { getBackNavigation } = useAINavigation();
+  
+  // Get analysis type from URL query param or fallback to prop
+  const analysisType = searchParams.get('type') || type || 'comprehensive';
   const [analysis, setAnalysis] = useState<AnalysisData | ComprehensiveAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const backNavigation = getBackNavigation();
 
   useEffect(() => {
     const fetchAnalysis = async () => {
@@ -98,7 +106,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
         return;
       }
 
-      const currentAnalysisType = type || 'comprehensive';
+      const currentAnalysisType = analysisType;
       
       try {
         console.log(`Fetching ${currentAnalysisType} analysis for contract:`, contractId);
@@ -140,7 +148,8 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
         }
 
         const response = await api.post(endpoint, data);
-        console.log('API response:', response.data);
+        console.log('API response status:', response.status);
+        console.log('API response data:', JSON.stringify(response.data, null, 2));
         
         // Handle different response structures
         let analysisData: AnalysisData;
@@ -245,7 +254,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
     };
 
     fetchAnalysis();
-  }, [contractId, type]);
+  }, [contractId, analysisType]);
 
   const getActionColor = (action: string) => {
     switch (action) {
@@ -311,9 +320,9 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <CustomButton onClick={() => navigate('/')}>
+          <CustomButton onClick={() => navigate(backNavigation.path)}>
             <ArrowLeft className="w-4 h-4 mr-2 inline" />
-            Back to Dashboard
+            {backNavigation.label}
           </CustomButton>
         </div>
       </div>
@@ -325,9 +334,9 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">No analysis data found.</p>
-          <CustomButton onClick={() => navigate('/')}>
+          <CustomButton onClick={() => navigate(backNavigation.path)}>
             <ArrowLeft className="w-4 h-4 mr-2 inline" />
-            Back to Dashboard
+            {backNavigation.label}
           </CustomButton>
         </div>
       </div>
@@ -335,7 +344,6 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
   }
 
   const getPageTitle = () => {
-    const analysisType = type || 'comprehensive';
     switch (analysisType) {
       case 'comprehensive': return 'AI Comprehensive Analysis';
       case 'probability': return 'Win Probability Analysis';
@@ -348,7 +356,6 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
   };
 
   const getPageSubtitle = () => {
-    const analysisType = type || 'comprehensive';
     switch (analysisType) {
       case 'comprehensive': return 'Complete intelligence for contract decision making';
       case 'probability': return 'Predict your likelihood of winning this contract';
@@ -364,9 +371,9 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <CustomButton onClick={() => navigate('/')} className="mb-4">
+          <CustomButton onClick={() => navigate(backNavigation.path)} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-2 inline" />
-            Back to Dashboard
+            {backNavigation.label}
           </CustomButton>
           <h1 className="text-3xl font-bold text-gray-900">{getPageTitle()}</h1>
           <p className="text-gray-600 mt-2">{getPageSubtitle()}</p>
@@ -426,12 +433,12 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
         </CustomCard>
 
         {/* Win Probability - Show only for probability or comprehensive analysis */}
-        {((type || 'comprehensive') === 'probability' || (type || 'comprehensive') === 'comprehensive') && analysis.winProbability && (
+        {(analysisType === 'probability' || analysisType === 'comprehensive') && analysis.winProbability && (
           <CustomCard className="mb-6">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="flex items-center text-lg font-semibold text-gray-900">
                 <Target className="w-5 h-5 mr-2" />
-                {(type || 'comprehensive') === 'probability' ? 'Win Probability Analysis' : 'Win Probability Analysis'}
+                {analysisType === 'probability' ? 'Win Probability Analysis' : 'Win Probability Analysis'}
               </h3>
             </div>
             <div className="p-6">
@@ -439,7 +446,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span>Win Probability</span>
-                    <span>{analysis.winProbability?.probability !== undefined ? analysis.winProbability.probability + '%' : 'Training...'}% <span className="text-xs text-gray-500">({analysis.winProbability?.probability !== undefined ? 'Real Data' : 'Limited Training Data'})</span></span>
+                    <span>{analysis.winProbability?.probability !== undefined && analysis.winProbability?.probability !== null ? analysis.winProbability.probability : 0}% <span className="text-xs text-gray-500">({analysis.winProbability?.probability !== undefined && analysis.winProbability?.probability !== null ? 'Real Data' : 'Limited Training Data'})</span></span>
                   </div>
                   <CustomProgress value={analysis.winProbability?.probability || 0} />
                 </div>
@@ -451,7 +458,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
                   <CustomProgress value={Math.min(analysis.winProbability?.confidence || 0, 100)} />
                 </div>
                 
-                {analysis.winProbability?.factors?.length > 0 && (type || 'comprehensive') === 'probability' && (
+                {analysis.winProbability?.factors?.length > 0 && analysisType === 'probability' && (
                   <div>
                     <h4 className="font-semibold mb-2">Key Factors</h4>
                     <ul className="text-sm text-gray-600 space-y-1">
@@ -480,12 +487,12 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
         )}
 
         {/* Bid Strategy - Show only for strategy or comprehensive analysis */}
-        {((type || 'comprehensive') === 'strategy' || (type || 'comprehensive') === 'comprehensive') && analysis.bidStrategy && (
+        {(analysisType === 'strategy' || analysisType === 'comprehensive') && analysis.bidStrategy && (
           <CustomCard className="mb-6">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="flex items-center text-lg font-semibold text-gray-900">
                 <Clock className="w-5 h-5 mr-2" />
-                {(type || 'comprehensive') === 'strategy' ? 'Bid Strategy Optimization' : 'Bid Strategy & Timeline'}
+                {analysisType === 'strategy' ? 'Bid Strategy Optimization' : 'Bid Strategy & Timeline'}
               </h3>
             </div>
             <div className="p-6">
@@ -513,7 +520,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
                 </div>
               </div>
 
-              {analysis.bidStrategy?.recommendations?.length > 0 && (type || 'comprehensive') === 'strategy' && (
+              {analysis.bidStrategy?.recommendations?.length > 0 && analysisType === 'strategy' && (
                 <div className="mt-6">
                   <h4 className="font-semibold mb-3">Strategic Recommendations</h4>
                   <div className="space-y-2">
@@ -538,19 +545,19 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
         )}
 
         {/* Similar Contracts - Show only for similarity or comprehensive analysis */}
-        {((type || 'comprehensive') === 'similarity' || (type || 'comprehensive') === 'comprehensive') && analysis.similarContracts && (
+        {(analysisType === 'similarity' || analysisType === 'comprehensive') && analysis.similarContracts && (
           <CustomCard>
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="flex items-center text-lg font-semibold text-gray-900">
                 <DollarSign className="w-5 h-5 mr-2" />
-                {(type || 'comprehensive') === 'similarity' ? 'Similar Contracts Analysis' : 'Similar Contracts Found'}
+                {analysisType === 'similarity' ? 'Similar Contracts Analysis' : 'Similar Contracts Found'}
               </h3>
             </div>
             <div className="p-6">
               <p className="text-sm text-gray-600 mb-4">
                 Found {analysis.similarContracts?.matches?.length || 0} similar contracts for comparison
               </p>
-              {analysis.similarContracts?.insights?.length > 0 && (type || 'comprehensive') === 'similarity' && (
+              {analysis.similarContracts?.insights?.length > 0 && analysisType === 'similarity' && (
                 <div className="space-y-2">
                   {analysis.similarContracts.insights.map((insight: any, index: number) => (
                     <div key={index} className="bg-gray-50 p-3 rounded">

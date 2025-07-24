@@ -6,6 +6,107 @@ const config = require('../config/env');
 
 const router = express.Router();
 
+// Initialize vector service
+const vectorService = new VectorService();
+vectorService.initialize().catch(console.error);
+
+// Helper function to get contract from vector database (same as aiFeatures.js)
+async function getContractFromVector(contractId) {
+  try {
+    // First try to get by exact ID
+    let contract = await vectorService.getContractById(contractId);
+    
+    if (contract) {
+      return contract;
+    }
+    
+    console.log(`Contract not found by ID ${contractId}, searching by content...`);
+    
+    // Try searching by contract ID as text content first (most specific)
+    const exactSearchResults = await vectorService.searchContracts(contractId, { limit: 5 });
+    
+    if (exactSearchResults && exactSearchResults.length > 0) {
+      // Look for exact matches first
+      const exactMatch = exactSearchResults.find(result => 
+        result.description?.includes(contractId) || 
+        result.title?.includes(contractId) ||
+        result.noticeId === contractId ||
+        result.id === contractId
+      );
+      
+      if (exactMatch) {
+        console.log(`Found exact match by content: ${exactMatch.title}`);
+        return exactMatch;
+      }
+    }
+    
+    // If no exact match, try fuzzy search by extracting keywords from the contract ID
+    const keywords = extractSearchKeywords(contractId);
+    
+    if (keywords.length > 0) {
+      console.log(`Searching with extracted keywords: ${keywords.join(', ')}`);
+      
+      for (const keyword of keywords) {
+        const keywordResults = await vectorService.searchContracts(keyword, { limit: 3 });
+        
+        if (keywordResults && keywordResults.length > 0) {
+          // Find the best match that might be related
+          const relatedMatch = keywordResults.find(result => 
+            result.title?.toLowerCase().includes(keyword.toLowerCase()) ||
+            result.description?.toLowerCase().includes(keyword.toLowerCase()) ||
+            result.agency?.toLowerCase().includes(keyword.toLowerCase())
+          );
+          
+          if (relatedMatch) {
+            console.log(`Found related contract by keyword "${keyword}": ${relatedMatch.title}`);
+            return relatedMatch;
+          }
+        }
+      }
+    }
+    
+    // Fallback to first result from exact search if available
+    if (exactSearchResults && exactSearchResults.length > 0) {
+      console.log(`Using fallback match: ${exactSearchResults[0].title}`);
+      return exactSearchResults[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting contract from vector database:', error);
+    return null;
+  }
+}
+
+// Helper function to extract search keywords from contract ID
+function extractSearchKeywords(contractId) {
+  const keywords = [];
+  
+  // Extract alphanumeric segments
+  const segments = contractId.split(/[-_\s]+/).filter(segment => segment.length > 2);
+  keywords.push(...segments);
+  
+  // Extract agency codes (letters at start)
+  const agencyMatch = contractId.match(/^([A-Z]+)/);
+  if (agencyMatch) {
+    keywords.push(agencyMatch[1]);
+  }
+  
+  // Extract specific patterns
+  if (contractId.includes('FA8232')) {
+    keywords.push('F-16', 'databus', 'MIL-STD-1553', 'Air Force');
+  } else if (contractId.includes('W9')) {
+    keywords.push('Army', 'Corps of Engineers');
+  } else if (contractId.includes('N0')) {
+    keywords.push('Navy');
+  } else if (contractId.includes('VA-')) {
+    keywords.push('Veterans Affairs');
+  }
+  
+  // Remove duplicates and short keywords
+  return [...new Set(keywords)].filter(k => k.length > 2);
+}
+
 // Debug middleware for contracts router
 router.use((req, res, next) => {
   console.log(`📋 [DEBUG] Contracts route hit: ${req.method} ${req.path}`);
@@ -44,7 +145,7 @@ router.get('/', async (req, res) => {
 
     try {
       // Get total count for pagination
-      const totalResult = await query('SELECT COUNT(*) FROM contracts');
+      const totalResult = await query('SELECT COUNT(*) FROM contract');
       totalCount = parseInt(totalResult.rows[0].count);
 
       // Get contracts with pagination
@@ -54,7 +155,7 @@ router.get('/', async (req, res) => {
           classification_code, posted_date, set_aside_code, 
           resource_links, indexed_at, created_at, updated_at,
           contract_value
-        FROM contracts 
+        FROM contract 
         ORDER BY posted_date DESC NULLS LAST, created_at DESC
         LIMIT $1 OFFSET $2
       `, [parseInt(limit), offset]);
@@ -69,7 +170,19 @@ router.get('/', async (req, res) => {
         classificationCode: row.classification_code,
         postedDate: row.posted_date,
         setAsideCode: row.set_aside_code,
-        resourceLinks: row.resource_links ? JSON.parse(row.resource_links) : [],
+        resourceLinks: (() => {
+          if (!row.resource_links) return [];
+          if (Array.isArray(row.resource_links)) return row.resource_links;
+          if (typeof row.resource_links === 'string') {
+            try {
+              return JSON.parse(row.resource_links);
+            } catch (e) {
+              console.warn(`Invalid JSON in resource_links for contract ${row.notice_id}:`, row.resource_links);
+              return [];
+            }
+          }
+          return [];
+        })(),
         indexedAt: row.indexed_at,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -110,9 +223,6 @@ router.get('/:noticeId', async (req, res) => {
   try {
     const { noticeId } = req.params;
     
-    // Get the vector service from the global instance
-    const vectorService = require('../server').vectorService;
-    
     if (!vectorService || !vectorService.isConnected) {
       return res.status(503).json({
         success: false,
@@ -120,8 +230,8 @@ router.get('/:noticeId', async (req, res) => {
       });
     }
     
-    // Get contract directly from vector database by ID
-    const contract = await vectorService.getContractById(noticeId);
+    // Get contract using smart search function
+    const contract = await getContractFromVector(noticeId);
     
     if (!contract) {
       return res.status(404).json({
@@ -161,7 +271,7 @@ router.post('/fetch', async (req, res) => {
     // Auto-expand search range if no dates provided
     if (!startDate && !endDate) {
       const oldestContractResult = await query(`
-        SELECT posted_date FROM contracts 
+        SELECT posted_date FROM contract 
         WHERE posted_date IS NOT NULL 
         ORDER BY posted_date ASC 
         LIMIT 1
@@ -224,10 +334,11 @@ router.post('/fetch', async (req, res) => {
 
           // Upsert contract using raw SQL
           await query(`
-            INSERT INTO contracts (
+            INSERT INTO contract (
               notice_id, title, description, agency, naics_code, 
-              classification_code, posted_date, set_aside_code, resource_links
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+              classification_code, posted_date, set_aside_code, resource_links,
+              created_at, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
             ON CONFLICT (notice_id) 
             DO UPDATE SET 
               title = EXCLUDED.title,
@@ -293,9 +404,19 @@ router.post('/index', async (req, res) => {
   try {
     const { limit = 100 } = req.body;
 
+    // Get the vector service from the global instance
+    const vectorService = require('../server').vectorService;
+    
+    if (!vectorService || !vectorService.isConnected) {
+      return res.status(503).json({
+        success: false,
+        error: 'Vector database not available'
+      });
+    }
+
     // Get contracts that haven't been indexed yet
     const result = await query(`
-      SELECT * FROM contracts 
+      SELECT * FROM contract 
       WHERE indexed_at IS NULL 
       LIMIT $1
     `, [limit]);
@@ -303,13 +424,13 @@ router.post('/index', async (req, res) => {
     const contracts = result.rows;
 
     if (contracts.length === 0) {
-      const totalIndexed = await prisma.contract.count({
-        where: { indexedAt: { not: null } }
-      });
+      const totalIndexed = await query(`
+        SELECT COUNT(*) FROM contract WHERE indexed_at IS NOT NULL
+      `);
       return res.json({
-        message: `All contracts already indexed. Total: ${totalIndexed}`,
+        message: `All contracts already indexed. Total: ${totalIndexed.rows[0].count}`,
         indexed_count: 0,
-        total_indexed: totalIndexed
+        total_indexed: parseInt(totalIndexed.rows[0].count)
       });
     }
 
@@ -328,12 +449,40 @@ router.post('/index', async (req, res) => {
     try {
       for (const contract of contracts) {
         try {
+          // Transform snake_case to camelCase for vector service
+          const transformedContract = {
+            id: contract.id,
+            noticeId: contract.notice_id,
+            title: contract.title,
+            description: contract.description,
+            agency: contract.agency,
+            naicsCode: contract.naics_code,
+            classificationCode: contract.classification_code,
+            postedDate: contract.posted_date,
+            setAsideCode: contract.set_aside_code,
+            resourceLinks: (() => {
+              try {
+                if (!contract.resource_links || contract.resource_links.trim() === '') {
+                  return [];
+                }
+                return JSON.parse(contract.resource_links);
+              } catch (jsonError) {
+                console.warn(`Invalid JSON in resource_links for contract ${contract.notice_id}:`, contract.resource_links);
+                return [];
+              }
+            })(),
+            indexedAt: contract.indexed_at,
+            createdAt: contract.created_at,
+            updatedAt: contract.updated_at,
+            contractValue: contract.contract_value
+          };
+          
           // Index contract in vector database
-          await vectorService.indexContract(contract);
+          await vectorService.indexContract(transformedContract);
           
           // Mark as indexed
           await query(`
-            UPDATE contracts 
+            UPDATE contract 
             SET indexed_at = NOW() 
             WHERE id = $1
           `, [contract.id]);
@@ -345,7 +494,13 @@ router.post('/index', async (req, res) => {
             console.log(`Indexed ${indexedCount} contracts so far...`);
           }
         } catch (error) {
-          console.error(`Error indexing contract ${contract.notice_id}:`, error);
+          console.error(`Error indexing contract ${contract.notice_id}:`, error.message);
+          console.error(`Contract data:`, {
+            id: contract.id,
+            notice_id: contract.notice_id,
+            title: contract.title?.substring(0, 50) + '...',
+            resource_links_length: contract.resource_links?.length || 0
+          });
           errorsCount++;
         }
       }
@@ -394,14 +549,48 @@ router.post('/search', async (req, res) => {
     if (use_vector) {
       // Use vector search
       try {
+        // Get the vector service from the global instance
+        const vectorService = require('../server').vectorService;
         const vectorResults = await vectorService.searchContracts(query, limit);
         
         // Get full contract details from database
         const contractIds = vectorResults.map(r => r.id);
-        contracts = await prisma.contract.findMany({
-          where: { noticeId: { in: contractIds } },
-          orderBy: { postedDate: 'desc' }
-        });
+        if (contractIds.length > 0) {
+          const placeholders = contractIds.map((_, i) => `$${i + 1}`).join(',');
+          const searchResult = await query(`
+            SELECT * FROM contract 
+            WHERE notice_id IN (${placeholders})
+            ORDER BY posted_date DESC NULLS LAST, created_at DESC
+          `, contractIds);
+          
+          contracts = searchResult.rows.map(row => ({
+            id: row.id,
+            noticeId: row.notice_id,
+            title: row.title,
+            description: row.description,
+            agency: row.agency,
+            naicsCode: row.naics_code,
+            classificationCode: row.classification_code,
+            postedDate: row.posted_date,
+            setAsideCode: row.set_aside_code,
+            resourceLinks: (() => {
+          if (!row.resource_links) return [];
+          if (Array.isArray(row.resource_links)) return row.resource_links;
+          if (typeof row.resource_links === 'string') {
+            try {
+              return JSON.parse(row.resource_links);
+            } catch (e) {
+              console.warn(`Invalid JSON in resource_links for contract ${row.notice_id}:`, row.resource_links);
+              return [];
+            }
+          }
+          return [];
+        })(),
+            indexedAt: row.indexed_at,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+          }));
+        }
 
         // Add similarity scores
         contracts = contracts.map(contract => {
@@ -420,7 +609,7 @@ router.post('/search', async (req, res) => {
     if (!use_vector || contracts.length === 0) {
       // Fallback to database search
       const searchResult = await query(`
-        SELECT * FROM contracts 
+        SELECT * FROM contract 
         WHERE title ILIKE $1 OR description ILIKE $1 OR agency ILIKE $1
         ORDER BY posted_date DESC NULLS LAST, created_at DESC
         LIMIT $2
@@ -436,7 +625,19 @@ router.post('/search', async (req, res) => {
         classificationCode: row.classification_code,
         postedDate: row.posted_date,
         setAsideCode: row.set_aside_code,
-        resourceLinks: row.resource_links ? JSON.parse(row.resource_links) : [],
+        resourceLinks: (() => {
+          if (!row.resource_links) return [];
+          if (Array.isArray(row.resource_links)) return row.resource_links;
+          if (typeof row.resource_links === 'string') {
+            try {
+              return JSON.parse(row.resource_links);
+            } catch (e) {
+              console.warn(`Invalid JSON in resource_links for contract ${row.notice_id}:`, row.resource_links);
+              return [];
+            }
+          }
+          return [];
+        })(),
         indexedAt: row.indexed_at,
         createdAt: row.created_at,
         updatedAt: row.updated_at
@@ -473,7 +674,7 @@ router.post('/:noticeId/analyze', async (req, res) => {
     const { noticeId } = req.params;
     
     const contractResult = await query(
-      'SELECT * FROM contracts WHERE notice_id = $1',
+      'SELECT * FROM contract WHERE notice_id = $1',
       [noticeId]
     );
     const contract = contractResult.rows[0];

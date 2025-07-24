@@ -639,6 +639,7 @@ export interface RFPGenerationRequest {
   companyProfileId: number;
   customInstructions?: string;
   focusAreas?: string[];
+  requestId?: string; // Added to prevent duplicate generations
 }
 
 export interface RFPGenerationResponse {

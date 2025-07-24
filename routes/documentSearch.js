@@ -953,7 +953,7 @@ router.get('/queue/status', async (req, res) => {
     // Get active processing jobs
     const activeJobs = await prisma.indexingJob.findMany({
       where: { 
-        jobType: 'queue_processing',
+        jobType: 'parallel_processing',
         status: 'running'
       },
       orderBy: { createdAt: 'desc' },
@@ -1055,7 +1055,7 @@ router.post('/queue/process-test', async (req, res) => {
     const existingJob = await prisma.indexingJob.findFirst({
       where: { 
         status: 'running',
-        jobType: { in: ['queue_processing', 'document_processing'] }
+        jobType: { in: ['parallel_processing', 'document_processing'] }
       }
     });
 
@@ -1092,7 +1092,7 @@ router.post('/queue/process-test', async (req, res) => {
     // Create processing job for tracking
     const job = await prisma.indexingJob.create({
       data: {
-        jobType: 'queue_processing',
+        jobType: 'parallel_processing',
         status: 'running',
         startDate: new Date()
       }
@@ -1136,7 +1136,7 @@ router.post('/queue/process', async (req, res) => {
     const existingJob = await prisma.indexingJob.findFirst({
       where: { 
         status: 'running',
-        jobType: { in: ['queue_processing', 'document_processing'] }
+        jobType: { in: ['parallel_processing', 'document_processing'] }
       }
     });
 
@@ -1317,7 +1317,7 @@ router.post('/queue/process', async (req, res) => {
     // Create processing job for tracking
     const job = await prisma.indexingJob.create({
       data: {
-        jobType: 'queue_processing',
+        jobType: 'parallel_processing',
         status: 'running',
         startDate: new Date()
       }
@@ -1924,7 +1924,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
   };
 
   // Process in true parallel batches
-  const batchSize = Math.min(concurrency, 10); // Max 10 concurrent
+  const batchSize = Math.min(concurrency, 30); // Increased from 10 to 30 concurrent
   const batches = [];
   
   for (let i = 0; i < documents.length; i += batchSize) {
@@ -1933,20 +1933,19 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
 
   console.log(`📦 Processing ${documents.length} documents in ${batches.length} batches of ${batchSize}`);
 
-  // Process all batches
-  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-    const batch = batches[batchIndex];
+  // Process ALL batches simultaneously (true parallelization)
+  console.log(`🚀 Starting simultaneous processing of all ${batches.length} batches`);
+  
+  const allBatchPromises = batches.map((batch, batchIndex) => {
     console.log(`🔄 Batch ${batchIndex + 1}/${batches.length}: ${batch.length} documents`);
-    
-    // Process batch in parallel
     const batchPromises = batch.map(doc => processDocument(doc));
-    await Promise.allSettled(batchPromises);
-    
-    // Brief pause between batches
-    if (batchIndex < batches.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-  }
+    return Promise.allSettled(batchPromises);
+  });
+  
+  // Wait for ALL batches to complete simultaneously
+  await Promise.allSettled(allBatchPromises);
+  
+  console.log(`✅ All ${batches.length} batches completed simultaneously`);
 
   // Update job status
   try {
@@ -2118,7 +2117,7 @@ router.get('/stats', async (req, res) => {
         _count: { id: true }
       }),
       prisma.indexingJob.findMany({
-        where: { jobType: { in: ['document_download', 'queue_processing'] } },
+        where: { jobType: { in: ['document_download', 'parallel_processing'] } },
         orderBy: { createdAt: 'desc' },
         take: 5,
         select: {
@@ -2368,7 +2367,7 @@ router.post('/queue/reset-to-processing', async (req, res) => {
     // Create a new processing job to track this batch
     const job = await prisma.indexingJob.create({
       data: {
-        jobType: 'queue_processing',
+        jobType: 'parallel_processing',
         status: 'running',
         startDate: new Date()
       }
@@ -2439,7 +2438,7 @@ router.post('/queue/reset', async (req, res) => {
     const runningJobs = await prisma.indexingJob.updateMany({
       where: { 
         status: 'running',
-        jobType: { in: ['queue_processing', 'document_processing'] }
+        jobType: { in: ['parallel_processing', 'document_processing'] }
       },
       data: {
         status: 'failed',
@@ -2515,11 +2514,30 @@ router.post('/queue/stop', async (req, res) => {
   try {
     console.log('🛑 [DEBUG] Stopping all queue processing...');
     
+    // Stop the actual queue worker (which also handles document reset)
+    const queueWorker = req.app.locals.queueWorker;
+    let resetCount = 0;
+    
+    if (queueWorker) {
+      await queueWorker.stop();
+      console.log('🛑 [DEBUG] Queue worker stopped successfully');
+      
+      // Get count of documents that were reset
+      const statusCounts = await prisma.documentProcessingQueue.groupBy({
+        by: ['status'],
+        _count: { id: true }
+      });
+      const queuedCount = statusCounts.find(s => s.status === 'queued')?._count?.id || 0;
+      resetCount = queuedCount;
+    } else {
+      console.log('⚠️ [DEBUG] Queue worker not found in app context');
+    }
+    
     // Stop all running jobs
     const stoppedJobs = await prisma.indexingJob.updateMany({
       where: { 
         status: 'running',
-        jobType: { in: ['queue_processing', 'document_processing'] }
+        jobType: { in: ['parallel_processing', 'document_processing'] }
       },
       data: {
         status: 'failed',
@@ -2528,26 +2546,45 @@ router.post('/queue/stop', async (req, res) => {
       }
     });
     
-    // Reset processing documents to queued
-    const resetDocs = await prisma.documentProcessingQueue.updateMany({
-      where: { status: 'processing' },
-      data: {
-        status: 'queued',
-        startedAt: null
-      }
-    });
-    
-    console.log(`🛑 [DEBUG] Stopped ${stoppedJobs.count} jobs and reset ${resetDocs.count} documents`);
+    console.log(`🛑 [DEBUG] Stopped ${stoppedJobs.count} jobs and reset processing documents`);
 
     res.json({
       success: true,
-      message: `Stopped ${stoppedJobs.count} running jobs and reset ${resetDocs.count} processing documents`,
+      message: `Stopped ${stoppedJobs.count} running jobs and reset processing documents`,
       stopped_jobs: stoppedJobs.count,
-      reset_documents: resetDocs.count
+      reset_documents: resetCount
     });
 
   } catch (error) {
     console.error('❌ [DEBUG] Error stopping queue processing:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// Start queue processing
+router.post('/queue/start', async (req, res) => {
+  try {
+    console.log('🚀 [DEBUG] Starting queue processing...');
+    
+    // Start the queue worker
+    const queueWorker = req.app.locals.queueWorker;
+    if (queueWorker) {
+      await queueWorker.start();
+      console.log('🚀 [DEBUG] Queue worker started successfully');
+    } else {
+      console.log('⚠️ [DEBUG] Queue worker not found in app context');
+    }
+    
+    res.json({
+      success: true,
+      message: 'Queue processing started successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error starting queue processing:', error);
     res.status(500).json({ 
       success: false,
       error: error.message 

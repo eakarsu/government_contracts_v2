@@ -28,9 +28,13 @@ import RFPResponseEdit from './pages/RFPResponseEdit';
 
 // AI Enhancement Components
 import ProposalDrafter from './components/Proposals/ProposalDrafter';
+import OpportunityDashboard from './components/Opportunities/OpportunityDashboard';
 import BidProbabilityAnalyzer from './components/Bidding/BidProbabilityAnalyzer';
 import AIAnalysisResults from './pages/AIAnalysisResults';
 import AIQuickActionsPage from './pages/AIQuickActionsPage';
+
+// AI Navigation Context
+import { AINavigationProvider } from './contexts/AINavigationContext';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -47,8 +51,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Layout>
+        <AINavigationProvider>
+          <div className="min-h-screen bg-gray-50">
+            <Layout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/search" element={<Search />} />
@@ -77,11 +82,14 @@ function App() {
               <Route path="/ai/win-probability/:contractId" element={<AIAnalysisResults type="probability" />} />
               <Route path="/ai/similar-contracts/:contractId" element={<AIAnalysisResults type="similarity" />} />
               <Route path="/ai/bid-strategy/:contractId" element={<AIAnalysisResults type="strategy" />} />
+              <Route path="/opportunities" element={<OpportunityDashboard />} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </Layout>
-          <Toaster
+            </Layout>
+          </div>
+        </AINavigationProvider>
+        <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
@@ -105,7 +113,6 @@ function App() {
               },
             }}
           />
-        </div>
       </Router>
     </QueryClientProvider>
   );

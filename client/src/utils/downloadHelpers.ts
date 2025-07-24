@@ -6,14 +6,22 @@ export const downloadRFPResponse = async (rfpResponseId: number, format: 'txt' |
     
     const response = await fetch(`/api/rfp/responses/${rfpResponseId}/download/${format}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to download ${format.toUpperCase()} file`);
+      console.error(`❌ [DEBUG] Download failed with status: ${response.status} ${response.statusText}`);
+      
+      let errorMessage = `Failed to download ${format.toUpperCase()} file (${response.status} ${response.statusText})`;
+      
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch (jsonError) {
+        // Response might not be JSON (e.g., 431 error)
+        console.warn(`⚠️ [DEBUG] Could not parse error response as JSON:`, jsonError);
+      }
+      
+      throw new Error(errorMessage);
     }
 
     // Get the filename from the Content-Disposition header

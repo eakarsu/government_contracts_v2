@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { aiService } from '../services/aiService';
+import { useAINavigation } from '../contexts/AINavigationContext';
 import {
   Brain,
   Target,
@@ -18,10 +19,16 @@ import LoadingSpinner from '../components/UI/LoadingSpinner';
 
 const AIQuickActionsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { setParentRoute } = useAINavigation();
   const [contractId, setContractId] = useState(() => {
     return localStorage.getItem('lastContractId') || '';
   });
   const [analysisType, setAnalysisType] = useState<'probability' | 'similarity' | 'strategy'>('probability');
+
+  // Set this page as the parent route on mount
+  useEffect(() => {
+    setParentRoute('/ai/quick-actions');
+  }, [setParentRoute]);
 
   // Win Probability Analysis
   const winProbabilityMutation = useMutation({
@@ -49,9 +56,18 @@ const AIQuickActionsPage: React.FC = () => {
 
   // Comprehensive Analysis
   const comprehensiveAnalysisMutation = useMutation({
-    mutationFn: (id: string) => aiService.getComprehensiveAnalysis(id, 'current-user'),
-    onSuccess: (data, id) => {
-      navigate(`/ai/analysis-results/${id}`);
+    mutationFn: ({ id, analysisType }: { id: string, analysisType: string }) => 
+      aiService.getComprehensiveAnalysis(id, 'current-user', undefined, analysisType),
+    onSuccess: (data, variables) => {
+      navigate(`/ai/analysis-results/${variables.id}?type=${variables.analysisType}`);
+    },
+  });
+
+  // AI Opportunity Alerts
+  const opportunityAlertsMutation = useMutation({
+    mutationFn: () => aiService.getOpportunityAlerts('current-user'),
+    onSuccess: () => {
+      navigate('/opportunities');
     },
   });
 
@@ -72,7 +88,7 @@ const AIQuickActionsPage: React.FC = () => {
         bidStrategyMutation.mutate(contractId);
         break;
       case 'comprehensive':
-        comprehensiveAnalysisMutation.mutate(contractId);
+        comprehensiveAnalysisMutation.mutate({ id: contractId, analysisType });
         break;
     }
   };
@@ -152,7 +168,10 @@ const AIQuickActionsPage: React.FC = () => {
             ) : (
               <>
                 <Brain className="h-6 w-6 mr-3" />
-                Comprehensive AI Analysis
+                {analysisType === 'probability' && 'Win Probability Analysis'}
+                {analysisType === 'similarity' && 'Similar Contracts Analysis'}
+                {analysisType === 'strategy' && 'Bid Strategy Analysis'}
+                {analysisType !== 'probability' && analysisType !== 'similarity' && analysisType !== 'strategy' && 'Comprehensive AI Analysis'}
               </>
             )}
           </button>
@@ -182,16 +201,14 @@ const AIQuickActionsPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
               onClick={() => {
-                if (contractId.trim()) {
-                  similarContractsMutation.mutate(contractId);
-                }
+                opportunityAlertsMutation.mutate();
               }}
-              disabled={!contractId.trim()}
+              disabled={opportunityAlertsMutation.isPending}
               className="flex flex-col items-center justify-center p-6 border border-gray-300 rounded-lg shadow-sm text-center hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <AlertCircle className="h-8 w-8 text-orange-500 mb-3" />
               <span className="font-medium text-gray-900">View AI Opportunities</span>
-              <span className="text-sm text-gray-600 mt-1">Find opportunities in similar contracts</span>
+              <span className="text-sm text-gray-600 mt-1">AI-powered opportunity alerts and matching</span>
             </button>
 
             <button
@@ -211,15 +228,15 @@ const AIQuickActionsPage: React.FC = () => {
             <button
               onClick={() => {
                 if (contractId.trim()) {
-                  winProbabilityMutation.mutate(contractId);
+                  similarContractsMutation.mutate(contractId);
                 }
               }}
               disabled={!contractId.trim()}
               className="flex flex-col items-center justify-center p-6 border border-gray-300 rounded-lg shadow-sm text-center hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <TrendingUp className="h-8 w-8 text-blue-500 mb-3" />
-              <span className="font-medium text-gray-900">AI Analytics</span>
-              <span className="text-sm text-gray-600 mt-1">Get detailed AI-powered analytics</span>
+              <span className="font-medium text-gray-900">Similar Contracts</span>
+              <span className="text-sm text-gray-600 mt-1">Find contracts similar to your target</span>
             </button>
           </div>
         </div>

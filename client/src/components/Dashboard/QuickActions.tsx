@@ -24,7 +24,7 @@ const QuickActions: React.FC = () => {
   });
 
   const processDocumentsMutation = useMutation({
-    mutationFn: () => apiService.processDocuments(undefined, 10), // Use limit of 10 to trigger test mode
+    mutationFn: () => apiService.processDocuments(undefined, 50), // Use higher limit for full processing mode
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queue-status'] });
     },
@@ -41,7 +41,7 @@ const QuickActions: React.FC = () => {
   });
 
   const processQueueMutation = useMutation({
-    mutationFn: () => apiService.processQueuedDocuments({ test_limit: 3 }),
+    mutationFn: () => apiService.startParallelProcessing(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queue-status'] });
     },
@@ -66,23 +66,33 @@ const QuickActions: React.FC = () => {
   });
 
   const resetQueueMutation = useMutation({
-    mutationFn: () => apiService.resetQueue(),
+    mutationFn: () => apiService.resetParallelCounters(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queue-status'] });
       queryClient.invalidateQueries({ queryKey: ['api-status'] });
     },
     onError: (error: any) => {
-      console.error('Reset queue error:', error);
+      console.error('Reset parallel counters error:', error);
     },
   });
 
   const stopQueueMutation = useMutation({
-    mutationFn: () => apiService.stopQueue(),
+    mutationFn: () => apiService.stopParallelProcessing(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queue-status'] });
     },
     onError: (error: any) => {
-      console.error('Stop queue error:', error);
+      console.error('Stop parallel processing error:', error);
+    },
+  });
+
+  const startQueueMutation = useMutation({
+    mutationFn: () => apiService.startParallelProcessing(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+    },
+    onError: (error: any) => {
+      console.error('Start parallel processing error:', error);
     },
   });
 
@@ -199,7 +209,7 @@ const QuickActions: React.FC = () => {
           {processQueueMutation.isPending ? (
             <LoadingSpinner size="sm" color="white" />
           ) : (
-            '🧪 Process Queue (3 docs)'
+            'Process Downloaded Documents'
           )}
         </button>
 
@@ -215,85 +225,6 @@ const QuickActions: React.FC = () => {
           )}
         </button>
 
-        {/* NLP Search Section */}
-        <div className="border-t pt-4 mt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">✨ NLP Search</h4>
-          
-          {/* Quick NLP Search Input */}
-          <div className="space-y-2 mb-3">
-            <input
-              type="text"
-              value={nlpQuery}
-              onChange={(e) => setNlpQuery(e.target.value)}
-              placeholder="Ask about contracts..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && nlpQuery.trim()) {
-                  nlpSearchMutation.mutate(nlpQuery);
-                }
-              }}
-            />
-            <button
-              onClick={() => nlpQuery.trim() && nlpSearchMutation.mutate(nlpQuery)}
-              disabled={nlpSearchMutation.isPending || !nlpQuery.trim()}
-              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
-            >
-              {nlpSearchMutation.isPending ? (
-                <LoadingSpinner size="sm" color="white" />
-              ) : (
-                '✨ NLP Search'
-              )}
-            </button>
-          </div>
-
-          {/* Quick NLP Examples */}
-          <div className="space-y-1">
-            {[
-              'IT contracts under $500K',
-              'Construction in California',
-              'Small business opportunities'
-            ].map((example) => (
-              <button
-                key={example}
-                onClick={() => nlpSearchMutation.mutate(example)}
-                disabled={nlpSearchMutation.isPending}
-                className="w-full text-left px-3 py-1.5 border border-gray-200 rounded-md text-xs text-gray-700 hover:bg-purple-50 hover:border-purple-300 transition-colors"
-              >
-                {example}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Document Search Section */}
-        <div className="border-t pt-4 mt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">🔍 Document Search</h4>
-          <div className="space-y-2">
-            <button
-              onClick={() => searchDocumentsMutation.mutate('software development')}
-              disabled={searchDocumentsMutation.isPending}
-              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
-            >
-              {searchDocumentsMutation.isPending ? (
-                <LoadingSpinner size="sm" color="white" />
-              ) : (
-                '🔍 Quick Search: Software'
-              )}
-            </button>
-
-            <button
-              onClick={() => getDocumentStatsMutation.mutate()}
-              disabled={getDocumentStatsMutation.isPending}
-              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
-            >
-              {getDocumentStatsMutation.isPending ? (
-                <LoadingSpinner size="sm" color="white" />
-              ) : (
-                '📊 Get Document Stats'
-              )}
-            </button>
-          </div>
-        </div>
 
         {/* Test Bed Section */}
         <div className="border-t pt-4 mt-4">
@@ -325,10 +256,22 @@ const QuickActions: React.FC = () => {
           </div>
         </div>
 
-        {/* Queue Management Section */}
+        {/* Parallel Processing Management Section */}
         <div className="border-t pt-4 mt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Queue Management</h4>
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Parallel Processing Management</h4>
           <div className="space-y-2">
+            <button
+              onClick={() => startQueueMutation.mutate()}
+              disabled={startQueueMutation.isPending}
+              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition-colors"
+            >
+              {startQueueMutation.isPending ? (
+                <LoadingSpinner size="sm" color="white" />
+              ) : (
+                'Start Parallel Processing'
+              )}
+            </button>
+
             <button
               onClick={() => stopQueueMutation.mutate()}
               disabled={stopQueueMutation.isPending}
@@ -337,7 +280,7 @@ const QuickActions: React.FC = () => {
               {stopQueueMutation.isPending ? (
                 <LoadingSpinner size="sm" color="white" />
               ) : (
-                'Stop Processing'
+                'Stop Parallel Processing'
               )}
             </button>
 
@@ -349,7 +292,7 @@ const QuickActions: React.FC = () => {
               {resetQueueMutation.isPending ? (
                 <LoadingSpinner size="sm" color="white" />
               ) : (
-                'Reset Queue System'
+                'Reset Counters'
               )}
             </button>
           </div>
@@ -372,7 +315,7 @@ const QuickActions: React.FC = () => {
 
       {processQueueMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-          <div className="text-green-800 text-sm">🧪 Test queue processing started! (Limited to 3 downloaded documents)</div>
+          <div className="text-green-800 text-sm">Parallel processing started! Documents from downloaded_documents folder will be processed.</div>
         </div>
       ) : null}
 
@@ -501,22 +444,36 @@ const QuickActions: React.FC = () => {
         </div>
       ) : null}
 
+      {startQueueMutation.isSuccess ? (
+        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+          <div className="text-green-800 text-sm">Parallel processing started successfully!</div>
+        </div>
+      ) : null}
+
       {stopQueueMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <div className="text-yellow-800 text-sm">Queue processing stopped!</div>
+          <div className="text-yellow-800 text-sm">Parallel processing stopped!</div>
         </div>
       ) : null}
 
       {resetQueueMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <div className="text-red-800 text-sm">Queue system reset successfully!</div>
+          <div className="text-red-800 text-sm">Parallel processing counters reset successfully!</div>
+        </div>
+      ) : null}
+
+      {startQueueMutation.error ? (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-red-800 text-sm">
+            Error starting parallel processing: {startQueueMutation.error instanceof Error ? startQueueMutation.error.message : 'Unknown error'}
+          </div>
         </div>
       ) : null}
 
       {stopQueueMutation.error ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
-            Error stopping queue: {stopQueueMutation.error instanceof Error ? stopQueueMutation.error.message : 'Unknown error'}
+            Error stopping parallel processing: {stopQueueMutation.error instanceof Error ? stopQueueMutation.error.message : 'Unknown error'}
           </div>
         </div>
       ) : null}
@@ -524,7 +481,7 @@ const QuickActions: React.FC = () => {
       {resetQueueMutation.error ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
-            Error resetting queue: {resetQueueMutation.error instanceof Error ? resetQueueMutation.error.message : 'Unknown error'}
+            Error resetting parallel counters: {resetQueueMutation.error instanceof Error ? resetQueueMutation.error.message : 'Unknown error'}
           </div>
         </div>
       ) : null}

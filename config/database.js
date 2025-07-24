@@ -1,5 +1,9 @@
 const { Pool } = require('pg');
+const { PrismaClient } = require('@prisma/client');
 const config = require('./env');
+
+// Initialize Prisma Client
+const prisma = new PrismaClient();
 
 const pool = new Pool({
   connectionString: config.databaseUrl,
@@ -39,5 +43,6 @@ module.exports = {
   query,
   pool,
   testConnection,
-  disconnect
+  disconnect,
+  prisma
 };

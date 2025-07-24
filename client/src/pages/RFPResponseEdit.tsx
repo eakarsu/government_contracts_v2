@@ -13,6 +13,7 @@ const RFPResponseEdit: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [sectionContent, setSectionContent] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'sections' | 'fulltext'>('sections');
 
   useEffect(() => {
     if (id) {
@@ -158,6 +159,12 @@ const RFPResponseEdit: React.FC = () => {
           </div>
         </div>
         <div className="flex space-x-3">
+          <button
+            onClick={() => setViewMode(viewMode === 'sections' ? 'fulltext' : 'sections')}
+            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+          >
+            {viewMode === 'sections' ? '📄 Show Full Text' : '📝 Show Sections'}
+          </button>
           <Link
             to={`/rfp/responses/${id}`}
             className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
@@ -179,7 +186,48 @@ const RFPResponseEdit: React.FC = () => {
         </div>
       )}
 
+      {/* Full Text View */}
+      {viewMode === 'fulltext' && (
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">📄 Full Text Version</h2>
+            <p className="text-sm text-gray-500 mt-1">Complete text content of your RFP response</p>
+          </div>
+          <div className="p-6">
+            <div className="bg-gray-50 border rounded-lg p-6">
+              <div className="prose max-w-none">
+                <h1 className="text-2xl font-bold mb-4">{rfpResponse.title}</h1>
+                <div className="text-sm text-gray-600 mb-6">
+                  <strong>Contract:</strong> {rfpResponse.contractId}<br/>
+                  <strong>Generated:</strong> {new Date(rfpResponse.createdAt).toLocaleDateString()}<br/>
+                  <strong>Last Updated:</strong> {new Date(rfpResponse.updatedAt).toLocaleDateString()}
+                </div>
+                
+                {rfpResponse.sections && rfpResponse.sections.length > 0 ? (
+                  rfpResponse.sections.map((section, index) => (
+                    <div key={section.id} className="mb-8">
+                      <h2 className="text-xl font-semibold mb-3 text-gray-800">
+                        {index + 1}. {section.title}
+                      </h2>
+                      <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                        {section.content || 'No content available for this section.'}
+                      </div>
+                      <div className="mt-2 text-xs text-gray-500 border-b border-gray-200 pb-2">
+                        Word count: {section.wordCount || 0} | Status: {section.status}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 italic">No sections available to display.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sections */}
+      {viewMode === 'sections' && (
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-medium text-gray-900">Response Sections</h2>
@@ -291,6 +339,7 @@ const RFPResponseEdit: React.FC = () => {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };

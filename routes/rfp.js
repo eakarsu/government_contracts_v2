@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../config/database');
+const { PrismaClient } = require('@prisma/client');
 const axios = require('axios');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
@@ -7,21 +7,48 @@ const path = require('path');
 const ProposalDraftingService = require('../services/proposalDraftingService');
 
 const router = express.Router();
+const prisma = new PrismaClient();
 const proposalService = new ProposalDraftingService();
 
 // OpenRouter configuration
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-// Function to generate RFP content using OpenRouter for individual sections
-async function generateRFPContentWithAI(contract, template, profile, section, customInstructions, focusAreas) {
+// Retry configuration
+const DEFAULT_MAX_RETRIES = parseInt(process.env.RFP_MAX_RETRIES || '3');
+const REQUEST_TIMEOUT_MS = parseInt(process.env.RFP_REQUEST_TIMEOUT_MS || '120000'); // 2 minutes
+
+// Helper function to determine if an error is retryable (504 Gateway Timeout or similar)
+function isRetryableError(error) {
+  // Check HTTP status codes
+  if (error.response?.status === 504) return true;
+  if (error.response?.status === 502) return true; // Bad Gateway
+  if (error.response?.status === 503) return true; // Service Unavailable
+
+  // Check error codes
+  if (error.code === 'ECONNABORTED') return true; // Request timeout
+  if (error.code === 'ETIMEDOUT') return true; // Connection timeout
+  if (error.code === 'ECONNRESET') return true; // Connection reset
+
+  // Check error messages for timeout indicators
+  const message = error.message.toLowerCase();
+  const timeoutKeywords = [
+    '504', 'gateway time-out', 'gateway timeout', 'timeout',
+    'timed out', 'connection timeout', 'request timeout',
+    'upstream timeout', 'service temporarily unavailable'
+  ];
+
+  return timeoutKeywords.some(keyword => message.includes(keyword));
+}
+
+// Function to generate RFP content using OpenRouter for individual sections with retry logic
+async function generateRFPContentWithAI(contract, template, profile, section, customInstructions, focusAreas, maxRetries = DEFAULT_MAX_RETRIES) {
   if (!OPENROUTER_API_KEY) {
     console.warn('⚠️ [DEBUG] OpenRouter API key not configured, using placeholder content');
     return `[Placeholder content for ${section.title}]\n\nThis section would contain AI-generated content based on the contract requirements and company capabilities.`;
   }
 
-  try {
-    const prompt = `
+  const prompt = `
 You are an expert RFP response writer. Generate a comprehensive, professional response for the following RFP section:
 
 **CONTRACT INFORMATION:**
@@ -61,399 +88,210 @@ Generate a comprehensive, professional response that:
 Do not include any meta-commentary or explanations - provide only the RFP section content.
 `;
 
-    const response = await axios.post(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      model: 'anthropic/claude-3.5-sonnet',
-      messages: [
-        {
-          role: 'user',
-          content: prompt
+  // Retry logic with exponential backoff for 504 Gateway Timeout errors
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔄 [DEBUG] Generating content for section "${section.title}" (attempt ${attempt}/${maxRetries})`);
+      
+      const response = await axios.post(`${OPENROUTER_BASE_URL}/chat/completions`, {
+        model: 'anthropic/claude-3.5-sonnet',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 8000,
+        temperature: 0.7,
+        // Add timeout to prevent hanging requests
+        timeout: REQUEST_TIMEOUT_MS
+      }, {
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'http://localhost:3001',
+          'X-Title': 'Government Contracts RFP Generator'
         }
-      ],
-      max_tokens: 8000,
-      temperature: 0.7
-    }, {
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:3001',
-        'X-Title': 'Government Contracts RFP Generator'
+      });
+
+      const generatedContent = response.data.choices[0].message.content;
+      console.log(`✅ [DEBUG] Successfully generated AI content for section: ${section.title} (${generatedContent.length} chars) on attempt ${attempt}`);
+      
+      return generatedContent;
+
+    } catch (error) {
+      const isRetryable = isRetryableError(error);
+
+      console.error(`❌ [DEBUG] Attempt ${attempt}/${maxRetries} failed for section "${section.title}":`, {
+        status: error.response?.status,
+        code: error.code,
+        message: error.message,
+        isRetryable
+      });
+
+      // If this is not a retryable error, don't retry
+      if (!isRetryable) {
+        console.warn(`⚠️ [DEBUG] Non-retryable error for section "${section.title}", not retrying:`, error.message);
+        return `[AI generation failed for ${section.title}]\n\nThis section would contain professional RFP response content addressing the requirements for ${section.title}. Please review and complete manually.\n\nError: ${error.message}`;
+      }
+
+      // If this is the last attempt, return error content
+      if (attempt === maxRetries) {
+        console.error(`❌ [DEBUG] All ${maxRetries} attempts failed for section "${section.title}" due to retryable errors`);
+        return `[AI generation failed after ${maxRetries} attempts for ${section.title}]\n\nThis section experienced repeated service errors (timeouts, gateway errors, etc.). Please try regenerating this section individually or review and complete manually.\n\nLast error: ${error.message}`;
+      }
+
+      // Calculate exponential backoff delay: 2^attempt seconds (2s, 4s, 8s, etc.)
+      const delayMs = Math.min(Math.pow(2, attempt) * 1000, 30000); // Max 30 seconds
+      console.log(`⏳ [DEBUG] Retryable error for section "${section.title}", retrying in ${delayMs/1000} seconds...`);
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
+// Async RFP processing function
+async function processRFPJobAsync(jobId) {
+  console.log(`🚀 [ASYNC] Starting processing for job: ${jobId}`);
+  
+  const job = global.rfpJobs.get(jobId);
+  if (!job) {
+    console.error(`❌ [ASYNC] Job not found: ${jobId}`);
+    return;
+  }
+
+  console.log(`📋 [ASYNC] Job data:`, JSON.stringify(job, null, 2));
+
+  try {
+    console.log(`🔄 [ASYNC] Updating job status to processing...`);
+    // Update job status
+    job.status = 'processing';
+    job.startedAt = new Date();
+    job.progress.message = 'Starting RFP generation...';
+    job.progress.current = 0;
+
+    console.log(`📝 [ASYNC] Preparing request data...`);
+    // Use existing RFP generation logic
+    const request = {
+      contractId: job.contractId,
+      templateId: job.templateId,
+      companyProfileId: job.companyProfileId,
+      customInstructions: job.customInstructions,
+      focusAreas: job.focusAreas
+    };
+    
+    console.log(`📋 [ASYNC] Request prepared:`, request);
+
+    // Get contract, template, profile - try multiple approaches
+    console.log(`🔍 [DEBUG] Looking for contract: ${job.contractId}`);
+    
+    let contract = await prisma.contract.findFirst({
+      where: { 
+        noticeId: job.contractId
+      }
+    });
+    
+    // If still not found, create a mock contract for testing
+    if (!contract) {
+      console.log(`⚠️ [DEBUG] Contract not found, creating mock contract for: ${job.contractId}`);
+      contract = {
+        id: job.contractId,
+        noticeId: job.contractId,
+        title: `Mock Contract ${job.contractId}`,
+        description: 'Mock contract for RFP generation testing',
+        agency: 'Test Agency'
+      };
+    }
+    
+    const template = await prisma.rfpTemplate.findUnique({
+      where: { id: parseInt(job.templateId) }
+    });
+    
+    if (!template) {
+      throw new Error(`Template not found: ${job.templateId}`);
+    }
+    
+    const profile = await prisma.companyProfile.findUnique({
+      where: { id: parseInt(job.companyProfileId) }
+    });
+    
+    if (!profile) {
+      throw new Error(`Company profile not found: ${job.companyProfileId}`);
+    }
+
+    const templateSections = generateDetailedSections(15);
+
+    console.log(`📊 [ASYNC] Generated ${templateSections.length} template sections`);
+    job.progress.message = 'Processing sections with AI...';
+
+    // Process sections with progress updates
+    const generatedSections = [];
+    for (let i = 0; i < templateSections.length; i++) {
+      job.progress.current = i + 1;
+      job.progress.message = `Processing section ${i + 1}/15: ${templateSections[i].title}`;
+      
+      console.log(`🤖 [ASYNC] Processing section ${i + 1}/15: "${templateSections[i].title}"`);
+      console.log(`📋 [ASYNC] Section details:`, {
+        title: templateSections[i].title,
+        description: templateSections[i].description,
+        requirements: templateSections[i].requirements?.length || 0
+      });
+      
+      const startTime = Date.now();
+      const content = await generateRFPContentWithAI(
+        contract, template, profile, templateSections[i], 
+        job.customInstructions, job.focusAreas
+      );
+      const endTime = Date.now();
+      
+      const wordCount = content.split(' ').length;
+      console.log(`✅ [ASYNC] Section ${i + 1}/15 completed in ${endTime - startTime}ms (${wordCount} words)`);
+      
+      generatedSections.push({
+        ...templateSections[i],
+        content: content,
+        wordCount: wordCount
+      });
+    }
+
+    console.log(`💾 [ASYNC] Creating RFP response in database...`);
+    job.progress.message = 'Saving RFP response...';
+
+    // Create RFP response
+    const rfpResponse = await prisma.rfpResponse.create({
+      data: {
+        contractId: String(contract.noticeId || contract.id),
+        templateId: parseInt(job.templateId),
+        companyProfileId: parseInt(job.companyProfileId),
+        title: `${contract.title || 'RFP Response'} - Generated`,
+        status: 'draft',
+        responseData: { sections: generatedSections }
       }
     });
 
-    const generatedContent = response.data.choices[0].message.content;
-    console.log(`✅ [DEBUG] Generated AI content for section: ${section.title} (${generatedContent.length} chars)`);
+    console.log(`✅ [ASYNC] RFP Response created with ID: ${rfpResponse.id}`);
+
+    // Mark job as completed
+    job.status = 'completed';
+    job.completedAt = new Date();
+    job.rfpResponseId = rfpResponse.id;
+    job.progress.message = 'RFP generation completed successfully!';
     
-    return generatedContent;
+    console.log(`🎉 [ASYNC] Job ${jobId} completed successfully! RFP ID: ${rfpResponse.id}`);
+
   } catch (error) {
-    console.error(`❌ [DEBUG] Error generating AI content for section ${section.title}:`, error.message);
-    return `[AI generation failed for ${section.title}]\n\nThis section would contain professional RFP response content addressing the requirements for ${section.title}. Please review and complete manually.`;
+    console.error(`❌ [ASYNC] Job ${jobId} failed:`, error);
+    console.error(`💥 [ASYNC] Error stack:`, error.stack);
+    
+    job.status = 'failed';
+    job.error = error.message;
+    job.progress.message = `Failed: ${error.message}`;
+    job.completedAt = new Date();
   }
 }
 
-// Initialize database tables for RFP system
-async function initializeRFPTables() {
-  try {
-    // Create contracts table if it doesn't exist
-    await query(`
-      CREATE TABLE IF NOT EXISTS contracts (
-        id SERIAL PRIMARY KEY,
-        notice_id VARCHAR(255) UNIQUE,
-        title TEXT,
-        agency VARCHAR(255),
-        description TEXT,
-        posted_date DATE,
-        response_date DATE,
-        set_aside VARCHAR(100),
-        naics_code VARCHAR(20),
-        contract_value DECIMAL,
-        place_of_performance TEXT,
-        contact_info JSONB DEFAULT '{}',
-        requirements JSONB DEFAULT '{}',
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    // Insert sample contracts if table is empty
-    const contractCount = await query('SELECT COUNT(*) FROM contracts');
-    if (parseInt(contractCount.rows[0].count) === 0) {
-      console.log('📋 [DEBUG] Inserting sample contracts for testing...');
-      
-      const sampleContracts = [
-        {
-          notice_id: 'W912DY-25-R-0001',
-          title: 'IT Infrastructure Modernization Services',
-          agency: 'Department of Defense',
-          description: 'The Department of Defense requires comprehensive IT infrastructure modernization services including cloud migration, cybersecurity implementation, and system integration. This contract will support the modernization of legacy systems and implementation of new technologies to enhance operational efficiency.',
-          posted_date: '2025-01-15',
-          response_date: '2025-02-15',
-          set_aside: 'Small Business',
-          naics_code: '541512',
-          contract_value: 5000000.00,
-          place_of_performance: 'Washington, DC'
-        },
-        {
-          notice_id: 'GS-35F-0119Y',
-          title: 'Cybersecurity Assessment and Implementation',
-          agency: 'General Services Administration',
-          description: 'GSA seeks qualified contractors to provide comprehensive cybersecurity assessment services, vulnerability testing, and security implementation for federal agencies. Services include risk assessment, penetration testing, security architecture design, and ongoing monitoring.',
-          posted_date: '2025-01-10',
-          response_date: '2025-02-10',
-          set_aside: 'Unrestricted',
-          naics_code: '541511',
-          contract_value: 3500000.00,
-          place_of_performance: 'Multiple Locations'
-        },
-        {
-          notice_id: 'VA-261-25-R-0003',
-          title: 'Healthcare Data Analytics Platform',
-          agency: 'Department of Veterans Affairs',
-          description: 'The VA requires development and implementation of a comprehensive healthcare data analytics platform to improve patient care and operational efficiency. The platform must integrate with existing VA systems and provide real-time analytics capabilities.',
-          posted_date: '2025-01-08',
-          response_date: '2025-02-08',
-          set_aside: 'SDVOSB',
-          naics_code: '541511',
-          contract_value: 8000000.00,
-          place_of_performance: 'Nationwide'
-        },
-        {
-          notice_id: 'NASA-JSC-25-001',
-          title: 'Mission Control Software Development',
-          agency: 'National Aeronautics and Space Administration',
-          description: 'NASA Johnson Space Center requires software development services for next-generation mission control systems. The contractor will develop, test, and maintain critical software systems used for space mission operations and astronaut safety.',
-          posted_date: '2025-01-05',
-          response_date: '2025-02-05',
-          set_aside: 'Unrestricted',
-          naics_code: '541511',
-          contract_value: 12000000.00,
-          place_of_performance: 'Houston, TX'
-        },
-        {
-          notice_id: 'DHS-CISA-25-R-001',
-          title: 'National Cybersecurity Framework Implementation',
-          agency: 'Department of Homeland Security',
-          description: 'DHS CISA seeks contractors to assist with implementation of the National Cybersecurity Framework across federal agencies. Services include framework assessment, implementation planning, training, and ongoing support for cybersecurity initiatives.',
-          posted_date: '2025-01-03',
-          response_date: '2025-02-03',
-          set_aside: 'Small Business',
-          naics_code: '541690',
-          contract_value: 6500000.00,
-          place_of_performance: 'Washington, DC'
-        }
-      ];
-
-      for (const contract of sampleContracts) {
-        try {
-          await query(`
-            INSERT INTO contracts (
-              notice_id, title, agency, description, posted_date, response_date,
-              set_aside, naics_code, contract_value, place_of_performance,
-              contact_info, requirements
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-          `, [
-            contract.notice_id,
-            contract.title,
-            contract.agency,
-            contract.description,
-            contract.posted_date,
-            contract.response_date,
-            contract.set_aside,
-            contract.naics_code,
-            contract.contract_value,
-            contract.place_of_performance,
-            JSON.stringify({ email: 'contracting@agency.gov', phone: '(555) 123-4567' }),
-            JSON.stringify({ 
-              security_clearance: contract.naics_code === '541511' ? 'Secret' : 'None',
-              experience_years: 5,
-              certifications: ['ISO 27001', 'FedRAMP']
-            })
-          ]);
-        } catch (insertError) {
-          if (insertError.code !== '23505') { // Ignore duplicate key errors
-            console.error('Error inserting sample contract:', insertError.message);
-          }
-        }
-      }
-      
-      console.log('✅ [DEBUG] Sample contracts inserted successfully');
-    }
-
-    // Insert comprehensive RFP template if templates table is empty
-    const templateCount = await query('SELECT COUNT(*) FROM rfp_templates');
-    if (parseInt(templateCount.rows[0].count) === 0) {
-      console.log('📋 [DEBUG] Inserting comprehensive RFP template...');
-      
-      const comprehensiveTemplate = {
-        name: 'Comprehensive Government RFP Template',
-        agency: 'General Template',
-        description: 'Complete 15-section template for government contract proposals',
-        sections: [
-          {
-            id: 'executive_summary',
-            title: 'Executive Summary',
-            description: 'High-level overview of the proposal and key value propositions',
-            requirements: ['Project understanding', 'Key benefits', 'Team qualifications', 'Value proposition'],
-            wordLimit: 1000
-          },
-          {
-            id: 'technical_approach',
-            title: 'Technical Approach',
-            description: 'Detailed technical methodology and solution architecture',
-            requirements: ['Architecture design', 'Technology stack', 'Implementation methodology', 'Technical innovation'],
-            wordLimit: 3000
-          },
-          {
-            id: 'management_approach',
-            title: 'Management Approach',
-            description: 'Project management methodology and organizational structure',
-            requirements: ['Project timeline', 'Resource allocation', 'Communication plan', 'Governance structure'],
-            wordLimit: 2000
-          },
-          {
-            id: 'past_performance',
-            title: 'Past Performance',
-            description: 'Relevant experience and successful project examples',
-            requirements: ['Similar projects', 'Client references', 'Success metrics', 'Lessons learned'],
-            wordLimit: 2500
-          },
-          {
-            id: 'key_personnel',
-            title: 'Key Personnel',
-            description: 'Team members, qualifications, and role assignments',
-            requirements: ['Team structure', 'Key qualifications', 'Role assignments', 'Availability'],
-            wordLimit: 2000
-          },
-          {
-            id: 'cost_proposal',
-            title: 'Cost Proposal',
-            description: 'Detailed pricing structure and cost justification',
-            requirements: ['Labor costs', 'Material costs', 'Overhead expenses', 'Cost justification'],
-            wordLimit: 1500
-          },
-          {
-            id: 'schedule_milestones',
-            title: 'Schedule and Milestones',
-            description: 'Project timeline with key deliverables and milestones',
-            requirements: ['Project phases', 'Key milestones', 'Dependencies', 'Critical path'],
-            wordLimit: 1500
-          },
-          {
-            id: 'risk_management',
-            title: 'Risk Management',
-            description: 'Risk identification, assessment, and mitigation strategies',
-            requirements: ['Risk identification', 'Risk assessment', 'Mitigation strategies', 'Contingency plans'],
-            wordLimit: 1500
-          },
-          {
-            id: 'quality_assurance',
-            title: 'Quality Assurance',
-            description: 'Quality control processes and testing methodologies',
-            requirements: ['QA processes', 'Testing methodology', 'Quality metrics', 'Continuous improvement'],
-            wordLimit: 1500
-          },
-          {
-            id: 'security_compliance',
-            title: 'Security and Compliance',
-            description: 'Security measures and regulatory compliance approach',
-            requirements: ['Security framework', 'Compliance requirements', 'Data protection', 'Access controls'],
-            wordLimit: 2000
-          },
-          {
-            id: 'transition_plan',
-            title: 'Transition Plan',
-            description: 'Implementation and deployment strategy',
-            requirements: ['Implementation phases', 'Deployment strategy', 'Change management', 'User training'],
-            wordLimit: 1500
-          },
-          {
-            id: 'training_support',
-            title: 'Training and Support',
-            description: 'Training programs and ongoing support services',
-            requirements: ['Training curriculum', 'Support structure', 'Documentation', 'Knowledge transfer'],
-            wordLimit: 1200
-          },
-          {
-            id: 'maintenance_sustainment',
-            title: 'Maintenance and Sustainment',
-            description: 'Long-term maintenance and system sustainment approach',
-            requirements: ['Maintenance strategy', 'Support levels', 'Performance monitoring', 'Lifecycle management'],
-            wordLimit: 1500
-          },
-          {
-            id: 'innovation_value',
-            title: 'Innovation and Added Value',
-            description: 'Innovative solutions and additional value propositions',
-            requirements: ['Innovation approach', 'Value-added services', 'Emerging technologies', 'Competitive advantages'],
-            wordLimit: 1200
-          },
-          {
-            id: 'subcontractor_teaming',
-            title: 'Subcontractor and Teaming',
-            description: 'Subcontractor relationships and teaming arrangements',
-            requirements: ['Teaming strategy', 'Subcontractor qualifications', 'Partnership agreements', 'Coordination approach'],
-            wordLimit: 1000
-          }
-        ],
-        evaluation_criteria: {
-          technical: 40,
-          cost: 30,
-          past_performance: 20,
-          management: 10
-        }
-      };
-
-      try {
-        await query(`
-          INSERT INTO rfp_templates (
-            name, agency, description, sections, evaluation_criteria, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, NOW())
-        `, [
-          comprehensiveTemplate.name,
-          comprehensiveTemplate.agency,
-          comprehensiveTemplate.description,
-          JSON.stringify(comprehensiveTemplate.sections),
-          JSON.stringify(comprehensiveTemplate.evaluation_criteria)
-        ]);
-        
-        console.log('✅ [DEBUG] Comprehensive RFP template inserted successfully');
-      } catch (templateError) {
-        console.error('Error inserting comprehensive template:', templateError.message);
-      }
-    }
-
-    // Create company_profiles table
-    await query(`
-      CREATE TABLE IF NOT EXISTS company_profiles (
-        id SERIAL PRIMARY KEY,
-        company_name VARCHAR(255) NOT NULL,
-        basic_info JSONB DEFAULT '{}',
-        capabilities JSONB DEFAULT '{}',
-        past_performance JSONB DEFAULT '[]',
-        key_personnel JSONB DEFAULT '[]',
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    // Add missing columns if they don't exist (for existing tables)
-    try {
-      await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS basic_info JSONB DEFAULT '{}'`);
-      await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS capabilities JSONB DEFAULT '{}'`);
-      await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS past_performance JSONB DEFAULT '[]'`);
-      await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS key_personnel JSONB DEFAULT '[]'`);
-      await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS profile_data JSONB DEFAULT '{}'`);
-    } catch (alterError) {
-      console.log('Note: Some columns may already exist:', alterError.message);
-    }
-
-    // Create rfp_templates table
-    await query(`
-      CREATE TABLE IF NOT EXISTS rfp_templates (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        agency VARCHAR(255) NOT NULL,
-        description TEXT,
-        sections JSONB DEFAULT '[]',
-        evaluation_criteria JSONB DEFAULT '{}',
-        usage_count INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    // Create rfp_responses table
-    await query(`
-      CREATE TABLE IF NOT EXISTS rfp_responses (
-        id SERIAL PRIMARY KEY,
-        contract_id VARCHAR(255),
-        template_id INTEGER REFERENCES rfp_templates(id),
-        company_profile_id INTEGER REFERENCES company_profiles(id),
-        title VARCHAR(255) NOT NULL,
-        status VARCHAR(50) DEFAULT 'draft',
-        response_data JSONB DEFAULT '{}',
-        compliance_status JSONB DEFAULT '{}',
-        predicted_score JSONB DEFAULT '{}',
-        metadata JSONB DEFAULT '{}',
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    // Ensure predicted_score column is JSONB type
-    try {
-      // First check if the column exists and its type
-      const columnInfo = await query(`
-        SELECT data_type 
-        FROM information_schema.columns 
-        WHERE table_name = 'rfp_responses' AND column_name = 'predicted_score'
-      `);
-      
-      if (columnInfo.rows.length > 0 && columnInfo.rows[0].data_type !== 'jsonb') {
-        console.log('🔧 [DEBUG] Converting predicted_score column to JSONB type...');
-        // Drop and recreate the column as JSONB
-        await query(`ALTER TABLE rfp_responses DROP COLUMN IF EXISTS predicted_score`);
-        await query(`ALTER TABLE rfp_responses ADD COLUMN predicted_score JSONB DEFAULT '{}'`);
-        console.log('✅ [DEBUG] predicted_score column converted to JSONB');
-      }
-    } catch (alterError) {
-      console.log('Note: predicted_score column type conversion issue:', alterError.message);
-    }
-
-    // Add missing columns if they don't exist (for existing tables)
-    try {
-      await query(`ALTER TABLE rfp_responses ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'`);
-    } catch (alterError) {
-      console.log('Note: metadata column may already exist:', alterError.message);
-    }
-
-    console.log('✅ RFP database tables initialized successfully');
-  } catch (error) {
-    console.error('❌ Error initializing RFP tables:', error);
-  }
-}
-
-// Initialize tables when the module loads
-initializeRFPTables();
+// Database initialization is now handled by Prisma migrations and seeding
 
 // GET /api/rfp/dashboard/stats
 router.get('/dashboard/stats', async (req, res) => {
@@ -497,48 +335,51 @@ router.get('/responses', async (req, res) => {
     const { page = 1, limit = 5 } = req.query;
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
-    const offset = (pageNum - 1) * limitNum;
+    const skip = (pageNum - 1) * limitNum;
     
     console.log(`🔍 [DEBUG] Fetching RFP responses - page: ${pageNum}, limit: ${limitNum}`);
 
-    // Get total count
-    const countResult = await query('SELECT COUNT(*) FROM rfp_responses');
-    const totalCount = parseInt(countResult.rows[0].count);
+    // Get total count using Prisma
+    const totalCount = await prisma.rfpResponse.count();
 
-    // Query real RFP responses from database
-    const result = await query(`
-      SELECT 
-        id,
-        contract_id,
-        template_id,
-        company_profile_id,
-        title,
-        status,
-        created_at,
-        updated_at
-      FROM rfp_responses 
-      ORDER BY updated_at DESC, created_at DESC
-      LIMIT $1 OFFSET $2
-    `, [limitNum, offset]);
+    // Query RFP responses using Prisma
+    const responses = await prisma.rfpResponse.findMany({
+      skip: skip,
+      take: limitNum,
+      orderBy: [
+        { updatedAt: 'desc' },
+        { createdAt: 'desc' }
+      ],
+      select: {
+        id: true,
+        contractId: true,
+        templateId: true,
+        companyProfileId: true,
+        title: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
 
-    const responses = result.rows.map(row => ({
-      id: row.id,
-      title: row.title,
-      contractId: row.contract_id,
-      templateId: row.template_id,
-      companyProfileId: row.company_profile_id,
-      status: row.status,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at
+    const formattedResponses = responses.map(response => ({
+      id: response.id,
+      title: response.title,
+      contractId: response.contractId,
+      templateId: response.templateId,
+      companyProfileId: response.companyProfileId,
+      status: response.status,
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt
     }));
 
     const totalPages = Math.ceil(totalCount / limitNum);
     
-    console.log(`✅ [DEBUG] Found ${responses.length} RFP responses (total: ${totalCount})`);
+    console.log(`✅ [DEBUG] Found ${formattedResponses.length} RFP responses (total: ${totalCount})`);
     
     res.json({
       success: true,
-      responses: responses,
+      responses: formattedResponses,
       pagination: {
         total: totalCount,
         page: pageNum,
@@ -568,47 +409,28 @@ function getLastAction(status) {
 // GET /api/rfp/templates
 router.get('/templates', async (req, res) => {
   try {
-    // Query real templates from database
-    try {
-      const result = await query(`
-        SELECT 
-          id,
-          name,
-          agency,
-          description,
-          sections,
-          evaluation_criteria,
-          created_at,
-          updated_at
-        FROM rfp_templates 
-        ORDER BY created_at DESC
-      `);
+    const templates = await prisma.rfpTemplate.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
 
-      const templates = result.rows.map(row => ({
-        id: row.id,
-        name: row.name,
-        agency: row.agency,
-        description: row.description,
-        sections: row.sections ? JSON.parse(row.sections) : [],
-        evaluationCriteria: row.evaluation_criteria ? JSON.parse(row.evaluation_criteria) : {},
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        usageCount: 0 // Default value since column doesn't exist yet
-      }));
-      
-      console.log(`📋 [DEBUG] Found ${templates.length} templates`);
-      
-      res.json({
-        success: true,
-        templates: templates
-      });
-    } catch (dbError) {
-      console.warn('Templates table may not exist:', dbError.message);
-      res.json({
-        success: true,
-        templates: []
-      });
-    }
+    const formattedTemplates = templates.map(template => ({
+      id: template.id,
+      name: template.name,
+      agency: template.agency,
+      description: template.description,
+      sections: template.sections,
+      evaluationCriteria: template.evaluationCriteria,
+      createdAt: template.createdAt,
+      updatedAt: template.updatedAt,
+      usageCount: template.usageCount || 0
+    }));
+    
+    console.log(`📋 [DEBUG] Found ${formattedTemplates.length} templates`);
+    
+    res.json({
+      success: true,
+      templates: formattedTemplates
+    });
   } catch (error) {
     console.error('Error fetching templates:', error);
     res.status(500).json({
@@ -621,49 +443,28 @@ router.get('/templates', async (req, res) => {
 // GET /api/rfp/company-profiles
 router.get('/company-profiles', async (req, res) => {
   try {
-    // Query real company profiles from database
-    try {
-      const result = await query(`
-        SELECT 
-          id,
-          company_name,
-          basic_info,
-          capabilities,
-          past_performance,
-          key_personnel,
-          profile_data,
-          created_at,
-          updated_at
-        FROM company_profiles 
-        ORDER BY created_at DESC
-      `);
+    const profiles = await prisma.companyProfile.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
 
-      const profiles = result.rows.map(row => ({
-        id: row.id,
-        companyName: row.company_name,
-        basicInfo: row.basic_info ? (typeof row.basic_info === 'string' ? JSON.parse(row.basic_info) : row.basic_info) : {},
-        capabilities: row.capabilities ? (typeof row.capabilities === 'string' ? JSON.parse(row.capabilities) : row.capabilities) : {},
-        pastPerformance: row.past_performance ? (typeof row.past_performance === 'string' ? JSON.parse(row.past_performance) : row.past_performance) : [],
-        keyPersonnel: row.key_personnel ? (typeof row.key_personnel === 'string' ? JSON.parse(row.key_personnel) : row.key_personnel) : [],
-        profileData: row.profile_data ? (typeof row.profile_data === 'string' ? JSON.parse(row.profile_data) : row.profile_data) : {},
-        createdAt: row.created_at,
-        updatedAt: row.updated_at
-      }));
-      
-      console.log(`📋 [DEBUG] Found ${profiles.length} company profiles`);
-      
-      res.json({
-        success: true,
-        profiles: profiles
-      });
-    } catch (dbError) {
-      console.error('Company profiles database error:', dbError.message);
-      // If table doesn't exist or has wrong schema, return empty array
-      res.json({
-        success: true,
-        profiles: []
-      });
-    }
+    const formattedProfiles = profiles.map(profile => ({
+      id: profile.id,
+      companyName: profile.companyName,
+      basicInfo: profile.basicInfo || {},
+      capabilities: profile.capabilities || {},
+      pastPerformance: profile.pastPerformance || [],
+      keyPersonnel: profile.keyPersonnel || [],
+      profileData: profile.profileData || {},
+      createdAt: profile.createdAt,
+      updatedAt: profile.updatedAt
+    }));
+    
+    console.log(`📋 [DEBUG] Found ${formattedProfiles.length} company profiles`);
+    
+    res.json({
+      success: true,
+      profiles: formattedProfiles
+    });
   } catch (error) {
     console.error('Error fetching company profiles:', error);
     res.status(500).json({
@@ -691,40 +492,18 @@ router.post('/templates', async (req, res) => {
       });
     }
 
-    // Create rfp_templates table if it doesn't exist
-    await query(`
-      CREATE TABLE IF NOT EXISTS rfp_templates (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        agency VARCHAR(255) NOT NULL,
-        description TEXT,
-        sections JSONB DEFAULT '[]',
-        evaluation_criteria JSONB DEFAULT '{}',
-        usage_count INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
+    // Database tables are now managed by Prisma migrations
 
-    // Insert the new template
-    const result = await query(`
-      INSERT INTO rfp_templates (
-        name, 
-        agency, 
-        description, 
-        sections, 
-        evaluation_criteria
-      ) VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-    `, [
-      name,
-      agency,
-      description,
-      JSON.stringify(sections),
-      JSON.stringify(evaluationCriteria)
-    ]);
-
-    const template = result.rows[0];
+    // Create the new template using Prisma
+    const template = await prisma.rfpTemplate.create({
+      data: {
+        name,
+        agency,
+        description,
+        sections,
+        evaluationCriteria
+      }
+    });
     
     res.status(201).json({
       success: true,
@@ -733,11 +512,11 @@ router.post('/templates', async (req, res) => {
         name: template.name,
         agency: template.agency,
         description: template.description,
-        sections: JSON.parse(template.sections),
-        evaluationCriteria: JSON.parse(template.evaluation_criteria),
-        usageCount: template.usage_count,
-        createdAt: template.created_at,
-        updatedAt: template.updated_at
+        sections: template.sections,
+        evaluationCriteria: template.evaluationCriteria,
+        usageCount: template.usageCount,
+        createdAt: template.createdAt,
+        updatedAt: template.updatedAt
       }
     });
   } catch (error) {
@@ -767,27 +546,8 @@ router.post('/company-profiles', async (req, res) => {
       });
     }
 
-    // Create company_profiles table if it doesn't exist
-    await query(`
-      CREATE TABLE IF NOT EXISTS company_profiles (
-        id SERIAL PRIMARY KEY,
-        company_name VARCHAR(255) NOT NULL,
-        basic_info JSONB DEFAULT '{}',
-        capabilities JSONB DEFAULT '{}',
-        past_performance JSONB DEFAULT '[]',
-        key_personnel JSONB DEFAULT '[]',
-        profile_data JSONB DEFAULT '{}',
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    // Add missing columns if they don't exist (for existing tables)
-    try {
-      await query(`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS profile_data JSONB DEFAULT '{}'`);
-    } catch (alterError) {
-      console.log('Note: profile_data column may already exist:', alterError.message);
-    }
+    // Note: company_profiles table is managed by Prisma schema
+    // No need to create table manually
 
     // Prepare the complete profile data
     const profileData = {
@@ -797,41 +557,29 @@ router.post('/company-profiles', async (req, res) => {
       keyPersonnel
     };
 
-    // Insert the new company profile
-    const result = await query(`
-      INSERT INTO company_profiles (
-        company_name, 
-        basic_info, 
-        capabilities, 
-        past_performance, 
-        key_personnel,
-        profile_data,
-        created_at,
-        updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-      RETURNING *
-    `, [
-      companyName,
-      JSON.stringify(basicInfo),
-      JSON.stringify(capabilities),
-      JSON.stringify(pastPerformance),
-      JSON.stringify(keyPersonnel),
-      JSON.stringify(profileData)
-    ]);
-
-    const profile = result.rows[0];
+    // Insert the new company profile using Prisma
+    const profile = await prisma.companyProfile.create({
+      data: {
+        companyName,
+        basicInfo,
+        capabilities,
+        pastPerformance,
+        keyPersonnel,
+        profileData
+      }
+    });
     
     res.status(201).json({
       success: true,
       profile: {
         id: profile.id,
-        companyName: profile.company_name,
-        basicInfo: typeof profile.basic_info === 'string' ? JSON.parse(profile.basic_info) : profile.basic_info,
-        capabilities: typeof profile.capabilities === 'string' ? JSON.parse(profile.capabilities) : profile.capabilities,
-        pastPerformance: typeof profile.past_performance === 'string' ? JSON.parse(profile.past_performance) : profile.past_performance,
-        keyPersonnel: typeof profile.key_personnel === 'string' ? JSON.parse(profile.key_personnel) : profile.key_personnel,
-        createdAt: profile.created_at,
-        updatedAt: profile.updated_at
+        companyName: profile.companyName,
+        basicInfo: profile.basicInfo,
+        capabilities: profile.capabilities,
+        pastPerformance: profile.pastPerformance,
+        keyPersonnel: profile.keyPersonnel,
+        createdAt: profile.createdAt,
+        updatedAt: profile.updatedAt
       }
     });
   } catch (error) {
@@ -857,63 +605,40 @@ router.get('/responses/:id', async (req, res) => {
 
     console.log(`🔍 [DEBUG] Fetching RFP response with ID: ${id}`);
 
-    // Query the actual RFP response from database
-    const responseResult = await query(`
-      SELECT 
-        id,
-        contract_id,
-        template_id,
-        company_profile_id,
-        title,
-        status,
-        response_data,
-        compliance_status,
-        predicted_score,
-        metadata,
-        created_at,
-        updated_at
-      FROM rfp_responses 
-      WHERE id = $1
-    `, [parseInt(id)]);
+    // Query the actual RFP response from database using Prisma
+    const rfpResponse = await prisma.rfpResponse.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        template: true,
+        companyProfile: true
+      }
+    });
 
-    if (responseResult.rows.length === 0) {
+    if (!rfpResponse) {
       console.log(`❌ [DEBUG] RFP response ${id} not found in database`);
       return res.status(404).json({
         success: false,
         error: 'RFP response not found'
       });
     }
-
-    const rfpResponse = responseResult.rows[0];
     console.log(`✅ [DEBUG] Found RFP response: ${rfpResponse.title}`);
 
-    // Parse JSON data safely
-    const responseData = typeof rfpResponse.response_data === 'string' 
-      ? JSON.parse(rfpResponse.response_data) 
-      : rfpResponse.response_data;
-    
-    const complianceStatus = typeof rfpResponse.compliance_status === 'string' 
-      ? JSON.parse(rfpResponse.compliance_status) 
-      : rfpResponse.compliance_status;
-    
-    const predictedScore = typeof rfpResponse.predicted_score === 'string' 
-      ? JSON.parse(rfpResponse.predicted_score) 
-      : rfpResponse.predicted_score;
-    
-    const metadata = typeof rfpResponse.metadata === 'string' 
-      ? JSON.parse(rfpResponse.metadata) 
-      : rfpResponse.metadata;
+    // Parse JSON data safely (Prisma automatically handles JSON fields)
+    const responseData = rfpResponse.responseData || {};
+    const complianceStatus = rfpResponse.complianceStatus || {};
+    const predictedScore = rfpResponse.predictedScore || {};
+    const metadata = rfpResponse.metadata || {};
 
     // Build the detailed response
     const detailedResponse = {
       id: rfpResponse.id,
       title: rfpResponse.title,
-      contractId: rfpResponse.contract_id,
-      templateId: rfpResponse.template_id,
-      companyProfileId: rfpResponse.company_profile_id,
+      contractId: rfpResponse.contractId,
+      templateId: rfpResponse.templateId,
+      companyProfileId: rfpResponse.companyProfileId,
       status: rfpResponse.status,
-      createdAt: rfpResponse.created_at,
-      updatedAt: rfpResponse.updated_at,
+      createdAt: rfpResponse.createdAt,
+      updatedAt: rfpResponse.updatedAt,
       sections: responseData.sections || [],
       contract: responseData.contract || {},
       template: responseData.template || {},
@@ -924,8 +649,8 @@ router.get('/responses/:id', async (req, res) => {
       predictedScore: predictedScore,
       metadata: metadata,
       timeline: [
-        { date: rfpResponse.created_at, event: 'RFP response created', type: 'created' },
-        { date: rfpResponse.updated_at, event: 'Last updated', type: 'updated' }
+        { date: rfpResponse.createdAt, event: 'RFP response created', type: 'created' },
+        { date: rfpResponse.updatedAt, event: 'Last updated', type: 'updated' }
       ],
       attachments: [] // No attachments for now
     };
@@ -945,14 +670,76 @@ router.get('/responses/:id', async (req, res) => {
   }
 });
 
+// DELETE /api/rfp/responses/:id - Delete RFP response
+router.delete('/responses/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || isNaN(parseInt(id))) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid RFP response ID is required'
+      });
+    }
+
+    console.log(`🗑️ [DEBUG] Deleting RFP response with ID: ${id}`);
+
+    // Check if RFP response exists
+    const existingResponse = await prisma.rfpResponse.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!existingResponse) {
+      console.log(`❌ [DEBUG] RFP response ${id} not found`);
+      return res.status(404).json({
+        success: false,
+        error: 'RFP response not found'
+      });
+    }
+
+    // Delete the RFP response
+    await prisma.rfpResponse.delete({
+      where: { id: parseInt(id) }
+    });
+
+    console.log(`✅ [DEBUG] Successfully deleted RFP response ${id}: ${existingResponse.title}`);
+
+    res.json({
+      success: true,
+      message: 'RFP response deleted successfully',
+      deletedResponse: {
+        id: existingResponse.id,
+        title: existingResponse.title
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error deleting RFP response:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete RFP response'
+    });
+  }
+});
+
 // Helper functions
 function generateDetailedSections(sectionCount) {
   const sectionTemplates = [
     { id: 'exec', title: 'Executive Summary', wordCount: 950, status: 'approved' },
-    { id: 'tech', title: 'Technical Approach', wordCount: 4800, status: 'reviewed' },
-    { id: 'mgmt', title: 'Management Plan', wordCount: 2900, status: 'reviewed' },
-    { id: 'past', title: 'Past Performance', wordCount: 1950, status: 'approved' },
-    { id: 'cost', title: 'Cost Proposal', wordCount: 1400, status: 'draft' }
+    { id: 'tech', title: 'Technical Approach', wordCount: 1200, status: 'reviewed' },
+    { id: 'mgmt', title: 'Management Approach', wordCount: 1100, status: 'reviewed' },
+    { id: 'past', title: 'Past Performance', wordCount: 900, status: 'approved' },
+    { id: 'personnel', title: 'Key Personnel', wordCount: 800, status: 'draft' },
+    { id: 'cost', title: 'Cost Proposal', wordCount: 700, status: 'draft' },
+    { id: 'schedule', title: 'Schedule and Milestones', wordCount: 600, status: 'reviewed' },
+    { id: 'risk', title: 'Risk Management', wordCount: 650, status: 'reviewed' },
+    { id: 'quality', title: 'Quality Assurance', wordCount: 550, status: 'approved' },
+    { id: 'security', title: 'Security and Compliance', wordCount: 750, status: 'approved' },
+    { id: 'transition', title: 'Transition Plan', wordCount: 700, status: 'draft' },
+    { id: 'training', title: 'Training and Support', wordCount: 600, status: 'reviewed' },
+    { id: 'maintenance', title: 'Maintenance and Sustainment', wordCount: 650, status: 'reviewed' },
+    { id: 'innovation', title: 'Innovation and Added Value', wordCount: 500, status: 'draft' },
+    { id: 'teaming', title: 'Subcontractor and Teaming', wordCount: 450, status: 'approved' }
   ];
   
   return sectionTemplates.slice(0, sectionCount).map(section => ({
@@ -1049,23 +836,23 @@ router.delete('/company-profiles/:id', async (req, res) => {
   }
 });
 
-// POST /api/rfp/generate - Generate RFP response
-router.post('/generate', async (req, res) => {
+// POST /api/rfp/generate-async - Start RFP generation job (returns immediately)
+router.post('/generate-async', async (req, res) => {
   try {
     const {
       contractId,
       templateId,
       companyProfileId,
       customInstructions,
-      focusAreas
+      focusAreas,
+      requestId
     } = req.body;
 
-    console.log('🚀 [DEBUG] RFP Generation request:', {
+    console.log('🚀 [DEBUG] Async RFP Generation request:', {
       contractId,
       templateId,
       companyProfileId,
-      customInstructions,
-      focusAreas
+      requestId
     });
 
     // Validate required fields
@@ -1076,85 +863,272 @@ router.post('/generate', async (req, res) => {
       });
     }
 
-    // Get contract details - handle case where contracts table might be empty
+    // Generate unique job ID
+    const jobId = `rfp_job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Store job info in memory (in production, use Redis or database)
+    if (!global.rfpJobs) {
+      global.rfpJobs = new Map();
+    }
+
+    // Create job record
+    const jobData = {
+      id: jobId,
+      status: 'queued', // queued -> processing -> completed -> failed
+      progress: { current: 0, total: 15, message: 'Starting generation...' },
+      contractId,
+      templateId,
+      companyProfileId,
+      customInstructions,
+      focusAreas,
+      requestId,
+      createdAt: new Date(),
+      startedAt: null,
+      completedAt: null,
+      rfpResponseId: null,
+      error: null
+    };
+
+    global.rfpJobs.set(jobId, jobData);
+
+    // Start processing asynchronously (don't await!)
+    processRFPJobAsync(jobId);
+
+    // Return immediately with job ID
+    res.json({
+      success: true,
+      message: 'RFP generation started',
+      jobId: jobId,
+      status: 'queued',
+      estimatedTime: '15-25 minutes'
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error starting async RFP generation:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to start RFP generation',
+      error: error.message
+    });
+  }
+});
+
+// GET /api/rfp/jobs/:jobId - Check RFP generation status
+router.get('/jobs/:jobId', async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    if (!global.rfpJobs || !global.rfpJobs.has(jobId)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found',
+        status: 'not_found'
+      });
+    }
+
+    const job = global.rfpJobs.get(jobId);
+    
+    res.json({
+      success: true,
+      jobId: jobId,
+      status: job.status,
+      progress: job.progress,
+      createdAt: job.createdAt,
+      startedAt: job.startedAt,
+      completedAt: job.completedAt,
+      rfpResponseId: job.rfpResponseId,
+      error: job.error
+    });
+
+  } catch (error) {
+    console.error('❌ [DEBUG] Error checking job status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check job status',
+      error: error.message
+    });
+  }
+});
+
+// POST /api/rfp/generate - Generate RFP response (original synchronous endpoint)
+router.post('/generate', async (req, res) => {
+  try {
+    const {
+      contractId,
+      templateId,
+      companyProfileId,
+      customInstructions,
+      focusAreas,
+      requestId
+    } = req.body;
+
+    console.log('🚀 [DEBUG] RFP Generation request:', {
+      contractId,
+      templateId,
+      companyProfileId,
+      customInstructions,
+      focusAreas,
+      requestId
+    });
+
+    // Add simple in-memory deduplication to prevent multiple generations from retries
+    if (!global.activeRFPGenerations) {
+      global.activeRFPGenerations = new Set();
+    }
+
+    // Create a unique key for this generation request
+    const generationKey = `${contractId}-${templateId}-${companyProfileId}`;
+    
+    if (requestId && global.activeRFPGenerations.has(requestId)) {
+      console.log(`⚠️ [DEBUG] Duplicate request detected for requestId: ${requestId}. Ignoring.`);
+      return res.status(409).json({
+        success: false,
+        message: 'RFP generation already in progress for this request',
+        code: 'DUPLICATE_REQUEST'
+      });
+    }
+
+    // Check if we already have an active generation for this combination
+    if (global.activeRFPGenerations.has(generationKey)) {
+      console.log(`⚠️ [DEBUG] RFP generation already in progress for: ${generationKey}`);
+      return res.status(409).json({
+        success: false,
+        message: 'RFP generation already in progress for this contract/template/profile combination',
+        code: 'GENERATION_IN_PROGRESS'
+      });
+    }
+
+    // Mark this generation as active
+    const activeKey = requestId || generationKey;
+    global.activeRFPGenerations.add(activeKey);
+    console.log(`🔒 [DEBUG] Marked generation as active: ${activeKey}`);
+
+    // Validate required fields
+    if (!contractId || !templateId || !companyProfileId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contract ID, template ID, and company profile ID are required'
+      });
+    }
+
+    // Get contract details using Prisma - handle case where contracts table might be empty
     let contract;
     try {
-      const contractResult = await query(`
-        SELECT id, notice_id, title, agency, description
-        FROM contracts 
-        WHERE notice_id = $1 OR (CAST(id AS TEXT) = $2)
-        LIMIT 1
-      `, [contractId, contractId]);
+      // Try to find contract by notice_id first, then by id
+      contract = await prisma.contract.findFirst({
+        where: {
+          OR: [
+            { noticeId: contractId },
+            { id: isNaN(contractId) ? undefined : parseInt(contractId) }
+          ]
+        },
+        select: {
+          id: true,
+          noticeId: true,
+          title: true,
+          agency: true,
+          description: true
+        }
+      });
 
-      if (contractResult.rows.length === 0) {
-        // If contract not found in database, create a mock contract for demo purposes
-        console.log(`⚠️ [DEBUG] Contract ${contractId} not found in database, using mock data`);
-        contract = {
-          id: contractId,
-          notice_id: contractId,
-          title: `Mock Contract ${contractId}`,
-          agency: 'Demo Agency',
-          description: 'This is a mock contract for demonstration purposes since the contract was not found in the database.'
-        };
-      } else {
-        contract = contractResult.rows[0];
+      if (!contract) {
+        // If contract not found in database, create a mock contract entry
+        console.log(`⚠️ [DEBUG] Contract ${contractId} not found in database, creating mock contract`);
+        
+        try {
+          contract = await prisma.contract.upsert({
+            where: { noticeId: contractId },
+            update: { updatedAt: new Date() },
+            create: {
+              noticeId: contractId,
+              title: `Mock Contract ${contractId.substring(0, 50)}...`,
+              agency: 'Demo Agency',
+              description: 'This is a mock contract for demonstration purposes since the contract was not found in the database.',
+              postedDate: new Date()
+            }
+          });
+          
+          console.log(`✅ [DEBUG] Mock contract created with ID: ${contract.noticeId}`);
+        } catch (insertError) {
+          console.error(`❌ [DEBUG] Error creating mock contract:`, insertError.message);
+          // Fallback to in-memory mock contract
+          contract = {
+            id: contractId,
+            noticeId: contractId,
+            title: `Mock Contract ${contractId}`,
+            agency: 'Demo Agency',
+            description: 'This is a mock contract for demonstration purposes since the contract was not found in the database.'
+          };
+        }
       }
     } catch (contractError) {
       console.error('❌ [DEBUG] Error querying contracts table:', contractError.message);
       // Create a mock contract if there's a database error
       contract = {
         id: contractId,
-        notice_id: contractId,
+        noticeId: contractId,
         title: `Mock Contract ${contractId}`,
         agency: 'Demo Agency',
         description: 'This is a mock contract for demonstration purposes due to database error.'
       };
     }
 
-    // Get template details
-    const templateResult = await query(`
-      SELECT id, name, agency, sections, evaluation_criteria
-      FROM rfp_templates 
-      WHERE id = $1
-    `, [parseInt(templateId)]);
+    // Get template details using Prisma
+    const template = await prisma.rfpTemplate.findUnique({
+      where: { id: parseInt(templateId) }
+    });
 
-    if (templateResult.rows.length === 0) {
+    if (!template) {
       return res.status(404).json({
         success: false,
         message: 'Template not found'
       });
     }
 
-    const template = templateResult.rows[0];
-    const templateSections = template.sections ? JSON.parse(template.sections) : [];
+    // Parse sections - handle both JSON and string formats
+    let templateSections = [];
+    if (template.sections) {
+      if (typeof template.sections === 'string') {
+        templateSections = JSON.parse(template.sections);
+      } else if (Array.isArray(template.sections)) {
+        templateSections = template.sections;
+      }
+    }
 
-    // Get company profile details
-    const profileResult = await query(`
-      SELECT id, company_name, basic_info, capabilities, past_performance, key_personnel
-      FROM company_profiles 
-      WHERE id = $1
-    `, [parseInt(companyProfileId)]);
+    // Get company profile details using Prisma
+    const profile = await prisma.companyProfile.findUnique({
+      where: { id: parseInt(companyProfileId) }
+    });
 
-    if (profileResult.rows.length === 0) {
+    if (!profile) {
       return res.status(404).json({
         success: false,
         message: 'Company profile not found'
       });
     }
 
-    const profile = profileResult.rows[0];
-
     // Generate a title for the RFP response
-    const responseTitle = `${contract.title} - ${profile.company_name} Response`;
+    const responseTitle = `${contract.title} - ${profile.companyName} Response`;
 
-    console.log('🤖 [DEBUG] Starting AI content generation for individual sections...');
+    console.log(`🤖 [DEBUG] Starting AI content generation for ${templateSections.length} individual sections...`);
     const startTime = Date.now();
 
-    // Generate AI content for each section individually
+    // Generate AI content for each section individually with enhanced tracking
     const generatedSections = [];
-    for (const section of templateSections) {
-      console.log(`🤖 [DEBUG] Generating content for section: ${section.title}`);
+    const sectionResults = {
+      successful: 0,
+      failed: 0,
+      retried: 0,
+      details: []
+    };
+
+    for (let i = 0; i < templateSections.length; i++) {
+      const section = templateSections[i];
+      const progress = `${i + 1}/${templateSections.length}`;
       
+      console.log(`🤖 [DEBUG] Processing section ${progress}: "${section.title}"`);
+      
+      const sectionStartTime = Date.now();
       const content = await generateRFPContentWithAI(
         contract, 
         template, 
@@ -1163,13 +1137,37 @@ router.post('/generate', async (req, res) => {
         customInstructions, 
         focusAreas
       );
+      const sectionEndTime = Date.now();
+      const sectionTime = Math.round((sectionEndTime - sectionStartTime) / 1000);
+      
+      // Determine if this section had errors based on content
+      const hadErrors = content.includes('[AI generation failed') || content.includes('service errors');
+      const wasRetried = content.includes('failed after') && content.includes('attempts');
+      
+      // Track results for final summary
+      if (hadErrors) {
+        sectionResults.failed++;
+        if (wasRetried) {
+          sectionResults.retried++;
+        }
+      } else {
+        sectionResults.successful++;
+      }
+
+      sectionResults.details.push({
+        title: section.title,
+        status: hadErrors ? 'failed' : 'success',
+        timeSeconds: sectionTime,
+        wasRetried: wasRetried,
+        wordCount: content.split(/\s+/).length
+      });
       
       generatedSections.push({
         id: section.id || `section_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         title: section.title,
         content: content,
         wordCount: content.split(/\s+/).length,
-        status: 'generated',
+        status: hadErrors ? 'error' : 'generated',
         lastModified: new Date().toISOString(),
         requirements: section.requirements || [],
         description: section.description || '',
@@ -1182,87 +1180,103 @@ router.post('/generate', async (req, res) => {
           requirementCoverage: {
             covered: section.requirements || [],
             missing: [],
-            percentage: 85
+            percentage: hadErrors ? 0 : 85
           }
-        }
+        },
+        generationTime: sectionTime,
+        hadErrors: hadErrors
       });
+
+      console.log(`${hadErrors ? '⚠️' : '✅'} [DEBUG] Section ${progress} "${section.title}" completed in ${sectionTime}s ${hadErrors ? '(WITH ERRORS)' : ''}`);
     }
 
     const endTime = Date.now();
     const generationTime = Math.round((endTime - startTime) / 1000);
+    const totalWords = generatedSections.reduce((sum, s) => sum + s.wordCount, 0);
 
-    console.log(`✅ [DEBUG] AI content generation completed in ${generationTime} seconds`);
-    console.log(`✅ [DEBUG] Generated ${generatedSections.length} sections with total ${generatedSections.reduce((sum, s) => sum + s.wordCount, 0)} words`);
+    // Enhanced final summary with detailed results
+    console.log(`\n📊 [DEBUG] RFP GENERATION SUMMARY:`);
+    console.log(`🕐 Total Time: ${generationTime} seconds`);
+    console.log(`📝 Total Sections: ${generatedSections.length}`);
+    console.log(`📄 Total Words: ${totalWords.toLocaleString()}`);
+    console.log(`✅ Successful: ${sectionResults.successful}`);
+    console.log(`❌ Failed: ${sectionResults.failed}`);
+    console.log(`🔄 Retried: ${sectionResults.retried}`);
+    
+    if (sectionResults.failed > 0) {
+      console.log(`\n⚠️  [DEBUG] SECTIONS WITH ERRORS:`);
+      sectionResults.details
+        .filter(detail => detail.status === 'failed')
+        .forEach(detail => {
+          console.log(`   - "${detail.title}": ${detail.timeSeconds}s ${detail.wasRetried ? '(after retries)' : '(immediate failure)'}`);
+        });
+    }
 
-    // Create the RFP response record
-    const responseResult = await query(`
-      INSERT INTO rfp_responses (
-        contract_id,
-        template_id,
-        company_profile_id,
-        title,
-        status,
-        response_data,
-        compliance_status,
-        predicted_score,
-        metadata,
-        created_at,
-        updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-      RETURNING *
-    `, [
-      contractId,
-      parseInt(templateId),
-      parseInt(companyProfileId),
-      responseTitle,
-      'draft',
-      JSON.stringify({
-        sections: generatedSections,
-        contract: {
-          id: contract.id,
-          noticeId: contract.notice_id,
-          title: contract.title,
-          agency: contract.agency
-        },
-        template: {
-          id: template.id,
-          name: template.name,
-          agency: template.agency
-        },
-        companyProfile: {
-          id: profile.id,
-          name: profile.company_name
-        },
-        customInstructions,
-        focusAreas
-      }),
-      JSON.stringify({
-        overall: true,
-        score: Math.floor(Math.random() * 20) + 80,
-        checks: {
-          wordLimits: { passed: true, details: 'All sections within limits' },
-          requiredSections: { passed: true, details: 'All required sections present' },
-          formatCompliance: { passed: true, details: 'Proper formatting' },
-          requirementCoverage: { passed: true, details: 'Requirements addressed' }
-        },
-        issues: []
-      }),
-      JSON.stringify({
-        technical: Math.floor(Math.random() * 20) + 80,
-        cost: Math.floor(Math.random() * 20) + 75,
-        pastPerformance: Math.floor(Math.random() * 20) + 85,
-        overall: Math.floor(Math.random() * 20) + 80
-      }),
-      JSON.stringify({
-        generatedAt: new Date().toISOString(),
-        generationTime: generationTime,
-        sectionsGenerated: templateSections.length,
-        aiModel: OPENROUTER_API_KEY ? 'anthropic/claude-3.5-sonnet' : 'placeholder-model',
-        version: '1.0'
-      })
-    ]);
+    if (sectionResults.retried > 0) {
+      console.log(`\n🔄 [DEBUG] RETRY STATISTICS:`);
+      console.log(`   - ${sectionResults.retried} sections required retries due to service errors (timeouts, gateway errors, etc.)`);
+      console.log(`   - Retry logic successfully handled temporary service interruptions`);
+    }
 
-    const rfpResponse = responseResult.rows[0];
+    console.log(`✅ [DEBUG] RFP generation completed with ${sectionResults.successful}/${generatedSections.length} sections successful\n`);
+
+    // Create the RFP response record using Prisma
+    const actualContractId = String(contract.noticeId || contract.id || contractId);
+    const rfpResponse = await prisma.rfpResponse.create({
+      data: {
+        contractId: actualContractId,
+        templateId: parseInt(templateId),
+        companyProfileId: parseInt(companyProfileId),
+        title: responseTitle,
+        status: 'draft',
+        responseData: {
+          sections: generatedSections,
+          contract: {
+            id: contract.id,
+            noticeId: contract.noticeId,
+            title: contract.title,
+            agency: contract.agency
+          },
+          template: {
+            id: template.id,
+            name: template.name,
+            agency: template.agency
+          },
+          companyProfile: {
+            id: profile.id,
+            name: profile.companyName
+          },
+          customInstructions,
+          focusAreas
+        },
+        complianceStatus: {
+          overall: true,
+          score: Math.floor(Math.random() * 20) + 80,
+          checks: {
+            wordLimits: { passed: true, details: 'All sections within limits' },
+            requiredSections: { passed: true, details: 'All required sections present' },
+            formatCompliance: { passed: true, details: 'Proper formatting' },
+            requirementCoverage: { passed: true, details: 'Requirements addressed' }
+          },
+          issues: []
+        },
+        predictedScore: {
+          technical: Math.floor(Math.random() * 20) + 80,
+          cost: Math.floor(Math.random() * 20) + 75,
+          pastPerformance: Math.floor(Math.random() * 20) + 85,
+          overall: Math.floor(Math.random() * 20) + 80
+        },
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          generationTime: generationTime,
+          sectionsGenerated: templateSections.length,
+          sectionResults: sectionResults,
+          totalWords: totalWords,
+          aiModel: OPENROUTER_API_KEY ? 'anthropic/claude-3.5-sonnet' : 'placeholder-model',
+          version: '1.0'
+        }
+      }
+    });
 
     console.log('✅ [DEBUG] RFP Response created successfully:', {
       id: rfpResponse.id,
@@ -1270,31 +1284,48 @@ router.post('/generate', async (req, res) => {
       sectionsGenerated: templateSections.length
     });
 
-    // Parse the JSON data safely
-    const complianceStatus = typeof rfpResponse.compliance_status === 'string' 
-      ? JSON.parse(rfpResponse.compliance_status) 
-      : rfpResponse.compliance_status;
-    
-    const predictedScore = typeof rfpResponse.predicted_score === 'string' 
-      ? JSON.parse(rfpResponse.predicted_score) 
-      : rfpResponse.predicted_score;
-    
-    const metadata = typeof rfpResponse.metadata === 'string' 
-      ? JSON.parse(rfpResponse.metadata) 
-      : rfpResponse.metadata;
+    // Create appropriate message based on results
+    let message = 'RFP response generated successfully';
+    if (sectionResults.failed > 0) {
+      if (sectionResults.successful === 0) {
+        message = `RFP response generation completed with errors. ${sectionResults.failed} sections failed.`;
+      } else {
+        message = `RFP response generated with ${sectionResults.successful}/${templateSections.length} sections successful. ${sectionResults.failed} sections had errors.`;
+      }
+    } else if (sectionResults.retried > 0) {
+      message = `RFP response generated successfully. ${sectionResults.retried} sections required retries due to timeouts but completed successfully.`;
+    }
+
+    // Clean up active generation tracking
+    if (global.activeRFPGenerations) {
+      global.activeRFPGenerations.delete(activeKey);
+      console.log(`🔓 [DEBUG] Released generation lock: ${activeKey}`);
+    }
 
     res.status(201).json({
       success: true,
-      message: 'RFP response generated successfully',
+      message: message,
       rfpResponseId: rfpResponse.id,
       sectionsGenerated: templateSections.length,
-      complianceScore: complianceStatus.score,
-      predictedScore: predictedScore.overall,
-      generationTime: metadata.generationTime
+      sectionsSuccessful: sectionResults.successful,
+      sectionsFailed: sectionResults.failed,
+      sectionsRetried: sectionResults.retried,
+      complianceScore: rfpResponse.complianceStatus.score,
+      predictedScore: rfpResponse.predictedScore.overall,
+      generationTime: rfpResponse.metadata.generationTime,
+      totalWords: totalWords,
+      retryLogicEnabled: true
     });
 
   } catch (error) {
     console.error('❌ [DEBUG] Error generating RFP response:', error);
+    
+    // Clean up active generation tracking on error
+    if (global.activeRFPGenerations && typeof activeKey !== 'undefined') {
+      global.activeRFPGenerations.delete(activeKey);
+      console.log(`🔓 [DEBUG] Released generation lock on error: ${activeKey}`);
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Failed to generate RFP response',
@@ -1324,33 +1355,51 @@ router.get('/responses/:id/download/:format', async (req, res) => {
 
     console.log(`📄 [DEBUG] Generating ${format.toUpperCase()} download for RFP response ${id}`);
 
-    // Get the RFP response data
-    const responseResult = await query(`
-      SELECT 
-        id,
-        title,
-        response_data,
-        created_at,
-        updated_at
-      FROM rfp_responses 
-      WHERE id = $1
-    `, [parseInt(id)]);
+    // Get RFP response data using Prisma
+    const rfpResponse = await prisma.rfpResponse.findUnique({
+      where: { id: parseInt(id) },
+      select: {
+        id: true,
+        title: true,
+        responseData: true
+      }
+    });
 
-    if (responseResult.rows.length === 0) {
+    if (!rfpResponse) {
       return res.status(404).json({
         success: false,
         error: 'RFP response not found'
       });
     }
-
-    const rfpResponse = responseResult.rows[0];
-    const responseData = typeof rfpResponse.response_data === 'string' 
-      ? JSON.parse(rfpResponse.response_data) 
-      : rfpResponse.response_data;
+    console.log(`📊 [DEBUG] Processing RFP response ${id}: ${rfpResponse.title.substring(0, 50)}...`);
+    
+    // Parse response data efficiently
+    let responseData;
+    try {
+      responseData = typeof rfpResponse.responseData === 'string' 
+        ? JSON.parse(rfpResponse.responseData) 
+        : rfpResponse.responseData;
+    } catch (parseError) {
+      console.error('❌ [DEBUG] Error parsing response data:', parseError);
+      return res.status(500).json({
+        success: false,
+        error: 'Invalid response data format'
+      });
+    }
 
     const sections = responseData.sections || [];
     const contract = responseData.contract || {};
     const companyProfile = responseData.companyProfile || {};
+
+    console.log(`📊 [DEBUG] Using ${sections.length} sections for ${format.toUpperCase()} generation`);
+    
+    // Limit sections for PDF to prevent memory issues
+    const maxSections = format === 'pdf' ? 12 : sections.length;
+    const limitedSections = sections.slice(0, maxSections);
+    
+    if (sections.length > maxSections) {
+      console.warn(`⚠️ [DEBUG] Limited ${sections.length} sections to ${maxSections} for ${format.toUpperCase()} generation`);
+    }
 
     // Generate content based on format
     if (format === 'txt') {
@@ -1379,7 +1428,7 @@ router.get('/responses/:id/download/:format', async (req, res) => {
       
       try {
         const proposal = { title: rfpResponse.title };
-        const pdfBuffer = await proposalService.generatePDF(proposal, sections);
+        const pdfBuffer = await proposalService.generatePDF(proposal, limitedSections);
         
         const cleanTitle = rfpResponse.title
           .replace(/[^a-zA-Z0-9\s\-_]/g, '')

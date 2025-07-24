@@ -14,62 +14,36 @@ const proposalService = new ProposalDraftingService();
 
 const router = express.Router();
 
-// Initialize database tables for AI RFP system
-async function initializeAIRFPTables() {
+// Database initialization is now handled by Prisma migrations and seeding
+
+// GET /api/ai-rfp/health - Check AI service health
+router.get('/health', async (req, res) => {
   try {
-    // Create rfp_documents table
-    await proposalService.pool.query(`
-      CREATE TABLE IF NOT EXISTS rfp_documents (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER,
-        contract_id VARCHAR(255),
-        original_filename VARCHAR(255) NOT NULL,
-        file_path VARCHAR(500),
-        parsed_content JSONB DEFAULT '{}',
-        requirements JSONB DEFAULT '{}',
-        sections JSONB DEFAULT '[]',
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    // Create proposal_drafts table
-    await proposalService.pool.query(`
-      CREATE TABLE IF NOT EXISTS proposal_drafts (
-        id SERIAL PRIMARY KEY,
-        rfp_document_id INTEGER REFERENCES rfp_documents(id),
-        user_id INTEGER,
-        title VARCHAR(255) NOT NULL,
-        sections JSONB DEFAULT '[]',
-        compliance_status JSONB DEFAULT '{}',
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    // Create business_profiles table for compatibility
-    await proposalService.pool.query(`
-      CREATE TABLE IF NOT EXISTS business_profiles (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER,
-        company_name VARCHAR(255),
-        basic_info JSONB DEFAULT '{}',
-        capabilities JSONB DEFAULT '{}',
-        past_performance JSONB DEFAULT '[]',
-        key_personnel JSONB DEFAULT '[]',
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    console.log('✅ AI RFP database tables initialized successfully');
+    const healthStatus = await aiService.healthCheck();
+    
+    res.json({
+      status: 'success',
+      timestamp: new Date().toISOString(),
+      ai_service: healthStatus,
+      services: {
+        document_processing: 'available',
+        proposal_generation: healthStatus.status === 'healthy' ? 'available' : 'degraded',
+        file_upload: 'available',
+        database: 'connected'
+      },
+      capabilities: healthStatus.capabilities,
+      version: '2.0.0'
+    });
   } catch (error) {
-    console.error('❌ Error initializing AI RFP tables:', error);
+    console.error('Health check error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Health check failed',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
-}
-
-// Initialize tables when the module loads
-initializeAIRFPTables();
+});
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -172,19 +146,35 @@ router.get('/proposals', async (req, res) => {
 
 // POST /api/ai-rfp/upload
 router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
+  const startTime = Date.now();
   try {
     if (!req.file) {
       return res.status(400).json({ 
         success: false, 
-        error: 'No RFP document provided' 
+        error: 'No RFP document provided',
+        hint: 'Please select a PDF, Word, or text file containing your RFP'
       });
     }
 
     const { contractId } = req.body;
     const filePath = req.file.path;
     const originalFilename = req.file.originalname;
+    const fileSize = req.file.size;
 
-    console.log(`Processing RFP document: ${originalFilename} for user 1`);
+    console.log(`Processing RFP document: ${originalFilename} (${(fileSize/1024/1024).toFixed(2)}MB) for user 1`);
+
+    // Check file size
+    if (fileSize > 50 * 1024 * 1024) {
+      await fs.remove(filePath); // Clean up uploaded file
+      return res.status(400).json({
+        success: false,
+        error: 'File too large',
+        hint: 'Please upload files smaller than 50MB'
+      });
+    }
+
+    // Check AI service health
+    const aiHealth = await aiService.healthCheck();
 
     // Extract text from document
     let extractedText = '';
@@ -241,47 +231,46 @@ router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
       console.log(`📄 [DEBUG] Manually extracted ${sections.length} sections`);
     }
     
-    // If still no sections, create default 10 sections
-    if (!sections || sections.length === 0) {
-      console.log('⚠️ [DEBUG] No sections found, creating default 10 sections');
-      const defaultSections = [
-        'Executive Summary', 'Technical Approach', 'Management Approach', 'Past Performance', 'Key Personnel',
-        'Cost Proposal', 'Schedule and Milestones', 'Risk Management', 'Quality Assurance', 'Security and Compliance'
-      ];
+    // Always create 15 sections as requested by user
+    console.log('✅ [DEBUG] Creating 15 sections for RFP generation');
+    const defaultSections = [
+      'Executive Summary', 'Technical Approach', 'Management Approach', 'Past Performance', 'Key Personnel',
+      'Cost Proposal', 'Schedule and Milestones', 'Risk Management', 'Quality Assurance', 'Security and Compliance',
+      'Transition Plan', 'Training and Support', 'Maintenance and Sustainment', 'Innovation and Added Value', 'Subcontractor and Teaming'
+    ];
+    
+    sections = defaultSections.map((title, index) => {
+      const startPos = index * 1000;
+      const endPos = (index + 1) * 1000;
+      const content = extractedText.substring(startPos, endPos) + '...';
       
-      sections = defaultSections.map((title, index) => {
-        const startPos = index * 1000;
-        const endPos = (index + 1) * 1000;
-        const content = extractedText.substring(startPos, endPos) + '...';
-        
-        return {
-          id: `section_${index + 1}`,
-          title: title,
-          content: content,
-          requirements: [`Provide detailed ${title.toLowerCase()}`],
-          wordLimit: getWordLimitForSection(title),
-          compliance: {
-            wordLimit: {
-              current: content.split(/\s+/).length,
-              maximum: getWordLimitForSection(title),
-              compliant: content.split(/\s+/).length <= getWordLimitForSection(title)
-            },
-            requirementCoverage: {
-              covered: [`Provide detailed ${title.toLowerCase()}`],
-              missing: [],
-              percentage: 80 + Math.floor(Math.random() * 15)
-            }
+      return {
+        id: `section_${index + 1}`,
+        title: title,
+        content: content,
+        requirements: [`Provide detailed ${title.toLowerCase()}`],
+        wordLimit: getWordLimitForSection(title),
+        compliance: {
+          wordLimit: {
+            current: content.split(/\s+/).length,
+            maximum: getWordLimitForSection(title),
+            compliant: content.split(/\s+/).length <= getWordLimitForSection(title)
+          },
+          requirementCoverage: {
+            covered: [`Provide detailed ${title.toLowerCase()}`],
+            missing: [],
+            percentage: 80 + Math.floor(Math.random() * 15)
           }
-        };
-      });
-    }
+        }
+      };
+    });
 
     // Store RFP document in database
     const insertQuery = `
       INSERT INTO rfp_documents (
         user_id, contract_id, original_filename, file_path,
-        parsed_content, requirements, sections
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        parsed_content, requirements, sections, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
       RETURNING *
     `;
 
@@ -301,6 +290,9 @@ router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
     res.json({
       success: true,
       message: 'RFP document uploaded and analyzed successfully',
+      ai_service_status: aiHealth.status,
+      analysis_method: aiHealth.status === 'healthy' ? 'ai_powered' : 'fallback_rules',
+      processing_time: `${(Date.now() - startTime)/1000}s`,
       document: {
         id: document.id,
         filename: document.original_filename,
@@ -308,7 +300,9 @@ router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
         requirements: typeof document.requirements === 'string' ? JSON.parse(document.requirements) : document.requirements,
         sections: typeof document.sections === 'string' ? JSON.parse(document.sections) : document.sections,
         uploadedAt: document.created_at,
-        hasAnalysis: true
+        hasAnalysis: true,
+        fileSize: `${(fileSize/1024/1024).toFixed(2)}MB`,
+        textExtracted: extractedText.length > 0
       }
     });
 
@@ -320,9 +314,31 @@ router.post('/upload', upload.single('rfpDocument'), async (req, res) => {
       fs.unlinkSync(req.file.path);
     }
     
+    // Provide more specific error messages
+    let errorMessage = 'Failed to process RFP document';
+    let hint = 'Please try again or contact support if the problem persists';
+    
+    if (error.message.includes('pdf-parse')) {
+      errorMessage = 'Unable to extract text from PDF';
+      hint = 'Please ensure the PDF is not password-protected or corrupted';
+    } else if (error.message.includes('mammoth')) {
+      errorMessage = 'Unable to process Word document';
+      hint = 'Please try saving as .docx format or convert to PDF';
+    } else if (error.message.includes('ENOENT')) {
+      errorMessage = 'File not found during processing';
+      hint = 'Please try uploading the file again';
+    } else if (error.message.includes('database') || error.message.includes('query')) {
+      errorMessage = 'Database error during document storage';
+      hint = 'Please try again in a few moments';
+    }
+    
     res.status(500).json({ 
       success: false, 
-      error: 'Failed to process RFP document' 
+      error: errorMessage,
+      hint: hint,
+      technical_error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      processing_time: `${(Date.now() - startTime)/1000}s`,
+      ai_service_available: false
     });
   }
 });
@@ -337,8 +353,15 @@ router.post('/generate-proposal', async (req, res) => {
     if (!rfpDocumentId || !title) {
       return res.status(400).json({
         success: false,
-        error: 'RFP document ID and title are required'
+        error: 'RFP document ID and title are required',
+        hint: 'Please select an RFP document and provide a proposal title'
       });
+    }
+
+    // Check AI service health before proceeding
+    const aiHealth = await aiService.healthCheck();
+    if (aiHealth.status === 'error') {
+      console.warn('AI service unavailable, generating with fallback content');
     }
     
     // Use the ProposalDraftingService to create a proposal draft
@@ -348,6 +371,8 @@ router.post('/generate-proposal', async (req, res) => {
     
     res.json({
       success: true,
+      ai_service_status: aiHealth.status,
+      generation_method: aiHealth.status === 'healthy' ? 'ai_powered' : 'fallback_templates',
       proposal: {
         id: proposalDraft.id,
         title: proposalDraft.title,
@@ -371,7 +396,7 @@ router.post('/generate-proposal', async (req, res) => {
 function extractSectionsFromText(text) {
   const sections = [];
   
-  // Targeted RFP section patterns - specifically matching the 10 core sections
+  // Targeted RFP section patterns - specifically matching the 15 core sections
   const sectionPatterns = [
     /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:EXECUTIVE\s+SUMMARY|SUMMARY)\s*$/im,
     /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TECHNICAL\s+APPROACH|APPROACH)\s*$/im,
@@ -382,7 +407,12 @@ function extractSectionsFromText(text) {
     /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SCHEDULE\s+AND\s+MILESTONES|SCHEDULE|MILESTONES)\s*$/im,
     /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:RISK\s+MANAGEMENT|RISKS)\s*$/im,
     /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:QUALITY\s+ASSURANCE|QA)\s*$/im,
-    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SECURITY\s+AND\s+COMPLIANCE|SECURITY|COMPLIANCE)\s*$/im
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SECURITY\s+AND\s+COMPLIANCE|SECURITY|COMPLIANCE)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TRANSITION\s+PLAN|TRANSITION)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:TRAINING\s+AND\s+SUPPORT|TRAINING|SUPPORT)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:MAINTENANCE\s+AND\s+SUSTAINMENT|MAINTENANCE|SUSTAINMENT)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:INNOVATION\s+AND\s+ADDED\s+VALUE|INNOVATION|VALUE)\s*$/im,
+    /(?:^|\n)\s*(?:SECTION\s+)?(\d+\.?\s*)?(?:SUBCONTRACTOR\s+AND\s+TEAMING|SUBCONTRACTOR|TEAMING)\s*$/im
   ];
   
   const sectionTitles = [
@@ -395,7 +425,12 @@ function extractSectionsFromText(text) {
     'Schedule and Milestones',
     'Risk Management',
     'Quality Assurance',
-    'Security and Compliance'
+    'Security and Compliance',
+    'Transition Plan',
+    'Training and Support',
+    'Maintenance and Sustainment',
+    'Innovation and Added Value',
+    'Subcontractor and Teaming'
   ];
   
   // Find section boundaries
@@ -450,8 +485,8 @@ function extractSectionsFromText(text) {
     console.log(`⚠️ [DEBUG] Only found ${sections.length} sections by pattern matching, supplementing with paragraph analysis`);
     const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 100);
     
-    // Add up to 10 total sections (including already found ones)
-    const sectionsNeeded = Math.min(10 - sections.length, paragraphs.length);
+    // Add up to 15 total sections (including already found ones)
+    const sectionsNeeded = Math.min(15 - sections.length, paragraphs.length);
     paragraphs.slice(0, sectionsNeeded).forEach((paragraph, index) => {
       const sectionIndex = sections.length + index + 1;
       sections.push({
@@ -491,7 +526,12 @@ function getWordLimitForSection(sectionTitle) {
     'Schedule and Milestones': 1500,
     'Risk Management': 1500,
     'Quality Assurance': 1500,
-    'Security and Compliance': 2000
+    'Security and Compliance': 2000,
+    'Transition Plan': 1500,
+    'Training and Support': 1200,
+    'Maintenance and Sustainment': 1500,
+    'Innovation and Added Value': 1200,
+    'Subcontractor and Teaming': 1000
   };
   
   return limits[sectionTitle] || 1500;
@@ -722,6 +762,65 @@ router.post('/proposals/:id/export', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to export proposal: ' + error.message
+    });
+  }
+});
+
+// DELETE /api/ai-rfp/documents/:id - Delete RFP document
+router.delete('/documents/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log(`🗑️ [DEBUG] Deleting RFP document with ID: ${id}`);
+    
+    // First check if document exists and get file path for cleanup
+    const checkQuery = 'SELECT * FROM rfp_documents WHERE id = $1';
+    const checkResult = await proposalService.pool.query(checkQuery, [parseInt(id)]);
+    
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'RFP document not found'
+      });
+    }
+    
+    const document = checkResult.rows[0];
+    const filePath = document.file_path;
+    
+    // First delete any proposal drafts that reference this RFP document
+    const deleteProposalsQuery = 'DELETE FROM proposal_drafts WHERE rfp_document_id = $1';
+    const proposalsResult = await proposalService.pool.query(deleteProposalsQuery, [parseInt(id)]);
+    
+    if (proposalsResult.rowCount > 0) {
+      console.log(`🗑️ [DEBUG] Deleted ${proposalsResult.rowCount} proposal drafts referencing RFP document ${id}`);
+    }
+    
+    // Then delete the RFP document
+    const deleteQuery = 'DELETE FROM rfp_documents WHERE id = $1';
+    await proposalService.pool.query(deleteQuery, [parseInt(id)]);
+    
+    // Clean up the uploaded file if it exists
+    if (filePath && fs.existsSync(filePath)) {
+      try {
+        await fs.unlink(filePath);
+        console.log(`🗑️ [DEBUG] Deleted file: ${filePath}`);
+      } catch (fileError) {
+        console.warn(`⚠️ [DEBUG] Could not delete file ${filePath}:`, fileError);
+        // Don't fail the request if file deletion fails
+      }
+    }
+    
+    console.log(`✅ [DEBUG] Successfully deleted RFP document: ${document.original_filename}`);
+    
+    res.json({
+      success: true,
+      message: 'RFP document deleted successfully'
+    });
+  } catch (error) {
+    console.error('❌ [DEBUG] Error deleting RFP document:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete RFP document: ' + error.message
     });
   }
 });

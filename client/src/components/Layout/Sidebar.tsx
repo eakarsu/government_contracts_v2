@@ -30,7 +30,6 @@ const navigation = [
   { name: 'NLP Search', href: '/nlp-search', icon: Sparkles },
   { name: 'RFP System', href: '/rfp', icon: ClipboardList },
   { name: 'Jobs', href: '/jobs', icon: BarChart3 },
-  { name: 'Documents', href: '/documents', icon: Upload },
   { name: 'API Docs', href: '/api-docs', icon: Database },
 ];
 

@@ -142,20 +142,50 @@ const RFPTemplates: React.FC = () => {
       {
         title: 'Risk Management',
         description: 'Identify potential risks and your mitigation strategies.',
-        required: false,
+        required: true,
         mappings: ['risk_management', 'risk_mitigation']
       },
       {
         title: 'Quality Assurance',
         description: 'Describe your quality control processes and standards.',
-        required: false,
+        required: true,
         mappings: ['quality_assurance', 'quality_control']
       },
       {
         title: 'Security and Compliance',
         description: 'Detail security measures and compliance with relevant regulations.',
-        required: false,
+        required: true,
         mappings: ['security', 'compliance', 'regulations']
+      },
+      {
+        title: 'Transition Plan',
+        description: 'Describe how you will transition from current state to operational state, including knowledge transfer and continuity planning.',
+        required: true,
+        mappings: ['transition_plan', 'implementation', 'knowledge_transfer']
+      },
+      {
+        title: 'Training and Support',
+        description: 'Detail training programs for end users and support staff, including documentation and help desk services.',
+        required: true,
+        mappings: ['training_support', 'user_training', 'documentation']
+      },
+      {
+        title: 'Maintenance and Sustainment',
+        description: 'Explain long-term maintenance strategies, system updates, and sustainment planning for lifecycle management.',
+        required: true,
+        mappings: ['maintenance_sustainment', 'lifecycle', 'updates']
+      },
+      {
+        title: 'Innovation and Added Value',
+        description: 'Highlight innovative approaches, emerging technologies, and value-added services beyond basic requirements.',
+        required: false,
+        mappings: ['innovation_value', 'emerging_tech', 'value_added']
+      },
+      {
+        title: 'Subcontractor and Teaming',
+        description: 'Describe subcontractor relationships, teaming arrangements, and partnership strategies including small business participation.',
+        required: false,
+        mappings: ['subcontractor_teaming', 'partnerships', 'small_business']
       }
     ];
 
@@ -409,7 +439,7 @@ const RFPTemplates: React.FC = () => {
                       onClick={addPredefinedSections}
                       className="text-green-600 hover:text-green-800 text-sm"
                     >
-                      + Add Standard Sections
+                      + Add 15 Standard Sections
                     </button>
                     <button
                       onClick={addSection}
@@ -428,7 +458,7 @@ const RFPTemplates: React.FC = () => {
                         onClick={addPredefinedSections}
                         className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
                       >
-                        Add Standard RFP Sections
+                        Add 15 Standard RFP Sections
                       </button>
                       <button
                         onClick={addSection}

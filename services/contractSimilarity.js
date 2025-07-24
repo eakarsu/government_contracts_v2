@@ -11,10 +11,19 @@ class ContractSimilarityEngine {
 
   async findSimilarContracts(targetContract, limit = 5) {
     try {
+      // Convert contract ID to integer if it's a string
+      const targetId = typeof targetContract.id === 'string' ? parseInt(targetContract.id) : targetContract.id;
+      
+      // Skip database query if targetId is invalid
+      if (!targetId || isNaN(targetId)) {
+        console.warn('Invalid target contract ID for similarity search:', targetContract.id);
+        return { matches: [], summary: { totalMatches: 0 } };
+      }
+      
       // Get all contracts for comparison
       const allContracts = await prisma.contract.findMany({
         where: {
-          id: { not: targetContract.id },
+          id: { not: targetId },
           postedDate: { gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) } // Last year
         },
         select: {

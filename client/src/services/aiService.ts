@@ -212,12 +212,14 @@ class AIService {
   async getComprehensiveAnalysis(
     contractId: string, 
     userId: string, 
-    userContext?: UserContext
+    userContext?: UserContext,
+    analysisType?: string
   ): Promise<ComprehensiveAnalysis> {
     const response = await api.post('/ai/comprehensive-analysis', {
       contractId,
       userId,
-      userContext
+      userContext,
+      analysisType
     });
     return response.data;
   }

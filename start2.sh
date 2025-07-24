@@ -1,6 +1,112 @@
 #!/bin/sh
 set -e
 
+# Port configuration - customize these for your environment
+WEB_PORT=${WEB_PORT:-3001}          # React/frontend port
+SERVER_PORT=${SERVER_PORT:-3000}    # API/backend server port
+PROXY_PORT=${PROXY_PORT:-5013}      # Proxy port
+
+# Function to kill processes running on a specific port
+kill_port() {
+    local port=$1
+    local description=${2:-"port $port"}
+    local pids=$(lsof -ti:$port 2>/dev/null)
+    if [ -n "$pids" ]; then
+        echo "🔪 Killing processes on $description ($port): $pids"
+        echo $pids | xargs kill -9 2>/dev/null
+        sleep 1
+    else
+        echo "✅ No processes found on $description ($port)"
+    fi
+}
+
+# Function to clean up all development processes
+cleanup_dev_processes() {
+    echo "🧹 Cleaning up existing development processes..."
+    
+    # Kill processes on configured ports
+    kill_port $PROXY_PORT "proxy"
+    kill_port $WEB_PORT "web/frontend"
+    kill_port $SERVER_PORT "server/backend"
+    
+    # Kill specific process types
+    echo "🔪 Killing development process types..."
+    pkill -f nodemon 2>/dev/null || true
+    pkill -f "node.*server" 2>/dev/null || true
+    pkill -f "npm.*start" 2>/dev/null || true
+    pkill -f "npm.*dev" 2>/dev/null || true
+    pkill -f "react-scripts" 2>/dev/null || true
+    
+    echo "✅ Development processes cleaned up"
+}
+
+# Function to build and serve client for hosting (production)
+start_client_hosting() {
+  if [ -d "client" ]; then
+    echo "Building React client for hosting..."
+    cd client
+    npm run build
+    cd ..
+    # Remove old build dir if it exists
+    rm -rf public
+    # Copy built client to your backend's static directory
+    mkdir -p public
+    cp -r client/build/* public/
+    echo "✅ React client built and served from backend"
+  else
+    echo "❌ Client directory not found"
+  fi
+}
+
+# Function to start client in development mode for local testing
+start_client_local() {
+  if [ -d "client" ]; then
+    echo "Starting React client in development mode..."
+    cd client
+    PORT=$WEB_PORT BROWSER=none npm start &
+    CLIENT_PID=$!
+    echo $CLIENT_PID > ../logs/client.pid
+    cd ..
+    echo "✅ React client started at http://localhost:$WEB_PORT"
+    return $CLIENT_PID
+  else
+    echo "❌ Client directory not found"
+    return 0
+  fi
+}
+
+# Check command line arguments
+MODE="hosting"  # default mode
+if [ "$1" = "local" ]; then
+  MODE="local"
+elif [ "$1" = "hosting" ]; then
+  MODE="hosting"
+elif [ "$1" = "cleanup" ] || [ "$1" = "kill" ]; then
+  echo "🧹 Cleanup mode: Killing all development processes and ports..."
+  cleanup_dev_processes
+  echo "🎉 Cleanup complete!"
+  exit 0
+elif [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+  echo "Usage: $0 [local|hosting|cleanup]"
+  echo "  local   - Start client in development mode (separate React dev server)"
+  echo "  hosting - Build client and serve from backend (default)"
+  echo "  cleanup - Kill all development processes and clean ports"
+  echo ""
+  echo "Port Configuration (customize with environment variables):"
+  echo "  WEB_PORT=$WEB_PORT          - React/frontend port"
+  echo "  SERVER_PORT=$SERVER_PORT    - API/backend server port"
+  echo "  PROXY_PORT=$PROXY_PORT      - Proxy port"
+  echo ""
+  echo "Examples:"
+  echo "  WEB_PORT=3002 SERVER_PORT=8080 PROXY_PORT=8000 $0 local"
+  exit 0
+fi
+
+echo "🚀 Starting in $MODE mode"
+
+# Clean up any existing processes before starting
+cleanup_dev_processes
+
 OS_TYPE="$(uname)"
 echo "Detected OS: $OS_TYPE"
 
@@ -153,68 +259,104 @@ fi
 mkdir -p uploads documents logs
 
 echo "Starting Node.js server and React client..."
-echo "API Server will be available at: http://localhost:3010"
-echo "React Client will be available at: http://localhost:3001"
+echo "API Server will be available at: http://localhost:$SERVER_PORT"
+echo "React Client will be available at: http://localhost:$WEB_PORT"
 echo "Vector Database: Vectra (Pure Node.js - embedded)"
 echo "Press Ctrl+C to stop all servers"
 
 # Start the API server in background
-PORT=5013 BROWSER=none npm run dev &
+PORT=$PROXY_PORT BROWSER=none npm run dev &
 SERVER_PID=$!
 echo $SERVER_PID > logs/server.pid
 
 sleep 3
 
-# Start the React client
-if [ -d "client" ]; then
-  echo "Starting React client..."
-  #add
-  #server code
-  #echo "Building React client..."
-  #  cd client
-  #  npm run build
-  #  cd ..
-  #  # Remove old build dir if it exists
-  #  rm -rf public
-  #  # Copy built client to your backend's static directory
-  #  mkdir -p public
-  #  cp -r client/build/* public/
-  #add local
-  cd client
-  PORT=3001 BROWSER=none npm start &
-  CLIENT_PID=$!
-  echo $CLIENT_PID > ../logs/client.pid
-  cd ..
+# Start the React client based on mode
+if [ "$MODE" = "local" ]; then
+  start_client_local
+  CLIENT_PID=$?
   sleep 5
-  echo "🎉 Both servers are running!"
+  echo "🎉 Both servers are running in LOCAL mode!"
   echo ""
   echo "📊 Services:"
-  echo " • Node.js API Server:  http://localhost:5013"
-  echo " • React Client:        http://localhost:3001"
+  echo " • Node.js API Server:  http://localhost:$SERVER_PORT"
+  echo " • React Dev Server:    http://localhost:$WEB_PORT"
   echo " • Vector Database:     Vectra (embedded in Node.js)"
   echo ""
-  echo "📁 Data Storage:"
-  echo " • Vector Indexes:      ./vector_indexes/"
-  echo " • Uploaded Files:      ./uploads/"
-  echo " • Documents:           ./documents/"
-  echo ""
-  echo "🌐 Open your browser to: http://localhost:3001"
+  echo "🌐 Open your browser to: http://localhost:$WEB_PORT"
 else
-  echo "Client directory not found. Only API server is running."
+  start_client_hosting
+  sleep 5
+  echo "🎉 Server running in HOSTING mode!"
+  echo ""
+  echo "📊 Services:"
+  echo " • Node.js API Server:  http://localhost:$SERVER_PORT"
+  echo " • React Client:        Served from backend"
+  echo " • Vector Database:     Vectra (embedded in Node.js)"
+  echo ""
+  echo "🌐 Open your browser to: http://localhost:$SERVER_PORT"
 fi
+
+echo ""
+echo "📁 Data Storage:"
+echo " • Vector Indexes:      ./vector_indexes/"
+echo " • Uploaded Files:      ./uploads/"
+echo " • Documents:           ./documents/"
+echo ""
 
 echo "🎉 Environment setup and application startup complete!"
 
 # Setup cleanup and wait indefinitely
 cleanup() {
-    echo -e "\n\n${YELLOW}🛑 Shutting down all services...${NC}"
-    kill $SERVER_PID 2>/dev/null
-    kill $CLIENT_PID 2>/dev/null
-    echo -e "${GREEN}✅ Done.${NC}"
+    echo -e "\n\n🛑 Shutting down all services..."
+    
+    # Kill processes by PID if they exist (graceful first)
+    if [ -n "$SERVER_PID" ]; then
+        echo "📊 Stopping API server (PID: $SERVER_PID)..."
+        kill $SERVER_PID 2>/dev/null
+        sleep 1
+    fi
+    
+    if [ -n "$CLIENT_PID" ]; then
+        echo "⚛️  Stopping React client (PID: $CLIENT_PID)..."
+        kill $CLIENT_PID 2>/dev/null
+        sleep 1
+    fi
+    
+    # Kill any remaining processes on specific ports
+    echo "🔍 Final cleanup of configured ports..."
+    
+    # Kill processes on configured ports
+    kill_port $PROXY_PORT "proxy"
+    kill_port $WEB_PORT "web/frontend"
+    kill_port $SERVER_PORT "server/backend"
+    
+    # Kill any nodemon processes
+    echo "🔪 Killing nodemon processes..."
+    pkill -f nodemon 2>/dev/null
+    
+    # Kill any node processes running our server
+    echo "🔪 Killing node server processes..."
+    pkill -f "node.*server.js" 2>/dev/null
+    
+    # Kill any npm processes
+    echo "🔪 Killing npm processes..."
+    pkill -f "npm.*start" 2>/dev/null
+    pkill -f "npm.*dev" 2>/dev/null
+    
+    echo "✅ All services stopped."
     exit 0
 }
 
-trap cleanup INT TERM
+# Set up signal handling for clean shutdown
+trap cleanup INT TERM EXIT
+
+# Print helpful message
+echo ""
+echo "💡 Press Ctrl+C to stop all services cleanly"
+echo ""
+
+# Wait for all background processes
 wait  # Wait indefinitely for any background process
 
 echo "One or more services stopped. Container exiting."

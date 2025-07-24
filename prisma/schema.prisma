@@ -8,22 +8,112 @@ datasource db {
 }
 
 model Contract {
-  id                 Int           @id @default(autoincrement())
-  noticeId           String        @unique @map("notice_id")
-  title              String?
-  description        String?
-  agency             String?
-  naicsCode          String?       @map("naics_code")
-  classificationCode String?       @map("classification_code")
-  postedDate         DateTime?     @map("posted_date")
-  setAsideCode       String?       @map("set_aside_code")
-  resourceLinks      Json?         @map("resource_links")
-  indexedAt          DateTime?     @map("indexed_at")
-  createdAt          DateTime      @default(now()) @map("created_at")
-  updatedAt          DateTime      @updatedAt @map("updated_at")
-  rfpResponses       RfpResponse[]
+  id                   Int                   @id @default(autoincrement())
+  noticeId             String                @unique @map("notice_id")
+  title                String?
+  description          String?
+  agency               String?
+  naicsCode            String?               @map("naics_code")
+  classificationCode   String?               @map("classification_code")
+  postedDate           DateTime?             @map("posted_date")
+  responseDeadline     DateTime?             @map("response_deadline")
+  setAsideCode         String?               @map("set_aside_code")
+  awardAmount          Decimal?              @map("award_amount") @db.Decimal(15, 2)
+  contractValue        Decimal?              @map("contract_value") @db.Decimal(15, 2)
+  placeOfPerformance   String?               @map("place_of_performance")
+  contactInfo          Json?                 @map("contact_info")
+  requirements         String?
+  resourceLinks        Json?                 @default("[]") @map("resource_links")
+  indexedAt            DateTime?             @map("indexed_at")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  
+  // Note: rfpResponses relation removed to avoid foreign key constraint issues
+  // RFP responses can reference contracts by notice_id without formal relation
 
   @@map("contract")
+}
+
+model BusinessProfile {
+  id                Int               @id @default(autoincrement())
+  userId            Int?              @map("user_id")
+  companyName       String?           @map("company_name")
+  basicInfo         Json?             @default("{}") @map("basic_info")
+  capabilities      Json?             @default("{}")
+  pastPerformance   Json?             @default("[]") @map("past_performance")
+  keyPersonnel      Json?             @default("[]") @map("key_personnel")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  @@map("business_profiles")
+}
+
+model RfpDocument {
+  id               Int             @id @default(autoincrement())
+  userId           Int?            @map("user_id")
+  contractId       String?         @map("contract_id")
+  originalFilename String          @map("original_filename")
+  filePath         String?         @map("file_path")
+  parsedContent    Json?           @default("{}") @map("parsed_content")
+  requirements     Json?           @default("{}")
+  sections         Json?           @default("[]")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  
+  // Relations
+  proposalDrafts   ProposalDraft[]
+
+  @@map("rfp_documents")
+}
+
+model ProposalDraft {
+  id               Int          @id @default(autoincrement())
+  rfpDocumentId    Int?         @map("rfp_document_id")
+  userId           Int?         @map("user_id")
+  title            String
+  sections         Json?        @default("[]")
+  complianceStatus Json?        @default("{}") @map("compliance_status")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  
+  // Relations
+  rfpDocument      RfpDocument? @relation(fields: [rfpDocumentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("proposal_drafts")
+}
+
+model CompanyProfile {
+  id              Int           @id @default(autoincrement())
+  companyName     String        @map("company_name")
+  basicInfo       Json?         @default("{}") @map("basic_info")
+  capabilities    Json?         @default("{}")
+  pastPerformance Json?         @default("[]") @map("past_performance")
+  keyPersonnel    Json?         @default("[]") @map("key_personnel")
+  profileData     Json?         @default("{}") @map("profile_data")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  
+  // Relations
+  rfpResponses    RfpResponse[]
+
+  @@map("company_profiles")
+}
+
+model RfpTemplate {
+  id                 Int           @id @default(autoincrement())
+  name               String
+  agency             String?
+  description        String?
+  sections           Json          @default("[]")
+  evaluationCriteria Json          @default("{}") @map("evaluation_criteria")
+  usageCount         Int?          @default(0) @map("usage_count")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+  
+  // Relations
+  rfpResponses       RfpResponse[]
+
+  @@map("rfp_templates")
 }
 
 model IndexingJob {
@@ -38,7 +128,7 @@ model IndexingJob {
   createdAt        DateTime  @default(now()) @map("created_at")
   completedAt      DateTime? @map("completed_at")
 
-  @@map("indexing_job")
+  @@map("indexing_jobs")
 }
 
 model SearchQuery {
@@ -53,16 +143,39 @@ model SearchQuery {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  firstName String?  @map("first_name")
-  lastName  String?  @map("last_name")
-  password  String
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  firstName   String?  @map("first_name")
+  lastName    String?  @map("last_name")
+  password    String
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  preferences UserPreference?
 
   @@map("user")
+}
+
+model UserPreference {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  naicsCodes String[] @map("naics_codes")
+  agencies   String[] @default([])
+  keywords   String[] @default([])
+  awardAmountMin Decimal? @map("award_amount_min") @db.Decimal(15, 2)
+  awardAmountMax Decimal? @map("award_amount_max") @db.Decimal(15, 2)
+  regions    String[] @default([])
+  alertFrequency String @default("daily") @map("alert_frequency")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preference")
 }
 
 model Company {
@@ -87,7 +200,7 @@ model ContractApplication {
   @@map("contract_application")
 }
 
-model AITemplate {
+model AiTemplate {
   id          Int      @id @default(autoincrement())
   name        String
   description String?
@@ -121,47 +234,27 @@ model DocumentProcessingQueue {
   @@map("document_processing_queue")
 }
 
-model RfpTemplate {
-  id                 Int           @id @default(autoincrement())
-  name               String
-  agency             String?
-  description        String?
-  sections           String
-  evaluationCriteria String        @map("evaluation_criteria")
-  createdAt          DateTime      @default(now()) @map("created_at")
-  updatedAt          DateTime      @updatedAt @map("updated_at")
-  rfpResponses       RfpResponse[]
-
-  @@map("rfp_templates")
-}
-
-model CompanyProfile {
-  id           Int           @id @default(autoincrement())
-  companyName  String        @map("company_name")
-  profileData  String        @map("profile_data")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  rfpResponses RfpResponse[]
-
-  @@map("company_profiles")
-}
-
 model RfpResponse {
-  id               Int            @id @default(autoincrement())
-  contractId       String         @map("contract_id")
-  templateId       Int?           @map("template_id")
-  companyProfileId Int?           @map("company_profile_id")
+  id               Int             @id @default(autoincrement())
+  contractId       String          @map("contract_id")
+  templateId       Int?            @map("template_id")
+  companyProfileId Int?            @map("company_profile_id")
   title            String
-  status           String         @default("draft")
-  responseData     String         @map("response_data")
-  complianceStatus String         @map("compliance_status")
-  predictedScore   Float?         @map("predicted_score")
-  createdAt        DateTime       @default(now()) @map("created_at")
-  updatedAt        DateTime       @updatedAt @map("updated_at")
+  status           String          @default("draft")
+  responseData     Json            @default("{}") @map("response_data")
+  complianceStatus Json            @default("{}") @map("compliance_status")
+  predictedScore   Json?           @default("{}") @map("predicted_score")
+  metadata         Json?           @default("{}")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  
+  // Relations - Remove foreign key constraints that were causing issues
   companyProfile   CompanyProfile? @relation(fields: [companyProfileId], references: [id])
-  contract         Contract?       @relation(fields: [contractId], references: [noticeId])
   template         RfpTemplate?    @relation(fields: [templateId], references: [id])
   versions         RfpVersion[]
+  
+  // Note: Contract relation is intentionally without foreign key to avoid constraint issues
+  // The contractId field can contain contract notice_ids that may not exist in the contracts table
 
   @@map("rfp_responses")
 }
@@ -174,7 +267,43 @@ model RfpVersion {
   comment       String?
   createdBy     String      @map("created_by")
   createdAt     DateTime    @default(now()) @map("created_at")
+  
+  // Relations
   rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
 
   @@map("rfp_versions")
+}
+
+model DocumentAnalysis {
+  id                Int      @id @default(autoincrement())
+  documentId        String   @unique @map("documentId")
+  contractNoticeId  String   @map("contractNoticeId")
+  analysisType      String   @default("summary") @map("analysisType")
+  analysisResult    String   @map("analysisResult")
+  processedAt       DateTime @default(now()) @map("processedAt")
+  createdAt         DateTime @default(now()) @map("createdAt")
+  updatedAt         DateTime @updatedAt @map("updatedAt")
+
+  @@index([contractNoticeId], map: "DocumentAnalysis_contractNoticeId_idx")
+  @@index([analysisType], map: "DocumentAnalysis_analysisType_idx")
+  @@map("DocumentAnalysis")
+}
+
+model NotificationSettings {
+  id                    Int      @id @default(autoincrement())
+  userId                Int      @unique @map("user_id")
+  emailNotifications    Boolean  @default(true) @map("email_notifications")
+  pushNotifications     Boolean  @default(true) @map("push_notifications")
+  smsNotifications      Boolean  @default(false) @map("sms_notifications")
+  frequency             String   @default("immediate") // immediate, daily, weekly
+  minMatchScore         Float    @default(0.7) @map("min_match_score")
+  opportunityTypes      Json     @default("[]") @map("opportunity_types")
+  agencies              Json     @default("[]")
+  contractValueMin      Decimal? @map("contract_value_min") @db.Decimal(15, 2)
+  contractValueMax      Decimal? @map("contract_value_max") @db.Decimal(15, 2)
+  keywords              Json     @default("[]")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_settings")
 }

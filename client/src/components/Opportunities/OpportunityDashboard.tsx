@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Target, TrendingUp, Clock, DollarSign, Building, Filter, Bell, Star } from 'lucide-react';
+import NotificationSettingsModal from './NotificationSettingsModal';
 
 interface Opportunity {
   id: string;
@@ -37,6 +38,7 @@ const OpportunityDashboard: React.FC = () => {
   const [minScore, setMinScore] = useState(0.5);
   const [sortBy, setSortBy] = useState('matchScore');
   const [filterAgency, setFilterAgency] = useState('');
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
 
   useEffect(() => {
     loadOpportunities();
@@ -53,14 +55,23 @@ const OpportunityDashboard: React.FC = () => {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setOpportunities(data.opportunities);
-        calculateStats(data.opportunities);
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          setOpportunities(data.opportunities || []);
+          calculateStats(data.opportunities || []);
+        } else {
+          console.error('Expected JSON response but got:', contentType);
+          setOpportunities([]);
+        }
       } else if (response.status === 404) {
         // No business profile found
         setOpportunities([]);
       } else {
-        console.error('Failed to load opportunities');
+        console.error('Failed to load opportunities, status:', response.status);
+        const text = await response.text();
+        console.error('Response body:', text.substring(0, 200));
+        setOpportunities([]);
       }
     } catch (error) {
       console.error('Error loading opportunities:', error);
@@ -81,6 +92,33 @@ const OpportunityDashboard: React.FC = () => {
     };
 
     setStats(stats);
+  };
+
+  const handleNotificationSettings = async (settings: any) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/profiles/notification-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(settings)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Notification settings saved successfully:', data.message);
+        // You could add a toast notification here
+        // toast.success('Notification settings saved successfully!');
+      } else {
+        console.error('Failed to save notification settings:', response.status);
+        // toast.error('Failed to save notification settings');
+      }
+    } catch (error) {
+      console.error('Error saving notification settings:', error);
+      // toast.error('Error saving notification settings');
+    }
   };
 
   const filteredAndSortedOpportunities = opportunities
@@ -244,7 +282,10 @@ const OpportunityDashboard: React.FC = () => {
             />
           </div>
 
-          <button className="ml-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2">
+          <button 
+            onClick={() => setShowNotificationModal(true)}
+            className="ml-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+          >
             <Bell className="h-4 w-4" />
             Notification Settings
           </button>
@@ -356,12 +397,22 @@ const OpportunityDashboard: React.FC = () => {
             }
           </p>
           {opportunities.length === 0 && (
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+            <button 
+              onClick={() => window.location.href = '/rfp/company-profiles'}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
               Complete Profile
             </button>
           )}
         </div>
       )}
+
+      {/* Notification Settings Modal */}
+      <NotificationSettingsModal
+        isOpen={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        onSave={handleNotificationSettings}
+      />
     </div>
   );
 };

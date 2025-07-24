@@ -89,8 +89,9 @@ class VectorService {
       return false;
     }
 
+    const documentId = `${contractId}_${document.filename}`;
+    
     try {
-      const documentId = `${contractId}_${document.filename}`;
       const text = document.content || document.processedData || '';
       
       if (!text) {
@@ -234,17 +235,8 @@ class VectorService {
       const contractsItems = await this.contractsIndex.listItems();
       const documentsItems = await this.documentsIndex.listItems();
       
-      console.log(`Vector DB Stats: ${contractsItems.length} contracts, ${documentsItems.length} documents indexed`);
-      
-      // Log a few sample contract titles for debugging
-      if (contractsItems.length > 0) {
-        console.log('Sample indexed contracts:');
-        contractsItems.slice(0, 5).forEach((item, index) => {
-          console.log(`  ${index + 1}. Title: "${item.metadata.title || 'No title'}" ID: ${item.metadata.id}`);
-          console.log(`      Agency: ${item.metadata.agency || 'No agency'}`);
-          console.log(`      Text length: ${item.metadata.text?.length || 0} chars`);
-        });
-      }
+      // Only log stats on server startup, not on every API call
+      // console.log(`Vector DB Stats: ${contractsItems.length} contracts, ${documentsItems.length} documents indexed`);
 
       return {
         contracts: contractsItems.length,

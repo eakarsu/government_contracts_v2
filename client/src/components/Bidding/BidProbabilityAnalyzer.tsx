@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Target, BarChart3, Lightbulb, Trophy, AlertCircle } from 'lucide-react';
+import { useAINavigation } from '../../contexts/AINavigationContext';
 
 interface BidPrediction {
   id: string;
@@ -56,6 +57,7 @@ interface BidAnalytics {
 }
 
 const BidProbabilityAnalyzer: React.FC = () => {
+  const { setParentRoute } = useAINavigation();
   const [predictions, setPredictions] = useState<BidPrediction[]>([]);
   const [bidHistory, setBidHistory] = useState<BidHistory[]>([]);
   const [analytics, setAnalytics] = useState<BidAnalytics | null>(null);
@@ -64,9 +66,10 @@ const BidProbabilityAnalyzer: React.FC = () => {
   const [selectedContract, setSelectedContract] = useState<string>('');
 
   useEffect(() => {
+    setParentRoute('/ai/bid-analyzer');
     loadPredictions();
     loadBidHistory();
-  }, []);
+  }, [setParentRoute]);
 
   const loadPredictions = async () => {
     try {
@@ -98,7 +101,7 @@ const BidProbabilityAnalyzer: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setBidHistory(data.bidHistory);
+        setBidHistory(data.bidHistory || []);
         setAnalytics(data.analytics);
       }
     } catch (error) {
@@ -332,7 +335,7 @@ const BidProbabilityAnalyzer: React.FC = () => {
                     <div className="mb-6">
                       <h4 className="text-lg font-medium text-gray-900 mb-3">Contributing Factors</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {prediction.factors.map((factor, index) => (
+                        {(prediction.factors || []).map((factor, index) => (
                           <div key={index} className="p-3 border border-gray-200 rounded-lg">
                             <div className="flex justify-between items-center mb-2">
                               <span className="font-medium text-gray-900">{factor.factor}</span>
@@ -365,7 +368,7 @@ const BidProbabilityAnalyzer: React.FC = () => {
                     <div className="mb-6">
                       <h4 className="text-lg font-medium text-gray-900 mb-3">Recommendations</h4>
                       <div className="space-y-3">
-                        {prediction.recommendations.map((rec, index) => (
+                        {(prediction.recommendations || []).map((rec, index) => (
                           <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
                             <Lightbulb className="h-5 w-5 text-blue-600 mt-0.5" />
                             <div>
@@ -399,7 +402,7 @@ const BidProbabilityAnalyzer: React.FC = () => {
                         <div className="p-3 border border-gray-200 rounded-lg">
                           <p className="text-sm text-gray-600 mb-2">Your Advantages</p>
                           <div className="space-y-1">
-                            {(prediction.competitiveAnalysis.company_advantages || []).map((advantage, index) => (
+                            {(prediction.competitiveAnalysis?.company_advantages || []).map((advantage, index) => (
                               <span key={index} className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded text-xs mr-1">
                                 {advantage}
                               </span>
@@ -409,7 +412,7 @@ const BidProbabilityAnalyzer: React.FC = () => {
                         <div className="p-3 border border-gray-200 rounded-lg">
                           <p className="text-sm text-gray-600 mb-2">Areas to Improve</p>
                           <div className="space-y-1">
-                            {(prediction.competitiveAnalysis.potential_weaknesses || []).map((weakness, index) => (
+                            {(prediction.competitiveAnalysis?.potential_weaknesses || []).map((weakness, index) => (
                               <span key={index} className="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs mr-1">
                                 {weakness}
                               </span>

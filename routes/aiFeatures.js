@@ -5,8 +5,110 @@ const contractSimilarity = require('../services/contractSimilarity');
 const aiOpportunityAlerts = require('../services/aiOpportunityAlerts');
 const bidStrategyOptimizer = require('../services/bidStrategyOptimizer');
 const { PrismaClient } = require('@prisma/client');
+const VectorService = require('../services/vectorService');
 
 const prisma = new PrismaClient();
+const vectorService = new VectorService();
+
+// Initialize vector service
+vectorService.initialize().catch(console.error);
+
+// Helper function to get contract from vector database
+async function getContractFromVector(contractId) {
+  try {
+    // First try to get by exact ID
+    let contract = await vectorService.getContractById(contractId);
+    
+    if (contract) {
+      return contract;
+    }
+    
+    console.log(`Contract not found by ID ${contractId}, searching by content...`);
+    
+    // Try searching by contract ID as text content first (most specific)
+    const exactSearchResults = await vectorService.searchContracts(contractId, { limit: 5 });
+    
+    if (exactSearchResults && exactSearchResults.length > 0) {
+      // Look for exact matches first
+      const exactMatch = exactSearchResults.find(result => 
+        result.description?.includes(contractId) || 
+        result.title?.includes(contractId) ||
+        result.noticeId === contractId ||
+        result.id === contractId
+      );
+      
+      if (exactMatch) {
+        console.log(`Found exact match by content: ${exactMatch.title}`);
+        return exactMatch;
+      }
+    }
+    
+    // If no exact match, try fuzzy search by extracting keywords from the contract ID
+    const keywords = extractSearchKeywords(contractId);
+    
+    if (keywords.length > 0) {
+      console.log(`Searching with extracted keywords: ${keywords.join(', ')}`);
+      
+      for (const keyword of keywords) {
+        const keywordResults = await vectorService.searchContracts(keyword, { limit: 3 });
+        
+        if (keywordResults && keywordResults.length > 0) {
+          // Find the best match that might be related
+          const relatedMatch = keywordResults.find(result => 
+            result.title?.toLowerCase().includes(keyword.toLowerCase()) ||
+            result.description?.toLowerCase().includes(keyword.toLowerCase()) ||
+            result.agency?.toLowerCase().includes(keyword.toLowerCase())
+          );
+          
+          if (relatedMatch) {
+            console.log(`Found related contract by keyword "${keyword}": ${relatedMatch.title}`);
+            return relatedMatch;
+          }
+        }
+      }
+    }
+    
+    // Fallback to first result from exact search if available
+    if (exactSearchResults && exactSearchResults.length > 0) {
+      console.log(`Using fallback match: ${exactSearchResults[0].title}`);
+      return exactSearchResults[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting contract from vector database:', error);
+    return null;
+  }
+}
+
+// Helper function to extract search keywords from contract ID
+function extractSearchKeywords(contractId) {
+  const keywords = [];
+  
+  // Extract alphanumeric segments
+  const segments = contractId.split(/[-_\s]+/).filter(segment => segment.length > 2);
+  keywords.push(...segments);
+  
+  // Extract agency codes (letters at start)
+  const agencyMatch = contractId.match(/^([A-Z]+)/);
+  if (agencyMatch) {
+    keywords.push(agencyMatch[1]);
+  }
+  
+  // Extract specific patterns
+  if (contractId.includes('FA8232')) {
+    keywords.push('F-16', 'databus', 'MIL-STD-1553', 'Air Force');
+  } else if (contractId.includes('W9')) {
+    keywords.push('Army', 'Corps of Engineers');
+  } else if (contractId.includes('N0')) {
+    keywords.push('Navy');
+  } else if (contractId.includes('VA-')) {
+    keywords.push('Veterans Affairs');
+  }
+  
+  // Remove duplicates and short keywords
+  return [...new Set(keywords)].filter(k => k.length > 2);
+}
 
 // Win Probability Prediction Endpoint
 router.post('/win-probability', async (req, res) => {
@@ -17,9 +119,7 @@ router.post('/win-probability', async (req, res) => {
       return res.status(400).json({ error: 'Contract ID is required' });
     }
 
-    const contract = await prisma.contract.findUnique({
-      where: { noticeId: contractId }
-    });
+    const contract = await getContractFromVector(contractId);
 
     if (!contract) {
       return res.status(404).json({ error: 'Contract not found' });
@@ -33,6 +133,15 @@ router.post('/win-probability', async (req, res) => {
     res.json({
       success: true,
       contractId,
+      contract: {
+        id: contract.id,
+        title: contract.title,
+        agency: contract.agency,
+        naicsCode: contract.naicsCode,
+        awardAmount: contract.awardAmount,
+        postedDate: contract.postedDate,
+        responseDeadline: contract.responseDeadline
+      },
       prediction,
       timestamp: new Date().toISOString()
     });
@@ -51,9 +160,7 @@ router.post('/similar-contracts', async (req, res) => {
       return res.status(400).json({ error: 'Contract ID is required' });
     }
 
-    const contract = await prisma.contract.findUnique({
-      where: { noticeId: contractId }
-    });
+    const contract = await getContractFromVector(contractId);
 
     if (!contract) {
       return res.status(404).json({ error: 'Contract not found' });
@@ -67,6 +174,15 @@ router.post('/similar-contracts', async (req, res) => {
     res.json({
       success: true,
       contractId,
+      contract: {
+        id: contract.id,
+        title: contract.title,
+        agency: contract.agency,
+        naicsCode: contract.naicsCode,
+        awardAmount: contract.awardAmount,
+        postedDate: contract.postedDate,
+        responseDeadline: contract.responseDeadline
+      },
       similarities,
       timestamp: new Date().toISOString()
     });
@@ -111,9 +227,7 @@ router.post('/optimize-strategy', async (req, res) => {
       return res.status(400).json({ error: 'Contract ID is required' });
     }
 
-    const contract = await prisma.contract.findUnique({
-      where: { noticeId: contractId }
-    });
+    const contract = await getContractFromVector(contractId);
 
     if (!contract) {
       return res.status(404).json({ error: 'Contract not found' });
@@ -127,6 +241,15 @@ router.post('/optimize-strategy', async (req, res) => {
     res.json({
       success: true,
       contractId,
+      contract: {
+        id: contract.id,
+        title: contract.title,
+        agency: contract.agency,
+        naicsCode: contract.naicsCode,
+        awardAmount: contract.awardAmount,
+        postedDate: contract.postedDate,
+        responseDeadline: contract.responseDeadline
+      },
       strategy,
       timestamp: new Date().toISOString()
     });
@@ -139,7 +262,7 @@ router.post('/optimize-strategy', async (req, res) => {
 // Combined AI Analysis Endpoint
 router.post('/comprehensive-analysis', async (req, res) => {
   try {
-    const { contractId, userId, userContext = {} } = req.body;
+    const { contractId, userId, userContext = {}, analysisType = 'comprehensive' } = req.body;
     
     if (!contractId || !userId) {
       return res.status(400).json({ 
@@ -147,26 +270,38 @@ router.post('/comprehensive-analysis', async (req, res) => {
       });
     }
 
-    const contract = await prisma.contract.findUnique({
-      where: { noticeId: contractId }
-    });
+    const contract = await getContractFromVector(contractId);
 
     if (!contract) {
       return res.status(404).json({ error: 'Contract not found' });
     }
 
-    // Run all AI analyses in parallel
-    const [
-      winProbability,
-      similarContracts,
-      opportunities,
-      bidStrategy
-    ] = await Promise.all([
-      winProbabilityPredictor.predictWinProbability(contract, userContext),
-      contractSimilarity.findSimilarContracts(contract, 10),
-      aiOpportunityAlerts.generateOpportunityAlerts(userId, userContext),
-      bidStrategyOptimizer.optimizeBidStrategy(contract, userContext)
-    ]);
+    // Determine which analyses to run based on analysisType
+    let analysesToRun = [];
+    let winProbability = null;
+    let similarContracts = null;
+    let opportunities = null;
+    let bidStrategy = null;
+
+    if (analysisType === 'comprehensive') {
+      // Run all analyses for comprehensive analysis
+      analysesToRun = [
+        winProbabilityPredictor.predictWinProbability(contract, userContext),
+        contractSimilarity.findSimilarContracts(contract, 10),
+        aiOpportunityAlerts.generateOpportunityAlerts(userId, userContext),
+        bidStrategyOptimizer.optimizeBidStrategy(contract, userContext)
+      ];
+      [winProbability, similarContracts, opportunities, bidStrategy] = await Promise.all(analysesToRun);
+    } else if (analysisType === 'probability') {
+      // Run only win probability analysis
+      winProbability = await winProbabilityPredictor.predictWinProbability(contract, userContext);
+    } else if (analysisType === 'similarity') {
+      // Run only similar contracts analysis
+      similarContracts = await contractSimilarity.findSimilarContracts(contract, 10);
+    } else if (analysisType === 'strategy') {
+      // Run only bid strategy analysis
+      bidStrategy = await bidStrategyOptimizer.optimizeBidStrategy(contract, userContext);
+    }
 
     const comprehensiveAnalysis = {
       contract: {
@@ -178,14 +313,24 @@ router.post('/comprehensive-analysis', async (req, res) => {
         postedDate: contract.postedDate,
         responseDeadline: contract.responseDeadline
       },
-      winProbability,
-      similarContracts,
-      opportunities: opportunities.alerts.slice(0, 5), // Top 5 additional opportunities
-      bidStrategy,
-      overallRecommendation: generateOverallRecommendation({
-        winProbability,
-        similarContracts,
-        bidStrategy
+      analysisType,
+      ...(winProbability && {
+        winProbability: {
+          probability: winProbability?.probability ?? 0,
+          confidence: winProbability?.confidence ?? 70,
+          factors: winProbability?.factors || [],
+          recommendations: winProbability?.recommendations || []
+        }
+      }),
+      ...(similarContracts && { similarContracts }),
+      ...(opportunities && { opportunities: opportunities?.alerts?.slice(0, 5) || [] }),
+      ...(bidStrategy && { bidStrategy }),
+      ...(analysisType === 'comprehensive' && {
+        overallRecommendation: generateOverallRecommendation({
+          winProbability,
+          similarContracts,
+          bidStrategy
+        })
       })
     };
 
@@ -258,9 +403,7 @@ router.post('/batch-analysis', async (req, res) => {
 
     const results = await Promise.all(
       contractIds.map(async (contractId) => {
-        const contract = await prisma.contract.findUnique({
-          where: { noticeId: contractId }
-        });
+        const contract = await getContractFromVector(contractId);
 
         if (!contract) return null;
 

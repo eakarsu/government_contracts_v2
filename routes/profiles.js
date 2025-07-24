@@ -2,9 +2,16 @@ const express = require('express');
 const Joi = require('joi');
 const { query } = require('../config/database');
 const aiService = require('../services/aiService');
-const { logger } = require('../utils/logger');
+const logger = require('../utils/logger');
 
 const router = express.Router();
+
+// Simple auth middleware for testing
+const auth = (req, res, next) => {
+  // For now, create a dummy user for testing (using integer ID)
+  req.user = { id: 1 };
+  next();
+};
 
 // Validation schema for business profile
 const profileSchema = Joi.object({
@@ -161,7 +168,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get opportunity matches for user's profile
-router.get('/opportunities', async (req, res) => {
+router.get('/opportunities', auth, async (req, res) => {
   try {
     const { limit = 20, minScore = 0.5 } = req.query;
 
@@ -172,7 +179,12 @@ router.get('/opportunities', async (req, res) => {
     );
 
     if (profileResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Business profile not found. Please create a profile first.' });
+      // No business profile found - return empty opportunities
+      return res.json({ 
+        opportunities: [],
+        message: 'No business profile found. Please create a profile to see matched opportunities.',
+        profile: null
+      });
     }
 
     const profile = profileResult.rows[0];
@@ -226,6 +238,132 @@ router.get('/opportunities', async (req, res) => {
   } catch (error) {
     logger.error('Get opportunities error:', error);
     res.status(500).json({ error: 'Failed to retrieve opportunities' });
+  }
+});
+
+// Get notification settings for user
+router.get('/notification-settings', auth, async (req, res) => {
+  try {
+    const settingsResult = await query(
+      'SELECT * FROM notification_settings WHERE user_id = $1',
+      [req.user.id]
+    );
+
+    if (settingsResult.rows.length === 0) {
+      // Return default settings if none exist
+      return res.json({
+        emailNotifications: true,
+        pushNotifications: true,
+        smsNotifications: false,
+        frequency: 'immediate',
+        minMatchScore: 0.7,
+        opportunityTypes: [],
+        agencies: [],
+        contractValueMin: null,
+        contractValueMax: null,
+        keywords: []
+      });
+    }
+
+    const settings = settingsResult.rows[0];
+    res.json({
+      emailNotifications: settings.email_notifications,
+      pushNotifications: settings.push_notifications,
+      smsNotifications: settings.sms_notifications,
+      frequency: settings.frequency,
+      minMatchScore: parseFloat(settings.min_match_score),
+      opportunityTypes: JSON.parse(settings.opportunity_types || '[]'),
+      agencies: JSON.parse(settings.agencies || '[]'),
+      contractValueMin: settings.contract_value_min ? parseFloat(settings.contract_value_min) : null,
+      contractValueMax: settings.contract_value_max ? parseFloat(settings.contract_value_max) : null,
+      keywords: JSON.parse(settings.keywords || '[]')
+    });
+
+  } catch (error) {
+    logger.error('Get notification settings error:', error);
+    res.status(500).json({ error: 'Failed to retrieve notification settings' });
+  }
+});
+
+// Save notification settings for user
+router.post('/notification-settings', auth, async (req, res) => {
+  try {
+    const {
+      emailNotifications,
+      pushNotifications,
+      smsNotifications,
+      frequency,
+      minMatchScore,
+      opportunityTypes,
+      agencies,
+      contractValueMin,
+      contractValueMax,
+      keywords
+    } = req.body;
+
+    // Check if settings already exist
+    const existingSettings = await query(
+      'SELECT id FROM notification_settings WHERE user_id = $1',
+      [req.user.id]
+    );
+
+    if (existingSettings.rows.length > 0) {
+      // Update existing settings
+      await query(`
+        UPDATE notification_settings 
+        SET email_notifications = $2,
+            push_notifications = $3,
+            sms_notifications = $4,
+            frequency = $5,
+            min_match_score = $6,
+            opportunity_types = $7,
+            agencies = $8,
+            contract_value_min = $9,
+            contract_value_max = $10,
+            keywords = $11,
+            updated_at = NOW()
+        WHERE user_id = $1
+      `, [
+        req.user.id,
+        emailNotifications,
+        pushNotifications,
+        smsNotifications,
+        frequency,
+        minMatchScore,
+        JSON.stringify(opportunityTypes || []),
+        JSON.stringify(agencies || []),
+        contractValueMin,
+        contractValueMax,
+        JSON.stringify(keywords || [])
+      ]);
+    } else {
+      // Create new settings
+      await query(`
+        INSERT INTO notification_settings (
+          user_id, email_notifications, push_notifications, sms_notifications,
+          frequency, min_match_score, opportunity_types, agencies,
+          contract_value_min, contract_value_max, keywords, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+      `, [
+        req.user.id,
+        emailNotifications,
+        pushNotifications,
+        smsNotifications,
+        frequency,
+        minMatchScore,
+        JSON.stringify(opportunityTypes || []),
+        JSON.stringify(agencies || []),
+        contractValueMin,
+        contractValueMax,
+        JSON.stringify(keywords || [])
+      ]);
+    }
+
+    res.json({ success: true, message: 'Notification settings saved successfully' });
+
+  } catch (error) {
+    logger.error('Save notification settings error:', error);
+    res.status(500).json({ error: 'Failed to save notification settings' });
   }
 });
 

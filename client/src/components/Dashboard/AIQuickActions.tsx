@@ -11,7 +11,9 @@ import {
   Lightbulb,
   Search,
   Calculator,
-  Clock
+  Clock,
+  HelpCircle,
+  Info
 } from 'lucide-react';
 import LoadingSpinner from '../UI/LoadingSpinner';
 
@@ -22,6 +24,14 @@ const AIQuickActions: React.FC = () => {
     return localStorage.getItem('lastContractId') || '';
   });
   const [analysisType, setAnalysisType] = useState<'probability' | 'similarity' | 'strategy'>('probability');
+  const [showHelp, setShowHelp] = useState<string | null>(null);
+  const [validContractIds] = useState([
+    'W9128F-24-R-0005',
+    '47PA3024Q0068', 
+    'W56KGY-24-R-0001',
+    'FA8232-25-R-B013',
+    'N00014-24-R-0123'
+  ]);
 
   // Win Probability Analysis
   const winProbabilityMutation = useMutation({
@@ -49,9 +59,10 @@ const AIQuickActions: React.FC = () => {
 
   // Comprehensive Analysis
   const comprehensiveAnalysisMutation = useMutation({
-    mutationFn: (id: string) => aiService.getComprehensiveAnalysis(id, 'current-user'),
-    onSuccess: (data, id) => {
-      navigate(`/ai/analysis-results/${id}`);
+    mutationFn: ({ id, analysisType }: { id: string, analysisType: string }) => 
+      aiService.getComprehensiveAnalysis(id, 'current-user', undefined, analysisType),
+    onSuccess: (data, variables) => {
+      navigate(`/ai/analysis-results/${variables.id}?type=${variables.analysisType}`);
     },
   });
 
@@ -72,7 +83,7 @@ const AIQuickActions: React.FC = () => {
         bidStrategyMutation.mutate(contractId);
         break;
       case 'comprehensive':
-        comprehensiveAnalysisMutation.mutate(contractId);
+        comprehensiveAnalysisMutation.mutate({ id: contractId, analysisType });
         break;
     }
   };
@@ -99,50 +110,118 @@ const AIQuickActions: React.FC = () => {
       <div className="space-y-4">
         {/* Contract ID Input */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Contract ID for Analysis
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Contract ID for Analysis
+            </label>
+            <button
+              onClick={() => setShowHelp(showHelp === 'contractId' ? null : 'contractId')}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </button>
+          </div>
+          
+          {showHelp === 'contractId' && (
+            <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
+              <div className="font-medium text-blue-800 mb-1">💡 Contract ID Help</div>
+              <div className="text-blue-700 space-y-1">
+                <p>• Enter a government contract ID (like W9128F-24-R-0005)</p>
+                <p>• Try these examples: {validContractIds.slice(0, 2).join(', ')}</p>
+                <p>• AI will analyze requirements, competition, and your win probability</p>
+              </div>
+            </div>
+          )}
+          
           <input
             type="text"
             value={contractId}
             onChange={(e) => setContractId(e.target.value)}
-            placeholder="Enter contract ID..."
+            placeholder="Enter contract ID (e.g., W9128F-24-R-0005)..."
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
+          
+          {!contractId && (
+            <div className="mt-2 text-xs text-gray-500">
+              💡 Try: {validContractIds.slice(0, 3).join(', ')}
+            </div>
+          )}
         </div>
 
         {/* Analysis Type Selector */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Analysis Type
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Analysis Type
+            </label>
+            <button
+              onClick={() => setShowHelp(showHelp === 'analysisType' ? null : 'analysisType')}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </button>
+          </div>
+          
+          {showHelp === 'analysisType' && (
+            <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
+              <div className="font-medium text-blue-800 mb-2">📊 Analysis Types</div>
+              <div className="text-blue-700 space-y-2">
+                <div><strong>Win Probability:</strong> AI predicts your chances of winning based on company profile and contract requirements</div>
+                <div><strong>Similar Contracts:</strong> Finds contracts similar to your target using AI matching algorithms</div>
+                <div><strong>Bid Strategy:</strong> AI recommendations for pricing, team composition, and proposal focus areas</div>
+              </div>
+            </div>
+          )}
+          
           <select
             value={analysisType}
             onChange={(e) => setAnalysisType(e.target.value as any)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
-            <option value="probability">Win Probability</option>
-            <option value="similarity">Similar Contracts</option>
-            <option value="strategy">Bid Strategy</option>
+            <option value="probability">🎯 Win Probability Analysis</option>
+            <option value="similarity">🔍 Similar Contracts Search</option>
+            <option value="strategy">💡 Bid Strategy Optimization</option>
           </select>
         </div>
 
         {/* Quick Analysis Buttons */}
         <div className="grid grid-cols-1 gap-2">
-          <button
-            onClick={() => handleAnalysis('comprehensive')}
-            disabled={isLoading || !contractId.trim()}
-            className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
-          >
-            {comprehensiveAnalysisMutation.isPending ? (
-              <LoadingSpinner size="sm" color="white" />
-            ) : (
-              <>
-                <Search className="h-4 w-4 mr-2" />
-                Comprehensive AI Analysis
-              </>
+          <div className="relative">
+            <button
+              onClick={() => handleAnalysis('comprehensive')}
+              disabled={isLoading || !contractId.trim()}
+              className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
+            >
+              {comprehensiveAnalysisMutation.isPending ? (
+                <>
+                  <LoadingSpinner size="sm" color="white" />
+                  <span className="ml-2">🧠 AI analyzing contract requirements...</span>
+                </>
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  🚀 Comprehensive AI Analysis
+                </>
+              )}
+            </button>
+            {showHelp === 'comprehensive' && (
+              <div className="absolute top-full left-0 right-0 mt-1 p-3 bg-purple-50 border border-purple-200 rounded-md text-sm z-10">
+                <div className="font-medium text-purple-800 mb-1">🚀 Comprehensive Analysis</div>
+                <div className="text-purple-700">
+                  <p>• Combines all AI features in one report</p>
+                  <p>• Win probability + similar contracts + bid strategy</p>
+                  <p>• Takes 30-60 seconds to complete</p>
+                  <p>• Best for serious bid opportunities</p>
+                </div>
+              </div>
             )}
-          </button>
+            <button
+              onClick={() => setShowHelp(showHelp === 'comprehensive' ? null : 'comprehensive')}
+              className="absolute top-1 right-1 text-white hover:text-gray-200"
+            >
+              <Info className="h-3 w-3" />
+            </button>
+          </div>
 
           <button
             onClick={() => handleAnalysis(analysisType)}
@@ -150,13 +229,20 @@ const AIQuickActions: React.FC = () => {
             className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
           >
             {isLoading ? (
-              <LoadingSpinner size="sm" color="white" />
+              <>
+                <LoadingSpinner size="sm" color="white" />
+                <span className="ml-2">
+                  {analysisType === 'probability' && '🎯 Calculating win probability...'}
+                  {analysisType === 'similarity' && '🔍 Finding similar contracts...'}
+                  {analysisType === 'strategy' && '💡 Optimizing bid strategy...'}
+                </span>
+              </>
             ) : (
               <>
                 <Lightbulb className="h-4 w-4 mr-2" />
-                {analysisType === 'probability' && 'Predict Win Probability'}
-                {analysisType === 'similarity' && 'Find Similar Contracts'}
-                {analysisType === 'strategy' && 'Optimize Bid Strategy'}
+                {analysisType === 'probability' && '🎯 Predict Win Probability'}
+                {analysisType === 'similarity' && '🔍 Find Similar Contracts'}
+                {analysisType === 'strategy' && '💡 Optimize Bid Strategy'}
               </>
             )}
           </button>
@@ -210,11 +296,32 @@ const AIQuickActions: React.FC = () => {
 
         {/* AI Feature Examples */}
         <div className="border-t pt-4 mt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Example Contract IDs</h4>
-          <div className="text-xs text-gray-500 space-y-1">
-            <div>• Use real contract IDs from your database</div>
-            <div>• Try with: W9128F-24-R-0005, 47PA3024Q0068, or W56KGY-24-R-0001</div>
-            <div>• Comprehensive analysis combines all AI features</div>
+          <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+            <Lightbulb className="h-4 w-4 mr-1 text-yellow-500" />
+            Quick Start Guide
+          </h4>
+          <div className="text-xs text-gray-600 space-y-2">
+            <div className="p-2 bg-gray-50 rounded">
+              <strong>Step 1:</strong> Enter a contract ID (try: {validContractIds[0]})
+            </div>
+            <div className="p-2 bg-gray-50 rounded">
+              <strong>Step 2:</strong> Choose analysis type or run comprehensive analysis
+            </div>
+            <div className="p-2 bg-gray-50 rounded">
+              <strong>Step 3:</strong> Review AI insights and recommendations
+            </div>
+          </div>
+          
+          <div className="mt-3 flex flex-wrap gap-1">
+            {validContractIds.slice(0, 3).map((id) => (
+              <button
+                key={id}
+                onClick={() => setContractId(id)}
+                className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              >
+                Try {id}
+              </button>
+            ))}
           </div>
         </div>
 

@@ -130,7 +130,11 @@ const RFPResponseDetail: React.FC = () => {
             📄 Download
           </button>
           <button 
-            onClick={() => navigate(`/rfp/responses/${id}/edit`)}
+            onClick={() => {
+              console.log(`🔄 [DEBUG] Edit button clicked for RFP response ID: ${id}`);
+              console.log(`🔄 [DEBUG] Navigating to: /rfp/responses/${id}/edit`);
+              navigate(`/rfp/responses/${id}/edit`);
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Edit Response

@@ -5,7 +5,7 @@ import LoadingSpinner from '../UI/LoadingSpinner';
 
 const QueueStatus: React.FC = () => {
   const { data: queueData, isLoading, error } = useQuery({
-    queryKey: ['queueStatus'],
+    queryKey: ['queue-status'],
     queryFn: () => apiService.getQueueStatus(),
     refetchInterval: 5000,
   });
@@ -13,7 +13,7 @@ const QueueStatus: React.FC = () => {
   if (isLoading) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Processing Queue</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Parallel Processing Status</h3>
         <div className="flex justify-center">
           <LoadingSpinner />
         </div>
@@ -24,7 +24,7 @@ const QueueStatus: React.FC = () => {
   if (error) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Processing Queue</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Parallel Processing Status</h3>
         <div className="text-red-600 text-sm">
           Error loading queue status: {error instanceof Error ? error.message : 'Unknown error'}
         </div>
@@ -37,7 +37,7 @@ const QueueStatus: React.FC = () => {
   if (!queueStatus) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Processing Queue</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Parallel Processing Status</h3>
         <div className="text-gray-500 text-sm">No queue data available</div>
       </div>
     );
@@ -50,7 +50,7 @@ const QueueStatus: React.FC = () => {
   return (
     <div className="bg-white shadow rounded-lg p-6 h-fit">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-medium text-gray-900">Document Processing Status</h3>
+        <h3 className="text-lg font-medium text-gray-900">Parallel Document Processing</h3>
         {queueStatus.is_processing && (
           <div className="flex items-center text-sm text-yellow-600">
             <LoadingSpinner size="sm" />

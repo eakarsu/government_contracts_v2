@@ -2,6 +2,9 @@ import axios, { AxiosResponse } from 'axios';
 import toast from 'react-hot-toast';
 import { contractsApi } from './contractsApi';
 import { documentsApi } from './documentsApi';
+import { documentProcessingApi } from './documentProcessingApi';
+import { rfpApi } from './rfpApi';
+import { nlpApi } from './nlpApi';
 import type {
   ApiResponse,
   Contract,
@@ -35,8 +38,9 @@ import type {
 } from '../types';
 
 // Create axios instance with default config
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || '/api',
+  baseURL: (window as any).API_CONFIG?.BASE_URL || '/api',
   timeout: 3600000, // 1 hour default timeout
   headers: {
     'Content-Type': 'application/json',
@@ -186,104 +190,65 @@ class ApiService {
     return response.data;
   }
 
-  // Documents
+  // Document Processing - delegate to documentProcessingApi
   async processDocuments(contractId?: string, limit: number = 50): Promise<ApiResponse> {
-    try {
-      const response = await api.post<ApiResponse>('/documents/process', { contract_id: contractId, limit }, {
-        timeout: 3600000 // 1 hour timeout
-      });
-      return response.data;
-    } catch (error: any) {
-      // Handle non-JSON responses
-      if (error.response?.data && typeof error.response.data === 'string') {
-        throw new Error(`Server error: ${error.response.data}`);
-      }
-      throw error;
-    }
+    return documentProcessingApi.processDocuments(contractId, limit);
   }
 
   async processDocumentsNorshin(limit: number = 5): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/process-norshin', { limit });
-    return response.data;
+    return documentProcessingApi.processDocumentsNorshin(limit);
   }
 
   async queueDocuments(): Promise<ApiResponse> {
-    console.log('🔄 [DEBUG] API Service: Calling queueDocuments endpoint...');
-    const response = await api.post<ApiResponse>('/documents/queue', {}, {
-      timeout: 3600000 // 1 hour timeout
-    });
-    console.log('🔄 [DEBUG] API Service: queueDocuments response:', response.data);
-    return response.data;
+    return documentProcessingApi.queueDocuments();
   }
 
   async getQueueStatus(): Promise<{ success: boolean; queue_status: QueueStatus }> {
-    //console.log('📊 [DEBUG] API Service: Calling getQueueStatus endpoint...');
-    const response = await api.get<{ success: boolean; queue_status: QueueStatus }>('/documents/queue/status');
-    //console.log('📊 [DEBUG] API Service: getQueueStatus response:', response.data);
-    return response.data;
+    return documentProcessingApi.getQueueStatus();
   }
 
   async processQueuedDocuments(options?: { test_limit?: number }): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/queue/process', {
-      concurrency: 3,      // Limited concurrency for testing
-      batch_size: 3,       // Small batch size for testing
-      process_all: false,  // Don't process all documents
-      test_limit: options?.test_limit || 3  // Limit to 3 documents for testing
-    }, {
-      timeout: 3600000 // 1 hour timeout
-    });
-    return response.data;
+    return documentProcessingApi.processQueuedDocuments(options);
   }
 
   async processQueueAsync(): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/queue/process-async');
-    return response.data;
+    return documentProcessingApi.processQueueAsync();
   }
 
   async processQueueParallel(): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/queue/process-parallel');
-    return response.data;
+    return documentProcessingApi.processQueueParallel();
   }
 
   async queueTestDocuments(options?: { test_limit?: number; clear_existing?: boolean }): Promise<ApiResponse> {
-    console.log('🧪 [DEBUG] API Service: Calling queueTestDocuments endpoint...');
-    const response = await api.post<ApiResponse>('/documents/queue/test', options || { test_limit: 10, clear_existing: true });
-    console.log('🧪 [DEBUG] API Service: queueTestDocuments response:', response.data);
-    return response.data;
+    return documentProcessingApi.queueTestDocuments(options);
   }
 
   async processTestDocuments(): Promise<ApiResponse> {
-    console.log('🧪 [DEBUG] API Service: Calling processTestDocuments endpoint...');
-    const response = await api.post<ApiResponse>('/documents/queue/process-test');
-    console.log('🧪 [DEBUG] API Service: processTestDocuments response:', response.data);
-    return response.data;
+    return documentProcessingApi.processTestDocuments();
   }
 
   async pauseQueue(): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/queue/pause');
-    return response.data;
+    return documentProcessingApi.pauseQueue();
   }
 
   async resumeQueue(): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/queue/resume');
-    return response.data;
+    return documentProcessingApi.resumeQueue();
   }
 
   async stopQueue(): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/queue/stop');
-    return response.data;
+    return documentProcessingApi.stopQueue();
+  }
+
+  async startQueue(): Promise<ApiResponse> {
+    return documentProcessingApi.startQueue();
   }
 
   async resetQueue(): Promise<ApiResponse> {
-    console.log('🔄 [DEBUG] API Service: Calling resetQueue endpoint...');
-    const response = await api.post<ApiResponse>('/documents/queue/reset');
-    console.log('🔄 [DEBUG] API Service: resetQueue response:', response.data);
-    return response.data;
+    return documentProcessingApi.resetQueue();
   }
 
   async resetAllToProcessing(): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/queue/reset-to-processing');
-    return response.data;
+    return documentProcessingApi.resetAllToProcessing();
   }
 
   async downloadAllDocuments(options?: {
@@ -292,13 +257,11 @@ class ApiService {
     concurrency?: number;
     contract_id?: string;
   }): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/download-all', options || {});
-    return response.data;
+    return documentProcessingApi.downloadAllDocuments(options);
   }
 
   async getDownloadStatus(): Promise<ApiResponse> {
-    const response = await api.get<ApiResponse>('/documents/download/status');
-    return response.data;
+    return documentProcessingApi.getDownloadStatus();
   }
 
   async fetchContractsFromDocuments(options: {
@@ -307,381 +270,204 @@ class ApiService {
     limit?: number;
     offset?: number;
   }): Promise<ApiResponse> {
-    console.log('🔄 [DEBUG] API Service fetchContractsFromDocuments called with:', options);
-    console.log('🔄 [DEBUG] Making POST request to: /documents/fetch-contracts');
-    console.log('🔄 [DEBUG] Full URL will be:', `${api.defaults.baseURL}/documents/fetch-contracts`);
-    
-    try {
-      const response = await api.post<ApiResponse>('/documents/fetch-contracts', options);
-      console.log('✅ [DEBUG] API Service fetchContractsFromDocuments response:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ [DEBUG] API Service fetchContractsFromDocuments error:', error);
-      console.error('❌ [DEBUG] Error response:', error.response?.data);
-      console.error('❌ [DEBUG] Error status:', error.response?.status);
-      throw error;
-    }
+    return documentProcessingApi.fetchContractsFromDocuments(options);
   }
 
-
   async retryFailedDocuments(): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/retry-failed');
-    return response.data;
+    return documentProcessingApi.retryFailedDocuments();
   }
 
   async indexCompletedDocuments(): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/documents/index-completed');
-    return response.data;
+    return documentProcessingApi.indexCompletedDocuments();
   }
 
   async getNotifications(): Promise<ApiResponse> {
-    const response = await api.get<ApiResponse>('/documents/notifications');
-    return response.data;
+    return documentProcessingApi.getNotifications();
   }
 
   async getProcessedDocuments(): Promise<ApiResponse> {
-    const response = await api.get<ApiResponse>('/documents/processed');
-    return response.data;
+    return documentProcessingApi.getProcessedDocuments();
   }
 
-  // Document Search
   async searchDocuments(searchForm: DocumentSearchForm): Promise<DocumentSearchResponse> {
-    console.log('🔍 [DEBUG] API Service searchDocuments called with:', searchForm);
-    const response = await api.post<DocumentSearchResponse>('/documents/search/advanced', {
-      query: searchForm.query,
-      limit: searchForm.limit,
-      contract_id: searchForm.contract_id,
-      file_type: searchForm.file_type,
-      min_score: searchForm.min_score,
-      include_content: searchForm.include_content
-    });
-    console.log('🔍 [DEBUG] API Service searchDocuments response:', response.data);
-    return response.data;
+    return documentProcessingApi.searchDocuments(searchForm);
   }
 
   async getDocumentStats(): Promise<DocumentStats> {
-    console.log('📊 [DEBUG] API Service getDocumentStats called');
-    const response = await api.get<DocumentStats>('/documents/stats');
-    console.log('📊 [DEBUG] API Service getDocumentStats response:', response.data);
-    return response.data;
+    return documentProcessingApi.getDocumentStats();
   }
 
   async getFileTypes(): Promise<FileTypesResponse> {
-    console.log('📁 [DEBUG] API Service getFileTypes called');
-    const response = await api.get<FileTypesResponse>('/documents/file-types');
-    console.log('📁 [DEBUG] API Service getFileTypes response:', response.data);
-    return response.data;
+    return documentProcessingApi.getFileTypes();
   }
 
-  // File Upload
   async uploadDocument(file: File, customPrompt?: string, model?: string): Promise<ApiResponse> {
-    const formData = new FormData();
-    formData.append('document', file);
-    if (customPrompt) formData.append('customPrompt', customPrompt);
-    if (model) formData.append('model', model);
-
-    const response = await api.post<ApiResponse>('/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+    return documentProcessingApi.uploadDocument(file, customPrompt, model);
   }
 
   async uploadMultipleDocuments(files: FileList, customPrompt?: string, model?: string): Promise<ApiResponse> {
-    const formData = new FormData();
-    Array.from(files).forEach(file => {
-      formData.append('documents', file);
-    });
-    if (customPrompt) formData.append('customPrompt', customPrompt);
-    if (model) formData.append('model', model);
-
-    const response = await api.post<ApiResponse>('/upload-multiple', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+    return documentProcessingApi.uploadMultipleDocuments(files, customPrompt, model);
   }
 
   async getStaticDocuments(): Promise<{ documents: any[] }> {
-    const response = await api.get<{ documents: any[] }>('/documents');
-    return response.data;
+    return documentProcessingApi.getStaticDocuments();
   }
 
   async processStaticDocument(filename: string, customPrompt?: string, model?: string): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/process-static', {
-      filename,
-      customPrompt,
-      model,
-    });
-    return response.data;
+    return documentProcessingApi.processStaticDocument(filename, customPrompt, model);
   }
 
-  // Admin
   async getStuckDocuments(): Promise<ApiResponse> {
-    const response = await api.get<ApiResponse>('/admin/documents/stuck');
-    return response.data;
+    return documentProcessingApi.getStuckDocuments();
   }
 
   async resetDocument(docId: number): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>(`/admin/documents/reset/${docId}`);
-    return response.data;
+    return documentProcessingApi.resetDocument(docId);
   }
 
   async resetAllStuckDocuments(): Promise<ApiResponse> {
-    const response = await api.post<ApiResponse>('/admin/documents/reset-all-stuck');
-    return response.data;
+    return documentProcessingApi.resetAllStuckDocuments();
   }
 
-  // RFP System API Methods
-  
-  // RFP Templates
+  // Parallel Processing Methods
+  async startParallelProcessing(): Promise<ApiResponse> {
+    return documentProcessingApi.startParallelProcessing();
+  }
+
+  async stopParallelProcessing(): Promise<ApiResponse> {
+    return documentProcessingApi.stopParallelProcessing();
+  }
+
+  async resetParallelCounters(): Promise<ApiResponse> {
+    return documentProcessingApi.resetParallelCounters();
+  }
+
+  async getParallelStatus(): Promise<{ success: boolean; queue_status: QueueStatus }> {
+    return documentProcessingApi.getParallelStatus();
+  }
+
+  async getParallelStats(): Promise<ApiResponse> {
+    return documentProcessingApi.getParallelStats();
+  }
+
+  // RFP System - delegate to rfpApi
   async getRFPTemplates(): Promise<{ success: boolean; templates: RFPTemplate[] }> {
-    const response = await api.get<{ success: boolean; templates: RFPTemplate[] }>('/rfp/templates');
-    return response.data;
+    return rfpApi.getRFPTemplates();
   }
 
   async getRFPTemplate(templateId: number): Promise<{ success: boolean; template: RFPTemplate }> {
-    const response = await api.get<{ success: boolean; template: RFPTemplate }>(`/rfp/templates/${templateId}`);
-    return response.data;
+    return rfpApi.getRFPTemplate(templateId);
   }
 
   async createRFPTemplate(template: RFPTemplateForm): Promise<{ success: boolean; template: RFPTemplate }> {
-    const response = await api.post<{ success: boolean; template: RFPTemplate }>('/rfp/templates', template);
-    return response.data;
+    return rfpApi.createRFPTemplate(template);
   }
 
   async updateRFPTemplate(templateId: number, template: Partial<RFPTemplateForm>): Promise<{ success: boolean; template: RFPTemplate }> {
-    const response = await api.put<{ success: boolean; template: RFPTemplate }>(`/rfp/templates/${templateId}`, template);
-    return response.data;
+    return rfpApi.updateRFPTemplate(templateId, template);
   }
 
   async deleteRFPTemplate(templateId: number): Promise<{ success: boolean; message: string }> {
-    const response = await api.delete<{ success: boolean; message: string }>(`/rfp/templates/${templateId}`);
-    return response.data;
+    return rfpApi.deleteRFPTemplate(templateId);
   }
 
-  // Company Profiles
   async getCompanyProfiles(): Promise<{ success: boolean; profiles: CompanyProfile[] }> {
-    const response = await api.get<{ success: boolean; profiles: CompanyProfile[] }>('/rfp/company-profiles');
-    return response.data;
+    return rfpApi.getCompanyProfiles();
   }
 
   async getCompanyProfile(profileId: number): Promise<{ success: boolean; profile: CompanyProfile }> {
-    const response = await api.get<{ success: boolean; profile: CompanyProfile }>(`/rfp/company-profiles/${profileId}`);
-    return response.data;
+    return rfpApi.getCompanyProfile(profileId);
   }
 
   async createCompanyProfile(profile: CompanyProfileForm): Promise<{ success: boolean; profile: CompanyProfile }> {
-    const response = await api.post<{ success: boolean; profile: CompanyProfile }>('/rfp/company-profiles', profile);
-    return response.data;
+    return rfpApi.createCompanyProfile(profile);
   }
 
   async updateCompanyProfile(profileId: number, profile: Partial<CompanyProfileForm>): Promise<{ success: boolean; profile: CompanyProfile }> {
-    const response = await api.put<{ success: boolean; profile: CompanyProfile }>(`/rfp/company-profiles/${profileId}`, profile);
-    return response.data;
+    return rfpApi.updateCompanyProfile(profileId, profile);
   }
 
   async deleteCompanyProfile(profileId: number): Promise<{ success: boolean; message: string }> {
-    const response = await api.delete<{ success: boolean; message: string }>(`/rfp/company-profiles/${profileId}`);
-    return response.data;
+    return rfpApi.deleteCompanyProfile(profileId);
   }
 
-  // RFP Analysis
   async analyzeContractForRFP(contractId: string): Promise<{ success: boolean; analysis: RFPAnalysis }> {
-    console.log('🔍 [DEBUG] API Service analyzeContractForRFP called for:', contractId);
-    const response = await api.post<{ success: boolean; analysis: RFPAnalysis }>(`/rfp/analyze/${contractId}`);
-    console.log('🔍 [DEBUG] API Service analyzeContractForRFP response:', response.data);
-    return response.data;
+    return rfpApi.analyzeContractForRFP(contractId);
   }
 
   async getCompetitiveAnalysis(contractId: string, companyProfileId: number): Promise<{ success: boolean; analysis: CompetitiveAnalysis }> {
-    const response = await api.post<{ success: boolean; analysis: CompetitiveAnalysis }>('/rfp/competitive-analysis', {
-      contractId,
-      companyProfileId
-    });
-    return response.data;
+    return rfpApi.getCompetitiveAnalysis(contractId, companyProfileId);
   }
 
-  // RFP Generation
   async generateRFPResponse(request: RFPGenerationRequest): Promise<RFPGenerationResponse> {
-    console.log('🚀 [DEBUG] API Service generateRFPResponse called with:', request);
-    
-    try {
-      const response = await api.post<RFPGenerationResponse>('/rfp/generate', request, {
-        timeout: 1200000 // 5 minutes timeout for RFP generation
-      });
-      console.log('🚀 [DEBUG] API Service generateRFPResponse response:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ [DEBUG] API Service generateRFPResponse error:', error);
-      
-      // Handle specific error cases
-      if (error.response?.status === 404) {
-        console.error('❌ [DEBUG] RFP generation endpoint not found (404)');
-        throw new Error('RFP generation service is not available. The server endpoint may not be implemented yet.');
-      } else if (error.response?.status === 500) {
-        console.error('❌ [DEBUG] Server error during RFP generation:', error.response.data);
-        throw new Error('Server error during RFP generation. Please check the server logs for details.');
-      } else if (error.code === 'ECONNABORTED') {
-        console.error('❌ [DEBUG] RFP generation timeout after 5 minutes');
-        throw new Error('RFP generation timed out after 5 minutes. The server may be overloaded or the generation process is not working properly.');
-      }
-      
-      throw error;
-    }
+    return rfpApi.generateRFPResponse(request);
   }
 
   async regenerateRFPSection(rfpResponseId: number, sectionId: string, customInstructions?: string): Promise<{ success: boolean; section: RFPResponseSection }> {
-    const response = await api.post<{ success: boolean; section: RFPResponseSection }>(`/rfp/responses/${rfpResponseId}/sections/${sectionId}/regenerate`, {
-      customInstructions
-    });
-    return response.data;
+    return rfpApi.regenerateRFPSection(rfpResponseId, sectionId, customInstructions);
   }
 
-  // RFP Response Management
   async getRFPResponses(page: number = 1, limit: number = 20): Promise<{ success: boolean; responses: RFPResponse[]; pagination: any }> {
-    try {
-      const response = await api.get<{ success: boolean; responses: RFPResponse[]; pagination: any }>(`/rfp/responses?page=${page}&limit=${limit}`);
-      
-      // Filter out deleted RFPs from the response
-      const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
-      if (response.data.success && response.data.responses) {
-        const filteredResponses = response.data.responses.filter(rfp => !deletedRFPs.includes(rfp.id));
-        return {
-          ...response.data,
-          responses: filteredResponses
-        };
-      }
-      
-      return response.data;
-    } catch (error: any) {
-      // Handle 404 or other errors for missing endpoint
-      if (error.response?.status === 404) {
-        console.warn('RFP Responses endpoint not implemented yet');
-        return {
-          success: false,
-          responses: [],
-          pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
-        };
-      }
-      throw error;
-    }
+    return rfpApi.getRFPResponses(page, limit);
   }
 
   async getRFPResponse(responseId: number): Promise<{ success: boolean; response: RFPResponse }> {
-    try {
-      // Check if this RFP has been deleted locally
-      const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
-      if (deletedRFPs.includes(responseId)) {
-        console.log('🗑️ [DEBUG] RFP Response', responseId, 'has been deleted locally');
-        throw new Error('RFP Response has been deleted');
-      }
-
-      console.log(`🔍 [DEBUG] API Service getRFPResponse called with ID: ${responseId}`);
-      const response = await api.get<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}`);
-      console.log('✅ [DEBUG] API Service getRFPResponse success:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ [DEBUG] API Service getRFPResponse error:', error);
-      // Handle 404 or other errors for missing endpoint
-      if (error.response?.status === 404) {
-        console.warn('RFP Response endpoint not implemented yet');
-        throw new Error('RFP Response not found');
-      }
-      throw error;
-    }
+    return rfpApi.getRFPResponse(responseId);
   }
 
   async updateRFPResponse(responseId: number, updates: Partial<RFPResponse>): Promise<{ success: boolean; response: RFPResponse }> {
-    const response = await api.put<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}`, updates);
-    return response.data;
+    return rfpApi.updateRFPResponse(responseId, updates);
   }
 
   async updateRFPSection(rfpResponseId: number, sectionId: string, updates: RFPSectionEditForm): Promise<{ success: boolean; section: RFPResponseSection }> {
-    const response = await api.put<{ success: boolean; section: RFPResponseSection }>(`/rfp/responses/${rfpResponseId}/sections/${sectionId}`, updates);
-    return response.data;
+    return rfpApi.updateRFPSection(rfpResponseId, sectionId, updates);
   }
 
   async deleteRFPResponse(responseId: number): Promise<{ success: boolean; message: string }> {
-    const response = await api.delete<{ success: boolean; message: string }>(`/rfp/responses/${responseId}`);
-    return response.data;
+    return rfpApi.deleteRFPResponse(responseId);
   }
 
-  // RFP Compliance & Scoring
   async checkRFPCompliance(responseId: number): Promise<{ success: boolean; compliance: ComplianceStatus }> {
-    const response = await api.post<{ success: boolean; compliance: ComplianceStatus }>(`/rfp/responses/${responseId}/compliance`);
-    return response.data;
+    return rfpApi.checkRFPCompliance(responseId);
   }
 
   async predictRFPScore(responseId: number): Promise<{ success: boolean; prediction: PredictedScore }> {
-    const response = await api.post<{ success: boolean; prediction: PredictedScore }>(`/rfp/responses/${responseId}/score-prediction`);
-    return response.data;
+    return rfpApi.predictRFPScore(responseId);
   }
 
-  // RFP Export & Collaboration
   async exportRFPResponse(responseId: number, format: 'pdf' | 'docx' | 'html'): Promise<{ success: boolean; downloadUrl: string }> {
-    const response = await api.post<{ success: boolean; downloadUrl: string }>(`/rfp/responses/${responseId}/export`, { format });
-    return response.data;
+    return rfpApi.exportRFPResponse(responseId, format);
   }
 
   async addRFPCollaborator(responseId: number, email: string, role: 'viewer' | 'editor' | 'reviewer'): Promise<{ success: boolean; message: string }> {
-    const response = await api.post<{ success: boolean; message: string }>(`/rfp/responses/${responseId}/collaborators`, { email, role });
-    return response.data;
+    return rfpApi.addRFPCollaborator(responseId, email, role);
   }
 
   async removeRFPCollaborator(responseId: number, email: string): Promise<{ success: boolean; message: string }> {
-    const response = await api.delete<{ success: boolean; message: string }>(`/rfp/responses/${responseId}/collaborators/${email}`);
-    return response.data;
+    return rfpApi.removeRFPCollaborator(responseId, email);
   }
 
-  // RFP Versions
   async createRFPVersion(responseId: number, comment?: string): Promise<{ success: boolean; version: RFPVersion }> {
-    const response = await api.post<{ success: boolean; version: RFPVersion }>(`/rfp/responses/${responseId}/versions`, { comment });
-    return response.data;
+    return rfpApi.createRFPVersion(responseId, comment);
   }
 
   async getRFPVersions(responseId: number): Promise<{ success: boolean; versions: RFPVersion[] }> {
-    const response = await api.get<{ success: boolean; versions: RFPVersion[] }>(`/rfp/responses/${responseId}/versions`);
-    return response.data;
+    return rfpApi.getRFPVersions(responseId);
   }
 
   async restoreRFPVersion(responseId: number, versionId: number): Promise<{ success: boolean; response: RFPResponse }> {
-    const response = await api.post<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}/versions/${versionId}/restore`);
-    return response.data;
+    return rfpApi.restoreRFPVersion(responseId, versionId);
   }
 
-  // RFP Dashboard & Analytics
   async getRFPDashboardStats(): Promise<{ success: boolean; stats: RFPDashboardStats }> {
-    const response = await api.get<{ success: boolean; stats: RFPDashboardStats }>('/rfp/dashboard/stats');
-    return response.data;
+    return rfpApi.getRFPDashboardStats();
   }
 
   async getRFPAnalytics(dateRange?: { start: string; end: string }): Promise<{ success: boolean; analytics: any }> {
-    try {
-      const params = dateRange ? `?start=${dateRange.start}&end=${dateRange.end}` : '';
-      const response = await api.get<{ success: boolean; analytics: any }>(`/rfp/analytics${params}`);
-      return response.data;
-    } catch (error: any) {
-      // Handle 404 for missing analytics endpoint
-      if (error.response?.status === 404) {
-        console.warn('RFP Analytics endpoint not implemented yet');
-        return {
-          success: false,
-          analytics: {
-            message: 'Analytics endpoint not yet implemented',
-            totalRFPs: 0,
-            winRate: 0,
-            averageScore: 0
-          }
-        };
-      }
-      throw error;
-    }
+    return rfpApi.getRFPAnalytics(dateRange);
   }
 
-  // NLP Search API Methods
+  // NLP Search API Methods - delegate to nlpApi
   async naturalLanguageSearch(data: {
     query: string;
     userContext?: any;
@@ -694,16 +480,13 @@ class ApiService {
     totalCount: number;
     parsedQuery: any;
   }> {
-    const response = await api.post('/nlp/natural', data);
-    return response.data;
+    return nlpApi.naturalLanguageSearch(data);
   }
 
   async getNLPSuggestions(query?: string): Promise<{
     suggestions: string[];
   }> {
-    const params = query ? `?q=${encodeURIComponent(query)}` : '';
-    const response = await api.get(`/nlp/suggestions${params}`);
-    return response.data;
+    return nlpApi.getNLPSuggestions(query);
   }
 
   async validateNLPQuery(query: string): Promise<{
@@ -711,8 +494,7 @@ class ApiService {
     parsed: any;
     issues: string[];
   }> {
-    const response = await api.post('/nlp/validate', { query });
-    return response.data;
+    return nlpApi.validateNLPQuery(query);
   }
 
   async classifyIntent(query: string): Promise<{
@@ -720,23 +502,20 @@ class ApiService {
     confidence: number;
     sub_intent: string;
   }> {
-    const response = await api.post('/nlp/classify-intent', { query });
-    return response.data;
+    return nlpApi.classifyIntent(query);
   }
 
   async extractEntities(text: string): Promise<{
     entities: any;
     structured: any;
   }> {
-    const response = await api.post('/nlp/extract-entities', { text });
-    return response.data;
+    return nlpApi.extractEntities(text);
   }
 
   async getPersonalizedSuggestions(userContext?: any): Promise<{
     suggestions: any[];
   }> {
-    const response = await api.post('/nlp/personalized-suggestions', { userContext });
-    return response.data;
+    return nlpApi.getPersonalizedSuggestions(userContext);
   }
 }
 

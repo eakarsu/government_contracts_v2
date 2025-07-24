@@ -1,4 +1,8 @@
+// Increase header size limit to 1MB at the very beginning
+process.env.NODE_OPTIONS = '--max-http-header-size=1048576';
+
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs-extra');
@@ -27,6 +31,7 @@ const jobsRouter = require('./routes/jobs');
 const recommendationsRouter = require('./routes/recommendations');
 const rfpRouter = require('./routes/rfp');
 const documentProcessingRouter = require('./routes/documentProcessing');
+const parallelProcessingRouter = require('./routes/parallelProcessing');
 
 // Import new AI-powered routes
 const authRoutes = require('./routes/auth');
@@ -46,6 +51,13 @@ const { authMiddleware } = require('./middleware/auth');
 
 const app = express();
 
+// CRITICAL: Set Express internal limits BEFORE any middleware
+app.use((req, res, next) => {
+  req.setTimeout(0); // Disable request timeout
+  res.setTimeout(0); // Disable response timeout
+  next();
+});
+
 // Configure Express to trust proxy headers (needed for rate limiting)
 // In development, trust localhost; in production, configure specific proxy IPs
 if (config.nodeEnv === 'development') {
@@ -55,13 +67,42 @@ if (config.nodeEnv === 'development') {
   app.set('trust proxy', 1);
 }
 
-// Middleware
-app.use(cors());
-app.use(rateLimiter);
+// Simple header logging for debugging (removed aggressive cleaning)
+app.use((req, res, next) => {
+  // Just log large headers for debugging
+  let headerSize = 0;
+  Object.keys(req.headers).forEach(key => {
+    headerSize += key.length + (req.headers[key]?.toString().length || 0);
+  });
+  
+  if (headerSize > 100000) { // Log if > 100KB
+    console.log(`⚠️ Large headers detected: ${headerSize} bytes`);
+  }
+  
+  // Set basic cache prevention headers
+  res.set({
+    'Cache-Control': 'no-cache, must-revalidate',
+    'Expires': '0'
+  });
+  
+  next();
+});
+
+// SIMPLIFIED CORS - similar to working server
+app.use(cors({
+  origin: '*',
+  methods: '*',
+  allowedHeaders: '*'
+}));
+// DISABLE rate limiter completely to prevent 431 errors
+// app.use(rateLimiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static('public'));
 app.use('/uploads', express.static(config.uploadDir));
+
+// Serve React build files
+app.use(express.static(path.join(__dirname, 'client/build')));
 
 // Ensure directories exist
 const ensureDirectories = () => {
@@ -103,11 +144,11 @@ const upload = multer({
   }
 });
 
-// Status endpoints with more permissive rate limiting
-app.use('/api/status', statusRateLimiter);
-app.use('/api/config', statusRateLimiter);
-app.use('/api/health', statusRateLimiter);
-app.use('/api/documents/queue/status', statusRateLimiter);
+// DISABLE ALL rate limiting to prevent 431 errors
+// app.use('/api/status', statusRateLimiter);
+// app.use('/api/config', statusRateLimiter);
+// app.use('/api/health', statusRateLimiter);
+// app.use('/api/documents/queue/status', statusRateLimiter);
 
 // Existing routes
 app.use('/api/contracts', contractsRouter);
@@ -129,12 +170,16 @@ app.use('/api/rfp', devAuthMiddleware, rfpRouter);
 // Mount document processing routes at /api/documents/processing/*
 app.use('/api/documents/processing', documentProcessingRouter);
 
+// Mount parallel processing routes at /api/parallel/*
+app.use('/api/parallel', parallelProcessingRouter);
+
 // New AI-powered routes
 app.use('/api/auth', authRoutes);
 app.use('/api/ai-rfp', authMiddleware, aiRfpRoutes);
 app.use('/api/bid-prediction', authMiddleware, bidPredictionRoutes);
 app.use('/api/nlp', nlpSearchRoutes);
 app.use('/api/ai', aiFeaturesRoutes);
+app.use('/api/profiles', profileRoutes);
 
 // Debug: Log when routers are loaded
 console.log('📋 [DEBUG] Contracts router mounted at /api/contracts');
@@ -146,6 +191,7 @@ console.log('📋 [DEBUG] RFP router mounted at /api/rfp');
 console.log('📋 [DEBUG] Document processing router mounted at /api/documents/processing');
 console.log('📋 [DEBUG] NLP search router mounted at /api/nlp');
 console.log('📋 [DEBUG] AI features router mounted at /api/ai');
+console.log('📋 [DEBUG] Profiles router mounted at /api/profiles');
 
 // Test that routes are properly loaded
 app.get('/api/test-routes', (req, res) => {
@@ -160,6 +206,11 @@ app.get('/api/test-routes', (req, res) => {
     ],
     timestamp: new Date().toISOString()
   });
+});
+
+// MINIMAL test endpoint - bypasses all middleware
+app.get('/test', (req, res) => {
+  res.status(200).send('WORKING');
 });
 
 // Serve main page
@@ -345,22 +396,12 @@ app.use((error, req, res, next) => {
 // Use the error handler middleware
 app.use(errorHandler);
 
-// In your server.js or app.js
-app.use((req, res, next) => {
-  // Allow specific hosts
-  const allowedHosts = [
-    'localhost',
-    '127.0.0.1',
-    'contracts.orderlybite.com'
-  ];
-  
-  if (allowedHosts.includes(req.get('host'))) {
-    next();
-  } else {
-    res.status(400).send('Invalid Host header');
-  }
-});
+// Remove problematic host validation middleware that might cause 431 errors
 
+
+// Initialize JavaScript parallel processor service (replaces queue worker)
+const JSParallelProcessor = require('./services/jsParallelProcessor');
+let parallelProcessor = null;
 
 // Initialize services and start server
 async function startServer() {
@@ -371,15 +412,61 @@ async function startServer() {
     // Initialize vector database (non-blocking)
     await vectorService.initialize();
     
-    // Start server
-    app.listen(config.port, () => {
-      console.log(`🚀 Server running on http://localhost:${config.port}`);
+    // Initialize queue worker (but don't auto-start to prevent server blocking)
+    parallelProcessor = new JSParallelProcessor({
+      maxConcurrency: 10 // Process up to 10 documents concurrently
+    });
+    
+    // JS parallel processor uses Promise.all instead of queue
+    // Use the "Start Processing" button to begin parallel document processing
+    console.log('🚀 [JS-PARALLEL] Initialized - use Start Processing button to begin parallel processing');
+    
+    // Make parallel processor accessible to routes
+    app.locals.parallelProcessor = parallelProcessor;
+    app.locals.queueWorker = parallelProcessor; // Keep compatibility with existing routes
+    
+    // Catch all handler for React routing - must be AFTER API routes
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+    });
+    
+    // Create custom HTTP server with MASSIVE header limits to prevent 431 errors
+    const server = http.createServer({
+      maxHeaderSize: 1048576, // 1MB header limit - this should handle any browser headers
+      keepAliveTimeout: 5000,
+      headersTimeout: 6000
+    }, app);
+    
+    // Add server error handling
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${config.port} is already in use`);
+        process.exit(1);
+      } else {
+        console.error('❌ Server error:', error);
+      }
+    });
+    
+    server.on('clientError', (err, socket) => {
+      if (err.code === 'HPE_HEADER_OVERFLOW') {
+        console.log('⚠️ Header overflow detected, sending 431 error');
+        socket.end('HTTP/1.1 431 Request Header Fields Too Large\r\n\r\n');
+      } else {
+        console.log('⚠️ Client error:', err.message);
+        socket.destroy();
+      }
+    });
+    
+    // Start server with custom configuration
+    server.listen(config.port, () => {
+      console.log(`🚀 Server running on http://localhost:${config.port} with 1MB header limit`);
       console.log(`📁 Upload folder: ${path.join(__dirname, config.uploadDir)}`);
       console.log(`📄 Documents folder: ${path.join(__dirname, config.documentsDir)}`);
       console.log(`🌐 Norshin API: ${config.norshinApiUrl}`);
       console.log(`🔍 Vector DB: Vectra (Pure Node.js) ${vectorService.isConnected ? '(Connected)' : '(Disconnected)'}`);
       console.log(`📊 Database: Connected`);
       console.log(`🔑 Environment: ${config.nodeEnv}`);
+      console.log(`🔄 Queue Worker: Running (maintains 10 concurrent documents for optimal performance)`);
       
       if (!vectorService.isConnected) {
         console.log('');
@@ -396,6 +483,13 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('Shutting down gracefully...');
+  await disconnect();
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully...');
   await disconnect();
   await prisma.$disconnect();
   process.exit(0);

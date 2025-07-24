@@ -92,7 +92,13 @@ class DocumentAnalysisService {
         { role: 'user', content: prompt }
       ]);
 
-      return JSON.parse(response);
+      try {
+        return JSON.parse(response);
+      } catch (parseError) {
+        logger.error('JSON parsing failed for critical clauses:', parseError.message);
+        logger.error('Invalid JSON response:', response);
+        return [];
+      }
     } catch (error) {
       logger.error('Error extracting critical clauses:', error);
       return [];
@@ -203,7 +209,18 @@ Return comparison as JSON with fields: similarities, differences, recommendation
         { role: 'user', content: prompt }
       ]);
 
-      const comparison = JSON.parse(response);
+      let comparison;
+      try {
+        comparison = JSON.parse(response);
+      } catch (parseError) {
+        logger.error('JSON parsing failed for document comparison:', parseError.message);
+        logger.error('Invalid JSON response:', response);
+        comparison = {
+          similarities: [],
+          differences: [],
+          recommendations: []
+        };
+      }
 
       return {
         document1: {
@@ -249,8 +266,22 @@ Return comparison as JSON with fields: similarities, differences, recommendation
       const averageConfidence = analyses.reduce((sum, a) => sum + a.analysis_confidence, 0) / totalDocuments;
       
       // Extract common themes
-      const allKeyPoints = analyses.map(a => JSON.parse(a.key_points));
-      const allCriticalClauses = analyses.flatMap(a => JSON.parse(a.critical_clauses));
+      const allKeyPoints = analyses.map(a => {
+        try {
+          return JSON.parse(a.key_points || '[]');
+        } catch (e) {
+          logger.warn(`Invalid key_points JSON for analysis ${a.id}`);
+          return [];
+        }
+      });
+      const allCriticalClauses = analyses.flatMap(a => {
+        try {
+          return JSON.parse(a.critical_clauses || '[]');
+        } catch (e) {
+          logger.warn(`Invalid critical_clauses JSON for analysis ${a.id}`);
+          return [];
+        }
+      });
 
       // Generate insights using AI
       const prompt = `Analyze these document analysis results and provide insights about the contract:

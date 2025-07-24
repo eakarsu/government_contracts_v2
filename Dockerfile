@@ -60,5 +60,5 @@ ENV NODE_ENV=production
 RUN chmod +x start2.sh
 
 # Start the application with initialization
-CMD ["sh", "-c", "./start2.sh"]
+CMD ["sh", "-c", "./start2.sh hosting"]
 

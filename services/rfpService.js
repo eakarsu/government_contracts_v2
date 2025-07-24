@@ -393,7 +393,7 @@ Extract and provide structured RFP analysis in JSON format:
   }
 
   buildContractContent(contract, companyData, customInstructions) {
-    return `TASK: Analyze the government contract and generate a comprehensive RFP response, up to 10 pages, addressing each section below. For each section, follow the description and focus on the mapped contract/company data. Write in a professional, persuasive tone, ensuring compliance with government RFP best practices.
+    return `TASK: Analyze the government contract and generate a comprehensive RFP response, up to 15 pages, addressing each section below. For each section, follow the description and focus on the mapped contract/company data. Write in a professional, persuasive tone, ensuring compliance with government RFP best practices.
 
 CONTRACT INFORMATION: 
 Title: ${contract.title}
@@ -455,6 +455,26 @@ CUSTOM INSTRUCTIONS: ${customInstructions || 'Follow RFP best practices'}
 10. **Security and Compliance**
     - *Instruction*: Detail security measures and compliance with relevant regulations (e.g., NIST, FISMA, CMMC). Address data protection, access controls, and audit readiness.
     - *Focus on*: [security, compliance, regulations]
+
+11. **Transition Plan**
+    - *Instruction*: Describe how you will transition from current state to operational state. Include knowledge transfer, stakeholder onboarding, and continuity planning.
+    - *Focus on*: [transition_plan, implementation, knowledge_transfer]
+
+12. **Training and Support**
+    - *Instruction*: Detail training programs for end users and support staff. Include documentation, help desk services, and ongoing user support.
+    - *Focus on*: [training_support, user_training, documentation]
+
+13. **Maintenance and Sustainment**
+    - *Instruction*: Explain long-term maintenance strategies, system updates, and sustainment planning. Address lifecycle management and technology refresh.
+    - *Focus on*: [maintenance_sustainment, lifecycle, updates]
+
+14. **Innovation and Added Value**
+    - *Instruction*: Highlight innovative approaches, emerging technologies, and value-added services beyond basic requirements.
+    - *Focus on*: [innovation_value, emerging_tech, value_added]
+
+15. **Subcontractor and Teaming**
+    - *Instruction*: Describe subcontractor relationships, teaming arrangements, and partnership strategies. Include small business participation plans.
+    - *Focus on*: [subcontractor_teaming, partnerships, small_business]
 
 ---
 

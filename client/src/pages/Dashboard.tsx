@@ -21,6 +21,7 @@ import QueueStatus from '../components/Dashboard/QueueStatus';
 import QuickActions from '../components/Dashboard/QuickActions';
 import AIInsights from '../components/Dashboard/AIInsights';
 import DocumentDownload from '../components/Dashboard/DocumentDownload';
+import AIStatusIndicator from '../components/Dashboard/AIStatusIndicator';
 
 const Dashboard: React.FC = () => {
   // Fetch API status
@@ -76,23 +77,28 @@ const Dashboard: React.FC = () => {
           ? 'bg-green-50 border border-green-200' 
           : 'bg-red-50 border border-red-200'
       }`}>
-        <div className="flex items-center">
-          {status?.status === 'healthy' ? (
-            <CheckCircle className="h-5 w-5 text-green-400" />
-          ) : (
-            <XCircle className="h-5 w-5 text-red-400" />
-          )}
-          <div className="ml-3">
-            <h3 className={`text-sm font-medium ${
-              status?.status === 'healthy' ? 'text-green-800' : 'text-red-800'
-            }`}>
-              System Status: {status?.status === 'healthy' ? 'Healthy' : 'Error'}
-            </h3>
-            <p className={`text-sm ${
-              status?.status === 'healthy' ? 'text-green-700' : 'text-red-700'
-            }`}>
-              Last updated: {status?.timestamp ? new Date(status.timestamp).toLocaleString() : 'Unknown'}
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            {status?.status === 'healthy' ? (
+              <CheckCircle className="h-5 w-5 text-green-400" />
+            ) : (
+              <XCircle className="h-5 w-5 text-red-400" />
+            )}
+            <div className="ml-3">
+              <h3 className={`text-sm font-medium ${
+                status?.status === 'healthy' ? 'text-green-800' : 'text-red-800'
+              }`}>
+                System Status: {status?.status === 'healthy' ? 'Healthy' : 'Error'}
+              </h3>
+              <p className={`text-sm ${
+                status?.status === 'healthy' ? 'text-green-700' : 'text-red-700'
+              }`}>
+                Last updated: {status?.timestamp ? new Date(status.timestamp).toLocaleString() : 'Unknown'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <AIStatusIndicator />
           </div>
         </div>
       </div>

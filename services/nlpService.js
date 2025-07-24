@@ -124,7 +124,12 @@ Return valid JSON:
       const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error('❌ JSON parsing failed for intent classification:', parseError.message);
+          console.error('❌ Invalid JSON:', jsonMatch[0]);
+        }
       }
       return { intent: 'DISCOVERY', confidence: 0.5, sub_intent: 'general' };
     } catch (error) {
