@@ -28,7 +28,7 @@ const AIStatusIndicator: React.FC<AIStatusIndicatorProps> = ({
   const { data: healthData, isLoading, error, refetch } = useQuery({
     queryKey: ['ai-health'],
     queryFn: async () => {
-      const response = await fetch('http://localhost:5013/api/ai-rfp/health');
+      const response = await fetch('/api/ai-rfp/health');
       if (!response.ok) {
         throw new Error('Health check failed');
       }
