@@ -709,4 +709,658 @@ router.post('/:noticeId/analyze', async (req, res) => {
   }
 });
 
+// Fetch specific contract by Notice ID from SAM.gov
+router.post('/fetch/:noticeId', async (req, res) => {
+  try {
+    const { noticeId } = req.params;
+    
+    if (!noticeId) {
+      return res.status(400).json({ error: 'Notice ID is required' });
+    }
+
+    console.log(`Fetching specific contract: ${noticeId}`);
+
+    // Create indexing job record
+    const jobResult = await query(`
+      INSERT INTO indexing_jobs (job_type, status, created_at)
+      VALUES ($1, $2, NOW())
+      RETURNING id
+    `, ['single_contract', 'running']);
+    
+    const job = { id: jobResult.rows[0].id };
+
+    try {
+      // Try to fetch from SAM.gov API using the notice ID
+      const samGovUrl = `https://api.sam.gov/opportunities/v2/search`;
+      const params = new URLSearchParams({
+        api_key: config.samGovApiKey,
+        limit: 100,
+        offset: 0
+      });
+      
+      // Add notice ID as search query
+      params.append('q', noticeId);
+      
+      // SAM.gov requires PostedFrom and PostedTo - use wide date range for single contract search
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setFullYear(startDate.getFullYear() - 2); // Search last 2 years
+      
+      params.append('postedFrom', formatDateForSAM(startDate));
+      params.append('postedTo', formatDateForSAM(endDate));
+      
+      // Remove undefined values
+      for (const [key, value] of params.entries()) {
+        if (value === 'undefined' || value === undefined) {
+          params.delete(key);
+        }
+      }
+
+      console.log(`Searching SAM.gov for: ${noticeId}`);
+      const response = await axios.get(`${samGovUrl}?${params}`);
+      const contractsData = response.data.opportunitiesData || [];
+      
+      // Look for exact match by notice ID
+      const targetContract = contractsData.find(contract => 
+        contract.noticeId === noticeId ||
+        contract.solicitationNumber === noticeId
+      );
+
+      if (!targetContract) {
+        await query(`
+          UPDATE indexing_jobs 
+          SET status = $1, error_details = $2, completed_at = NOW()
+          WHERE id = $3
+        `, ['failed', `Contract ${noticeId} not found in SAM.gov API`, job.id]);
+        
+        return res.status(404).json({ 
+          success: false,
+          error: `Contract ${noticeId} not found in SAM.gov API`,
+          searched_results: contractsData.length,
+          job_id: job.id
+        });
+      }
+
+      // Process the found contract
+      const contractDetails = {
+        noticeId: targetContract.noticeId,
+        title: targetContract.title,
+        description: targetContract.description,
+        agency: targetContract.fullParentPathName,
+        naicsCode: targetContract.naicsCode,
+        classificationCode: targetContract.classificationCode,
+        postedDate: targetContract.postedDate ? new Date(targetContract.postedDate) : null,
+        setAsideCode: targetContract.typeOfSetAsideCode,
+        resourceLinks: Array.isArray(targetContract.resourceLinks) ? targetContract.resourceLinks : []
+      };
+
+      // Upsert contract using raw SQL
+      await query(`
+        INSERT INTO contract (
+          notice_id, title, description, agency, naics_code, 
+          classification_code, posted_date, set_aside_code, resource_links,
+          created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+        ON CONFLICT (notice_id) 
+        DO UPDATE SET 
+          title = EXCLUDED.title,
+          description = EXCLUDED.description,
+          agency = EXCLUDED.agency,
+          naics_code = EXCLUDED.naics_code,
+          classification_code = EXCLUDED.classification_code,
+          posted_date = EXCLUDED.posted_date,
+          set_aside_code = EXCLUDED.set_aside_code,
+          resource_links = EXCLUDED.resource_links,
+          updated_at = NOW()
+      `, [
+        contractDetails.noticeId,
+        contractDetails.title,
+        contractDetails.description,
+        contractDetails.agency,
+        contractDetails.naicsCode,
+        contractDetails.classificationCode,
+        contractDetails.postedDate,
+        contractDetails.setAsideCode,
+        JSON.stringify(contractDetails.resourceLinks || [])
+      ]);
+
+      // Update job status
+      await query(`
+        UPDATE indexing_jobs 
+        SET status = $1, records_processed = $2, completed_at = NOW()
+        WHERE id = $3
+      `, ['completed', 1, job.id]);
+
+      res.json({
+        success: true,
+        job_id: job.id,
+        contract: contractDetails,
+        message: `Contract ${noticeId} fetched and saved successfully`
+      });
+
+    } catch (error) {
+      await query(`
+        UPDATE indexing_jobs 
+        SET status = $1, error_details = $2, completed_at = NOW()
+        WHERE id = $3
+      `, ['failed', error.message, job.id]);
+      throw error;
+    }
+
+  } catch (error) {
+    console.error('Single contract fetch failed:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      details: 'Failed to fetch specific contract from SAM.gov'
+    });
+  }
+});
+
+// Index specific contract by Notice ID in vector database
+router.post('/index/:noticeId', async (req, res) => {
+  try {
+    const { noticeId } = req.params;
+    
+    if (!noticeId) {
+      return res.status(400).json({ error: 'Notice ID is required' });
+    }
+
+    // Get the vector service from the global instance
+    const vectorService = require('../server').vectorService;
+    
+    if (!vectorService || !vectorService.isConnected) {
+      return res.status(503).json({
+        success: false,
+        error: 'Vector database not available'
+      });
+    }
+
+    // Get the specific contract from database
+    const result = await query(`
+      SELECT * FROM contract 
+      WHERE notice_id = $1
+    `, [noticeId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: `Contract ${noticeId} not found in database. Fetch it first using POST /api/contracts/fetch/${noticeId}`
+      });
+    }
+
+    const contract = result.rows[0];
+
+    // Create indexing job
+    const jobResult = await query(`
+      INSERT INTO indexing_jobs (job_type, status, created_at)
+      VALUES ($1, $2, NOW())
+      RETURNING id
+    `, ['single_contract_indexing', 'running']);
+    
+    const job = { id: jobResult.rows[0].id };
+
+    try {
+      // Transform snake_case to camelCase for vector service
+      const transformedContract = {
+        id: contract.id,
+        noticeId: contract.notice_id,
+        title: contract.title,
+        description: contract.description,
+        agency: contract.agency,
+        naicsCode: contract.naics_code,
+        classificationCode: contract.classification_code,
+        postedDate: contract.posted_date,
+        setAsideCode: contract.set_aside_code,
+        resourceLinks: (() => {
+          try {
+            if (!contract.resource_links || contract.resource_links.trim() === '') {
+              return [];
+            }
+            return JSON.parse(contract.resource_links);
+          } catch (jsonError) {
+            console.warn(`Invalid JSON in resource_links for contract ${contract.notice_id}:`, contract.resource_links);
+            return [];
+          }
+        })(),
+        indexedAt: contract.indexed_at,
+        createdAt: contract.created_at,
+        updatedAt: contract.updated_at,
+        contractValue: contract.contract_value
+      };
+      
+      // Index contract in vector database
+      await vectorService.indexContract(transformedContract);
+      
+      // Mark as indexed
+      await query(`
+        UPDATE contract 
+        SET indexed_at = NOW() 
+        WHERE notice_id = $1
+      `, [noticeId]);
+
+      // Update job status
+      await query(`
+        UPDATE indexing_jobs 
+        SET status = $1, records_processed = $2, completed_at = NOW()
+        WHERE id = $3
+      `, ['completed', 1, job.id]);
+
+      res.json({
+        success: true,
+        job_id: job.id,
+        contract_id: noticeId,
+        message: `Contract ${noticeId} indexed successfully in vector database`
+      });
+
+    } catch (error) {
+      await query(`
+        UPDATE indexing_jobs 
+        SET status = $1, error_details = $2, completed_at = NOW()
+        WHERE id = $3
+      `, ['failed', error.message, job.id]);
+      throw error;
+    }
+
+  } catch (error) {
+    console.error('Single contract indexing failed:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      details: 'Failed to index specific contract in vector database'
+    });
+  }
+});
+
+// Fetch contracts by multiple search criteria from SAM.gov
+router.post('/fetch-by-criteria', async (req, res) => {
+  try {
+    const { 
+      noticeId, 
+      title, 
+      agency, 
+      naicsCode, 
+      keywords, 
+      classificationCode,
+      setAsideCode,
+      postedFrom,
+      postedTo,
+      limit = 100
+    } = req.body;
+
+    if (!noticeId && !title && !agency && !naicsCode && !keywords && !classificationCode) {
+      return res.status(400).json({ 
+        error: 'At least one search criteria is required',
+        supported_fields: ['noticeId', 'title', 'agency', 'naicsCode', 'keywords', 'classificationCode', 'setAsideCode', 'postedFrom', 'postedTo']
+      });
+    }
+
+    console.log('Fetching contracts by criteria:', req.body);
+
+    // Create indexing job record
+    const jobResult = await query(`
+      INSERT INTO indexing_jobs (job_type, status, created_at)
+      VALUES ($1, $2, NOW())
+      RETURNING id
+    `, ['criteria_search', 'running']);
+    
+    const job = { id: jobResult.rows[0].id };
+
+    try {
+      // Build SAM.gov API parameters (matching working /fetch endpoint)
+      const samGovUrl = `https://api.sam.gov/opportunities/v2/search`;
+      const params = new URLSearchParams({
+        api_key: config.samGovApiKey,
+        limit: Math.min(limit, 1000),
+        offset: 0
+      });
+
+      // Add search parameters based on what's provided
+      // Use the same parameter names as the working /fetch endpoint
+      if (noticeId || keywords) {
+        // Combine notice ID and keywords into a single search query
+        const searchTerms = [noticeId, keywords].filter(Boolean).join(' ');
+        params.append('q', searchTerms);
+      }
+      
+      // Add title search if provided
+      if (title) {
+        params.append('title', title);
+      }
+      
+      // Use correct SAM.gov parameter names
+      if (naicsCode) params.append('naics', naicsCode);
+      if (classificationCode) params.append('psc', classificationCode);
+      
+      // SAM.gov requires PostedFrom and PostedTo - use defaults if not provided
+      let startDate, endDate;
+      
+      if (postedFrom && postedTo) {
+        startDate = new Date(postedFrom);
+        endDate = new Date(postedTo);
+      } else {
+        // Use default date range: last 60 days to today
+        endDate = new Date();
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - 60);
+      }
+      
+      params.append('postedFrom', formatDateForSAM(startDate));
+      params.append('postedTo', formatDateForSAM(endDate));
+      
+      // Remove undefined values
+      for (const [key, value] of params.entries()) {
+        if (value === 'undefined' || value === undefined) {
+          params.delete(key);
+        }
+      }
+
+      console.log(`Searching SAM.gov with criteria:`, Object.fromEntries(params));
+      const response = await axios.get(`${samGovUrl}?${params}`);
+      const contractsData = response.data.opportunitiesData || [];
+      
+      if (contractsData.length === 0) {
+        await query(`
+          UPDATE indexing_jobs 
+          SET status = $1, records_processed = $2, completed_at = NOW()
+          WHERE id = $3
+        `, ['completed', 0, job.id]);
+        
+        return res.json({ 
+          success: true,
+          job_id: job.id,
+          contracts_found: 0,
+          contracts_processed: 0,
+          message: 'No contracts found matching the criteria',
+          search_params: Object.fromEntries(params)
+        });
+      }
+
+      // Process all found contracts
+      let processedCount = 0;
+      let errorsCount = 0;
+      const processedContracts = [];
+
+      for (const contractData of contractsData) {
+        try {
+          const contractDetails = {
+            noticeId: contractData.noticeId,
+            title: contractData.title,
+            description: contractData.description,
+            agency: contractData.fullParentPathName,
+            naicsCode: contractData.naicsCode,
+            classificationCode: contractData.classificationCode,
+            postedDate: contractData.postedDate ? new Date(contractData.postedDate) : null,
+            setAsideCode: contractData.typeOfSetAsideCode,
+            resourceLinks: Array.isArray(contractData.resourceLinks) ? contractData.resourceLinks : []
+          };
+          
+          if (!contractDetails.noticeId) continue;
+
+          // Upsert contract using raw SQL
+          await query(`
+            INSERT INTO contract (
+              notice_id, title, description, agency, naics_code, 
+              classification_code, posted_date, set_aside_code, resource_links,
+              created_at, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+            ON CONFLICT (notice_id) 
+            DO UPDATE SET 
+              title = EXCLUDED.title,
+              description = EXCLUDED.description,
+              agency = EXCLUDED.agency,
+              naics_code = EXCLUDED.naics_code,
+              classification_code = EXCLUDED.classification_code,
+              posted_date = EXCLUDED.posted_date,
+              set_aside_code = EXCLUDED.set_aside_code,
+              resource_links = EXCLUDED.resource_links,
+              updated_at = NOW()
+          `, [
+            contractDetails.noticeId,
+            contractDetails.title,
+            contractDetails.description,
+            contractDetails.agency,
+            contractDetails.naicsCode,
+            contractDetails.classificationCode,
+            contractDetails.postedDate,
+            contractDetails.setAsideCode,
+            JSON.stringify(contractDetails.resourceLinks || [])
+          ]);
+
+          processedContracts.push({
+            noticeId: contractDetails.noticeId,
+            title: contractDetails.title,
+            agency: contractDetails.agency
+          });
+          processedCount++;
+        } catch (error) {
+          console.error('Error processing contract:', error);
+          errorsCount++;
+        }
+      }
+
+      // Update job status
+      await query(`
+        UPDATE indexing_jobs 
+        SET status = $1, records_processed = $2, errors_count = $3, completed_at = NOW()
+        WHERE id = $4
+      `, ['completed', processedCount, errorsCount, job.id]);
+
+      res.json({
+        success: true,
+        job_id: job.id,
+        contracts_found: contractsData.length,
+        contracts_processed: processedCount,
+        errors_count: errorsCount,
+        search_criteria: req.body,
+        processed_contracts: processedContracts.slice(0, 10), // Show first 10
+        message: `Successfully fetched ${processedCount} contracts matching criteria`
+      });
+
+    } catch (error) {
+      await query(`
+        UPDATE indexing_jobs 
+        SET status = $1, error_details = $2, completed_at = NOW()
+        WHERE id = $3
+      `, ['failed', error.message, job.id]);
+      throw error;
+    }
+
+  } catch (error) {
+    console.error('Criteria-based contract fetch failed:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      details: 'Failed to fetch contracts by criteria from SAM.gov'
+    });
+  }
+});
+
+// Index contracts by search criteria (for contracts already in database)
+router.post('/index-by-criteria', async (req, res) => {
+  try {
+    const { 
+      noticeId, 
+      title, 
+      agency, 
+      naicsCode, 
+      keywords,
+      limit = 100
+    } = req.body;
+
+    if (!noticeId && !title && !agency && !naicsCode && !keywords) {
+      return res.status(400).json({ 
+        error: 'At least one search criteria is required',
+        supported_fields: ['noticeId', 'title', 'agency', 'naicsCode', 'keywords']
+      });
+    }
+
+    // Get the vector service from the global instance
+    const vectorService = require('../server').vectorService;
+    
+    if (!vectorService || !vectorService.isConnected) {
+      return res.status(503).json({
+        success: false,
+        error: 'Vector database not available'
+      });
+    }
+
+    // Build database query based on criteria
+    let whereConditions = [];
+    let queryParams = [];
+    let paramIndex = 1;
+
+    if (noticeId) {
+      whereConditions.push(`notice_id ILIKE $${paramIndex}`);
+      queryParams.push(`%${noticeId}%`);
+      paramIndex++;
+    }
+
+    if (title) {
+      whereConditions.push(`title ILIKE $${paramIndex}`);
+      queryParams.push(`%${title}%`);
+      paramIndex++;
+    }
+
+    if (agency) {
+      whereConditions.push(`agency ILIKE $${paramIndex}`);
+      queryParams.push(`%${agency}%`);
+      paramIndex++;
+    }
+
+    if (naicsCode) {
+      whereConditions.push(`naics_code = $${paramIndex}`);
+      queryParams.push(naicsCode);
+      paramIndex++;
+    }
+
+    if (keywords) {
+      whereConditions.push(`(title ILIKE $${paramIndex} OR description ILIKE $${paramIndex + 1})`);
+      queryParams.push(`%${keywords}%`, `%${keywords}%`);
+      paramIndex += 2;
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+    queryParams.push(limit);
+
+    // Get matching contracts from database
+    const result = await query(`
+      SELECT * FROM contract 
+      ${whereClause}
+      ORDER BY posted_date DESC NULLS LAST, created_at DESC
+      LIMIT $${paramIndex}
+    `, queryParams);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No contracts found matching the criteria in database',
+        search_criteria: req.body,
+        suggestion: 'Try using POST /api/contracts/fetch-by-criteria first to fetch from SAM.gov'
+      });
+    }
+
+    // Create indexing job
+    const jobResult = await query(`
+      INSERT INTO indexing_jobs (job_type, status, created_at)
+      VALUES ($1, $2, NOW())
+      RETURNING id
+    `, ['criteria_indexing', 'running']);
+    
+    const job = { id: jobResult.rows[0].id };
+
+    let indexedCount = 0;
+    let errorsCount = 0;
+    const indexedContracts = [];
+
+    try {
+      for (const contract of result.rows) {
+        try {
+          // Transform snake_case to camelCase for vector service
+          const transformedContract = {
+            id: contract.id,
+            noticeId: contract.notice_id,
+            title: contract.title,
+            description: contract.description,
+            agency: contract.agency,
+            naicsCode: contract.naics_code,
+            classificationCode: contract.classification_code,
+            postedDate: contract.posted_date,
+            setAsideCode: contract.set_aside_code,
+            resourceLinks: (() => {
+              try {
+                if (!contract.resource_links || contract.resource_links.trim() === '') {
+                  return [];
+                }
+                return JSON.parse(contract.resource_links);
+              } catch (jsonError) {
+                console.warn(`Invalid JSON in resource_links for contract ${contract.notice_id}:`, contract.resource_links);
+                return [];
+              }
+            })(),
+            indexedAt: contract.indexed_at,
+            createdAt: contract.created_at,
+            updatedAt: contract.updated_at,
+            contractValue: contract.contract_value
+          };
+          
+          // Index contract in vector database
+          await vectorService.indexContract(transformedContract);
+          
+          // Mark as indexed
+          await query(`
+            UPDATE contract 
+            SET indexed_at = NOW() 
+            WHERE notice_id = $1
+          `, [contract.notice_id]);
+          
+          indexedContracts.push({
+            noticeId: contract.notice_id,
+            title: contract.title,
+            agency: contract.agency
+          });
+          indexedCount++;
+        } catch (error) {
+          console.error(`Error indexing contract ${contract.notice_id}:`, error.message);
+          errorsCount++;
+        }
+      }
+
+      // Update job status
+      await query(`
+        UPDATE indexing_jobs 
+        SET status = $1, records_processed = $2, errors_count = $3, completed_at = NOW()
+        WHERE id = $4
+      `, ['completed', indexedCount, errorsCount, job.id]);
+
+      res.json({
+        success: true,
+        job_id: job.id,
+        contracts_found: result.rows.length,
+        contracts_indexed: indexedCount,
+        errors_count: errorsCount,
+        search_criteria: req.body,
+        indexed_contracts: indexedContracts.slice(0, 10), // Show first 10
+        message: `Successfully indexed ${indexedCount} contracts matching criteria`
+      });
+
+    } catch (error) {
+      await query(`
+        UPDATE indexing_jobs 
+        SET status = $1, error_details = $2, completed_at = NOW()
+        WHERE id = $3
+      `, ['failed', error.message, job.id]);
+      throw error;
+    }
+
+  } catch (error) {
+    console.error('Criteria-based indexing failed:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      details: 'Failed to index contracts by criteria'
+    });
+  }
+});
+
 module.exports = router;

@@ -1,0 +1,23 @@
+2. Fetch contracts with "Pub" in the title:
+
+  curl -X POST "http://localhost:5013/api/contracts/fetch-by-criteria" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "title": "Pub",
+      "postedFrom": "08/01/2025",
+      "postedTo": "08/31/2025",
+      "limit": 100
+    }'
+
+  3. Index the fetched contracts:
+
+  curl -X POST "http://localhost:5013/api/contracts/index-by-criteria" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "title": "Pub",
+      "limit": 100
+    }'
+
+  4. Verify they're indexed:
+
+  curl -X GET "http://localhost:5013/api/contracts?search=Pub&limit=10"
