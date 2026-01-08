@@ -34,20 +34,15 @@ const DownloadButtons: React.FC<DownloadButtonsProps> = ({
       setError(null);
       setSuccess(null);
 
-      console.log(`🔄 [DEBUG] Download attempt: mode=${mode}, rfpResponseId=${rfpResponseId}, proposalId=${proposalId}, format=${format}`);
-
       let result;
       if (mode === 'rfp' && rfpResponseId) {
-        console.log(`📄 [DEBUG] Downloading RFP response ${rfpResponseId} as ${format}`);
         result = await downloadRFPResponse(rfpResponseId, format);
       } else if (mode === 'proposal' && proposalId) {
-        console.log(`📄 [DEBUG] Exporting proposal ${proposalId} as ${format}`);
         result = await exportProposal(proposalId, format);
       } else {
-        console.error(`❌ [DEBUG] Invalid configuration: mode=${mode}, rfpResponseId=${rfpResponseId}, proposalId=${proposalId}`);
         throw new Error('Invalid configuration for download');
       }
-      
+
       setSuccess(`Successfully downloaded ${result.filename}`);
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {

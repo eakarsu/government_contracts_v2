@@ -26,79 +26,44 @@ const RFPGenerator: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      
-      console.log('🚀 [DEBUG] Loading RFP Generator data...');
-      
-      // Load data sequentially to better debug issues
-      console.log('🚀 [DEBUG] Loading contracts...');
+
       const contractsResponse = await apiService.searchContracts({ query: '*', limit: 100, include_analysis: false });
-      console.log('🚀 [DEBUG] Contracts response:', contractsResponse);
-
-      console.log('🚀 [DEBUG] Loading templates...');
       const templatesResponse = await apiService.getRFPTemplates();
-      console.log('🚀 [DEBUG] Templates response:', templatesResponse);
-
-      console.log('🚀 [DEBUG] Loading company profiles...');
       const profilesResponse = await apiService.getCompanyProfiles();
-      console.log('🚀 [DEBUG] Company profiles response:', profilesResponse);
-      console.log('🚀 [DEBUG] Company profiles response type:', typeof profilesResponse);
-      console.log('🚀 [DEBUG] Company profiles response keys:', profilesResponse ? Object.keys(profilesResponse) : 'null');
 
-      // Handle contracts
       if (contractsResponse && contractsResponse.success) {
-        const contractsData = contractsResponse.results || [];
-        setContracts(contractsData);
-        console.log('✅ [DEBUG] Loaded contracts:', contractsData.length);
+        setContracts(contractsResponse.results || []);
       } else {
-        console.error('❌ [DEBUG] Contracts failed:', contractsResponse);
         setContracts([]);
       }
 
-      // Handle templates
       if (templatesResponse && templatesResponse.success) {
-        const templatesData = templatesResponse.templates || [];
-        setTemplates(templatesData);
-        console.log('✅ [DEBUG] Loaded templates:', templatesData.length);
+        setTemplates(templatesResponse.templates || []);
       } else {
-        console.error('❌ [DEBUG] Templates failed:', templatesResponse);
         setTemplates([]);
       }
 
-      // Handle company profiles
       if (profilesResponse) {
-        console.log('🚀 [DEBUG] Checking profiles response structure...');
-        
-        let profilesData = [];
-        
+        let profilesData: CompanyProfile[] = [];
+
         if (profilesResponse.success && profilesResponse.profiles) {
           profilesData = profilesResponse.profiles;
-          console.log('✅ [DEBUG] Found profiles in success.profiles:', profilesData.length);
         } else if (Array.isArray(profilesResponse)) {
           profilesData = profilesResponse;
-          console.log('✅ [DEBUG] Found profiles as direct array:', profilesData.length);
         } else {
-          // Try to access other possible properties using type assertion for debugging
           const responseAny = profilesResponse as any;
           if (responseAny.data) {
             profilesData = responseAny.data;
-            console.log('✅ [DEBUG] Found profiles in data:', profilesData.length);
           } else if (responseAny.companyProfiles) {
             profilesData = responseAny.companyProfiles;
-            console.log('✅ [DEBUG] Found profiles in companyProfiles:', profilesData.length);
-          } else {
-            console.error('❌ [DEBUG] No profiles found in any expected structure');
-            console.error('❌ [DEBUG] Available keys:', Object.keys(profilesResponse));
           }
         }
-        
+
         setProfiles(profilesData);
-        console.log('✅ [DEBUG] Final profiles set:', profilesData.length);
       } else {
-        console.error('❌ [DEBUG] Profiles response is null/undefined:', profilesResponse);
         setProfiles([]);
       }
     } catch (err: any) {
-      console.error('❌ [DEBUG] LoadData error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -132,30 +97,6 @@ const RFPGenerator: React.FC = () => {
 
       setGenerationProgress('Preparing generation request...');
 
-      console.log('🚀 [DEBUG] Generating RFP with:', {
-        contract: selectedContract,
-        template: selectedTemplateObj.name,
-        templateSections: selectedTemplateObj.sections.length,
-        profile: selectedProfileObj.companyName,
-        customInstructions,
-        focusAreas
-      });
-
-      // Log detailed template sections for debugging
-      console.log('🚀 [DEBUG] Template sections:', selectedTemplateObj.sections.map(s => ({
-        title: s.title,
-        description: s.description,
-        required: s.required,
-        mappings: s.mappings
-      })));
-
-      // Log company profile capabilities for debugging
-      console.log('🚀 [DEBUG] Company profile capabilities:', {
-        coreCompetencies: selectedProfileObj.capabilities?.coreCompetencies || [],
-        technicalSkills: selectedProfileObj.capabilities?.technicalSkills || [],
-        methodologies: selectedProfileObj.capabilities?.methodologies || []
-      });
-
       const request: RFPGenerationRequest = {
         contractId: selectedContract,
         templateId: Number(selectedTemplate),
@@ -163,8 +104,6 @@ const RFPGenerator: React.FC = () => {
         customInstructions: customInstructions || undefined,
         focusAreas: focusAreas.length > 0 ? focusAreas : undefined
       };
-
-      console.log('🚀 [DEBUG] Full RFP generation request:', request);
 
       setGenerationProgress('Sending request to server...');
 
@@ -182,23 +121,10 @@ const RFPGenerator: React.FC = () => {
         const response = await apiService.generateRFPResponse(request);
         clearInterval(progressInterval);
 
-        console.log('🚀 [DEBUG] RFP Generation response:', response);
-
         if (response.success) {
-          console.log('✅ [DEBUG] RFP generated successfully with ID:', response.rfpResponseId);
-          console.log('✅ [DEBUG] Generation details:', {
-            sectionsGenerated: response.sectionsGenerated,
-            complianceScore: response.complianceScore,
-            predictedScore: response.predictedScore,
-            generationTime: response.generationTime
-          });
-          
           setGenerationProgress('Generation complete! Redirecting...');
-          
-          // Navigate to the generated RFP response to see the result
           navigate(`/rfp/responses/${response.rfpResponseId}`);
         } else {
-          console.error('❌ [DEBUG] RFP generation failed:', response.message);
           setError(response.message || 'Failed to generate RFP response');
         }
       } catch (apiError) {
@@ -206,7 +132,6 @@ const RFPGenerator: React.FC = () => {
         throw apiError;
       }
     } catch (err: any) {
-      console.error('❌ [DEBUG] RFP Generation error:', err);
       setError(err.message || 'An error occurred during RFP generation');
     } finally {
       setGenerating(false);

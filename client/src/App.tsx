@@ -3,10 +3,28 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 
+// Auth Provider
+import { AuthProvider } from './contexts/AuthContext';
+
 // Layout Components
 import Layout from './components/Layout/Layout';
+import ScrollToTop from './components/ScrollToTop';
 
-// Pages
+// Public Pages
+import LandingPage from './pages/LandingPage';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import About from './pages/About';
+import Blog from './pages/Blog';
+import Contact from './pages/Contact';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
+import Legal from './pages/Legal';
+import Security from './pages/Security';
+import Careers from './pages/Careers';
+
+// Dashboard Pages
 import Dashboard from './pages/Dashboard';
 import Search from './pages/Search';
 import NLPSearch from './pages/NLPSearch';
@@ -15,6 +33,8 @@ import Jobs from './pages/Jobs';
 import Documents from './pages/Documents';
 import ApiDocs from './pages/ApiDocs';
 import NotFound from './pages/NotFound';
+import Profile from './pages/Profile';
+import SettingsPage from './pages/Settings';
 
 // RFP Pages
 import RFPDashboard from './pages/RFPDashboard';
@@ -27,11 +47,10 @@ import RFPResponseDetail from './pages/RFPResponseDetail';
 import RFPResponseEdit from './pages/RFPResponseEdit';
 
 // AI Enhancement Components
-import ProposalDrafter from './components/Proposals/ProposalDrafter';
 import OpportunityDashboard from './components/Opportunities/OpportunityDashboard';
 import BidProbabilityAnalyzer from './components/Bidding/BidProbabilityAnalyzer';
 import AIAnalysisResults from './pages/AIAnalysisResults';
-import AIQuickActionsPage from './pages/AIQuickActionsPage';
+import AICenter from './pages/AICenter';
 
 // AI Navigation Context
 import { AINavigationProvider } from './contexts/AINavigationContext';
@@ -47,49 +66,72 @@ const queryClient = new QueryClient({
   },
 });
 
+// Protected Route wrapper
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return <Layout>{children}</Layout>;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <AINavigationProvider>
-          <div className="min-h-screen bg-gray-50">
-            <Layout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/search" element={<Search />} />
-              <Route path="/nlp-search" element={<NLPSearch />} />
-              <Route path="/contracts/:noticeId" element={<ContractDetail />} />
-              <Route path="/jobs" element={<Jobs />} />
-              <Route path="/documents" element={<Documents />} />
-              <Route path="/api-docs" element={<ApiDocs />} />
-              
-              {/* RFP System Routes */}
-              <Route path="/rfp" element={<RFPDashboard />} />
-              <Route path="/rfp/dashboard" element={<RFPDashboard />} />
-              <Route path="/rfp/generate" element={<RFPGenerator />} />
-              <Route path="/rfp/templates" element={<RFPTemplates />} />
-              <Route path="/rfp/company-profiles" element={<CompanyProfiles />} />
-              <Route path="/rfp/analytics" element={<RFPAnalytics />} />
-              <Route path="/rfp/responses" element={<RFPResponses />} />
-              <Route path="/rfp/responses/:id" element={<RFPResponseDetail />} />
-              <Route path="/rfp/responses/:id/edit" element={<RFPResponseEdit />} />
-              
-              {/* AI Enhancement Routes */}
-              <Route path="/ai/quick-actions" element={<AIQuickActionsPage />} />
-              <Route path="/ai/proposal-drafter" element={<ProposalDrafter />} />
-              <Route path="/ai/bid-analyzer" element={<BidProbabilityAnalyzer />} />
-              <Route path="/ai/analysis-results/:contractId" element={<AIAnalysisResults />} />
-              <Route path="/ai/win-probability/:contractId" element={<AIAnalysisResults type="probability" />} />
-              <Route path="/ai/similar-contracts/:contractId" element={<AIAnalysisResults type="similarity" />} />
-              <Route path="/ai/bid-strategy/:contractId" element={<AIAnalysisResults type="strategy" />} />
-              <Route path="/opportunities" element={<OpportunityDashboard />} />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            </Layout>
-          </div>
-        </AINavigationProvider>
-        <Toaster
+      <AuthProvider>
+        <Router>
+          <ScrollToTop />
+          <AINavigationProvider>
+            <div className="min-h-screen bg-gray-50">
+              <Routes>
+                {/* Public Pages - No Layout */}
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/legal" element={<Legal />} />
+                <Route path="/security" element={<Security />} />
+                <Route path="/careers" element={<Careers />} />
+
+                {/* Protected Pages - With Layout */}
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+                <Route path="/nlp-search" element={<ProtectedRoute><NLPSearch /></ProtectedRoute>} />
+                <Route path="/contracts/:noticeId" element={<ProtectedRoute><ContractDetail /></ProtectedRoute>} />
+                <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
+                <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+                <Route path="/api-docs" element={<ProtectedRoute><ApiDocs /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+
+                {/* RFP System Routes */}
+                <Route path="/rfp" element={<ProtectedRoute><RFPDashboard /></ProtectedRoute>} />
+                <Route path="/rfp/dashboard" element={<ProtectedRoute><RFPDashboard /></ProtectedRoute>} />
+                <Route path="/rfp/generate" element={<ProtectedRoute><RFPGenerator /></ProtectedRoute>} />
+                <Route path="/rfp/templates" element={<ProtectedRoute><RFPTemplates /></ProtectedRoute>} />
+                <Route path="/rfp/company-profiles" element={<ProtectedRoute><CompanyProfiles /></ProtectedRoute>} />
+                <Route path="/rfp/analytics" element={<ProtectedRoute><RFPAnalytics /></ProtectedRoute>} />
+                <Route path="/rfp/responses" element={<ProtectedRoute><RFPResponses /></ProtectedRoute>} />
+                <Route path="/rfp/responses/:id" element={<ProtectedRoute><RFPResponseDetail /></ProtectedRoute>} />
+                <Route path="/rfp/responses/:id/edit" element={<ProtectedRoute><RFPResponseEdit /></ProtectedRoute>} />
+
+                {/* AI Enhancement Routes */}
+                <Route path="/ai/center" element={<ProtectedRoute><AICenter /></ProtectedRoute>} />
+                <Route path="/ai/proposal-drafter" element={<ProtectedRoute><AICenter /></ProtectedRoute>} />
+                <Route path="/ai/bid-analyzer" element={<ProtectedRoute><BidProbabilityAnalyzer /></ProtectedRoute>} />
+                <Route path="/ai/analysis-results/:contractId" element={<ProtectedRoute><AIAnalysisResults /></ProtectedRoute>} />
+                <Route path="/ai/win-probability/:contractId" element={<ProtectedRoute><AIAnalysisResults type="probability" /></ProtectedRoute>} />
+                <Route path="/ai/similar-contracts/:contractId" element={<ProtectedRoute><AIAnalysisResults type="similarity" /></ProtectedRoute>} />
+                <Route path="/ai/bid-strategy/:contractId" element={<ProtectedRoute><AIAnalysisResults type="strategy" /></ProtectedRoute>} />
+                <Route path="/opportunities" element={<ProtectedRoute><OpportunityDashboard /></ProtectedRoute>} />
+
+                {/* 404 Page */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
+          </AINavigationProvider>
+          <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
@@ -113,7 +155,8 @@ function App() {
               },
             }}
           />
-      </Router>
+        </Router>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -57,5 +57,6 @@
   },
   "overrides": {
     "typescript": "^5.3.2"
-  }
+  },
+  "proxy": "http://localhost:5013"
 }

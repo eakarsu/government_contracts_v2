@@ -29,20 +29,15 @@ export class DocumentsApiService {
     return response.data;
   }
 
-  // Queue management
   async queueDocuments(): Promise<ApiResponse> {
-    console.log('🔄 [DEBUG] Documents API: Calling queueDocuments endpoint...');
     const response = await api.post<ApiResponse>('/documents/queue', {}, {
-      timeout: 3600000 // 1 hour timeout
+      timeout: 3600000
     });
-    console.log('🔄 [DEBUG] Documents API: queueDocuments response:', response.data);
     return response.data;
   }
 
   async getQueueStatus(): Promise<{ success: boolean; queue_status: QueueStatus }> {
-    console.log('📊 [DEBUG] Documents API: Calling getQueueStatus endpoint...');
     const response = await api.get<{ success: boolean; queue_status: QueueStatus }>('/documents/queue/status');
-    console.log('📊 [DEBUG] Documents API: getQueueStatus response:', response.data);
     return response.data;
   }
 
@@ -84,15 +79,11 @@ export class DocumentsApiService {
   }
 
   async resetQueue(): Promise<ApiResponse> {
-    console.log('🔄 [DEBUG] Documents API: Calling resetQueue endpoint...');
     const response = await api.post<ApiResponse>('/documents/queue/reset');
-    console.log('🔄 [DEBUG] Documents API: resetQueue response:', response.data);
     return response.data;
   }
 
-  // Document search
   async searchDocuments(searchForm: DocumentSearchForm): Promise<DocumentSearchResponse> {
-    console.log('🔍 [DEBUG] Documents API searchDocuments called with:', searchForm);
     const response = await api.post<DocumentSearchResponse>('/documents/search/advanced', {
       query: searchForm.query,
       limit: searchForm.limit,
@@ -101,21 +92,16 @@ export class DocumentsApiService {
       min_score: searchForm.min_score,
       include_content: searchForm.include_content
     });
-    console.log('🔍 [DEBUG] Documents API searchDocuments response:', response.data);
     return response.data;
   }
 
   async getDocumentStats(): Promise<DocumentStats> {
-    console.log('📊 [DEBUG] Documents API getDocumentStats called');
     const response = await api.get<DocumentStats>('/documents/stats');
-    console.log('📊 [DEBUG] Documents API getDocumentStats response:', response.data);
     return response.data;
   }
 
   async getFileTypes(): Promise<FileTypesResponse> {
-    console.log('📁 [DEBUG] Documents API getFileTypes called');
     const response = await api.get<FileTypesResponse>('/documents/file-types');
-    console.log('📁 [DEBUG] Documents API getFileTypes response:', response.data);
     return response.data;
   }
 
@@ -141,16 +127,8 @@ export class DocumentsApiService {
     limit?: number;
     offset?: number;
   }): Promise<ApiResponse> {
-    console.log('🔄 [DEBUG] Documents API fetchContractsFromDocuments called with:', options);
-    
-    try {
-      const response = await api.post<ApiResponse>('/documents/fetch-contracts', options);
-      console.log('✅ [DEBUG] Documents API fetchContractsFromDocuments response:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ [DEBUG] Documents API fetchContractsFromDocuments error:', error);
-      throw error;
-    }
+    const response = await api.post<ApiResponse>('/documents/fetch-contracts', options);
+    return response.data;
   }
 }
 

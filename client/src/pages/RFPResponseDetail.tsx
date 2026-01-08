@@ -41,16 +41,9 @@ const RFPResponseDetail: React.FC = () => {
 
     try {
       setDeleting(true);
-      console.log('🗑️ [DEBUG] Starting deletion for RFP ID:', rfpResponse.id);
-      
       await apiService.deleteRFPResponse(rfpResponse.id);
-      
-      console.log('✅ [DEBUG] RFP Response deleted successfully');
-      
-      // Navigate back to dashboard
       navigate('/rfp');
     } catch (err: any) {
-      console.error('❌ Delete RFP Response error:', err);
       setError(err.message || 'Failed to delete RFP response');
     } finally {
       setDeleting(false);
@@ -129,12 +122,8 @@ const RFPResponseDetail: React.FC = () => {
           >
             📄 Download
           </button>
-          <button 
-            onClick={() => {
-              console.log(`🔄 [DEBUG] Edit button clicked for RFP response ID: ${id}`);
-              console.log(`🔄 [DEBUG] Navigating to: /rfp/responses/${id}/edit`);
-              navigate(`/rfp/responses/${id}/edit`);
-            }}
+          <button
+            onClick={() => navigate(`/rfp/responses/${id}/edit`)}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Edit Response

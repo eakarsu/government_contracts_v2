@@ -1,9 +1,25 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  FileText,
+  ChevronRight,
+  Building2,
+  Calendar,
+  Tag,
+  RefreshCw,
+  BarChart3,
+  ExternalLink,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertCircle,
+  Download,
+  Database,
+  Sparkles
+} from 'lucide-react';
 import { apiService } from '../services/api';
-import { Contract, ContractAnalysis } from '../types';
-import LoadingSpinner from '../components/UI/LoadingSpinner';
+import { ContractAnalysis } from '../types';
 
 const ContractDetail: React.FC = () => {
   const { noticeId } = useParams<{ noticeId: string }>();
@@ -19,57 +35,50 @@ const ContractDetail: React.FC = () => {
   const analyzeMutation = useMutation({
     mutationFn: () => apiService.analyzeContract(noticeId!),
     onSuccess: (data) => {
-      console.log('🔍 [DEBUG] Analysis results received:', data);
-      console.log('🔍 [DEBUG] Analysis data structure:', JSON.stringify(data, null, 2));
       setAnalysisResults(data);
       queryClient.invalidateQueries({ queryKey: ['contract', noticeId] });
     },
-    onError: (error: any) => {
-      console.error('Contract analysis error:', error);
-    },
   });
-
-  const handleAnalyze = () => {
-    analyzeMutation.mutate();
-  };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-50 text-green-700 border-green-200';
+      case 'processing': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+      case 'failed': return 'bg-red-50 text-red-700 border-red-200';
+      case 'queued': return 'bg-blue-50 text-blue-700 border-blue-200';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <div className="text-red-800">
-            Error loading contract: {error instanceof Error ? error.message : 'Unknown error'}
-          </div>
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
         </div>
       </div>
     );
   }
 
-  if (!contract) {
+  if (error || !contract) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">Contract not found</h2>
-          <p className="mt-2 text-gray-600">
-            The contract with notice ID "{noticeId}" could not be found.
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <XCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <h2 className="text-lg font-medium text-gray-900 mb-2">Contract Not Found</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            {error ? (error instanceof Error ? error.message : 'Unknown error') : `Contract "${noticeId}" could not be found.`}
           </p>
-          <Link
-            to="/contracts"
-            className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
-          >
+          <Link to="/contracts" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
             Back to Contracts
           </Link>
         </div>
@@ -79,424 +88,292 @@ const ContractDetail: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <nav className="flex" aria-label="Breadcrumb">
-          <ol className="flex items-center space-x-4">
-            <li>
-              <Link to="/contracts" className="text-gray-400 hover:text-gray-500">
-                Contracts
-              </Link>
-            </li>
-            <li>
-              <div className="flex items-center">
-                <svg
-                  className="flex-shrink-0 h-5 w-5 text-gray-300"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span className="ml-4 text-sm font-medium text-gray-500">
-                  {contract.noticeId}
-                </span>
-              </div>
-            </li>
-          </ol>
-        </nav>
-      </div>
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+        <Link to="/contracts" className="hover:text-gray-700">Contracts</Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-gray-900 font-medium">{contract.noticeId}</span>
+      </nav>
 
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {contract.title || 'Untitled Contract'}
-              </h1>
-              <p className="mt-1 text-sm text-gray-500">Notice ID: {contract.noticeId}</p>
-            </div>
-            <button
-              onClick={handleAnalyze}
-              disabled={analyzeMutation.isPending}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-            >
-              {analyzeMutation.isPending ? <LoadingSpinner size="sm" /> : 'Analyze Contract'}
-            </button>
+      {/* Header */}
+      <div className="bg-white rounded-lg border border-gray-200 mb-6">
+        <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900 mb-1">
+              {contract.title || 'Untitled Contract'}
+            </h1>
+            <p className="text-sm text-gray-500">Notice ID: {contract.noticeId}</p>
           </div>
+          <button
+            onClick={() => analyzeMutation.mutate()}
+            disabled={analyzeMutation.isPending}
+            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {analyzeMutation.isPending ? (
+              <><RefreshCw className="h-4 w-4 animate-spin" /> Analyzing...</>
+            ) : (
+              <><Sparkles className="h-4 w-4" /> Analyze Contract</>
+            )}
+          </button>
         </div>
 
-        <div className="px-6 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Contract Details Grid */}
+        <div className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column - Details */}
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Contract Details</h3>
-              <dl className="space-y-3">
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Agency</dt>
-                  <dd className="text-sm text-gray-900">{contract.agency || 'N/A'}</dd>
+              <h3 className="text-sm font-medium text-gray-500 uppercase mb-4">Contract Details</h3>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <Building2 className="h-5 w-5 text-gray-400 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-gray-500">Agency</p>
+                    <p className="text-sm font-medium text-gray-900">{contract.agency || 'N/A'}</p>
+                  </div>
                 </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">NAICS Code</dt>
-                  <dd className="text-sm text-gray-900">{contract.naicsCode || 'N/A'}</dd>
+                <div className="flex items-start gap-3">
+                  <Tag className="h-5 w-5 text-gray-400 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-gray-500">NAICS Code</p>
+                    <p className="text-sm font-medium text-gray-900">{contract.naicsCode || 'N/A'}</p>
+                  </div>
                 </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Classification Code</dt>
-                  <dd className="text-sm text-gray-900">{contract.classificationCode || 'N/A'}</dd>
+                <div className="flex items-start gap-3">
+                  <FileText className="h-5 w-5 text-gray-400 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-gray-500">Classification Code</p>
+                    <p className="text-sm font-medium text-gray-900">{contract.classificationCode || 'N/A'}</p>
+                  </div>
                 </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Posted Date</dt>
-                  <dd className="text-sm text-gray-900">{formatDate(contract.postedDate)}</dd>
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-5 w-5 text-gray-400 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-gray-500">Posted Date</p>
+                    <p className="text-sm font-medium text-gray-900">{formatDate(contract.postedDate)}</p>
+                  </div>
                 </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Set Aside Code</dt>
-                  <dd className="text-sm text-gray-900">{contract.setAsideCode || 'N/A'}</dd>
-                </div>
-              </dl>
+                {contract.setAsideCode && (
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-gray-500">Set Aside</p>
+                      <p className="text-sm font-medium text-gray-900">{contract.setAsideCode}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
+            {/* Right Column - Description */}
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Description</h3>
-              <div className="text-sm text-gray-700 whitespace-pre-wrap">
+              <h3 className="text-sm font-medium text-gray-500 uppercase mb-4">Description</h3>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
                 {contract.description || 'No description available.'}
-              </div>
+              </p>
             </div>
           </div>
-
-          {/* Document Statistics */}
-          {contract.statistics && (
-            <div className="mt-8 bg-white shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">📊 Document Statistics</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{contract.statistics.total_resource_links}</div>
-                  <div className="text-sm text-blue-600">Resource Links</div>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{contract.statistics.downloaded_files_count}</div>
-                  <div className="text-sm text-green-600">Downloaded</div>
-                  <div className="text-xs text-gray-500">{contract.statistics.download_completion_rate}% complete</div>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{contract.statistics.documents_in_queue}</div>
-                  <div className="text-sm text-purple-600">In Queue</div>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-yellow-600">{contract.statistics.completed_documents}</div>
-                  <div className="text-sm text-yellow-600">Processed</div>
-                  <div className="text-xs text-gray-500">{contract.statistics.processing_completion_rate}% success</div>
-                </div>
-                <div className="bg-indigo-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-indigo-600">{contract.statistics.documents_in_vector_db}</div>
-                  <div className="text-sm text-indigo-600">Searchable</div>
-                </div>
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">{contract.statistics.failed_documents}</div>
-                  <div className="text-sm text-red-600">Failed</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Resource Links Analysis */}
-          {contract.documents?.resource_links_analysis && contract.documents.resource_links_analysis.length > 0 && (
-            <div className="mt-8 bg-white shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">🔗 Resource Links</h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Filename</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Downloaded</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Queue Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {contract.documents.resource_links_analysis.map((link) => (
-                      <tr key={link.index}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{link.index}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{link.filename}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            {link.extension || 'unknown'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {link.is_downloaded ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              ✅ Yes
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                              ❌ No
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            link.queue_status === 'completed' ? 'bg-green-100 text-green-800' :
-                            link.queue_status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                            link.queue_status === 'failed' ? 'bg-red-100 text-red-800' :
-                            link.queue_status === 'queued' ? 'bg-blue-100 text-blue-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {link.queue_status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          <a 
-                            href={link.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-primary-600 hover:text-primary-800 truncate block max-w-xs"
-                          >
-                            {link.url}
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Analysis Results */}
-          {analysisResults && (
-            <div className="mt-8 bg-white shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">🔍 Contract Analysis Results</h2>
-              
-              {/* Debug Section - Always Show */}
-              <div className="mb-6 p-4 bg-gray-100 rounded-lg">
-                <h3 className="text-md font-medium text-gray-700 mb-2">Debug Information</h3>
-                <div className="text-xs text-gray-600 space-y-1">
-                  <div>Analysis Results Received: {analysisResults ? 'Yes' : 'No'}</div>
-                  <div>Analysis Object Keys: {analysisResults ? Object.keys(analysisResults).join(', ') : 'None'}</div>
-                  <div>Has Analysis Property: {analysisResults?.analysis ? 'Yes' : 'No'}</div>
-                  <div>Success Property: {analysisResults?.success ? 'Yes' : 'No'}</div>
-                  {analysisResults?.analysis && (
-                    <div>Analysis Keys: {Object.keys(analysisResults.analysis).join(', ')}</div>
-                  )}
-                </div>
-                <details className="mt-2">
-                  <summary className="text-xs text-gray-600 cursor-pointer">Raw Analysis Data</summary>
-                  <pre className="text-xs text-gray-700 mt-1 overflow-auto max-h-32 bg-white p-2 rounded">
-                    {JSON.stringify(analysisResults, null, 2)}
-                  </pre>
-                </details>
-              </div>
-
-              {analysisResults.analysis ? (
-                <>
-                  {/* Contract Overview */}
-                  <div className="mb-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-3">Contract Overview</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <div>
-                          <span className="text-sm font-medium text-gray-500">NAICS Code:</span>
-                          <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview?.naics_code || 'N/A'}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm font-medium text-gray-500">Classification:</span>
-                          <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview?.classification || 'N/A'}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm font-medium text-gray-500">Set Aside:</span>
-                          <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview?.set_aside || 'N/A'}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm font-medium text-gray-500">Description Length:</span>
-                          <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview?.description_length || 0} characters</div>
-                        </div>
-                        <div>
-                          <span className="text-sm font-medium text-gray-500">Has Description:</span>
-                          <div className="text-sm text-gray-900">{analysisResults.analysis.contract_overview?.has_description ? 'Yes' : 'No'}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm font-medium text-gray-500">Posted Date:</span>
-                          <div className="text-sm text-gray-900">
-                            {analysisResults.analysis.contract_overview?.posted_date 
-                              ? new Date(analysisResults.analysis.contract_overview.posted_date).toLocaleDateString()
-                              : 'N/A'
-                            }
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Document Analysis */}
-                  {analysisResults.analysis.document_analysis && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-medium text-gray-900 mb-3">Document Analysis</h3>
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div>
-                            <span className="text-sm font-medium text-blue-700">Resource Links:</span>
-                            <div className="text-lg font-bold text-blue-900">{analysisResults.analysis.document_analysis.total_resource_links || 0}</div>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-blue-700">Processed:</span>
-                            <div className="text-lg font-bold text-blue-900">{analysisResults.analysis.document_analysis.documents_processed || 0}</div>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-blue-700">Failed:</span>
-                            <div className="text-lg font-bold text-blue-900">{analysisResults.analysis.document_analysis.documents_failed || 0}</div>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-blue-700">Success Rate:</span>
-                            <div className="text-lg font-bold text-blue-900">{analysisResults.analysis.document_analysis.processing_success_rate || 0}%</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Content Insights */}
-                  {analysisResults.analysis.content_insights && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-medium text-gray-900 mb-3">Content Insights</h3>
-                      <div className="bg-green-50 p-4 rounded-lg">
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                          <div>
-                            <span className="text-sm font-medium text-green-700">Contract Text Length:</span>
-                            <div className="text-lg font-bold text-green-900">{analysisResults.analysis.content_insights.contract_text_length || 0} characters</div>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-green-700">Sufficient Content:</span>
-                            <div className={`text-lg font-bold ${analysisResults.analysis.content_insights.has_sufficient_content ? 'text-green-900' : 'text-red-600'}`}>
-                              {analysisResults.analysis.content_insights.has_sufficient_content ? 'Yes' : 'No'}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Key Terms */}
-                        {analysisResults.analysis.content_insights.key_terms && analysisResults.analysis.content_insights.key_terms.length > 0 && (
-                          <div className="mb-4">
-                            <h4 className="text-md font-medium text-green-700 mb-2">Key Terms:</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {analysisResults.analysis.content_insights.key_terms.map((term, index) => (
-                                <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                  {term.term} ({term.frequency})
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Document Summaries */}
-                        {analysisResults.analysis.content_insights.document_summaries && analysisResults.analysis.content_insights.document_summaries.length > 0 && (
-                          <div>
-                            <h4 className="text-md font-medium text-green-700 mb-2">Document Summaries:</h4>
-                            <div className="space-y-3">
-                              {analysisResults.analysis.content_insights.document_summaries.map((summary, index) => (
-                                <div key={index} className="border border-green-200 rounded-lg p-3 bg-white">
-                                  <h5 className="font-medium text-gray-900">{summary.filename}</h5>
-                                  <p className="text-sm text-gray-600 mt-1">{summary.summary}</p>
-                                  <div className="text-xs text-gray-500 mt-2">
-                                    {summary.word_count} words
-                                    {summary.key_points && summary.key_points.length > 0 && (
-                                      <span className="ml-2">• Key points: {summary.key_points.join(', ')}</span>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Recommendations */}
-                  {analysisResults.analysis.recommendations && analysisResults.analysis.recommendations.length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-medium text-gray-900 mb-3">Recommendations</h3>
-                      <div className="space-y-3">
-                        {analysisResults.analysis.recommendations.map((rec, index) => (
-                          <div key={index} className={`p-4 rounded-lg border ${
-                            rec.type === 'success' ? 'bg-green-50 border-green-200' :
-                            rec.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
-                            rec.type === 'error' ? 'bg-red-50 border-red-200' :
-                            'bg-blue-50 border-blue-200'
-                          }`}>
-                            <div className="flex items-start">
-                              <div className={`flex-shrink-0 mr-3 mt-0.5 ${
-                                rec.type === 'success' ? 'text-green-500' :
-                                rec.type === 'warning' ? 'text-yellow-500' :
-                                rec.type === 'error' ? 'text-red-500' :
-                                'text-blue-500'
-                              }`}>
-                                {rec.type === 'success' ? '✅' :
-                                 rec.type === 'warning' ? '⚠️' :
-                                 rec.type === 'error' ? '❌' :
-                                 'ℹ️'}
-                              </div>
-                              <div className="flex-1">
-                                <h4 className={`font-medium ${
-                                  rec.type === 'success' ? 'text-green-800' :
-                                  rec.type === 'warning' ? 'text-yellow-800' :
-                                  rec.type === 'error' ? 'text-red-800' :
-                                  'text-blue-800'
-                                }`}>{rec.title}</h4>
-                                <p className={`text-sm mt-1 ${
-                                  rec.type === 'success' ? 'text-green-700' :
-                                  rec.type === 'warning' ? 'text-yellow-700' :
-                                  rec.type === 'error' ? 'text-red-700' :
-                                  'text-blue-700'
-                                }`}>{rec.message}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="mt-6 pt-4 border-t border-gray-200 text-xs text-gray-500">
-                    Analysis completed: {analysisResults.analyzed_at ? new Date(analysisResults.analyzed_at).toLocaleString() : 'Unknown time'}
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="text-gray-500 mb-2">Analysis data structure is unexpected</div>
-                  <div className="text-sm text-gray-400">
-                    Check the debug information above to see what was received.
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Success/Error Messages */}
-          {analyzeMutation.isSuccess && (
-            <div className="mt-8 p-4 bg-green-50 border border-green-200 rounded-md">
-              <div className="text-green-800">
-                Contract analysis completed successfully!
-                {analysisResults && analysisResults.analysis ? ' Analysis results are displayed above.' : ' Waiting for results to load...'}
-              </div>
-              <div className="mt-2 text-xs text-green-600">
-                <div>Analysis received: {analysisResults ? 'Yes' : 'No'}</div>
-                <div>Analysis structure valid: {analysisResults?.analysis ? 'Yes' : 'No'}</div>
-                <div>Response success: {analyzeMutation.data?.success ? 'Yes' : 'No'}</div>
-              </div>
-            </div>
-          )}
-
-          {!!analyzeMutation.error && (
-            <div className="mt-8 p-4 bg-red-50 border border-red-200 rounded-md">
-              <div className="text-red-800">
-                Error analyzing contract: {analyzeMutation.error instanceof Error ? analyzeMutation.error.message : String(analyzeMutation.error)}
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Document Statistics */}
+      {contract.statistics && (
+        <div className="bg-white rounded-lg border border-gray-200 mb-6">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-gray-500" />
+              Document Statistics
+            </h2>
+          </div>
+          <div className="p-6 grid grid-cols-6 gap-4">
+            <div className="p-4 bg-blue-50 rounded-lg text-center">
+              <p className="text-2xl font-bold text-blue-600">{contract.statistics.total_resource_links}</p>
+              <p className="text-xs text-blue-600">Resources</p>
+            </div>
+            <div className="p-4 bg-green-50 rounded-lg text-center">
+              <p className="text-2xl font-bold text-green-600">{contract.statistics.downloaded_files_count}</p>
+              <p className="text-xs text-green-600">Downloaded</p>
+              <p className="text-xs text-gray-500">{contract.statistics.download_completion_rate}%</p>
+            </div>
+            <div className="p-4 bg-purple-50 rounded-lg text-center">
+              <p className="text-2xl font-bold text-purple-600">{contract.statistics.documents_in_queue}</p>
+              <p className="text-xs text-purple-600">In Queue</p>
+            </div>
+            <div className="p-4 bg-yellow-50 rounded-lg text-center">
+              <p className="text-2xl font-bold text-yellow-600">{contract.statistics.completed_documents}</p>
+              <p className="text-xs text-yellow-600">Processed</p>
+              <p className="text-xs text-gray-500">{contract.statistics.processing_completion_rate}%</p>
+            </div>
+            <div className="p-4 bg-indigo-50 rounded-lg text-center">
+              <p className="text-2xl font-bold text-indigo-600">{contract.statistics.documents_in_vector_db}</p>
+              <p className="text-xs text-indigo-600">Searchable</p>
+            </div>
+            <div className="p-4 bg-red-50 rounded-lg text-center">
+              <p className="text-2xl font-bold text-red-600">{contract.statistics.failed_documents}</p>
+              <p className="text-xs text-red-600">Failed</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resource Links */}
+      {contract.documents?.resource_links_analysis && contract.documents.resource_links_analysis.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 mb-6">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <ExternalLink className="h-5 w-5 text-gray-500" />
+              Resource Links ({contract.documents.resource_links_analysis.length})
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Filename</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Downloaded</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Link</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {contract.documents.resource_links_analysis.map((link) => (
+                  <tr key={link.index} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm text-gray-900">{link.index}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{link.filename}</td>
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded">
+                        {link.extension || 'unknown'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {link.is_downloaded ? (
+                        <span className="flex items-center gap-1 text-xs text-green-600">
+                          <CheckCircle className="h-4 w-4" /> Yes
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs text-gray-500">
+                          <XCircle className="h-4 w-4" /> No
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs font-medium rounded border ${getStatusStyle(link.queue_status)}`}>
+                        {link.queue_status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                        <ExternalLink className="h-3.5 w-3.5" /> Open
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Analysis Results */}
+      {analysisResults?.analysis && (
+        <div className="bg-white rounded-lg border border-gray-200 mb-6">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-indigo-500" />
+              AI Analysis Results
+            </h2>
+          </div>
+          <div className="p-6 space-y-6">
+            {/* Document Analysis Stats */}
+            {analysisResults.analysis.document_analysis && (
+              <div className="grid grid-cols-4 gap-4">
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <p className="text-xs text-blue-600 font-medium mb-1">Resource Links</p>
+                  <p className="text-2xl font-bold text-blue-700">{analysisResults.analysis.document_analysis.total_resource_links || 0}</p>
+                </div>
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <p className="text-xs text-green-600 font-medium mb-1">Processed</p>
+                  <p className="text-2xl font-bold text-green-700">{analysisResults.analysis.document_analysis.documents_processed || 0}</p>
+                </div>
+                <div className="p-4 bg-red-50 rounded-lg">
+                  <p className="text-xs text-red-600 font-medium mb-1">Failed</p>
+                  <p className="text-2xl font-bold text-red-700">{analysisResults.analysis.document_analysis.documents_failed || 0}</p>
+                </div>
+                <div className="p-4 bg-purple-50 rounded-lg">
+                  <p className="text-xs text-purple-600 font-medium mb-1">Success Rate</p>
+                  <p className="text-2xl font-bold text-purple-700">{analysisResults.analysis.document_analysis.processing_success_rate || 0}%</p>
+                </div>
+              </div>
+            )}
+
+            {/* Key Terms */}
+            {analysisResults.analysis.content_insights?.key_terms?.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Key Terms</h3>
+                <div className="flex flex-wrap gap-2">
+                  {analysisResults.analysis.content_insights.key_terms.map((term, i) => (
+                    <span key={i} className="px-3 py-1 bg-indigo-50 text-indigo-700 text-sm rounded-full">
+                      {term.term} ({term.frequency})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recommendations */}
+            {analysisResults.analysis.recommendations?.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Recommendations</h3>
+                <div className="space-y-3">
+                  {analysisResults.analysis.recommendations.map((rec, i) => (
+                    <div key={i} className={`p-4 rounded-lg border ${
+                      rec.type === 'success' ? 'bg-green-50 border-green-200' :
+                      rec.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
+                      rec.type === 'error' ? 'bg-red-50 border-red-200' :
+                      'bg-blue-50 border-blue-200'
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        {rec.type === 'success' ? <CheckCircle className="h-5 w-5 text-green-600" /> :
+                         rec.type === 'warning' ? <AlertCircle className="h-5 w-5 text-yellow-600" /> :
+                         rec.type === 'error' ? <XCircle className="h-5 w-5 text-red-600" /> :
+                         <AlertCircle className="h-5 w-5 text-blue-600" />}
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900">{rec.title}</h4>
+                          <p className="text-sm text-gray-600 mt-1">{rec.message}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-gray-500 pt-4 border-t border-gray-100">
+              Analysis completed: {analysisResults.analyzed_at ? new Date(analysisResults.analyzed_at).toLocaleString() : 'Unknown'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Status Messages */}
+      {analyzeMutation.isSuccess && (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-sm text-green-700 flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            Contract analysis completed successfully!
+          </p>
+        </div>
+      )}
+
+      {analyzeMutation.error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-700 flex items-center gap-2">
+            <XCircle className="h-4 w-4" />
+            Error: {analyzeMutation.error instanceof Error ? analyzeMutation.error.message : 'Analysis failed'}
+          </p>
+        </div>
+      )}
     </div>
   );
 };

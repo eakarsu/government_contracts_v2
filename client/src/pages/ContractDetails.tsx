@@ -17,22 +17,11 @@ const ContractDetails: React.FC = () => {
     enabled: !!contractId,
   });
 
-  // Analyze contract mutation
   const analyzeContractMutation = useMutation({
     mutationFn: () => apiService.analyzeContract(contractId!),
     onSuccess: (data) => {
-      console.log('🔍 [DEBUG] Analysis results received:', data);
-      console.log('🔍 [DEBUG] Analysis data structure:', JSON.stringify(data, null, 2));
       setAnalysisResults(data);
       queryClient.invalidateQueries({ queryKey: ['contract', contractId] });
-      
-      // Force a re-render by updating state
-      setTimeout(() => {
-        console.log('🔍 [DEBUG] Current analysisResults state:', analysisResults);
-      }, 100);
-    },
-    onError: (error: any) => {
-      console.error('Contract analysis error:', error);
     },
   });
 

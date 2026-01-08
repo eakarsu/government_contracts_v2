@@ -70,11 +70,8 @@ class RFPApiService {
     return response.data;
   }
 
-  // RFP Analysis
   async analyzeContractForRFP(contractId: string): Promise<{ success: boolean; analysis: RFPAnalysis }> {
-    console.log('🔍 [DEBUG] API Service analyzeContractForRFP called for:', contractId);
     const response = await api.post<{ success: boolean; analysis: RFPAnalysis }>(`/rfp/analyze/${contractId}`);
-    console.log('🔍 [DEBUG] API Service analyzeContractForRFP response:', response.data);
     return response.data;
   }
 
@@ -86,41 +83,22 @@ class RFPApiService {
     return response.data;
   }
 
-  // RFP Generation
   async generateRFPResponse(request: RFPGenerationRequest): Promise<RFPGenerationResponse> {
-    console.log('🚀 [DEBUG] Starting async RFP generation');
-    console.log('📋 [DEBUG] Request data:', JSON.stringify(request, null, 2));
-    
     try {
-      // Start async job
-      console.log('📤 [DEBUG] Sending request to /rfp/generate-async...');
       const startResponse = await api.post('/rfp/generate-async', request);
-      console.log('📥 [DEBUG] Start response received:', startResponse.data);
-      
       const jobId = startResponse.data.jobId;
-      console.log(`🆔 [DEBUG] Job started with ID: ${jobId}`);
-      console.log(`⏱️ [DEBUG] Estimated time: ${startResponse.data.estimatedTime || 'Unknown'}`);
-      
+
       let pollCount = 0;
-      const maxPolls = 480; // 40 minutes max (5 sec intervals)
-      
-      // Poll for completion
+      const maxPolls = 480;
+
       while (pollCount < maxPolls) {
         pollCount++;
-        console.log(`🔄 [DEBUG] Poll attempt ${pollCount}/${maxPolls} - Checking job status...`);
-        
+
         try {
           const statusResponse = await api.get(`/rfp/jobs/${jobId}`);
-          console.log(`📊 [DEBUG] Status response:`, statusResponse.data);
-          
           const job = statusResponse.data;
-          console.log(`📋 [DEBUG] Job details: Status=${job.status}, Progress=${job.progress?.current || 0}/${job.progress?.total || 15}`);
-          console.log(`💬 [DEBUG] Progress message: ${job.progress?.message || 'N/A'}`);
-          
+
           if (job.status === 'completed') {
-            console.log('✅ [DEBUG] RFP generation completed successfully!');
-            console.log(`🎯 [DEBUG] RFP Response ID: ${job.rfpResponseId}`);
-            console.log(`⏱️ [DEBUG] Total polling time: ${pollCount * 5} seconds`);
             return {
               success: true,
               rfpResponseId: job.rfpResponseId,
@@ -131,46 +109,23 @@ class RFPApiService {
               predictedScore: 0
             } as RFPGenerationResponse;
           }
-          
+
           if (job.status === 'failed') {
-            console.error('❌ [DEBUG] RFP generation failed!');
-            console.error('💥 [DEBUG] Error details:', job.error);
-            console.error('🕐 [DEBUG] Failed after:', job.createdAt);
             throw new Error(job.error || 'RFP generation failed');
           }
-          
-          if (job.status === 'processing') {
-            console.log(`⚡ [DEBUG] Job is processing... Section ${job.progress?.current || 0}/${job.progress?.total || 15}`);
-          } else if (job.status === 'queued') {
-            console.log('⏳ [DEBUG] Job is still queued, waiting to start...');
-          }
-          
+
         } catch (statusError: any) {
-          console.error('❌ [DEBUG] Error checking job status:', statusError.message);
-          console.error('📡 [DEBUG] Status check failed for job:', jobId);
-          
-          // Continue polling unless it's a 404 (job not found)
           if (statusError.response?.status === 404) {
             throw new Error(`Job ${jobId} not found - may have been cleaned up`);
           }
         }
-        
-        // Wait 5 seconds before checking again
-        console.log('⏱️ [DEBUG] Waiting 5 seconds before next poll...');
+
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
-      
-      // If we get here, polling timed out
-      console.error('⏰ [DEBUG] Polling timed out after 40 minutes!');
+
       throw new Error(`RFP generation timed out after ${maxPolls * 5} seconds of polling`);
-      
+
     } catch (error: any) {
-      console.error('💥 [DEBUG] Error in generateRFPResponse:', error);
-      console.error('📋 [DEBUG] Error details:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data
-      });
       throw error;
     }
   }
@@ -220,22 +175,15 @@ class RFPApiService {
 
   async getRFPResponse(responseId: number): Promise<{ success: boolean; response: RFPResponse }> {
     try {
-      // Check if this RFP has been deleted locally
       const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
       if (deletedRFPs.includes(responseId)) {
-        console.log('🗑️ [DEBUG] RFP Response', responseId, 'has been deleted locally');
         throw new Error('RFP Response has been deleted');
       }
 
-      console.log(`🔍 [DEBUG] API Service getRFPResponse called with ID: ${responseId}`);
       const response = await api.get<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}`);
-      console.log('✅ [DEBUG] API Service getRFPResponse success:', response.data);
       return response.data;
     } catch (error: any) {
-      console.error('❌ [DEBUG] API Service getRFPResponse error:', error);
-      // Handle 404 or other errors for missing endpoint
       if (error.response?.status === 404) {
-        console.warn('RFP Response endpoint not implemented yet');
         throw new Error('RFP Response not found');
       }
       throw error;

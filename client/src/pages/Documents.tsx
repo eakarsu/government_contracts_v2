@@ -1,17 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import {
+  FileText,
+  Search,
+  Upload,
+  Download,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Clock,
+  FolderOpen,
+  Database,
+  Sparkles,
+  Brain,
+  AlertCircle,
+  ExternalLink,
+  X,
+  Eye
+} from 'lucide-react';
 import { apiService } from '../services/api';
-import { QueueStatus, ApiResponse, DocumentSearchForm, DocumentSearchResponse, DocumentStats, FileTypesResponse } from '../types';
-import LoadingSpinner from '../components/UI/LoadingSpinner';
+import { DocumentSearchForm, DocumentSearchResponse } from '../types';
 import DocumentDownload from '../components/Dashboard/DocumentDownload';
 
 const Documents: React.FC = () => {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'download' | 'search' | 'upload' | 'queue'>('download');
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [customPrompt, setCustomPrompt] = useState('');
-  const [model, setModel] = useState('');
-  const [activeTab, setActiveTab] = useState<'download' | 'search' | 'upload' | 'queue'>('download');
-  
-  // Search state
   const [searchForm, setSearchForm] = useState<DocumentSearchForm>({
     query: '',
     limit: 20,
@@ -22,754 +38,576 @@ const Documents: React.FC = () => {
   });
   const [searchResults, setSearchResults] = useState<DocumentSearchResponse | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  
+  const [isProcessingActive, setIsProcessingActive] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<any | null>(null);
+
   const queryClient = useQueryClient();
 
-  const { data: queueStatus, isLoading: queueLoading } = useQuery({
+  // Use faster polling (2s) when processing is active, otherwise 5s
+  const { data: queueStatus, isLoading: queueLoading, refetch: refetchQueue } = useQuery({
     queryKey: ['queueStatus'],
     queryFn: () => apiService.getQueueStatus(),
-    refetchInterval: 5000,
+    refetchInterval: isProcessingActive ? 2000 : 5000,
   });
 
-  // Document stats query
+  // Update processing state based on queue status
+  useEffect(() => {
+    if (queueStatus?.queue_status) {
+      const isActive = queueStatus.queue_status.is_processing || queueStatus.queue_status.processing > 0;
+      setIsProcessingActive(isActive);
+    }
+  }, [queueStatus]);
+
   const { data: documentStats, isLoading: statsLoading } = useQuery({
     queryKey: ['documentStats'],
     queryFn: () => apiService.getDocumentStats(),
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
   });
 
-  // File types query
   const { data: fileTypes } = useQuery({
     queryKey: ['fileTypes'],
     queryFn: () => apiService.getFileTypes(),
   });
 
   const uploadMutation = useMutation({
-    mutationFn: (data: { files: FileList; customPrompt?: string; model?: string }) =>
-      apiService.uploadMultipleDocuments(data.files, data.customPrompt, data.model),
+    mutationFn: (data: { files: FileList; customPrompt?: string }) =>
+      apiService.uploadMultipleDocuments(data.files, data.customPrompt),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
       setSelectedFiles(null);
       setCustomPrompt('');
-      setModel('');
     },
   });
 
   const processQueueMutation = useMutation({
     mutationFn: () => apiService.processQueueAsync(),
     onSuccess: () => {
+      setIsProcessingActive(true); // Start fast polling
       queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
     },
   });
 
   const queueDocumentsMutation = useMutation({
     mutationFn: () => apiService.queueDocuments(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queueStatus'] }),
   });
 
-  const downloadQueuedMutation = useMutation({
-    mutationFn: (options: { limit?: number; download_folder?: string }) => 
-      apiService.downloadAllDocuments(options),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
-    },
-  });
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedFiles(event.target.files);
+  const handleRefreshQueue = () => {
+    refetchQueue();
   };
 
-  const handleUpload = () => {
-    if (selectedFiles) {
-      uploadMutation.mutate({ files: selectedFiles, customPrompt, model });
-    }
-  };
-
-  const handleProcessQueue = () => {
-    processQueueMutation.mutate();
-  };
-
-  const handleQueueDocuments = () => {
-    queueDocumentsMutation.mutate();
-  };
-
-  const handleDownloadQueued = () => {
-    downloadQueuedMutation.mutate({
-      limit: 100,
-      download_folder: 'downloaded_documents'
-    });
-  };
-
-  // Search functionality
   const handleSearch = async () => {
-    if (!searchForm.query.trim()) {
-      return;
-    }
-
+    if (!searchForm.query.trim()) return;
     setIsSearching(true);
     try {
       const results = await apiService.searchDocuments(searchForm);
       setSearchResults(results);
     } catch (error) {
       console.error('Search failed:', error);
-      setSearchResults(null);
     } finally {
       setIsSearching(false);
     }
   };
 
-  const handleSearchFormChange = (field: keyof DocumentSearchForm, value: any) => {
-    setSearchForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+  const tabs = [
+    { id: 'download', label: 'Download', icon: Download, description: 'Download files from SAM.gov' },
+    { id: 'search', label: 'Search', icon: Search, description: 'Search downloaded documents' },
+    { id: 'upload', label: 'Upload', icon: Upload, description: 'Upload local files' },
+    { id: 'queue', label: 'AI Processing', icon: Sparkles, description: 'AI summarization (uses OpenRouter)' },
+  ];
 
-  const clearSearch = () => {
-    setSearchResults(null);
-    setSearchForm(prev => ({
-      ...prev,
-      query: ''
-    }));
-  };
+  const queue = queueStatus?.queue_status;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Document Management</h1>
-        <p className="mt-2 text-gray-600">
-          Download, upload, and process documents with AI analysis
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <FileText className="h-5 w-5 text-blue-600" />
+          </div>
+          <h1 className="text-2xl font-semibold text-gray-900">Document Management</h1>
+        </div>
+        <p className="text-sm text-gray-500">
+          Download, upload, search, and process contract documents
         </p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200 mb-8">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('download')}
-            className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'download'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            📥 Download Documents
-          </button>
-          <button
-            onClick={() => setActiveTab('search')}
-            className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'search'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            🔍 Search Documents
-          </button>
-          <button
-            onClick={() => setActiveTab('upload')}
-            className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'upload'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            📤 Upload Documents
-          </button>
-          <button
-            onClick={() => setActiveTab('queue')}
-            className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'queue'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            ⚙️ Processing Queue
-          </button>
-        </nav>
-      </div>
+      <div className="bg-white rounded-lg border border-gray-200 mb-6">
+        <div className="flex border-b border-gray-200">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'text-blue-600 border-b-2 border-blue-600 -mb-px bg-blue-50/50'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <tab.icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-      {/* Tab Content */}
-      {activeTab === 'download' && (
-        <DocumentDownload />
-      )}
+        {/* Tab Content */}
+        <div className="p-6">
+          {/* Download Tab */}
+          {activeTab === 'download' && <DocumentDownload />}
 
-      {activeTab === 'search' && (
-        <div className="space-y-8">
-          {/* Document Statistics */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">📊 Document Statistics</h2>
-            
-            {statsLoading ? (
-              <LoadingSpinner />
-            ) : documentStats ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {documentStats.stats.documents.downloaded}
+          {/* Search Tab */}
+          {activeTab === 'search' && (
+            <div className="space-y-6">
+              {/* Document Stats */}
+              {documentStats && (
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Download className="h-4 w-4 text-blue-600" />
+                      <span className="text-xs text-blue-600 font-medium">Downloaded</span>
+                    </div>
+                    <p className="text-2xl font-bold text-blue-700">{documentStats.stats.documents.downloaded}</p>
+                    <p className="text-xs text-blue-600">{documentStats.stats.documents.downloaded_size_mb} MB</p>
                   </div>
-                  <div className="text-sm text-blue-600">Downloaded Files</div>
-                  <div className="text-xs text-gray-500">
-                    {documentStats.stats.documents.downloaded_size_mb} MB total
+                  <div className="p-4 bg-green-50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Database className="h-4 w-4 text-green-600" />
+                      <span className="text-xs text-green-600 font-medium">Indexed</span>
+                    </div>
+                    <p className="text-2xl font-bold text-green-700">{documentStats.stats.documents.indexed_in_vector_db}</p>
+                    <p className="text-xs text-green-600">{documentStats.stats.documents.indexing_rate}% rate</p>
                   </div>
-                </div>
-                
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">
-                    {documentStats.stats.documents.indexed_in_vector_db}
+                  <div className="p-4 bg-purple-50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FolderOpen className="h-4 w-4 text-purple-600" />
+                      <span className="text-xs text-purple-600 font-medium">With Docs</span>
+                    </div>
+                    <p className="text-2xl font-bold text-purple-700">{documentStats.stats.contracts.with_documents}</p>
+                    <p className="text-xs text-purple-600">{documentStats.stats.contracts.percentage_with_docs}% of contracts</p>
                   </div>
-                  <div className="text-sm text-green-600">Indexed & Searchable</div>
-                  <div className="text-xs text-gray-500">
-                    {documentStats.stats.documents.indexing_rate}% indexed
-                  </div>
-                </div>
-                
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {documentStats.stats.contracts.with_documents}
-                  </div>
-                  <div className="text-sm text-purple-600">Contracts with Docs</div>
-                  <div className="text-xs text-gray-500">
-                    {documentStats.stats.contracts.percentage_with_docs}% of total
-                  </div>
-                </div>
-                
-                <div className="bg-orange-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-600">
-                    {Object.keys(documentStats.stats.vector_database.documents_by_file_type).length}
-                  </div>
-                  <div className="text-sm text-orange-600">File Types</div>
-                  <div className="text-xs text-gray-500">
-                    PDF, DOC, DOCX, etc.
+                  <div className="p-4 bg-orange-50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="h-4 w-4 text-orange-600" />
+                      <span className="text-xs text-orange-600 font-medium">File Types</span>
+                    </div>
+                    <p className="text-2xl font-bold text-orange-700">
+                      {Object.keys(documentStats.stats.vector_database.documents_by_file_type).length}
+                    </p>
+                    <p className="text-xs text-orange-600">PDF, DOC, etc.</p>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="text-gray-500">Unable to load statistics</div>
-            )}
-          </div>
+              )}
 
-          {/* Search Interface */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">🔍 Search Documents</h2>
-            
-            <div className="space-y-4">
-              {/* Search Query */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search Query
-                </label>
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={searchForm.query}
-                    onChange={(e) => handleSearchFormChange('query', e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    className="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="Enter search terms (e.g., 'software development', 'cybersecurity', 'data analysis')"
-                  />
+              {/* Search Form */}
+              <div className="bg-gray-50 rounded-lg p-5">
+                <div className="flex gap-4 mb-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search documents..."
+                      value={searchForm.query}
+                      onChange={(e) => setSearchForm({ ...searchForm, query: e.target.value })}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                   <button
                     onClick={handleSearch}
                     disabled={isSearching || !searchForm.query.trim()}
-                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                    className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
                   >
-                    {isSearching ? <LoadingSpinner size="sm" /> : 'Search'}
+                    {isSearching ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    Search
                   </button>
-                  {searchResults && (
-                    <button
-                      onClick={clearSearch}
-                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                    >
-                      Clear
-                    </button>
-                  )}
                 </div>
-              </div>
 
-              {/* Search Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Results Limit
-                  </label>
+                {/* Filters */}
+                <div className="grid grid-cols-4 gap-4">
                   <select
                     value={searchForm.limit}
-                    onChange={(e) => handleSearchFormChange('limit', parseInt(e.target.value))}
-                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
+                    onChange={(e) => setSearchForm({ ...searchForm, limit: parseInt(e.target.value) })}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   >
                     <option value={10}>10 results</option>
                     <option value={20}>20 results</option>
                     <option value={50}>50 results</option>
-                    <option value={100}>100 results</option>
                   </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    File Type
-                  </label>
                   <select
                     value={searchForm.file_type}
-                    onChange={(e) => handleSearchFormChange('file_type', e.target.value)}
-                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
+                    onChange={(e) => setSearchForm({ ...searchForm, file_type: e.target.value })}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   >
-                    <option value="">All Types</option>
-                    {fileTypes?.file_types.available_for_search.map(type => (
-                      <option key={type} value={type}>
-                        .{type} ({fileTypes.file_types.indexed[type] || 0} files)
-                      </option>
+                    <option value="">All file types</option>
+                    {fileTypes?.file_types?.available_for_search?.map((type: string) => (
+                      <option key={type} value={type}>.{type}</option>
                     ))}
                   </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Min Relevance Score
-                  </label>
                   <select
                     value={searchForm.min_score}
-                    onChange={(e) => handleSearchFormChange('min_score', parseFloat(e.target.value))}
-                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
+                    onChange={(e) => setSearchForm({ ...searchForm, min_score: parseFloat(e.target.value) })}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   >
-                    <option value={0.1}>0.1 (Low)</option>
-                    <option value={0.3}>0.3 (Medium)</option>
-                    <option value={0.5}>0.5 (High)</option>
-                    <option value={0.7}>0.7 (Very High)</option>
+                    <option value={0.1}>Min score: 10%</option>
+                    <option value={0.3}>Min score: 30%</option>
+                    <option value={0.5}>Min score: 50%</option>
+                    <option value={0.7}>Min score: 70%</option>
                   </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Content
-                  </label>
-                  <div className="flex items-center space-x-2 mt-2">
+                  <label className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
                       checked={searchForm.include_content}
-                      onChange={(e) => handleSearchFormChange('include_content', e.target.checked)}
-                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      onChange={(e) => setSearchForm({ ...searchForm, include_content: e.target.checked })}
+                      className="rounded border-gray-300 text-blue-600"
                     />
-                    <span className="text-sm text-gray-700">Include full content</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Search Results */}
-          {searchResults && (
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Search Results for "{searchResults.query}"
-                </h3>
-                <div className="text-sm text-gray-500">
-                  {searchResults.results.total_results} results in {searchResults.response_time}ms
+                    Include content
+                  </label>
                 </div>
               </div>
 
-              {searchResults.results.documents.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-gray-500 mb-2">No documents found matching your search.</div>
-                  <div className="text-sm text-gray-400">
-                    Try adjusting your search terms or filters.
+              {/* Search Results */}
+              {searchResults && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-sm text-gray-600">
+                      Found <strong>{searchResults.results.total_results}</strong> documents in {searchResults.response_time}ms
+                    </p>
+                    <button
+                      onClick={() => setSearchResults(null)}
+                      className="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      Clear results
+                    </button>
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {searchResults.results.documents.map((doc, index) => (
-                    <div key={doc.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium text-gray-900">{doc.filename}</h4>
+
+                  <div className="space-y-3">
+                    {searchResults.results.documents.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-400 hover:shadow-md cursor-pointer transition-all"
+                        onClick={() => setSelectedDocument(doc)}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Eye className="h-4 w-4 text-blue-500" />
+                            <div>
+                              <h4 className="font-medium text-gray-900 hover:text-blue-600">{doc.filename}</h4>
+                              <p className="text-xs text-gray-500">Contract: {doc.contractId}</p>
+                            </div>
+                          </div>
+                          <span className={`px-2 py-1 text-xs font-medium rounded ${
+                            doc.score >= 0.7 ? 'bg-green-100 text-green-700' :
+                            doc.score >= 0.4 ? 'bg-blue-100 text-blue-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {(doc.score * 100).toFixed(0)}% match
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">{doc.preview}</p>
+                        <div className="flex items-center justify-between mt-3">
+                          <div className="flex items-center gap-3 text-xs text-gray-500">
                             {doc.isDownloaded && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                📁 Downloaded
+                              <span className="flex items-center gap-1 text-blue-600">
+                                <Download className="h-3 w-3" /> Downloaded
                               </span>
                             )}
                             {doc.hasSummarization && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                📝 Summarized
+                              <span className="flex items-center gap-1 text-purple-600">
+                                <FileText className="h-3 w-3" /> Summarized
                               </span>
                             )}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            Contract: {doc.contractId} • 
-                            Relevance: {(doc.score * 100).toFixed(1)}% • 
-                            Processed: {new Date(doc.processedAt).toLocaleDateString()}
-                            {doc.isDownloaded && doc.localFilePath && (
-                              <span className="ml-2 text-blue-600">
-                                • Local: {doc.localFilePath.split('/').pop()}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="ml-4 flex-shrink-0">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            {(doc.score * 100).toFixed(1)}% match
+                          <span className="text-xs text-blue-600 flex items-center gap-1">
+                            Click to view details <ExternalLink className="h-3 w-3" />
                           </span>
                         </div>
                       </div>
-                      
-                      <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
-                        {doc.preview}
-                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-                      {/* Summarization Section */}
-                      {doc.hasSummarization && doc.summarization && (
-                        <div className="mt-3 border-t pt-3">
-                          <details className="mb-2">
-                            <summary className="text-sm font-medium text-purple-600 cursor-pointer hover:text-purple-800 mb-2">
-                              📝 View AI Summarization
-                            </summary>
-                            <div className="mt-2 space-y-3">
-                              {doc.summarization.summary && (
-                                <div>
-                                  <h5 className="text-sm font-medium text-gray-700 mb-1">Summary:</h5>
-                                  <div className="text-sm text-gray-600 bg-purple-50 p-3 rounded">
-                                    {doc.summarization.summary}
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {doc.summarization.keyPoints && doc.summarization.keyPoints.length > 0 && (
-                                <div>
-                                  <h5 className="text-sm font-medium text-gray-700 mb-1">Key Points:</h5>
-                                  <ul className="text-sm text-gray-600 bg-purple-50 p-3 rounded list-disc list-inside space-y-1">
-                                    {doc.summarization.keyPoints.map((point, idx) => (
-                                      <li key={idx}>{point}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
+              {!searchResults && (
+                <div className="text-center py-12">
+                  <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">Search for documents by keywords</p>
+                </div>
+              )}
+            </div>
+          )}
 
-                              {doc.summarization.analysis && (
-                                <div>
-                                  <h5 className="text-sm font-medium text-gray-700 mb-1">Analysis:</h5>
-                                  <div className="text-sm text-gray-600 bg-purple-50 p-3 rounded">
-                                    {doc.summarization.analysis}
-                                  </div>
-                                </div>
-                              )}
+          {/* Upload Tab */}
+          {activeTab === 'upload' && (
+            <div className="max-w-xl">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Files</label>
+                  <input
+                    type="file"
+                    multiple
+                    onChange={(e) => setSelectedFiles(e.target.files)}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Custom Analysis Prompt (Optional)</label>
+                  <textarea
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter custom prompt for AI analysis..."
+                  />
+                </div>
+                <button
+                  onClick={() => selectedFiles && uploadMutation.mutate({ files: selectedFiles, customPrompt })}
+                  disabled={!selectedFiles || uploadMutation.isPending}
+                  className="w-full px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {uploadMutation.isPending ? (
+                    <><RefreshCw className="h-4 w-4 animate-spin" /> Uploading...</>
+                  ) : (
+                    <><Upload className="h-4 w-4" /> Upload Files</>
+                  )}
+                </button>
+                {uploadMutation.isSuccess && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-700 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4" /> Files uploaded successfully!
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
-                              {doc.summarization.recommendations && doc.summarization.recommendations.length > 0 && (
-                                <div>
-                                  <h5 className="text-sm font-medium text-gray-700 mb-1">Recommendations:</h5>
-                                  <ul className="text-sm text-gray-600 bg-purple-50 p-3 rounded list-disc list-inside space-y-1">
-                                    {doc.summarization.recommendations.map((rec, idx) => (
-                                      <li key={idx}>{rec}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
+          {/* AI Processing Tab */}
+          {activeTab === 'queue' && (
+            <div className="space-y-6">
+              {/* Info Banner */}
+              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Brain className="h-5 w-5 text-purple-600 mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-medium text-purple-900">AI Document Processing</h3>
+                    <p className="text-sm text-purple-700 mt-1">
+                      This section uses <strong>OpenRouter AI</strong> to analyze and summarize downloaded documents.
+                      Documents are read by AI and summaries are stored for quick reference.
+                    </p>
+                    <p className="text-xs text-purple-600 mt-2">
+                      For downloading files only (no AI), use the <strong>Download</strong> tab instead.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-                              {(doc.summarization.wordCount || doc.summarization.pageCount) && (
-                                <div className="text-xs text-gray-500 pt-2 border-t">
-                                  Document Stats: 
-                                  {doc.summarization.wordCount && ` ${doc.summarization.wordCount} words`}
-                                  {doc.summarization.pageCount && ` • ${doc.summarization.pageCount} pages`}
-                                </div>
-                              )}
-                            </div>
-                          </details>
-                        </div>
-                      )}
-                      
-                      {/* Full Content Section */}
-                      {doc.hasFullContent && (
-                        <details className="mt-2">
-                          <summary className="text-sm text-primary-600 cursor-pointer hover:text-primary-800">
-                            📄 View full document content
-                          </summary>
-                          <div className="mt-2 text-sm text-gray-600 bg-gray-50 p-3 rounded max-h-96 overflow-y-auto">
-                            {searchForm.include_content ? doc.document : (
-                              <div className="text-center py-4">
-                                <p className="text-gray-500 mb-2">Enable "Include full content" to view complete document text</p>
-                                <button
-                                  onClick={() => {
-                                    handleSearchFormChange('include_content', true);
-                                    handleSearch();
-                                  }}
-                                  className="text-primary-600 hover:text-primary-800 text-sm underline"
-                                >
-                                  Enable and search again
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </details>
-                      )}
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => queueDocumentsMutation.mutate()}
+                  disabled={queueDocumentsMutation.isPending}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {queueDocumentsMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
+                  Queue for AI Analysis
+                </button>
+                <button
+                  onClick={() => processQueueMutation.mutate()}
+                  disabled={processQueueMutation.isPending}
+                  className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {processQueueMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  Run AI Summarization
+                </button>
+                <button
+                  onClick={handleRefreshQueue}
+                  disabled={queueLoading}
+                  className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${queueLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+
+              {/* Polling Status Indicator */}
+              <div className="text-xs text-gray-500">
+                Auto-refreshing every {isProcessingActive ? '2' : '5'} seconds
+                {isProcessingActive && <span className="ml-2 text-purple-600 font-medium">(AI processing active)</span>}
+              </div>
+
+              {/* Queue Status */}
+              {queueLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+                </div>
+              ) : queue ? (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-gray-700">AI Summarization Status</h4>
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="p-4 bg-blue-50 rounded-lg text-center">
+                      <Clock className="h-5 w-5 text-blue-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-blue-700">{queue.queued}</p>
+                      <p className="text-xs text-blue-600">Awaiting AI</p>
                     </div>
-                  ))}
+                    <div className="p-4 bg-purple-50 rounded-lg text-center">
+                      <Sparkles className="h-5 w-5 text-purple-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-purple-700">{queue.processing}</p>
+                      <p className="text-xs text-purple-600">AI Analyzing</p>
+                    </div>
+                    <div className="p-4 bg-green-50 rounded-lg text-center">
+                      <CheckCircle className="h-5 w-5 text-green-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-green-700">{queue.completed}</p>
+                      <p className="text-xs text-green-600">Summarized</p>
+                    </div>
+                    <div className="p-4 bg-red-50 rounded-lg text-center">
+                      <XCircle className="h-5 w-5 text-red-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-red-700">{queue.failed}</p>
+                      <p className="text-xs text-red-600">AI Failed</p>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all"
+                        style={{ width: `${queue.total > 0 ? (queue.completed / queue.total) * 100 : 0}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600">{queue.completed}/{queue.total}</span>
+                  </div>
+
+                  {queue.is_processing && (
+                    <div className="flex items-center gap-2 text-sm text-yellow-600 bg-yellow-50 p-3 rounded-lg">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Processing in progress...
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                  <p>No AI processing data available</p>
+                </div>
+              )}
+
+              {/* Success Messages */}
+              {queueDocumentsMutation.isSuccess && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" /> Documents queued for AI analysis!
+                  </p>
+                </div>
+              )}
+              {processQueueMutation.isSuccess && (
+                <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                  <p className="text-sm text-purple-700 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" /> AI summarization started! Watch the counters update.
+                  </p>
                 </div>
               )}
             </div>
           )}
         </div>
-      )}
+      </div>
 
-      {activeTab === 'upload' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Upload Section */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload Documents</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Files
-              </label>
-              <input
-                type="file"
-                multiple
-                onChange={handleFileSelect}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-              />
-            </div>
+      {/* Document Detail Modal */}
+      {selectedDocument && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity"
+              onClick={() => setSelectedDocument(null)}
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Custom Prompt (Optional)
-              </label>
-              <textarea
-                value={customPrompt}
-                onChange={(e) => setCustomPrompt(e.target.value)}
-                rows={3}
-                className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                placeholder="Enter custom analysis prompt..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Model (Optional)
-              </label>
-              <input
-                type="text"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                placeholder="e.g., gpt-4"
-              />
-            </div>
-
-            <button
-              onClick={handleUpload}
-              disabled={!selectedFiles || uploadMutation.isPending}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-            >
-              {uploadMutation.isPending ? <LoadingSpinner size="sm" /> : 'Upload Files'}
-            </button>
-          </div>
-        </div>
-
-        {/* Queue Status */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Processing Queue</h2>
-            <div className="flex space-x-2">
-              <button
-                onClick={handleQueueDocuments}
-                disabled={queueDocumentsMutation.isPending}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                {queueDocumentsMutation.isPending ? <LoadingSpinner size="sm" /> : 'Queue Documents'}
-              </button>
-              <button
-                onClick={handleDownloadQueued}
-                disabled={downloadQueuedMutation.isPending}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
-              >
-                {downloadQueuedMutation.isPending ? <LoadingSpinner size="sm" /> : 'Download to Folder'}
-              </button>
-              <button
-                onClick={handleProcessQueue}
-                disabled={processQueueMutation.isPending}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-              >
-                {processQueueMutation.isPending ? <LoadingSpinner size="sm" /> : 'Process Queue'}
-              </button>
-            </div>
-          </div>
-
-          {queueLoading ? (
-            <LoadingSpinner />
-          ) : queueStatus?.queue_status ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {queueStatus.queue_status.queued}
+            {/* Modal */}
+            <div className="relative bg-white rounded-xl shadow-2xl max-w-3xl w-full mx-auto transform transition-all">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <FileText className="h-5 w-5 text-blue-600" />
                   </div>
-                  <div className="text-sm text-blue-600">Queued</div>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-yellow-600">
-                    {queueStatus.queue_status.processing}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{selectedDocument.filename}</h3>
+                    <p className="text-sm text-gray-500">Contract: {selectedDocument.contractId}</p>
                   </div>
-                  <div className="text-sm text-yellow-600">Processing</div>
                 </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">
-                    {queueStatus.queue_status.completed}
+                <button
+                  onClick={() => setSelectedDocument(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 max-h-[60vh] overflow-y-auto">
+                {/* Match Score */}
+                <div className="mb-4">
+                  <span className={`inline-flex items-center px-3 py-1 text-sm font-medium rounded-full ${
+                    selectedDocument.score >= 0.7 ? 'bg-green-100 text-green-700' :
+                    selectedDocument.score >= 0.4 ? 'bg-blue-100 text-blue-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {(selectedDocument.score * 100).toFixed(0)}% match score
+                  </span>
+                </div>
+
+                {/* Document Status */}
+                <div className="flex items-center gap-4 mb-6">
+                  {selectedDocument.isDownloaded && (
+                    <span className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm">
+                      <Download className="h-4 w-4" /> Downloaded
+                    </span>
+                  )}
+                  {selectedDocument.hasSummarization && (
+                    <span className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm">
+                      <Sparkles className="h-4 w-4" /> AI Summarized
+                    </span>
+                  )}
+                </div>
+
+                {/* Preview Content */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Document Preview</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedDocument.preview}</p>
                   </div>
-                  <div className="text-sm text-green-600">Completed</div>
                 </div>
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">
-                    {queueStatus.queue_status.failed}
+
+                {/* Full Content if available */}
+                {selectedDocument.content && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Full Content</h4>
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 max-h-64 overflow-y-auto">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedDocument.content}</p>
+                    </div>
                   </div>
-                  <div className="text-sm text-red-600">Failed</div>
-                </div>
+                )}
               </div>
 
-              <div className="flex items-center">
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                    style={{
-                      width: `${
-                        queueStatus.queue_status.total > 0
-                          ? (queueStatus.queue_status.completed / queueStatus.queue_status.total) * 100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-                <span className="ml-3 text-sm text-gray-600">
-                  {queueStatus.queue_status.completed} / {queueStatus.queue_status.total}
-                </span>
+              {/* Footer */}
+              <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                <button
+                  onClick={() => navigate(`/contracts/${selectedDocument.contractId}`)}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  View Contract
+                </button>
+                <button
+                  onClick={() => setSelectedDocument(null)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300"
+                >
+                  Close
+                </button>
               </div>
-
-              {queueStatus.queue_status.is_processing && (
-                <div className="flex items-center text-sm text-yellow-600">
-                  <LoadingSpinner size="sm" />
-                  <span className="ml-2">Processing in progress...</span>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-gray-500">No queue data available</div>
-          )}
-
-          {/* Success Messages */}
-          {queueDocumentsMutation.isSuccess && (
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <div className="text-blue-800 text-sm">
-                Documents queued successfully!
-              </div>
-            </div>
-          )}
-
-          {downloadQueuedMutation.isSuccess && (
-            <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-md">
-              <div className="text-purple-800 text-sm">
-                Documents download started! Check the downloaded_documents folder.
-              </div>
-            </div>
-          )}
-
-          {processQueueMutation.isSuccess && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-              <div className="text-green-800 text-sm">
-                Queue processing started!
-              </div>
-            </div>
-          )}
-        </div>
-        </div>
-      )}
-
-      {activeTab === 'queue' && (
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Processing Queue</h2>
-            <div className="flex space-x-2">
-              <button
-                onClick={handleQueueDocuments}
-                disabled={queueDocumentsMutation.isPending}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                {queueDocumentsMutation.isPending ? <LoadingSpinner size="sm" /> : 'Queue Documents'}
-              </button>
-              <button
-                onClick={handleDownloadQueued}
-                disabled={downloadQueuedMutation.isPending}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
-              >
-                {downloadQueuedMutation.isPending ? <LoadingSpinner size="sm" /> : 'Download to Folder'}
-              </button>
-              <button
-                onClick={handleProcessQueue}
-                disabled={processQueueMutation.isPending}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-              >
-                {processQueueMutation.isPending ? <LoadingSpinner size="sm" /> : 'Process Queue'}
-              </button>
             </div>
           </div>
-
-          {queueLoading ? (
-            <LoadingSpinner />
-          ) : queueStatus?.queue_status ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {queueStatus.queue_status.queued}
-                  </div>
-                  <div className="text-sm text-blue-600">Queued</div>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-yellow-600">
-                    {queueStatus.queue_status.processing}
-                  </div>
-                  <div className="text-sm text-yellow-600">Processing</div>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">
-                    {queueStatus.queue_status.completed}
-                  </div>
-                  <div className="text-sm text-green-600">Completed</div>
-                </div>
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">
-                    {queueStatus.queue_status.failed}
-                  </div>
-                  <div className="text-sm text-red-600">Failed</div>
-                </div>
-              </div>
-
-              <div className="flex items-center">
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                    style={{
-                      width: `${
-                        queueStatus.queue_status.total > 0
-                          ? (queueStatus.queue_status.completed / queueStatus.queue_status.total) * 100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-                <span className="ml-3 text-sm text-gray-600">
-                  {queueStatus.queue_status.completed} / {queueStatus.queue_status.total}
-                </span>
-              </div>
-
-              {queueStatus.queue_status.is_processing && (
-                <div className="flex items-center text-sm text-yellow-600">
-                  <LoadingSpinner size="sm" />
-                  <span className="ml-2">Processing in progress...</span>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-gray-500">No queue data available</div>
-          )}
         </div>
       )}
     </div>

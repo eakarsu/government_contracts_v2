@@ -2,13 +2,10 @@ import api from './api';
 import type { Contract, ContractAnalysis, SearchForm, SearchResult, ApiResponse } from '../types';
 
 export class ContractsApiService {
-  // Contract fetching and management
   async fetchContracts(data: any): Promise<ApiResponse> {
-    console.log('🔄 [DEBUG] Contracts API fetchContracts called with:', data);
     const response = await api.post<ApiResponse>('/contracts/fetch', data, {
-      timeout: 1800000 // 30 minutes timeout
+      timeout: 1800000
     });
-    console.log('✅ [DEBUG] Contracts API fetchContracts response:', response.data);
     return response.data;
   }
 
@@ -61,21 +58,15 @@ export class ContractsApiService {
   }
 
   async analyzeContract(noticeId: string): Promise<ContractAnalysis> {
-    console.log('🔍 [DEBUG] Contracts API analyzeContract called for:', noticeId);
     const response = await api.post<ContractAnalysis>(`/documents/contracts/${noticeId}/analyze`);
-    console.log('🔍 [DEBUG] Contracts API analyzeContract response:', response.data);
     return response.data;
   }
 
-  // Search functionality
   async searchContracts(data: SearchForm): Promise<SearchResult> {
     if (!data.query || data.query.trim() === '') {
       throw new Error('Query parameter is required');
     }
-    
-    console.log('🔍 [DEBUG] Contracts API sending search request:', data);
     const response = await api.post<SearchResult>('/search', data);
-    console.log('🔍 [DEBUG] Contracts API received search response:', response.data);
     return response.data;
   }
 

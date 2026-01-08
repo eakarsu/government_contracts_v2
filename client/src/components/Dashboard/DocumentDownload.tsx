@@ -1,7 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  Download,
+  RefreshCw,
+  FolderOpen,
+  FileText,
+  HardDrive,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  ClipboardList,
+  FlaskConical
+} from 'lucide-react';
 import { apiService } from '../../services/api';
-import LoadingSpinner from '../UI/LoadingSpinner';
-import StatsCard from './StatsCard';
+import Card from '../UI/Card';
+import Button from '../UI/Button';
+import Badge from '../UI/Badge';
 import toast from 'react-hot-toast';
 
 interface DownloadJob {
@@ -40,7 +54,12 @@ const DocumentDownload: React.FC = () => {
     contract_id: ''
   });
 
-  const fetchDownloadStatus = async () => {
+  // Track previous job state to detect completion
+  const previousActiveJobRef = useRef<DownloadJob | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const completionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchDownloadStatus = useCallback(async () => {
     try {
       const response = await apiService.getDownloadStatus();
       if (response.success) {
@@ -49,55 +68,92 @@ const DocumentDownload: React.FC = () => {
     } catch (error) {
       console.error('Error fetching download status:', error);
     }
-  };
+  }, []);
 
+  // Start polling with faster interval
+  const startPolling = useCallback(() => {
+    // Clear any existing interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    // Poll every 3 seconds during active downloads
+    pollingIntervalRef.current = setInterval(() => {
+      fetchDownloadStatus();
+    }, 3000);
+  }, [fetchDownloadStatus]);
+
+  // Stop polling
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  }, []);
+
+  // Initial fetch on mount
   useEffect(() => {
     fetchDownloadStatus();
-    
-    // Refresh status every 10 seconds if downloading
-    const interval = setInterval(() => {
-      if (isDownloading) {
-        fetchDownloadStatus();
-      }
-    }, 10000);
 
-    return () => clearInterval(interval);
-  }, [isDownloading]);
+    return () => {
+      stopPolling();
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+      }
+    };
+  }, [fetchDownloadStatus, stopPolling]);
+
+  // Detect active job and manage polling
+  const activeJob = downloadStatus?.download_jobs?.find(job => job.status === 'running');
+
+  useEffect(() => {
+    const previousJob = previousActiveJobRef.current;
+
+    if (activeJob) {
+      // Job is running - start polling and set downloading state
+      setIsDownloading(true);
+      startPolling();
+    } else if (previousJob && !activeJob) {
+      // Job just completed - do final refreshes and show completion
+      setIsDownloading(false);
+
+      // Do a few more refreshes to ensure we have the latest data
+      fetchDownloadStatus();
+
+      // Keep polling for 10 more seconds after completion to update stats
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+      }
+      completionTimeoutRef.current = setTimeout(() => {
+        stopPolling();
+        // One final fetch after stopping
+        fetchDownloadStatus();
+      }, 10000);
+
+      toast.success('Download completed! Stats have been updated.');
+    }
+
+    // Update ref to current job
+    previousActiveJobRef.current = activeJob || null;
+  }, [activeJob, startPolling, stopPolling, fetchDownloadStatus]);
 
   const handleFetchContracts = async () => {
     try {
-      console.log('🔄 [DEBUG] ========================================');
-      console.log('🔄 [DEBUG] FETCH CONTRACTS BUTTON CLICKED!');
-      console.log('🔄 [DEBUG] ========================================');
-      
       const fetchOptions = {
-        start_date: '', // You can add date inputs if needed
+        start_date: '',
         end_date: '',
         limit: downloadOptions.limit,
         offset: 0
       };
 
-      console.log('🔄 [DEBUG] Fetch options prepared:', fetchOptions);
-      console.log('🔄 [DEBUG] About to call apiService.fetchContractsFromDocuments...');
-      
       const response = await apiService.fetchContractsFromDocuments(fetchOptions);
-      
-      console.log('🔄 [DEBUG] Response received from API:', response);
-      
+
       if (response.success) {
         toast.success(`Successfully fetched contracts: ${response.message}`);
-        console.log('✅ [DEBUG] Contracts fetched successfully:', response);
       } else {
         toast.error(response.message || 'Failed to fetch contracts');
-        console.error('❌ [DEBUG] Failed to fetch contracts:', response);
       }
     } catch (error: any) {
-      console.error('❌ [DEBUG] ========================================');
-      console.error('❌ [DEBUG] ERROR IN FETCH CONTRACTS HANDLER!');
-      console.error('❌ [DEBUG] Error message:', error.message);
-      console.error('❌ [DEBUG] Error object:', error);
-      console.error('❌ [DEBUG] ========================================');
-      
       toast.error(error.message || 'Failed to fetch contracts');
     }
   };
@@ -105,16 +161,18 @@ const DocumentDownload: React.FC = () => {
   const handleStartDownload = async () => {
     try {
       setIsDownloading(true);
-      
+
       const options = {
         ...downloadOptions,
         contract_id: downloadOptions.contract_id || undefined
       };
 
       const response = await apiService.downloadAllDocuments(options);
-      
+
       if (response.success) {
         toast.success(`Started downloading documents to ${downloadOptions.download_folder}`);
+        // Start polling immediately and fetch initial status
+        startPolling();
         fetchDownloadStatus();
       } else {
         toast.error(response.message || 'Failed to start download');
@@ -138,264 +196,238 @@ const DocumentDownload: React.FC = () => {
     return new Date(dateString).toLocaleString();
   };
 
-  const getStatusColor = (status: string): string => {
+  const getStatusVariant = (status: string) => {
     switch (status) {
-      case 'completed': return 'text-green-600';
-      case 'running': return 'text-blue-600';
-      case 'failed': return 'text-red-600';
-      default: return 'text-gray-600';
+      case 'completed': return 'success';
+      case 'running': return 'info';
+      case 'failed': return 'danger';
+      default: return 'neutral';
     }
   };
 
-  const activeJob = downloadStatus?.download_jobs.find(job => job.status === 'running');
-
-  useEffect(() => {
-    if (activeJob) {
-      setIsDownloading(true);
-    } else {
-      setIsDownloading(false);
-    }
-  }, [activeJob]);
-
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">
-          📥 Bulk Document Download
-        </h2>
-        <p className="text-gray-600 mb-6">
-          Download all contract documents to a local folder without AI processing. 
-          This is useful for creating a local archive of all government contract documents.
-        </p>
+      <Card padding="md">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-lg bg-primary-50">
+            <Download className="h-5 w-5 text-primary-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-secondary-900">
+              Bulk Document Download
+            </h2>
+            <p className="text-sm text-secondary-500">
+              Download all contract documents to a local folder
+            </p>
+          </div>
+        </div>
 
         {/* Download Options */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-secondary-700 mb-1.5">
               Max Contracts
             </label>
             <input
               type="number"
               value={downloadOptions.limit}
-              onChange={(e) => setDownloadOptions(prev => ({ 
-                ...prev, 
-                limit: parseInt(e.target.value) || 1000 
+              onChange={(e) => setDownloadOptions(prev => ({
+                ...prev,
+                limit: parseInt(e.target.value) || 1000
               }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
               min="1"
               max="10000"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-secondary-700 mb-1.5">
               Download Folder
             </label>
             <input
               type="text"
               value={downloadOptions.download_folder}
-              onChange={(e) => setDownloadOptions(prev => ({ 
-                ...prev, 
-                download_folder: e.target.value 
+              onChange={(e) => setDownloadOptions(prev => ({
+                ...prev,
+                download_folder: e.target.value
               }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
               placeholder="downloaded_documents"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-secondary-700 mb-1.5">
               Concurrency
             </label>
             <input
               type="number"
               value={downloadOptions.concurrency}
-              onChange={(e) => setDownloadOptions(prev => ({ 
-                ...prev, 
-                concurrency: parseInt(e.target.value) || 10 
+              onChange={(e) => setDownloadOptions(prev => ({
+                ...prev,
+                concurrency: parseInt(e.target.value) || 10
               }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
               min="1"
               max="50"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-secondary-700 mb-1.5">
               Contract ID (Optional)
             </label>
             <input
               type="text"
               value={downloadOptions.contract_id}
-              onChange={(e) => setDownloadOptions(prev => ({ 
-                ...prev, 
-                contract_id: e.target.value 
+              onChange={(e) => setDownloadOptions(prev => ({
+                ...prev,
+                contract_id: e.target.value
               }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
               placeholder="Leave empty for all"
             />
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-4 mb-6">
-          <button
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="success"
             onClick={handleFetchContracts}
-            className="px-6 py-3 rounded-lg font-medium flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+            leftIcon={ClipboardList}
           >
-            📋 Fetch Contracts
-          </button>
+            Fetch Contracts
+          </Button>
 
-          <button
-            onClick={async () => {
-              console.log('🧪 [DEBUG] Test API button clicked');
-              try {
-                const response = await fetch('/api/documents/test');
-                const data = await response.json();
-                console.log('🧪 [DEBUG] Test API response:', data);
-                toast.success('API connection test successful!');
-              } catch (error) {
-                console.error('🧪 [DEBUG] Test API error:', error);
-                toast.error('API connection test failed!');
-              }
-            }}
-            className="px-4 py-2 rounded-lg font-medium flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white"
-          >
-            🧪 Test API
-          </button>
-
-          <button
+          <Button
+            variant="primary"
             onClick={handleStartDownload}
-            disabled={isDownloading}
-            className={`px-6 py-3 rounded-lg font-medium flex items-center gap-2 ${
-              isDownloading
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
+            isLoading={isDownloading}
+            leftIcon={Download}
           >
-            {isDownloading ? (
-              <>
-                <LoadingSpinner size="sm" color="white" />
-                Downloading...
-              </>
-            ) : (
-              <>
-                📥 Start Download
-              </>
-            )}
-          </button>
+            {isDownloading ? 'Downloading...' : 'Start Download'}
+          </Button>
 
-          <button
+          <Button
+            variant="outline"
             onClick={fetchDownloadStatus}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            leftIcon={RefreshCw}
           >
-            🔄 Refresh Status
-          </button>
+            Refresh Status
+          </Button>
         </div>
 
         {/* Active Download Progress */}
         {activeJob && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h3 className="font-medium text-blue-900 mb-2">
-              📥 Download in Progress (Job #{activeJob.id})
-            </h3>
+          <div className="mt-6 p-4 rounded-xl bg-info-50 border border-info-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Loader2 className="h-4 w-4 text-info-600 animate-spin" />
+              <h3 className="font-medium text-info-900">
+                Download in Progress (Job #{activeJob.id})
+              </h3>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
-                <span className="text-blue-700">Downloaded:</span>
-                <span className="font-medium ml-1">{activeJob.records_processed}</span>
+                <span className="text-info-700">Downloaded:</span>
+                <span className="font-medium text-info-900 ml-1">{activeJob.records_processed}</span>
               </div>
               <div>
-                <span className="text-blue-700">Errors:</span>
-                <span className="font-medium ml-1">{activeJob.errors_count}</span>
+                <span className="text-info-700">Errors:</span>
+                <span className="font-medium text-info-900 ml-1">{activeJob.errors_count}</span>
               </div>
               <div>
-                <span className="text-blue-700">Duration:</span>
-                <span className="font-medium ml-1">{activeJob.duration_minutes}m</span>
+                <span className="text-info-700">Duration:</span>
+                <span className="font-medium text-info-900 ml-1">{activeJob.duration_minutes}m</span>
               </div>
               <div>
-                <span className="text-blue-700">Started:</span>
-                <span className="font-medium ml-1">{formatDate(activeJob.started_at)}</span>
+                <span className="text-info-700">Started:</span>
+                <span className="font-medium text-info-900 ml-1">{formatDate(activeJob.started_at)}</span>
               </div>
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Download Statistics */}
       {downloadStatus?.folder_stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatsCard
-            title="Total Files"
-            value={downloadStatus.folder_stats.total_files}
-            icon="📄"
-            color="blue"
-          />
-          <StatsCard
-            title="Total Size"
-            value={formatFileSize(downloadStatus.folder_stats.total_size_bytes)}
-            icon="💾"
-            color="green"
-          />
-          <StatsCard
-            title="Download Path"
-            value={downloadStatus.download_path.split('/').pop() || 'N/A'}
-            icon="📁"
-            color="purple"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card padding="md" className="text-center">
+            <FileText className="h-8 w-8 text-primary-500 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-secondary-900">
+              {downloadStatus.folder_stats.total_files}
+            </p>
+            <p className="text-sm text-secondary-500">Total Files</p>
+          </Card>
+          <Card padding="md" className="text-center">
+            <HardDrive className="h-8 w-8 text-success-500 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-secondary-900">
+              {formatFileSize(downloadStatus.folder_stats.total_size_bytes)}
+            </p>
+            <p className="text-sm text-secondary-500">Total Size</p>
+          </Card>
+          <Card padding="md" className="text-center">
+            <FolderOpen className="h-8 w-8 text-accent-500 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-secondary-900 truncate">
+              {downloadStatus.download_path.split('/').pop() || 'N/A'}
+            </p>
+            <p className="text-sm text-secondary-500">Download Path</p>
+          </Card>
         </div>
       )}
 
       {/* Recent Download Jobs */}
       {downloadStatus?.download_jobs && downloadStatus.download_jobs.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Recent Download Jobs
-          </h3>
+        <Card padding="none">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-secondary-900">Recent Download Jobs</h3>
+          </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-100">
+              <thead className="bg-secondary-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">
                     Job ID
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">
                     Downloaded
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">
                     Errors
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">
                     Duration
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">
                     Started
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-100">
                 {downloadStatus.download_jobs.map((job) => (
-                  <tr key={job.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={job.id} className="hover:bg-secondary-50/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-900">
                       #{job.id}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`text-sm font-medium ${getStatusColor(job.status)}`}>
+                      <Badge variant={getStatusVariant(job.status) as any} size="sm">
                         {job.status}
-                      </span>
+                      </Badge>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-600">
                       {job.records_processed}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-600">
                       {job.errors_count}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-600">
                       {job.duration_minutes}m
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
                       {formatDate(job.started_at)}
                     </td>
                   </tr>
@@ -403,40 +435,43 @@ const DocumentDownload: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Recent Files */}
       {downloadStatus?.folder_stats?.files && downloadStatus.folder_stats.files.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Recent Downloaded Files (showing first 20)
-          </h3>
+        <Card padding="none">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-secondary-900">
+              Recent Downloaded Files
+            </h3>
+            <p className="text-sm text-secondary-500">Showing first 20 files</p>
+          </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-100">
+              <thead className="bg-secondary-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">
                     Filename
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">
                     Size
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">
                     Modified
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {downloadStatus.folder_stats.files.map((file, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              <tbody className="bg-white divide-y divide-gray-100">
+                {downloadStatus.folder_stats.files.slice(0, 20).map((file, index) => (
+                  <tr key={index} className="hover:bg-secondary-50/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-900">
                       {file.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-600">
                       {formatFileSize(file.size)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
                       {formatDate(file.modified)}
                     </td>
                   </tr>
@@ -444,7 +479,7 @@ const DocumentDownload: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );
