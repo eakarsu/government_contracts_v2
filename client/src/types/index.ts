@@ -85,6 +85,7 @@ export interface Contract {
 export interface ContractAnalysis {
   success: boolean;
   contract_id: string;
+  ai_powered?: boolean;
   analysis: {
     contract_overview: {
       title: string;
@@ -102,6 +103,19 @@ export interface ContractAnalysis {
       documents_failed: number;
       documents_in_vector_db: number;
       processing_success_rate: number;
+    };
+    ai_insights?: {
+      executive_summary?: string;
+      opportunity_score?: number;
+      key_requirements?: string[];
+      required_capabilities?: string[];
+      potential_challenges?: string[];
+      win_strategies?: string[];
+      estimated_competition_level?: string;
+      recommended_actions?: string[];
+      deadline_urgency?: string;
+      bid_decision_factors?: string[];
+      raw_analysis?: string;
     };
     content_insights: {
       contract_text_length: number;

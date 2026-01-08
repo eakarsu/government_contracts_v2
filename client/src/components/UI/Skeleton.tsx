@@ -18,6 +18,8 @@ const Skeleton: React.FC<SkeletonProps> & {
   Group: React.FC<SkeletonGroupProps>;
   Card: React.FC<{ className?: string }>;
   Table: React.FC<{ rows?: number; columns?: number; className?: string }>;
+  Dashboard: React.FC<{ className?: string }>;
+  List: React.FC<{ count?: number; className?: string }>;
 } = ({
   className = '',
   variant = 'text',
@@ -110,8 +112,52 @@ const SkeletonTable: React.FC<{ rows?: number; columns?: number; className?: str
   </div>
 );
 
+const SkeletonDashboard: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`space-y-6 ${className}`}>
+    {/* Stats Row */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="bg-white rounded-xl p-6 animate-pulse">
+          <Skeleton height={16} width="50%" className="mb-3" />
+          <Skeleton height={32} width="70%" className="mb-2" />
+          <Skeleton height={12} width="40%" />
+        </div>
+      ))}
+    </div>
+    {/* Content Area */}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2">
+        <SkeletonCard />
+      </div>
+      <div>
+        <SkeletonCard />
+      </div>
+    </div>
+  </div>
+);
+
+const SkeletonList: React.FC<{ count?: number; className?: string }> = ({
+  count = 5,
+  className = '',
+}) => (
+  <div className={`space-y-3 ${className}`}>
+    {[...Array(count)].map((_, i) => (
+      <div key={i} className="bg-white rounded-lg p-4 animate-pulse flex items-center gap-4">
+        <Skeleton variant="circular" width={48} height={48} />
+        <div className="flex-1 space-y-2">
+          <Skeleton height={16} width="60%" />
+          <Skeleton height={12} width="40%" />
+        </div>
+        <Skeleton height={32} width={80} variant="rounded" />
+      </div>
+    ))}
+  </div>
+);
+
 Skeleton.Group = SkeletonGroup;
 Skeleton.Card = SkeletonCard;
 Skeleton.Table = SkeletonTable;
+Skeleton.Dashboard = SkeletonDashboard;
+Skeleton.List = SkeletonList;
 
 export default Skeleton;

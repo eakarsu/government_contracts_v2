@@ -37,13 +37,49 @@ const config = {
 
 // Validate critical environment variables in production
 if (config.nodeEnv === 'production') {
-  const requiredEnvVars = ['DATABASE_URL'];
+  const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET', 'SESSION_SECRET'];
   const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
   if (missingVars.length > 0) {
     console.error('❌ Missing required environment variables:', missingVars.join(', '));
     console.error('Please check your .env file');
     process.exit(1);
+  }
+
+  // Warn about weak secrets
+  const weakSecrets = [];
+  if (config.jwtSecret && config.jwtSecret.length < 32) {
+    weakSecrets.push('JWT_SECRET (should be at least 32 characters)');
+  }
+  if (config.sessionSecret && config.sessionSecret.length < 32) {
+    weakSecrets.push('SESSION_SECRET (should be at least 32 characters)');
+  }
+  if (config.jwtSecret && config.jwtSecret.includes('change-in-production')) {
+    weakSecrets.push('JWT_SECRET (using default value)');
+  }
+  if (config.sessionSecret && config.sessionSecret.includes('change-in-production')) {
+    weakSecrets.push('SESSION_SECRET (using default value)');
+  }
+
+  if (weakSecrets.length > 0) {
+    console.warn('⚠️  Security warnings:');
+    weakSecrets.forEach(warning => console.warn(`   - ${warning}`));
+  }
+}
+
+// Development mode warnings
+if (config.nodeEnv === 'development') {
+  const warnings = [];
+  if (!config.openRouterApiKey) {
+    warnings.push('OpenRouter API key not set - AI features will not work');
+  }
+  if (!config.samGovApiKey) {
+    warnings.push('SAM.gov API key not set - contract search may be limited');
+  }
+
+  if (warnings.length > 0) {
+    console.warn('⚠️  Development warnings:');
+    warnings.forEach(warning => console.warn(`   - ${warning}`));
   }
 }
 

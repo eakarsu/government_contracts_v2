@@ -3712,11 +3712,11 @@ router.get('/contracts/:contractId', async (req, res) => {
   }
 });
 
-// Analyze contract endpoint
+// Analyze contract endpoint - Enhanced with OpenRouter AI
 router.post('/contracts/:contractId/analyze', async (req, res) => {
   try {
     const { contractId } = req.params;
-    console.log(`🔍 [DEBUG] Analyzing contract: ${contractId}`);
+    console.log(`🔍 [DEBUG] Analyzing contract with AI: ${contractId}`);
 
     // Find the contract in the database
     const contract = await prisma.contract.findUnique({
@@ -3748,17 +3748,104 @@ router.post('/contracts/:contractId/analyze', async (req, res) => {
     let vectorDocuments = [];
     try {
       vectorDocuments = await vectorService.searchDocuments(contractId, 50);
-      vectorDocuments = vectorDocuments.filter(doc => 
+      vectorDocuments = vectorDocuments.filter(doc =>
         doc.metadata.contractId === contractId
       );
     } catch (vectorError) {
       console.warn(`⚠️ [DEBUG] Could not fetch vector documents: ${vectorError.message}`);
     }
 
-    // Analyze contract content
-    const contractText = `${contract.title || ''} ${contract.description || ''} ${contract.agency || ''}`.trim();
-    
-    // Basic analysis
+    // Prepare contract content for AI analysis
+    const contractText = `
+Title: ${contract.title || 'N/A'}
+Agency: ${contract.agency || 'N/A'}
+NAICS Code: ${contract.naicsCode || 'N/A'}
+Classification: ${contract.classificationCode || 'N/A'}
+Set-Aside: ${contract.setAsideCode || 'None'}
+Posted Date: ${contract.postedDate || 'N/A'}
+
+Description:
+${contract.description || 'No description available'}
+    `.trim();
+
+    // AI-powered analysis using OpenRouter
+    let aiInsights = null;
+    const config = require('../config/env');
+
+    if (config.openRouterApiKey) {
+      try {
+        console.log('🤖 [DEBUG] Calling OpenRouter AI for contract analysis...');
+        const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${config.openRouterApiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': config.apiBaseUrl || 'http://localhost:5013',
+            'X-Title': 'GovContracts AI'
+          },
+          body: JSON.stringify({
+            model: 'anthropic/claude-3-haiku',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert government contracting analyst. Analyze contracts and provide actionable insights for potential bidders. Return your analysis as valid JSON.'
+              },
+              {
+                role: 'user',
+                content: `Analyze this government contract opportunity and provide insights:
+
+${contractText}
+
+Return a JSON object with the following structure:
+{
+  "executive_summary": "Brief 2-3 sentence summary of the opportunity",
+  "opportunity_score": 1-10 rating of opportunity attractiveness,
+  "key_requirements": ["list of key requirements"],
+  "required_capabilities": ["capabilities needed to bid"],
+  "potential_challenges": ["challenges bidders might face"],
+  "win_strategies": ["strategies to improve win probability"],
+  "estimated_competition_level": "low/medium/high",
+  "recommended_actions": ["specific actions to take"],
+  "deadline_urgency": "low/medium/high/critical",
+  "bid_decision_factors": ["factors to consider when deciding to bid"]
+}`
+              }
+            ],
+            max_tokens: 1500,
+            temperature: 0.3
+          })
+        });
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          const aiContent = aiData.choices[0]?.message?.content || '';
+
+          // Try to parse the AI response as JSON
+          try {
+            // Extract JSON from the response (handle markdown code blocks)
+            let jsonStr = aiContent;
+            if (aiContent.includes('```json')) {
+              jsonStr = aiContent.split('```json')[1].split('```')[0].trim();
+            } else if (aiContent.includes('```')) {
+              jsonStr = aiContent.split('```')[1].split('```')[0].trim();
+            }
+            aiInsights = JSON.parse(jsonStr);
+            console.log('✅ [DEBUG] AI analysis completed successfully');
+          } catch (parseError) {
+            console.warn('⚠️ [DEBUG] Could not parse AI response as JSON, using raw text');
+            aiInsights = { raw_analysis: aiContent };
+          }
+        } else {
+          console.warn(`⚠️ [DEBUG] AI API returned ${aiResponse.status}: ${aiResponse.statusText}`);
+        }
+      } catch (aiError) {
+        console.warn(`⚠️ [DEBUG] AI analysis failed: ${aiError.message}`);
+      }
+    } else {
+      console.warn('⚠️ [DEBUG] OpenRouter API key not configured, skipping AI analysis');
+    }
+
+    // Build the analysis response
     const analysis = {
       contract_overview: {
         title: contract.title,
@@ -3775,9 +3862,19 @@ router.post('/contracts/:contractId/analyze', async (req, res) => {
         documents_processed: relatedDocuments.filter(doc => doc.status === 'completed').length,
         documents_failed: relatedDocuments.filter(doc => doc.status === 'failed').length,
         documents_in_vector_db: vectorDocuments.length,
-        processing_success_rate: relatedDocuments.length > 0 
+        processing_success_rate: relatedDocuments.length > 0
           ? Math.round((relatedDocuments.filter(doc => doc.status === 'completed').length / relatedDocuments.length) * 100)
           : 0
+      },
+      // AI-powered insights
+      ai_insights: aiInsights || {
+        executive_summary: 'AI analysis not available. Configure OpenRouter API key for enhanced insights.',
+        opportunity_score: null,
+        key_requirements: [],
+        required_capabilities: [],
+        potential_challenges: [],
+        win_strategies: [],
+        recommended_actions: []
       },
       content_insights: {
         contract_text_length: contractText.length,
@@ -3813,6 +3910,7 @@ router.post('/contracts/:contractId/analyze', async (req, res) => {
       success: true,
       contract_id: contractId,
       analysis: analysis,
+      ai_powered: !!aiInsights,
       analyzed_at: new Date().toISOString()
     });
 

@@ -78,8 +78,8 @@ const ContractDetail: React.FC = () => {
           <p className="text-sm text-gray-500 mb-4">
             {error ? (error instanceof Error ? error.message : 'Unknown error') : `Contract "${noticeId}" could not be found.`}
           </p>
-          <Link to="/contracts" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
-            Back to Contracts
+          <Link to="/search" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+            Back to Search
           </Link>
         </div>
       </div>
@@ -90,7 +90,7 @@ const ContractDetail: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-        <Link to="/contracts" className="hover:text-gray-700">Contracts</Link>
+        <Link to="/search" className="hover:text-gray-700">Search</Link>
         <ChevronRight className="h-4 w-4" />
         <span className="text-gray-900 font-medium">{contract.noticeId}</span>
       </nav>
@@ -282,9 +282,34 @@ const ContractDetail: React.FC = () => {
             <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-indigo-500" />
               AI Analysis Results
+              {analysisResults.ai_powered && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">
+                  Powered by AI
+                </span>
+              )}
             </h2>
           </div>
           <div className="p-6 space-y-6">
+            {/* AI Executive Summary */}
+            {analysisResults.analysis.ai_insights?.executive_summary && (
+              <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
+                <h3 className="text-sm font-medium text-indigo-900 mb-2">Executive Summary</h3>
+                <p className="text-sm text-indigo-800">{analysisResults.analysis.ai_insights.executive_summary}</p>
+                {analysisResults.analysis.ai_insights.opportunity_score && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="text-xs text-indigo-600">Opportunity Score:</span>
+                    <span className={`px-2 py-1 text-xs font-bold rounded ${
+                      analysisResults.analysis.ai_insights.opportunity_score >= 7 ? 'bg-green-100 text-green-700' :
+                      analysisResults.analysis.ai_insights.opportunity_score >= 4 ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {analysisResults.analysis.ai_insights.opportunity_score}/10
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Document Analysis Stats */}
             {analysisResults.analysis.document_analysis && (
               <div className="grid grid-cols-4 gap-4">
@@ -307,12 +332,73 @@ const ContractDetail: React.FC = () => {
               </div>
             )}
 
+            {/* AI Key Requirements */}
+            {analysisResults.analysis.ai_insights?.key_requirements && analysisResults.analysis.ai_insights.key_requirements.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Key Requirements</h3>
+                <ul className="space-y-2">
+                  {analysisResults.analysis.ai_insights.key_requirements.map((req: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                      {req}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* AI Win Strategies */}
+            {analysisResults.analysis.ai_insights?.win_strategies && analysisResults.analysis.ai_insights.win_strategies.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Win Strategies</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {analysisResults.analysis.ai_insights.win_strategies.map((strategy: string, i: number) => (
+                    <div key={i} className="p-3 bg-green-50 rounded-lg border border-green-100">
+                      <p className="text-sm text-green-800">{strategy}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* AI Potential Challenges */}
+            {analysisResults.analysis.ai_insights?.potential_challenges && analysisResults.analysis.ai_insights.potential_challenges.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Potential Challenges</h3>
+                <div className="space-y-2">
+                  {analysisResults.analysis.ai_insights.potential_challenges.map((challenge: string, i: number) => (
+                    <div key={i} className="flex items-start gap-2 p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                      <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-yellow-800">{challenge}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* AI Recommended Actions */}
+            {analysisResults.analysis.ai_insights?.recommended_actions && analysisResults.analysis.ai_insights.recommended_actions.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Recommended Actions</h3>
+                <ol className="space-y-2">
+                  {analysisResults.analysis.ai_insights.recommended_actions.map((action: string, i: number) => (
+                    <li key={i} className="flex items-start gap-3 text-sm text-gray-600">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-medium flex-shrink-0">
+                        {i + 1}
+                      </span>
+                      {action}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
             {/* Key Terms */}
             {analysisResults.analysis.content_insights?.key_terms?.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Key Terms</h3>
                 <div className="flex flex-wrap gap-2">
-                  {analysisResults.analysis.content_insights.key_terms.map((term, i) => (
+                  {analysisResults.analysis.content_insights.key_terms.map((term: { term: string; frequency: number }, i: number) => (
                     <span key={i} className="px-3 py-1 bg-indigo-50 text-indigo-700 text-sm rounded-full">
                       {term.term} ({term.frequency})
                     </span>
@@ -324,9 +410,9 @@ const ContractDetail: React.FC = () => {
             {/* Recommendations */}
             {analysisResults.analysis.recommendations?.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Recommendations</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">System Recommendations</h3>
                 <div className="space-y-3">
-                  {analysisResults.analysis.recommendations.map((rec, i) => (
+                  {analysisResults.analysis.recommendations.map((rec: { type: string; title: string; message: string }, i: number) => (
                     <div key={i} className={`p-4 rounded-lg border ${
                       rec.type === 'success' ? 'bg-green-50 border-green-200' :
                       rec.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
@@ -351,6 +437,7 @@ const ContractDetail: React.FC = () => {
 
             <p className="text-xs text-gray-500 pt-4 border-t border-gray-100">
               Analysis completed: {analysisResults.analyzed_at ? new Date(analysisResults.analyzed_at).toLocaleString() : 'Unknown'}
+              {analysisResults.ai_powered && ' • Powered by OpenRouter AI'}
             </p>
           </div>
         </div>

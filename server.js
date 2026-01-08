@@ -4,6 +4,7 @@ process.env.NODE_OPTIONS = '--max-http-header-size=1048576';
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs-extra');
 const multer = require('multer');
@@ -95,6 +96,14 @@ app.use(cors({
   methods: '*',
   allowedHeaders: '*'
 }));
+
+// Security headers with helmet (safe defaults)
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP to avoid breaking inline scripts
+  crossOriginEmbedderPolicy: false, // Allow embedding resources
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin resources
+}));
+
 // DISABLE rate limiter completely to prevent 431 errors
 // app.use(rateLimiter);
 app.use(express.json({ limit: '50mb' }));
@@ -302,14 +311,50 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date(),
-    norshinAPI: config.norshinApiUrl,
-    vectorDB: 'Vectra (Pure Node.js)'
-  });
+// Health check with dependency verification
+app.get('/api/health', async (req, res) => {
+  const health = {
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    version: require('./package.json').version || '1.0.0',
+    services: {
+      database: 'unknown',
+      vectorDB: 'unknown',
+      apis: {
+        norshin: !!config.norshinApiKey,
+        openRouter: !!config.openRouterApiKey,
+        samGov: !!config.samGovApiKey
+      }
+    },
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB'
+    }
+  };
+
+  try {
+    // Check database connection
+    await prisma.$queryRaw`SELECT 1`;
+    health.services.database = 'connected';
+  } catch (err) {
+    health.services.database = 'disconnected';
+    health.status = 'DEGRADED';
+  }
+
+  try {
+    // Check vector service
+    if (vectorService && vectorService.isInitialized) {
+      health.services.vectorDB = 'ready';
+    } else {
+      health.services.vectorDB = 'initializing';
+    }
+  } catch (err) {
+    health.services.vectorDB = 'error';
+  }
+
+  const statusCode = health.status === 'OK' ? 200 : 503;
+  res.status(statusCode).json(health);
 });
 
 // Status endpoint (for client compatibility)

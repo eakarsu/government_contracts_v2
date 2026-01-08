@@ -1,14 +1,15 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 
 // Auth Provider
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Layout Components
 import Layout from './components/Layout/Layout';
 import ScrollToTop from './components/ScrollToTop';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Public Pages
 import LandingPage from './pages/LandingPage';
@@ -66,19 +67,36 @@ const queryClient = new QueryClient({
   },
 });
 
-// Protected Route wrapper
+// Protected Route wrapper - requires authentication
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
   return <Layout>{children}</Layout>;
 };
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <ScrollToTop />
-          <AINavigationProvider>
-            <div className="min-h-screen bg-gray-50">
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Router>
+            <ScrollToTop />
+            <AINavigationProvider>
+              <div className="min-h-screen bg-gray-50">
               <Routes>
                 {/* Public Pages - No Layout */}
                 <Route path="/" element={<LandingPage />} />
@@ -155,9 +173,10 @@ function App() {
               },
             }}
           />
-        </Router>
-      </AuthProvider>
-    </QueryClientProvider>
+          </Router>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

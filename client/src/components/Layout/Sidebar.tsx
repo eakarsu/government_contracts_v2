@@ -5,7 +5,6 @@ import {
   Search,
   BarChart3,
   X,
-  Database,
   Zap,
   ClipboardList,
   Target,
@@ -19,13 +18,12 @@ interface SidebarProps {
 }
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Search', href: '/search', icon: Search },
   { name: 'NLP Search', href: '/nlp-search', icon: Sparkles },
   { name: 'RFP System', href: '/rfp', icon: ClipboardList },
   { name: 'Documents', href: '/documents', icon: FileText },
   { name: 'Jobs', href: '/jobs', icon: BarChart3 },
-  { name: 'API Docs', href: '/api-docs', icon: Database },
 ];
 
 const aiEnhancements = [
@@ -37,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
 
   const isNavActive = (href: string) => {
-    if (href === '/') return location.pathname === '/';
+    if (href === '/dashboard') return location.pathname === '/dashboard' || location.pathname === '/';
     return location.pathname === href || location.pathname.startsWith(href + '/');
   };
 
