@@ -1,7 +1,7 @@
 FROM node:24-slim
 
 # Set environment variables for non-interactive package installation
-ENV DEBIAN_FRONTEND=noninteractive
+ ENV DEBIAN_FRONTEND=noninteractive
 
 # Configure apt retry logic and enable main repository
 RUN mkdir -p /etc/apt/apt.conf.d && \
