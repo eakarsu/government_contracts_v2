@@ -1,7 +1,8 @@
 const express = require('express');
 const { resetDatabases } = require('../scripts/reset-databases');
 const { prisma } = require('../config/database');
-const vectorService = require('../services/vectorService');
+const VectorService = require('../services/vectorService');
+const vectorService = new VectorService();
 
 const router = express.Router();
 

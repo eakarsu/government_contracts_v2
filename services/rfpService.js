@@ -1,5 +1,7 @@
 const { prisma } = require('../config/database');
-const vectorService = require('./vectorService');
+const VectorService = require('./vectorService');
+const vectorService = new VectorService();
+vectorService.initialize().catch(err => console.warn('VectorService init warning:', err.message));
 const summaryService = require('./summaryService');
 
 /**

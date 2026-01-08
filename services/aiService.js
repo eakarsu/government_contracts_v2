@@ -491,6 +491,52 @@ Return structured data that can be parsed into factors, recommendations, and com
     };
   }
 
+  // Analyze content with a custom prompt
+  async analyzeContent(content, prompt) {
+    try {
+      if (!this.apiKey) {
+        console.warn('OpenRouter API key not configured, returning empty result');
+        return '{}';
+      }
+
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': config.apiBaseUrl,
+          'X-Title': 'Government Contracts Platform'
+        },
+        body: JSON.stringify({
+          model: this.chatModel,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert analyst for government contracts. Return responses in valid JSON format when requested.'
+            },
+            {
+              role: 'user',
+              content: `${prompt}\n\nContent to analyze:\n${content.substring(0, 4000)}`
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.2
+        })
+      });
+
+      if (!response.ok) {
+        console.error(`AI analysis failed: ${response.statusText}`);
+        return '{}';
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      console.error('AI content analysis error:', error);
+      return '{}';
+    }
+  }
+
   // Add method to check if API is configured and working
   async healthCheck() {
     try {

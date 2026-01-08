@@ -43,6 +43,7 @@ const documentAnalysisRoutes = require('./routes/documentAnalysis');
 const bidPredictionRoutes = require('./routes/bidPrediction');
 const nlpSearchRoutes = require('./routes/nlpSearch');
 const aiFeaturesRoutes = require('./routes/aiFeatures');
+const aiCenterRoutes = require('./routes/aiCenter');
 
 // Import middleware
 const { rateLimiter, statusRateLimiter } = require('./middleware/rateLimiter');
@@ -179,6 +180,7 @@ app.use('/api/ai-rfp', authMiddleware, aiRfpRoutes);
 app.use('/api/bid-prediction', authMiddleware, bidPredictionRoutes);
 app.use('/api/nlp', nlpSearchRoutes);
 app.use('/api/ai', aiFeaturesRoutes);
+app.use('/api/ai-center', authMiddleware, aiCenterRoutes);
 app.use('/api/profiles', profileRoutes);
 
 // Debug: Log when routers are loaded
@@ -262,11 +264,12 @@ app.get('/api/status', async (req, res) => {
     }
 
     res.json({
-      status: 'healthy',
+      status: 'healthy', 
       timestamp: new Date().toISOString(),
       database_stats: {
         contracts_in_db: contractsCount,
-        contracts_indexed: indexedContractsCount,
+        contracts_marked_indexed: indexedContractsCount,
+        contracts_indexed: vectorStats.contracts,
         documents_indexed: vectorStats.documents,
         downloaded_files: downloadedFilesCount
       },

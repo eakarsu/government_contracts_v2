@@ -8,7 +8,7 @@ const pdfService = require('./summaryService.js'); // Adjust path as needed
 const axios = require('axios');
 
 // Utility function to send file to Norshin API (now using local PDF processing)
-const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', model = 'openai/gpt-4.1') => {
+const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', model = 'openai/gpt-4.1', contractKeywords = []) => {
   try {
     let fileBuffer;
     let tempFilePath = null;
@@ -53,6 +53,12 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
     
     if (!analysis.isSupported) {
       throw new Error(`Unsupported type: ${analysis.documentType}`);
+    }
+    
+    // Skip PowerPoint files to prevent LibreOffice blocking
+    if (analysis.documentType.includes('PowerPoint')) {
+      console.log(`⚠️ [SKIP] Skipping PowerPoint file to prevent blocking: ${originalName}`);
+      throw new Error(`PowerPoint files are skipped to prevent processing delays: ${analysis.documentType}`);
     }
     
     // Generate correct filename
@@ -101,7 +107,7 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
     
     // Now call processPDF on the PDF file (either original or converted)
     const extractResult = await pdfService.processPDF(finalPdfPath, {
-      apiKey: process.env.REACT_APP_OPENROUTER_KEY,
+      apiKey: process.env.OPENROUTER_API_KEY,
       saveExtracted: false,
       outputDir: null
     });
@@ -121,7 +127,29 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
       throw new Error(`PDF extraction failed: ${extractResult.error}`);
     }
     
-    console.log(`✅ Extraction completed: ${extractResult.method}, ${extractResult.wordCount} words content, content:${extractResult.extractedContent}`);
+    console.log(`✅ Extraction completed: ${extractResult.method}, ${extractResult.wordCount} words content`);
+    
+    // Check content relevance if contract keywords provided
+    if (contractKeywords && contractKeywords.length > 0) {
+      const documentText = extractResult.extractedContent.toLowerCase();
+      const documentWords = documentText.match(/\b\w{4,}\b/g) || [];
+      
+      // Calculate keyword overlap
+      const matchedKeywords = contractKeywords.filter(keyword => 
+        documentWords.includes(keyword.toLowerCase())
+      );
+      
+      const relevanceScore = matchedKeywords.length / contractKeywords.length;
+      console.log(`🔍 [RELEVANCE] Keywords matched: ${matchedKeywords.length}/${contractKeywords.length} (${(relevanceScore * 100).toFixed(1)}%)`);
+      
+      // Skip if less than 30% keyword overlap
+      if (relevanceScore < 0.30) {
+        console.log(`❌ [RELEVANCE] Document not relevant (${(relevanceScore * 100).toFixed(1)}% < 30%), skipping: ${originalName}`);
+        throw new Error(`Document not relevant to contract content (${(relevanceScore * 100).toFixed(1)}% keyword overlap)`);
+      }
+      
+      console.log(`✅ [RELEVANCE] Document is relevant (${(relevanceScore * 100).toFixed(1)}% ≥ 30%), proceeding with indexing`);
+    }
     
     // Create enhanced prompt if custom prompt provided (keeping original Norshin logic)
     let contentToSummarize = extractResult.extractedContent;
@@ -132,7 +160,7 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
     // Summarize content using your local service
     const summaryResult = await pdfService.summarizeContent(
       contentToSummarize,
-      process.env.REACT_APP_OPENROUTER_KEY
+      process.env.OPENROUTER_API_KEY
     );
     
     if (!summaryResult.success) {

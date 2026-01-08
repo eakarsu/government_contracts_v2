@@ -1,14 +1,58 @@
 const express = require('express');
 const axios = require('axios');
+const path = require('path');
 const { query } = require('../config/database');
 const VectorService = require('../services/vectorService');
 const config = require('../config/env');
 
 const router = express.Router();
 
+// Debug endpoint to test vector service status and duplicate detection
+router.get('/debug/vector-status', async (req, res) => {
+  try {
+    const noticeId = req.query.noticeId || 'd60c3f21b07d4fb4bc8114383a9ea568';
+    
+    const status = {
+      vectorServiceReady,
+      isConnected: vectorService.isConnected,
+      contractsIndexExists: !!vectorService.contractsIndex
+    };
+    
+    // Test findExactContract
+    const existingContract = await vectorService.findExactContract(noticeId);
+    
+    status.findExactContractResult = {
+      found: existingContract !== null,
+      contractData: existingContract ? {
+        id: existingContract.metadata?.id,
+        title: existingContract.metadata?.title
+      } : null
+    };
+    
+    // Get collection stats
+    const stats = await vectorService.getCollectionStats();
+    status.collectionStats = stats;
+    
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ error: error.message, stack: error.stack });
+  }
+});
+
 // Initialize vector service
 const vectorService = new VectorService();
-vectorService.initialize().catch(console.error);
+let vectorServiceReady = false;
+
+// Initialize and track readiness
+vectorService.initialize()
+  .then(() => {
+    vectorServiceReady = true;
+    console.log('✅ Vector service initialized and ready');
+  })
+  .catch(error => {
+    console.error('❌ Vector service initialization failed:', error);
+    vectorServiceReady = false;
+  });
 
 // Helper function to get contract from vector database (same as aiFeatures.js)
 async function getContractFromVector(contractId) {
@@ -462,12 +506,37 @@ router.post('/index', async (req, res) => {
             setAsideCode: contract.set_aside_code,
             resourceLinks: (() => {
               try {
-                if (!contract.resource_links || contract.resource_links.trim() === '') {
+                if (!contract.resource_links) {
                   return [];
                 }
-                return JSON.parse(contract.resource_links);
-              } catch (jsonError) {
-                console.warn(`Invalid JSON in resource_links for contract ${contract.notice_id}:`, contract.resource_links);
+                
+                // If it's already an array, return it directly
+                if (Array.isArray(contract.resource_links)) {
+                  console.log(`📄 [DEBUG] Resource links already an array for contract ${contract.notice_id}:`, contract.resource_links);
+                  return contract.resource_links;
+                }
+                
+                // If it's a string, try to parse it
+                if (typeof contract.resource_links === 'string') {
+                  if (contract.resource_links.trim() === '') {
+                    return [];
+                  }
+                  
+                  // Try parsing as JSON first
+                  try {
+                    return JSON.parse(contract.resource_links);
+                  } catch (jsonError) {
+                    // If JSON parsing fails, try to fix single quotes to double quotes
+                    const fixedJson = contract.resource_links.replace(/'/g, '"');
+                    console.log(`📄 [DEBUG] Fixing single quotes to double quotes for contract ${contract.notice_id}`);
+                    return JSON.parse(fixedJson);
+                  }
+                }
+                
+                return [];
+              } catch (parseError) {
+                console.warn(`Unable to parse resource_links for contract ${contract.notice_id}:`, contract.resource_links);
+                console.warn(`Parse error:`, parseError.message);
                 return [];
               }
             })(),
@@ -914,12 +983,37 @@ router.post('/index/:noticeId', async (req, res) => {
         setAsideCode: contract.set_aside_code,
         resourceLinks: (() => {
           try {
-            if (!contract.resource_links || contract.resource_links.trim() === '') {
+            if (!contract.resource_links) {
               return [];
             }
-            return JSON.parse(contract.resource_links);
-          } catch (jsonError) {
-            console.warn(`Invalid JSON in resource_links for contract ${contract.notice_id}:`, contract.resource_links);
+            
+            // If it's already an array, return it directly
+            if (Array.isArray(contract.resource_links)) {
+              console.log(`📄 [DEBUG] Resource links already an array for contract ${contract.notice_id}:`, contract.resource_links);
+              return contract.resource_links;
+            }
+            
+            // If it's a string, try to parse it
+            if (typeof contract.resource_links === 'string') {
+              if (contract.resource_links.trim() === '') {
+                return [];
+              }
+              
+              // Try parsing as JSON first
+              try {
+                return JSON.parse(contract.resource_links);
+              } catch (jsonError) {
+                // If JSON parsing fails, try to fix single quotes to double quotes
+                const fixedJson = contract.resource_links.replace(/'/g, '"');
+                console.log(`📄 [DEBUG] Fixing single quotes to double quotes for contract ${contract.notice_id}`);
+                return JSON.parse(fixedJson);
+              }
+            }
+            
+            return [];
+          } catch (parseError) {
+            console.warn(`Unable to parse resource_links for contract ${contract.notice_id}:`, contract.resource_links);
+            console.warn(`Parse error:`, parseError.message);
             return [];
           }
         })(),
@@ -929,8 +1023,72 @@ router.post('/index/:noticeId', async (req, res) => {
         contractValue: contract.contract_value
       };
       
-      // Index contract in vector database
-      await vectorService.indexContract(transformedContract);
+      // Ensure vector service is initialized before checking for duplicates
+      if (!vectorService.isConnected) {
+        console.log('🔄 [INIT] Vector service not connected, initializing...');
+        await vectorService.initialize();
+      }
+      
+      // Check if contract is already indexed in vector database to prevent duplicates
+      const existingContract = await vectorService.findExactContract(noticeId);
+      const alreadyIndexed = existingContract !== null;
+      
+      if (alreadyIndexed) {
+        console.log(`📄 [SKIP] Contract already indexed in vector database: ${noticeId}`);
+        
+        // Return early for already indexed contracts
+        await query(`
+          UPDATE contract 
+          SET indexed_at = NOW() 
+          WHERE notice_id = $1
+        `, [noticeId]);
+
+        return res.json({
+          success: true,
+          message: `Contract ${noticeId} already indexed in vector database (duplicate skipped)`,
+          contract_id: noticeId,
+          job_id: Date.now(),
+          documents_processed: 0,
+          duplicate_skipped: true
+        });
+      } else {
+        // Index contract in vector database
+        await vectorService.indexContract(transformedContract);
+        console.log(`✅ [INDEXED] Contract added to vector database: ${noticeId}`);
+      }
+      
+      // Process resourceLinks documents using standalone script to avoid blocking
+      let documentsProcessed = 0;
+      if (transformedContract.resourceLinks && transformedContract.resourceLinks.length > 0) {
+        console.log(`📄 [PROCESS] Found ${transformedContract.resourceLinks.length} documents to process for contract ${noticeId}`);
+        
+        // Spawn child process to handle document processing without blocking server
+        const { spawn } = require('child_process');
+        const scriptPath = path.join(__dirname, '..', 'scripts', 'process-contract-documents.js');
+        
+        const child = spawn('node', [
+          scriptPath,
+          noticeId,
+          JSON.stringify(transformedContract.resourceLinks)
+        ], { 
+          detached: true,
+          stdio: ['ignore', 'pipe', 'pipe']
+        });
+        
+        // Log child process output
+        child.stdout.on('data', (data) => {
+          console.log(`📄 [CHILD-${noticeId}] ${data.toString().trim()}`);
+        });
+        
+        child.stderr.on('data', (data) => {
+          console.error(`📄 [CHILD-${noticeId}] ERROR: ${data.toString().trim()}`);
+        });
+        
+        child.unref(); // Allow parent process to exit independently
+        
+        console.log(`🚀 [PROCESS] Started background document processing for contract ${noticeId}`);
+        documentsProcessed = transformedContract.resourceLinks.length;
+      }
       
       // Mark as indexed
       await query(`
@@ -950,7 +1108,8 @@ router.post('/index/:noticeId', async (req, res) => {
         success: true,
         job_id: job.id,
         contract_id: noticeId,
-        message: `Contract ${noticeId} indexed successfully in vector database`
+        documents_processed: documentsProcessed,
+        message: `Contract ${noticeId} indexed successfully in vector database${documentsProcessed > 0 ? ` with ${documentsProcessed} documents processing in background` : ''}`
       });
 
     } catch (error) {
@@ -1289,12 +1448,37 @@ router.post('/index-by-criteria', async (req, res) => {
             setAsideCode: contract.set_aside_code,
             resourceLinks: (() => {
               try {
-                if (!contract.resource_links || contract.resource_links.trim() === '') {
+                if (!contract.resource_links) {
                   return [];
                 }
-                return JSON.parse(contract.resource_links);
-              } catch (jsonError) {
-                console.warn(`Invalid JSON in resource_links for contract ${contract.notice_id}:`, contract.resource_links);
+                
+                // If it's already an array, return it directly
+                if (Array.isArray(contract.resource_links)) {
+                  console.log(`📄 [DEBUG] Resource links already an array for contract ${contract.notice_id}:`, contract.resource_links);
+                  return contract.resource_links;
+                }
+                
+                // If it's a string, try to parse it
+                if (typeof contract.resource_links === 'string') {
+                  if (contract.resource_links.trim() === '') {
+                    return [];
+                  }
+                  
+                  // Try parsing as JSON first
+                  try {
+                    return JSON.parse(contract.resource_links);
+                  } catch (jsonError) {
+                    // If JSON parsing fails, try to fix single quotes to double quotes
+                    const fixedJson = contract.resource_links.replace(/'/g, '"');
+                    console.log(`📄 [DEBUG] Fixing single quotes to double quotes for contract ${contract.notice_id}`);
+                    return JSON.parse(fixedJson);
+                  }
+                }
+                
+                return [];
+              } catch (parseError) {
+                console.warn(`Unable to parse resource_links for contract ${contract.notice_id}:`, contract.resource_links);
+                console.warn(`Parse error:`, parseError.message);
                 return [];
               }
             })(),
@@ -1304,10 +1488,58 @@ router.post('/index-by-criteria', async (req, res) => {
             contractValue: contract.contract_value
           };
           
-          // Index contract in vector database
-          await vectorService.indexContract(transformedContract);
+          // Ensure vector service is initialized before checking for duplicates
+          if (!vectorService.isConnected) {
+            console.log('🔄 [INIT] Vector service not connected, initializing...');
+            await vectorService.initialize();
+          }
           
-          // Mark as indexed
+          // Check if contract is already indexed in vector database to prevent duplicates
+          const existingContract = await vectorService.findExactContract(contract.notice_id);
+          const alreadyIndexed = existingContract !== null;
+          
+          if (alreadyIndexed) {
+            console.log(`📄 [SKIP] Contract already indexed in vector database: ${contract.notice_id}`);
+          } else {
+            // Index contract in vector database
+            await vectorService.indexContract(transformedContract);
+            console.log(`✅ [INDEXED] Contract added to vector database: ${contract.notice_id}`);
+          }
+          
+          // Process resourceLinks documents using standalone script to avoid blocking
+          let documentsProcessed = 0;
+          if (transformedContract.resourceLinks && transformedContract.resourceLinks.length > 0) {
+            console.log(`📄 [PROCESS] Found ${transformedContract.resourceLinks.length} documents to process for contract ${contract.notice_id}`);
+            
+            // Spawn child process to handle document processing without blocking server
+            const { spawn } = require('child_process');
+            const scriptPath = path.join(__dirname, '..', 'scripts', 'process-contract-documents.js');
+            
+            const child = spawn('node', [
+              scriptPath,
+              contract.notice_id,
+              JSON.stringify(transformedContract.resourceLinks)
+            ], { 
+              detached: true,
+              stdio: ['ignore', 'pipe', 'pipe']
+            });
+            
+            // Log child process output
+            child.stdout.on('data', (data) => {
+              console.log(`📄 [CHILD-${contract.notice_id}] ${data.toString().trim()}`);
+            });
+            
+            child.stderr.on('data', (data) => {
+              console.error(`📄 [CHILD-${contract.notice_id}] ERROR: ${data.toString().trim()}`);
+            });
+            
+            child.unref(); // Allow parent process to exit independently
+            
+            console.log(`🚀 [PROCESS] Started background document processing for contract ${contract.notice_id}`);
+            documentsProcessed = transformedContract.resourceLinks.length;
+          }
+          
+          // Mark contract as indexed
           await query(`
             UPDATE contract 
             SET indexed_at = NOW() 
@@ -1317,7 +1549,8 @@ router.post('/index-by-criteria', async (req, res) => {
           indexedContracts.push({
             noticeId: contract.notice_id,
             title: contract.title,
-            agency: contract.agency
+            agency: contract.agency,
+            documentsProcessed: documentsProcessed
           });
           indexedCount++;
         } catch (error) {
@@ -1341,7 +1574,7 @@ router.post('/index-by-criteria', async (req, res) => {
         errors_count: errorsCount,
         search_criteria: req.body,
         indexed_contracts: indexedContracts.slice(0, 10), // Show first 10
-        message: `Successfully indexed ${indexedCount} contracts matching criteria`
+        message: `Successfully indexed ${indexedCount} contracts matching criteria. Document processing is running in background.`
       });
 
     } catch (error) {
@@ -1359,6 +1592,160 @@ router.post('/index-by-criteria', async (req, res) => {
       success: false,
       error: error.message,
       details: 'Failed to index contracts by criteria'
+    });
+  }
+});
+
+// Separate endpoint for document processing (non-blocking)
+router.post('/process-documents/:noticeId', async (req, res) => {
+  try {
+    const { noticeId } = req.params;
+    
+    // Get contract with resourceLinks
+    const result = await query(`SELECT * FROM contract WHERE notice_id = $1`, [noticeId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Contract not found'
+      });
+    }
+    
+    const contract = result.rows[0];
+    
+    // Parse resourceLinks
+    let resourceLinks = [];
+    try {
+      if (Array.isArray(contract.resource_links)) {
+        resourceLinks = contract.resource_links;
+      } else if (typeof contract.resource_links === 'string') {
+        resourceLinks = JSON.parse(contract.resource_links.replace(/'/g, '"'));
+      }
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid resource links format'
+      });
+    }
+    
+    if (resourceLinks.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No documents to process',
+        documentsProcessed: 0
+      });
+    }
+    
+    // Return immediately and process in background using spawn
+    res.json({
+      success: true,
+      message: `Started processing ${resourceLinks.length} documents in background`,
+      documentsScheduled: resourceLinks.length,
+      noticeId: noticeId
+    });
+    
+    // Spawn separate Node process for document processing
+    const { spawn } = require('child_process');
+    const path = require('path');
+    
+    // Create a separate script for document processing
+    const processorScript = path.join(__dirname, '../scripts/process-contract-documents.js');
+    
+    const child = spawn('node', [processorScript, noticeId, JSON.stringify(resourceLinks)], {
+      detached: true,  // Run independently
+      stdio: 'ignore'  // Don't pipe output back
+    });
+    
+    child.unref(); // Allow parent process to exit independently
+    
+    console.log(`📄 [SPAWN] Started document processing for contract ${noticeId} in separate process`);
+    
+  } catch (error) {
+    console.error('Document processing spawn failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Add cleanup endpoint for removing duplicate contracts
+router.delete('/cleanup-duplicates', async (req, res) => {
+  try {
+    console.log('🧹 [CLEANUP] Starting programmatic duplicate cleanup...');
+    
+    // Use the vectorService cleanup method
+    const result = await vectorService.removeDuplicateContracts();
+    
+    res.json({
+      success: true,
+      message: 'Programmatic duplicate cleanup completed',
+      duplicatesRemoved: result.removed,
+      errors: result.errors,
+      error: result.error || null
+    });
+    
+  } catch (error) {
+    console.error('❌ [CLEANUP] Cleanup failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Duplicate cleanup failed'
+    });
+  }
+});
+
+// Nuclear option - complete vector database reset
+router.delete('/reset-vector-database', async (req, res) => {
+  try {
+    console.log('💥 [RESET] Resetting entire vector database...');
+    
+    // Clear all contracts and documents from vector database
+    const allContracts = await vectorService.contractsIndex.listItems();
+    const allDocuments = await vectorService.documentsIndex.listItems();
+    
+    let contractsRemoved = 0;
+    let documentsRemoved = 0;
+    let errors = 0;
+    
+    // Remove all contracts
+    for (const contract of allContracts) {
+      try {
+        await vectorService.contractsIndex.deleteItem(contract.id);
+        contractsRemoved++;
+      } catch (error) {
+        console.error(`❌ Failed to remove contract ${contract.id}`);
+        errors++;
+      }
+    }
+    
+    // Remove all documents  
+    for (const document of allDocuments) {
+      try {
+        await vectorService.documentsIndex.deleteItem(document.id);
+        documentsRemoved++;
+      } catch (error) {
+        console.error(`❌ Failed to remove document ${document.id}`);
+        errors++;
+      }
+    }
+    
+    console.log(`💥 [RESET] Vector database reset completed: ${contractsRemoved} contracts removed, ${documentsRemoved} documents removed, ${errors} errors`);
+    
+    res.json({
+      success: true,
+      message: 'Vector database completely reset',
+      contractsRemoved,
+      documentsRemoved,
+      errors
+    });
+    
+  } catch (error) {
+    console.error('❌ [RESET] Vector database reset failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Vector database reset failed'
     });
   }
 });

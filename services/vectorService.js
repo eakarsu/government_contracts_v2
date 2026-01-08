@@ -122,6 +122,109 @@ class VectorService {
     }
   }
 
+  // Method to remove duplicates programmatically
+  async removeDuplicateContracts() {
+    if (!this.isConnected) {
+      console.warn('Vector database not connected - cannot remove duplicates');
+      return { removed: 0, errors: 0 };
+    }
+
+    try {
+      console.log('🧹 [CLEANUP] Starting programmatic duplicate removal...');
+      
+      // Get all contracts
+      const allContracts = await this.contractsIndex.listItems();
+      console.log(`🧹 [CLEANUP] Found ${allContracts.length} total contracts in vector database`);
+      
+      // Group by notice ID
+      const contractsByNoticeId = {};
+      allContracts.forEach((contract, index) => {
+        // Use the same logic as findExactContract - check both id and noticeId
+        const noticeId = contract.metadata?.id || contract.metadata?.noticeId;
+        console.log(`🧹 [CLEANUP] Contract ${index}: id="${contract.metadata?.id}", noticeId="${contract.metadata?.noticeId}", using="${noticeId}"`);
+        if (noticeId) {
+          if (!contractsByNoticeId[noticeId]) {
+            contractsByNoticeId[noticeId] = [];
+          }
+          contractsByNoticeId[noticeId].push(contract);
+        }
+      });
+      
+      console.log(`🧹 [CLEANUP] Grouped contracts:`, Object.keys(contractsByNoticeId).map(key => `${key}: ${contractsByNoticeId[key].length}`));
+      
+      let duplicatesRemoved = 0;
+      let errors = 0;
+      
+      // Remove duplicates (keep first, remove rest)
+      for (const [noticeId, contracts] of Object.entries(contractsByNoticeId)) {
+        if (contracts.length > 1) {
+          console.log(`🔍 [CLEANUP] Found ${contracts.length} duplicates for contract: ${noticeId}`);
+          
+          // Keep the first one, remove the rest
+          for (let i = 1; i < contracts.length; i++) {
+            try {
+              await this.contractsIndex.deleteItem(contracts[i].id);
+              duplicatesRemoved++;
+              console.log(`✅ [CLEANUP] Removed duplicate contract: ${contracts[i].id}`);
+            } catch (removeError) {
+              console.error(`❌ [CLEANUP] Failed to remove contract ${contracts[i].id}:`, removeError.message);
+              errors++;
+            }
+          }
+        }
+      }
+      
+      console.log(`🎉 [CLEANUP] Duplicate removal completed: ${duplicatesRemoved} removed, ${errors} errors`);
+      return { removed: duplicatesRemoved, errors };
+      
+    } catch (error) {
+      console.error('❌ [CLEANUP] Duplicate removal failed:', error);
+      return { removed: 0, errors: 1, error: error.message };
+    }
+  }
+
+  // Method for exact duplicate detection (not semantic search)
+  async findExactContract(noticeId) {
+    console.log(`🔍 [EXACT] Starting findExactContract with noticeId: ${noticeId}`);
+    console.log(`🔍 [EXACT] isConnected: ${this.isConnected}`);
+    console.log(`🔍 [EXACT] contractsIndex exists: ${!!this.contractsIndex}`);
+    
+    // Skip the connection check - let's see what happens
+    console.log(`🔍 [EXACT] About to call listItems()...`);
+    
+    // Try the simplest possible approach
+    try {
+      const allContracts = await this.contractsIndex.listItems();
+      console.log(`🔍 [EXACT] SUCCESS: listItems() returned ${allContracts ? allContracts.length : 'null'} items`);
+      
+      // Simple search without complex logic
+      if (allContracts && allContracts.length > 0) {
+        console.log(`🔍 [EXACT] First contract sample:`, JSON.stringify(allContracts[0].metadata, null, 2));
+        console.log(`🔍 [EXACT] Looking for noticeId: "${noticeId}"`);
+        
+        for (const contract of allContracts) {
+          // Check both metadata.id and metadata.noticeId to be safe
+          const contractId = contract.metadata?.id || contract.metadata?.noticeId;
+          console.log(`🔍 [EXACT] Checking contract: "${contractId}" === "${noticeId}" ? ${contractId === noticeId}`);
+          if (contractId === noticeId) {
+            console.log(`🔍 [EXACT] FOUND MATCH: ${contractId}`);
+            return contract;
+          }
+        }
+      }
+      
+      console.log(`🔍 [EXACT] No match found for ${noticeId}`);
+      return null;
+      
+    } catch (error) {
+      console.error(`🔍 [EXACT] ERROR in listItems():`, error);
+      console.error(`🔍 [EXACT] ERROR message:`, error.message);
+      console.error(`🔍 [EXACT] ERROR stack:`, error.stack);
+      console.log(`🔍 [EXACT] Searching for notice ID: ${noticeId}, found: NO`);
+      return null;
+    }
+  }
+
   async searchContracts(query, options = {}) {
     const { limit = 10, threshold = 0.01 } = options; // Much lower threshold
     

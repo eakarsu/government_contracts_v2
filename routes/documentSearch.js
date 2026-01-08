@@ -1,7 +1,9 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const vectorService = require('../services/vectorService');
+const VectorService = require('../services/vectorService');
+const vectorService = new VectorService();
+vectorService.initialize().catch(err => console.warn('VectorService init warning:', err.message));
 const { summarizeContent } = require('../services/summarizationService');
 const config = require('../config/env');
 const axios = require('axios');
