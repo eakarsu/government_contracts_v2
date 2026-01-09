@@ -1,7 +1,7 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' | 'accent';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' | 'accent' | 'gradient';
 type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -12,6 +12,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
   isFullWidth?: boolean;
   children: React.ReactNode;
+  gradientFrom?: string;
+  gradientTo?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -24,6 +26,8 @@ const Button: React.FC<ButtonProps> = ({
   children,
   className = '',
   disabled,
+  gradientFrom = 'from-blue-500',
+  gradientTo = 'to-indigo-600',
   ...props
 }) => {
   const baseClasses = `
@@ -32,23 +36,24 @@ const Button: React.FC<ButtonProps> = ({
     focus:outline-none focus:ring-2 focus:ring-offset-2
     disabled:opacity-50 disabled:cursor-not-allowed
     active:scale-[0.98]
+    relative overflow-hidden
   `;
 
   const variantClasses: Record<ButtonVariant, string> = {
     primary: `
       bg-primary-600 text-white
-      hover:bg-primary-700
+      hover:bg-primary-700 hover:shadow-lg hover:-translate-y-0.5
       focus:ring-primary-500
-      shadow-sm hover:shadow-md
+      shadow-md
     `,
     secondary: `
       bg-secondary-100 text-secondary-700
-      hover:bg-secondary-200
+      hover:bg-secondary-200 hover:shadow-sm
       focus:ring-secondary-500
     `,
     outline: `
       border-2 border-secondary-300 text-secondary-700 bg-transparent
-      hover:bg-secondary-50 hover:border-secondary-400
+      hover:bg-secondary-50 hover:border-secondary-400 hover:shadow-sm
       focus:ring-secondary-500
     `,
     ghost: `
@@ -58,21 +63,29 @@ const Button: React.FC<ButtonProps> = ({
     `,
     danger: `
       bg-danger-600 text-white
-      hover:bg-danger-700
+      hover:bg-danger-700 hover:shadow-lg hover:-translate-y-0.5
       focus:ring-danger-500
-      shadow-sm hover:shadow-md
+      shadow-md
     `,
     success: `
       bg-success-600 text-white
-      hover:bg-success-700
+      hover:bg-success-700 hover:shadow-lg hover:-translate-y-0.5
       focus:ring-success-500
-      shadow-sm hover:shadow-md
+      shadow-md
     `,
     accent: `
       bg-accent-600 text-white
-      hover:bg-accent-700
+      hover:bg-accent-700 hover:shadow-lg hover:-translate-y-0.5
       focus:ring-accent-500
-      shadow-sm hover:shadow-md
+      shadow-md
+    `,
+    gradient: `
+      bg-gradient-to-r ${gradientFrom} ${gradientTo} text-white
+      hover:shadow-xl hover:-translate-y-0.5 hover:scale-[1.02]
+      focus:ring-blue-500
+      shadow-lg
+      before:absolute before:inset-0 before:bg-white/0 before:transition-all before:duration-300
+      hover:before:bg-white/10
     `,
   };
 

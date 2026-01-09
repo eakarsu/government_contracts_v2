@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   FileText,
-  ChevronRight,
+  ChevronLeft,
   Building2,
   Calendar,
   Tag,
@@ -16,15 +16,89 @@ import {
   AlertCircle,
   Download,
   Database,
-  Sparkles
+  Sparkles,
+  File,
+  FileSpreadsheet,
+  FileImage,
+  FileArchive,
+  Paperclip,
+  Target,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Award,
+  Shield
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import { ContractAnalysis } from '../types';
 
+interface CompanyProfile {
+  id: number;
+  companyName: string;
+  basicInfo?: any;
+  capabilities?: any;
+  pastPerformance?: any[];
+  keyPersonnel?: any[];
+}
+
 const ContractDetail: React.FC = () => {
   const { noticeId } = useParams<{ noticeId: string }>();
+  const navigate = useNavigate();
   const [analysisResults, setAnalysisResults] = useState<ContractAnalysis | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
   const queryClient = useQueryClient();
+
+  // Fetch company profiles
+  const { data: companyProfiles } = useQuery({
+    queryKey: ['companyProfiles'],
+    queryFn: async () => {
+      const response = await fetch('/api/rfp/company-profiles');
+      const data = await response.json();
+      return data.profiles as CompanyProfile[];
+    },
+  });
+
+  // Helper to get file info from URL
+  const getFileInfo = (url: string, index: number) => {
+    const docExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'ppt', 'pptx', 'zip', 'rar', '7z', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'txt', 'rtf'];
+    let filename = '';
+    let ext = '';
+
+    try {
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split('/').filter(p => p);
+      for (let i = pathParts.length - 1; i >= 0; i--) {
+        const part = decodeURIComponent(pathParts[i]);
+        const partExt = part.split('.').pop()?.toLowerCase() || '';
+        if (docExtensions.includes(partExt)) {
+          filename = part;
+          ext = partExt;
+          break;
+        }
+      }
+    } catch (e) {}
+
+    if (!filename || !ext) {
+      filename = `Attachment ${index + 1}`;
+      ext = '';
+    }
+
+    let type = 'Document';
+    let icon = File;
+    let color = 'text-gray-500';
+
+    if (['pdf'].includes(ext)) { type = 'PDF'; icon = FileText; color = 'text-red-500'; }
+    else if (['doc', 'docx'].includes(ext)) { type = 'Word'; icon = FileText; color = 'text-blue-500'; }
+    else if (['xls', 'xlsx', 'csv'].includes(ext)) { type = 'Excel'; icon = FileSpreadsheet; color = 'text-green-500'; }
+    else if (['ppt', 'pptx'].includes(ext)) { type = 'PowerPoint'; icon = FileText; color = 'text-orange-500'; }
+    else if (['zip', 'rar', '7z'].includes(ext)) { type = 'Archive'; icon = FileArchive; color = 'text-yellow-600'; }
+    else if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(ext)) { type = 'Image'; icon = FileImage; color = 'text-purple-500'; }
+
+    return { filename, ext, type, icon, color };
+  };
+
+  // SAM.gov URL helper
+  const getSamGovUrl = (id: string) => `https://sam.gov/opp/${id}/view`;
 
   const { data: contract, isLoading, error } = useQuery({
     queryKey: ['contract', noticeId],
@@ -33,7 +107,14 @@ const ContractDetail: React.FC = () => {
   });
 
   const analyzeMutation = useMutation({
-    mutationFn: () => apiService.analyzeContract(noticeId!),
+    mutationFn: async () => {
+      const response = await fetch(`/api/documents/contracts/${noticeId}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyProfileId: selectedProfileId })
+      });
+      return response.json();
+    },
     onSuccess: (data) => {
       setAnalysisResults(data);
       queryClient.invalidateQueries({ queryKey: ['contract', noticeId] });
@@ -88,33 +169,63 @@ const ContractDetail: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-        <Link to="/search" className="hover:text-gray-700">Search</Link>
-        <ChevronRight className="h-4 w-4" />
-        <span className="text-gray-900 font-medium">{contract.noticeId}</span>
-      </nav>
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6 group"
+      >
+        <ChevronLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
+        Back to Previous Page
+      </button>
 
       {/* Header */}
       <div className="bg-white rounded-lg border border-gray-200 mb-6">
-        <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900 mb-1">
-              {contract.title || 'Untitled Contract'}
-            </h1>
-            <p className="text-sm text-gray-500">Notice ID: {contract.noticeId}</p>
+        <div className="px-6 py-5 border-b border-gray-100">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h1 className="text-xl font-semibold text-gray-900 mb-1">
+                {contract.title || 'Untitled Contract'}
+              </h1>
+              <p className="text-sm text-gray-500">Notice ID: {contract.noticeId}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {!noticeId?.startsWith('SAMPLE_') && (
+                <a
+                  href={getSamGovUrl(contract.noticeId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  View on SAM.gov
+                </a>
+              )}
+              {/* Company Profile Selector */}
+              <select
+                value={selectedProfileId || ''}
+                onChange={(e) => setSelectedProfileId(e.target.value ? parseInt(e.target.value) : null)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Select Company Profile</option>
+                {companyProfiles?.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {profile.companyName}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => analyzeMutation.mutate()}
+                disabled={analyzeMutation.isPending}
+                className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                {analyzeMutation.isPending ? (
+                  <><RefreshCw className="h-4 w-4 animate-spin" /> Analyzing...</>
+                ) : (
+                  <><Target className="h-4 w-4" /> {selectedProfileId ? 'Analyze Fit' : 'Analyze Contract'}</>
+                )}
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => analyzeMutation.mutate()}
-            disabled={analyzeMutation.isPending}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-          >
-            {analyzeMutation.isPending ? (
-              <><RefreshCw className="h-4 w-4 animate-spin" /> Analyzing...</>
-            ) : (
-              <><Sparkles className="h-4 w-4" /> Analyze Contract</>
-            )}
-          </button>
         </div>
 
         {/* Contract Details Grid */}
@@ -167,13 +278,82 @@ const ContractDetail: React.FC = () => {
             {/* Right Column - Description */}
             <div>
               <h3 className="text-sm font-medium text-gray-500 uppercase mb-4">Description</h3>
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {contract.description || 'No description available.'}
-              </p>
+              {contract.descriptionIncomplete ? (
+                // Show SAM.gov link for incomplete descriptions
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-sm text-amber-800 mb-3">
+                    Full description not available in database. View on SAM.gov for complete details.
+                  </p>
+                  <a
+                    href={contract.samGovUrl || `https://sam.gov/opp/${contract.noticeId}/view`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    View Full Description on SAM.gov
+                  </a>
+                </div>
+              ) : contract.description ? (
+                contract.description.includes('<') && contract.description.includes('>') ? (
+                  // Render HTML content from SAM.gov
+                  <div
+                    className="text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-1 [&_a]:text-blue-600 [&_a]:underline"
+                    dangerouslySetInnerHTML={{ __html: contract.description }}
+                  />
+                ) : (
+                  // Render plain text
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {contract.description}
+                  </p>
+                )
+              ) : (
+                <p className="text-sm text-gray-500 italic">No description available.</p>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Attachments */}
+      {contract.resourceLinks && contract.resourceLinks.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 mb-6">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <Paperclip className="h-5 w-5 text-gray-500" />
+              Attachments ({contract.resourceLinks.length})
+            </h2>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {contract.resourceLinks.map((url: string, idx: number) => {
+                const fileInfo = getFileInfo(url, idx);
+                const FileIcon = fileInfo.icon;
+                return (
+                  <a
+                    key={idx}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                  >
+                    <FileIcon className={`h-8 w-8 flex-shrink-0 ${fileInfo.color}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600">
+                        {fileInfo.filename}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {fileInfo.type} {fileInfo.ext && `(.${fileInfo.ext})`}
+                      </p>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Document Statistics */}
       {contract.statistics && (
@@ -281,21 +461,63 @@ const ContractDetail: React.FC = () => {
           <div className="px-6 py-4 border-b border-gray-100">
             <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-indigo-500" />
-              AI Analysis Results
+              {analysisResults.analysis.company_profile_used ? 'Company Fit Analysis' : 'AI Analysis Results'}
               {analysisResults.ai_powered && (
                 <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">
                   Powered by AI
                 </span>
               )}
+              {analysisResults.analysis.company_profile_used && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-indigo-100 text-indigo-700 rounded-full">
+                  {analysisResults.analysis.company_profile_used.company_name}
+                </span>
+              )}
             </h2>
           </div>
           <div className="p-6 space-y-6">
+            {/* Company Fit Score Dashboard */}
+            {analysisResults.analysis.ai_insights?.fit_score !== undefined && (
+              <div className="p-5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl text-white">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold">Company Fit Score</h3>
+                    <p className="text-indigo-100 text-sm">{analysisResults.analysis.company_profile_used?.company_name}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-5xl font-bold">{analysisResults.analysis.ai_insights.fit_score}</div>
+                    <div className="text-indigo-200 text-sm">out of 100</div>
+                  </div>
+                </div>
+
+                {/* Go/No-Go Recommendation */}
+                <div className="flex items-center gap-4 mt-4">
+                  <div className={`px-4 py-2 rounded-lg font-bold text-sm ${
+                    analysisResults.analysis.ai_insights.go_no_go_recommendation === 'GO'
+                      ? 'bg-green-500 text-white'
+                      : analysisResults.analysis.ai_insights.go_no_go_recommendation === 'NO-GO'
+                      ? 'bg-red-500 text-white'
+                      : 'bg-yellow-500 text-white'
+                  }`}>
+                    {analysisResults.analysis.ai_insights.go_no_go_recommendation || 'EVALUATE'}
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-indigo-200">Win Probability: </span>
+                    <span className="font-semibold">{analysisResults.analysis.ai_insights.win_probability || 'N/A'}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-indigo-200">Bid Investment: </span>
+                    <span className="font-semibold">{analysisResults.analysis.ai_insights.bid_investment_level || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* AI Executive Summary */}
             {analysisResults.analysis.ai_insights?.executive_summary && (
               <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
                 <h3 className="text-sm font-medium text-indigo-900 mb-2">Executive Summary</h3>
                 <p className="text-sm text-indigo-800">{analysisResults.analysis.ai_insights.executive_summary}</p>
-                {analysisResults.analysis.ai_insights.opportunity_score && (
+                {analysisResults.analysis.ai_insights.opportunity_score && !analysisResults.analysis.ai_insights.fit_score && (
                   <div className="mt-3 flex items-center gap-2">
                     <span className="text-xs text-indigo-600">Opportunity Score:</span>
                     <span className={`px-2 py-1 text-xs font-bold rounded ${
@@ -307,6 +529,114 @@ const ContractDetail: React.FC = () => {
                     </span>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Strengths and Gaps Grid */}
+            {(analysisResults.analysis.ai_insights?.strengths?.length || analysisResults.analysis.ai_insights?.gaps?.length) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Strengths */}
+                {(analysisResults.analysis.ai_insights?.strengths?.length ?? 0) > 0 && (
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h3 className="text-sm font-semibold text-green-800 mb-3 flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" /> Company Strengths
+                    </h3>
+                    <ul className="space-y-2">
+                      {analysisResults.analysis.ai_insights?.strengths?.map((strength: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-green-700">
+                          <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                          {strength}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Gaps */}
+                {(analysisResults.analysis.ai_insights?.gaps?.length ?? 0) > 0 && (
+                  <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                    <h3 className="text-sm font-semibold text-red-800 mb-3 flex items-center gap-2">
+                      <TrendingDown className="h-4 w-4" /> Gaps to Address
+                    </h3>
+                    <ul className="space-y-2">
+                      {analysisResults.analysis.ai_insights?.gaps?.map((gap: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-red-700">
+                          <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                          {gap}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Gap Mitigation */}
+            {(analysisResults.analysis.ai_insights?.gap_mitigation?.length ?? 0) > 0 && (
+              <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <h3 className="text-sm font-semibold text-amber-800 mb-3 flex items-center gap-2">
+                  <Shield className="h-4 w-4" /> Gap Mitigation Strategies
+                </h3>
+                <ul className="space-y-2">
+                  {analysisResults.analysis.ai_insights?.gap_mitigation?.map((mitigation: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-amber-700">
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-amber-200 text-amber-800 text-xs font-medium flex-shrink-0">
+                        {i + 1}
+                      </span>
+                      {mitigation}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Competitive Advantages */}
+            {(analysisResults.analysis.ai_insights?.competitive_advantages?.length ?? 0) > 0 && (
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h3 className="text-sm font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                  <Award className="h-4 w-4" /> Competitive Advantages
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {analysisResults.analysis.ai_insights?.competitive_advantages?.map((advantage: string, i: number) => (
+                    <span key={i} className="px-3 py-1.5 bg-blue-100 text-blue-800 text-sm rounded-lg">
+                      {advantage}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Teaming Suggestions */}
+            {(analysisResults.analysis.ai_insights?.teaming_suggestions?.length ?? 0) > 0 && (
+              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <h3 className="text-sm font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                  <Users className="h-4 w-4" /> Teaming Suggestions
+                </h3>
+                <ul className="space-y-2">
+                  {analysisResults.analysis.ai_insights?.teaming_suggestions?.map((suggestion: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-purple-700">
+                      <Users className="h-4 w-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                      {suggestion}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Risks */}
+            {(analysisResults.analysis.ai_insights?.risks?.length ?? 0) > 0 && (
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" /> Key Risks
+                </h3>
+                <ul className="space-y-2">
+                  {analysisResults.analysis.ai_insights?.risks?.map((risk: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                      <AlertCircle className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                      {risk}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 

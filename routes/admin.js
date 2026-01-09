@@ -103,28 +103,28 @@ router.post('/reset-postgres', async (req, res) => {
 router.post('/reset-vector', async (req, res) => {
   try {
     console.log('🔄 Admin requested Vector database reset...');
-    
+
     const fs = require('fs-extra');
     const path = require('path');
-    
+
     const vectorIndexPath = path.join(process.cwd(), 'vector_indexes');
-    
+
     if (await fs.pathExists(vectorIndexPath)) {
       await fs.remove(vectorIndexPath);
     }
-    
+
     await fs.ensureDir(vectorIndexPath);
     await vectorService.initialize();
-    
+
     const vectorStats = await vectorService.getCollectionStats();
-    
+
     res.json({
       success: true,
       message: 'Vector database has been reset successfully',
       vector_stats: vectorStats,
       timestamp: new Date().toISOString()
     });
-    
+
   } catch (error) {
     console.error('❌ Vector database reset failed:', error);
     res.status(500).json({
@@ -132,6 +132,87 @@ router.post('/reset-vector', async (req, res) => {
       error: error.message,
       message: 'Vector database reset failed'
     });
+  }
+});
+
+// Get stuck documents (processing for too long)
+router.get('/documents/stuck', async (req, res) => {
+  try {
+    const stuckThreshold = new Date(Date.now() - 30 * 60 * 1000); // 30 minutes ago
+
+    const stuckDocs = await prisma.documentProcessingQueue.findMany({
+      where: {
+        status: 'processing',
+        updatedAt: { lt: stuckThreshold }
+      },
+      orderBy: { updatedAt: 'asc' },
+      take: 100
+    });
+
+    res.json({
+      success: true,
+      stuck_documents: stuckDocs,
+      count: stuckDocs.length,
+      threshold_minutes: 30
+    });
+  } catch (error) {
+    console.error('❌ Error getting stuck documents:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Reset a single document
+router.post('/documents/reset/:docId', async (req, res) => {
+  try {
+    const { docId } = req.params;
+
+    const doc = await prisma.documentProcessingQueue.update({
+      where: { id: parseInt(docId) },
+      data: {
+        status: 'queued',
+        errorMessage: null,
+        failedAt: null,
+        retryCount: 0
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Document ${docId} reset to queued`,
+      document: doc
+    });
+  } catch (error) {
+    console.error('❌ Error resetting document:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Reset all stuck documents
+router.post('/documents/reset-all-stuck', async (req, res) => {
+  try {
+    const stuckThreshold = new Date(Date.now() - 30 * 60 * 1000);
+
+    const result = await prisma.documentProcessingQueue.updateMany({
+      where: {
+        status: 'processing',
+        updatedAt: { lt: stuckThreshold }
+      },
+      data: {
+        status: 'queued',
+        errorMessage: null,
+        failedAt: null,
+        retryCount: 0
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Reset ${result.count} stuck documents`,
+      reset_count: result.count
+    });
+  } catch (error) {
+    console.error('❌ Error resetting stuck documents:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

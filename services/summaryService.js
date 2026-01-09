@@ -64,22 +64,23 @@ Structure the response as a JSON object with descriptive field names. Provide de
     const timestamp = new Date().toLocaleTimeString();
     console.log(`🚀 [OPENROUTER-${timestamp}] Starting API request - ${promptTokens.toLocaleString()} tokens`);
     
+    const model = process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4';
+    console.log(`🤖 [MODEL] Using AI model: ${model}`);
+
     const response = await axiosInstance.post(url, {
-      model: 'openai/gpt-4.1',
+      model: model,
       messages: [
         {
           role: 'system',
-          content: 'Expert government contract attachment analyst. Return ONLY valid JSON. Follow schema exactly. 10-page depth (~6000 words total).'
+          content: 'Expert government contract attachment analyst. Return ONLY valid JSON. Follow schema exactly.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      max_tokens: 32000,
-      temperature: 0.2,
-      transforms: ["middle-out"],
-      response_format: { type: "json_object" }
+      max_tokens: 8000,
+      temperature: 0.2
     }, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,

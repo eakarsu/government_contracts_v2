@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Search,
   Sparkles,
   RefreshCw,
-  ExternalLink,
   Building2,
   Calendar,
-  FileText,
-  X,
   Lightbulb,
   Filter,
-  ChevronDown
+  ChevronDown,
+  ChevronRight,
+  Paperclip
 } from 'lucide-react';
 import { apiService } from '../services/api';
 
@@ -22,8 +21,10 @@ interface SearchResult {
   description: string;
   agency: string;
   naicsCode: string;
+  classificationCode?: string;
   postedDate: string;
   setAsideCode: string;
+  resourceLinks?: string[];
   scores?: {
     semantic: number;
     keyword: number;
@@ -33,21 +34,69 @@ interface SearchResult {
 }
 
 const NLPSearch: React.FC = () => {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [explanation, setExplanation] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Get URL parameters on every render
+  const urlQuery = searchParams.get('q') || '';
+  const urlPage = parseInt(searchParams.get('page') || '1');
+
+  // Try to restore cached results from sessionStorage
+  const getCachedResults = () => {
+    try {
+      const cached = sessionStorage.getItem('nlpSearchCache');
+      if (cached) {
+        const { query: cachedQuery, results: cachedResults, explanation: cachedExplanation } = JSON.parse(cached);
+        if (cachedQuery === urlQuery && cachedResults?.length > 0) {
+          return { results: cachedResults, explanation: cachedExplanation };
+        }
+      }
+    } catch (e) {}
+    return null;
+  };
+
+  const cachedData = getCachedResults();
+
+  const [query, setQuery] = useState(urlQuery);
+  const [results, setResults] = useState<SearchResult[]>(cachedData?.results || []);
+  const [explanation, setExplanation] = useState(cachedData?.explanation || '');
   const [isSearching, setIsSearching] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedContract, setSelectedContract] = useState<SearchResult | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(urlPage);
   const [filters, setFilters] = useState({
     includeSemantic: true,
     minScore: 0.5,
   });
   const pageSize = 20;
 
-  const handleSearch = async (searchQuery?: string) => {
-    const searchTerm = searchQuery || query;
+  // Update URL when page or search changes
+  const updateUrl = (page: number, searchQuery: string) => {
+    const params: Record<string, string> = {};
+    if (searchQuery) params.q = searchQuery;
+    if (page > 1) params.page = page.toString();
+    setSearchParams(params, { replace: true });
+  };
+
+  // Cache results in sessionStorage
+  const cacheResults = (searchQuery: string, searchResults: SearchResult[], searchExplanation: string) => {
+    try {
+      sessionStorage.setItem('nlpSearchCache', JSON.stringify({
+        query: searchQuery,
+        results: searchResults,
+        explanation: searchExplanation
+      }));
+    } catch (e) {}
+  };
+
+  // Only run search if URL has query but no cached results
+  useEffect(() => {
+    if (urlQuery && results.length === 0 && !isSearching) {
+      setQuery(urlQuery);
+      setCurrentPage(urlPage);
+      runSearch(urlQuery);
+    }
+  }, [urlQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const runSearch = async (searchTerm: string) => {
     if (!searchTerm.trim()) return;
 
     setIsSearching(true);
@@ -57,9 +106,11 @@ const NLPSearch: React.FC = () => {
         includeSemantic: filters.includeSemantic,
         userContext: {}
       });
-      setResults(response.results || []);
-      setExplanation(response.explanation || '');
-      setCurrentPage(1);
+      const newResults = response.results || [];
+      const newExplanation = response.explanation || '';
+      setResults(newResults);
+      setExplanation(newExplanation);
+      cacheResults(searchTerm, newResults, newExplanation);
     } catch (error) {
       console.error('Search error:', error);
     } finally {
@@ -67,8 +118,22 @@ const NLPSearch: React.FC = () => {
     }
   };
 
+  const handleSearch = async (searchQuery?: string) => {
+    const searchTerm = searchQuery || query;
+    if (!searchTerm.trim()) return;
+
+    setCurrentPage(1);
+    updateUrl(1, searchTerm);
+    await runSearch(searchTerm);
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSearch();
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    updateUrl(page, query);
   };
 
   const formatDate = (dateString: string) => {
@@ -78,6 +143,23 @@ const NLPSearch: React.FC = () => {
       day: 'numeric',
       year: 'numeric'
     });
+  };
+
+  // Helper to check if contract has document attachments
+  const hasDocumentAttachments = (contract: SearchResult): boolean => {
+    if (!contract.resourceLinks || !Array.isArray(contract.resourceLinks)) {
+      return false;
+    }
+    // Show attachment indicator if there are any resourceLinks
+    // SAM.gov links often end with /download without file extension
+    return contract.resourceLinks.length > 0;
+  };
+
+  const getDocumentCount = (contract: SearchResult): number => {
+    if (!contract.resourceLinks || !Array.isArray(contract.resourceLinks)) {
+      return 0;
+    }
+    return contract.resourceLinks.length;
   };
 
   const exampleQueries = [
@@ -103,7 +185,7 @@ const NLPSearch: React.FC = () => {
           <h1 className="text-2xl font-semibold text-gray-900">AI-Powered Search</h1>
         </div>
         <p className="text-sm text-gray-500">
-          Search contracts using natural language queries
+          Search contracts using natural language queries - click on a contract to view full details
         </p>
       </div>
 
@@ -222,20 +304,17 @@ const NLPSearch: React.FC = () => {
           <div className="bg-white rounded-lg border border-gray-200">
             <div className="divide-y divide-gray-100">
               {paginatedResults.map((result) => (
-                <div
-                  key={result.id}
-                  className="px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => setSelectedContract(result)}
+                <Link
+                  key={result.id || result.noticeId}
+                  to={`/contracts/${result.noticeId}`}
+                  className="block px-5 py-4 hover:bg-gray-50 transition-colors group"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-medium text-gray-900 mb-1">
+                      <h3 className="text-sm font-medium text-gray-900 mb-1 group-hover:text-indigo-600">
                         {result.title || 'Untitled Contract'}
                       </h3>
-                      <p className="text-xs text-gray-500 line-clamp-2 mb-2">
-                        {result.description}
-                      </p>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                         <span className="flex items-center gap-1">
                           <Building2 className="h-3.5 w-3.5" />
                           {result.agency?.split('.')[0] || 'Unknown'}
@@ -247,6 +326,12 @@ const NLPSearch: React.FC = () => {
                         {result.naicsCode && (
                           <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-600">
                             NAICS: {result.naicsCode}
+                          </span>
+                        )}
+                        {hasDocumentAttachments(result) && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded">
+                            <Paperclip className="h-3 w-3" />
+                            {getDocumentCount(result)} Docs
                           </span>
                         )}
                       </div>
@@ -261,10 +346,10 @@ const NLPSearch: React.FC = () => {
                           {(result.scores.overall * 100).toFixed(0)}% match
                         </span>
                       )}
-                      <ExternalLink className="h-4 w-4 text-gray-400" />
+                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-indigo-500 transition-colors" />
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -273,7 +358,7 @@ const NLPSearch: React.FC = () => {
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2">
               <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -291,7 +376,7 @@ const NLPSearch: React.FC = () => {
                   return (
                     <button
                       key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
+                      onClick={() => handlePageChange(pageNum)}
                       className={`w-10 h-10 text-sm rounded-lg ${
                         currentPage === pageNum
                           ? 'bg-indigo-600 text-white'
@@ -304,7 +389,7 @@ const NLPSearch: React.FC = () => {
                 })}
               </div>
               <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -323,99 +408,6 @@ const NLPSearch: React.FC = () => {
           <p className="text-gray-500 max-w-md mx-auto">
             Ask natural language questions like "Find IT contracts under $500K" or "Show me construction projects in California"
           </p>
-        </div>
-      )}
-
-      {/* Contract Detail Modal */}
-      {selectedContract && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedContract(null)}>
-          <div
-            className="bg-white rounded-xl max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Contract Details</h2>
-              <button
-                onClick={() => setSelectedContract(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="h-5 w-5 text-gray-500" />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[60vh]">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                {selectedContract.title}
-              </h3>
-
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Agency</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedContract.agency}</p>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Posted Date</p>
-                  <p className="text-sm font-medium text-gray-900">{formatDate(selectedContract.postedDate)}</p>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">NAICS Code</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedContract.naicsCode || 'N/A'}</p>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Set-Aside</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedContract.setAsideCode || 'None'}</p>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <p className="text-xs text-gray-500 mb-2">Description</p>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  {selectedContract.description || 'No description available'}
-                </p>
-              </div>
-
-              {selectedContract.scores && (
-                <div className="p-4 bg-indigo-50 rounded-lg">
-                  <p className="text-xs font-medium text-indigo-900 mb-3">Match Scores</p>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <p className="text-2xl font-bold text-indigo-600">{(selectedContract.scores.overall * 100).toFixed(0)}%</p>
-                      <p className="text-xs text-indigo-700">Overall</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-blue-600">{(selectedContract.scores.semantic * 100).toFixed(0)}%</p>
-                      <p className="text-xs text-blue-700">Semantic</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-green-600">{(selectedContract.scores.keyword * 100).toFixed(0)}%</p>
-                      <p className="text-xs text-green-700">Keyword</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
-              <Link
-                to={`/contracts/${selectedContract.noticeId}`}
-                className="flex-1 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 text-center"
-              >
-                View Full Details
-              </Link>
-              <a
-                href={`https://sam.gov/opp/${selectedContract.noticeId}/view`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 flex items-center gap-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                SAM.gov
-              </a>
-            </div>
-          </div>
         </div>
       )}
     </div>

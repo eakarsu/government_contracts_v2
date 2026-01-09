@@ -11,6 +11,7 @@ import {
   Sparkles,
   FileText
 } from 'lucide-react';
+// Note: Sparkles icon is also used for AI Search mode in unified Search page
 
 interface SidebarProps {
   isOpen: boolean;
@@ -20,7 +21,6 @@ interface SidebarProps {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Search', href: '/search', icon: Search },
-  { name: 'NLP Search', href: '/nlp-search', icon: Sparkles },
   { name: 'RFP System', href: '/rfp', icon: ClipboardList },
   { name: 'Documents', href: '/documents', icon: FileText },
   { name: 'Jobs', href: '/jobs', icon: BarChart3 },

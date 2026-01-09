@@ -9,8 +9,7 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  ClipboardList,
-  FlaskConical
+  ClipboardList
 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import Card from '../UI/Card';
@@ -321,31 +320,61 @@ const DocumentDownload: React.FC = () => {
 
         {/* Active Download Progress */}
         {activeJob && (
-          <div className="mt-6 p-4 rounded-xl bg-info-50 border border-info-200">
-            <div className="flex items-center gap-2 mb-3">
-              <Loader2 className="h-4 w-4 text-info-600 animate-spin" />
-              <h3 className="font-medium text-info-900">
-                Download in Progress (Job #{activeJob.id})
-              </h3>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <span className="text-info-700">Downloaded:</span>
-                <span className="font-medium text-info-900 ml-1">{activeJob.records_processed}</span>
+          <div className="mt-6 p-5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-blue-900">
+                    Download in Progress
+                  </h3>
+                  <p className="text-xs text-blue-600">Job #{activeJob.id}</p>
+                </div>
               </div>
-              <div>
-                <span className="text-info-700">Errors:</span>
-                <span className="font-medium text-info-900 ml-1">{activeJob.errors_count}</span>
-              </div>
-              <div>
-                <span className="text-info-700">Duration:</span>
-                <span className="font-medium text-info-900 ml-1">{activeJob.duration_minutes}m</span>
-              </div>
-              <div>
-                <span className="text-info-700">Started:</span>
-                <span className="font-medium text-info-900 ml-1">{formatDate(activeJob.started_at)}</span>
+              <div className="text-right">
+                <p className="text-sm text-blue-700">Duration</p>
+                <p className="text-lg font-bold text-blue-900">{activeJob.duration_minutes}m</p>
               </div>
             </div>
+
+            {/* Progress Counters */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div className="bg-white/80 rounded-lg p-3 text-center border border-blue-100">
+                <Download className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-blue-700">{activeJob.records_processed}</p>
+                <p className="text-xs text-blue-600">Downloaded</p>
+              </div>
+              <div className="bg-white/80 rounded-lg p-3 text-center border border-green-100">
+                <CheckCircle className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-green-700">{activeJob.records_processed - activeJob.errors_count}</p>
+                <p className="text-xs text-green-600">Successful</p>
+              </div>
+              <div className="bg-white/80 rounded-lg p-3 text-center border border-red-100">
+                <XCircle className="h-5 w-5 text-red-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-red-600">{activeJob.errors_count}</p>
+                <p className="text-xs text-red-500">Errors</p>
+              </div>
+              <div className="bg-white/80 rounded-lg p-3 text-center border border-purple-100">
+                <Clock className="h-5 w-5 text-purple-600 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-purple-700">
+                  {activeJob.records_processed > 0 ? Math.round(activeJob.records_processed / Math.max(activeJob.duration_minutes, 1)) : 0}
+                </p>
+                <p className="text-xs text-purple-600">Files/min</p>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="bg-white/50 rounded-full h-2 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500 animate-pulse"
+                style={{ width: '100%' }}
+              />
+            </div>
+            <p className="text-xs text-blue-600 mt-2 text-center">
+              Started: {formatDate(activeJob.started_at)} • Auto-refreshing every 3 seconds
+            </p>
           </div>
         )}
       </Card>

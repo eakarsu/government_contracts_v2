@@ -4,7 +4,7 @@ class AIService {
   constructor() {
     this.apiKey = config.openRouterApiKey;
     this.baseUrl = 'https://openrouter.ai/api/v1';
-    this.chatModel = 'anthropic/claude-3-haiku';
+    this.chatModel = process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4';
   }
 
   async analyzeDocument(text, documentType = 'rfp') {

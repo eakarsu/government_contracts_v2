@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GovContracts AI - Presentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #333;
+        }
+        .slide {
+            width: 100vw;
+            min-height: 100vh;
+            padding: 60px 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            page-break-after: always;
+        }
+        .slide:nth-child(even) {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        .slide:nth-child(even) h1,
+        .slide:nth-child(even) h2,
+        .slide:nth-child(even) h3,
+        .slide:nth-child(even) p,
+        .slide:nth-child(even) li {
+            color: #333;
+        }
+        h1 {
+            font-size: 3.5rem;
+            color: white;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        h2 {
+            font-size: 2.5rem;
+            color: white;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        h3 {
+            font-size: 1.8rem;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        p, li {
+            font-size: 1.4rem;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        ul {
+            list-style: none;
+            margin-left: 20px;
+        }
+        li::before {
+            content: "→ ";
+            color: #ffd700;
+        }
+        .slide:nth-child(even) li::before {
+            color: #667eea;
+        }
+        .title-slide {
+            text-align: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        .title-slide h1 {
+            font-size: 5rem;
+            margin-bottom: 30px;
+        }
+        .title-slide h2 {
+            font-size: 2rem;
+            font-weight: 400;
+            opacity: 0.9;
+        }
+        .logo {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 30px;
+            margin: 0 auto 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1.2rem;
+        }
+        .slide:nth-child(even) th,
+        .slide:nth-child(even) td {
+            color: #333;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        th {
+            background: rgba(255,255,255,0.2);
+            font-weight: 600;
+        }
+        .slide:nth-child(even) th {
+            background: rgba(102, 126, 234, 0.2);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            margin-top: 30px;
+        }
+        .grid-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        .card {
+            background: rgba(255,255,255,0.15);
+            padding: 30px;
+            border-radius: 15px;
+        }
+        .slide:nth-child(even) .card {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        .stat {
+            text-align: center;
+            padding: 30px;
+        }
+        .stat-number {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #ffd700;
+        }
+        .slide:nth-child(even) .stat-number {
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        .quote {
+            font-style: italic;
+            font-size: 1.6rem;
+            padding: 30px;
+            border-left: 4px solid #ffd700;
+            margin: 20px 0;
+            background: rgba(255,255,255,0.1);
+        }
+        .slide:nth-child(even) .quote {
+            border-left-color: #667eea;
+        }
+        .team-member {
+            text-align: center;
+        }
+        .team-avatar {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            font-weight: bold;
+        }
+        .highlight {
+            color: #ffd700;
+            font-weight: 600;
+        }
+        .slide:nth-child(even) .highlight {
+            color: #667eea;
+        }
+        .cta-slide {
+            text-align: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        .contact-info {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin-top: 40px;
+        }
+        .contact-item {
+            text-align: center;
+        }
+        @media print {
+            .slide {
+                height: 100vh;
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Slide 1: Title -->
+<div class="slide title-slide">
+    <div class="logo">GC</div>
+    <h1>GovContracts AI</h1>
+    <h2>Win More Government Contracts with AI</h2>
+    <p style="margin-top: 40px; opacity: 0.7;">AI-Powered Platform for Federal Contract Discovery & Proposal Generation</p>
+</div>
+
+<!-- Slide 2: The Problem -->
+<div class="slide">
+    <h1>The $700 Billion Problem</h1>
+    <h3>Small businesses struggle to compete for federal contracts</h3>
+    <ul>
+        <li><span class="highlight">50,000+</span> active federal contract opportunities at any time</li>
+        <li><span class="highlight">Manual search</span> through SAM.gov is time-consuming</li>
+        <li><span class="highlight">40-80 hours</span> to write each proposal</li>
+        <li><span class="highlight">&lt;20%</span> win rate for small businesses</li>
+        <li>Complex compliance requirements</li>
+    </ul>
+    <div class="quote">
+        "90% of small businesses give up on government contracting within 2 years"
+    </div>
+</div>
+
+<!-- Slide 3: Solution -->
+<div class="slide">
+    <h1>Our Solution</h1>
+    <h3>AI-Powered Tools for Every Stage</h3>
+    <table>
+        <tr>
+            <th>Stage</th>
+            <th>Traditional</th>
+            <th>With GovContracts AI</th>
+        </tr>
+        <tr>
+            <td>Discovery</td>
+            <td>Hours of manual search</td>
+            <td>Instant AI matching</td>
+        </tr>
+        <tr>
+            <td>Analysis</td>
+            <td>Guesswork on fit</td>
+            <td>Win probability scores</td>
+        </tr>
+        <tr>
+            <td>Proposals</td>
+            <td>40-80 hours writing</td>
+            <td>Generate in minutes</td>
+        </tr>
+        <tr>
+            <td>Compliance</td>
+            <td>Manual checklist</td>
+            <td>Automated verification</td>
+        </tr>
+    </table>
+</div>
+
+<!-- Slide 4: Features -->
+<div class="slide">
+    <h1>Platform Features</h1>
+    <div class="grid">
+        <div class="card">
+            <h3>AI-Powered Search</h3>
+            <p>Natural language search with smart filters by agency, NAICS, set-aside, and value</p>
+        </div>
+        <div class="card">
+            <h3>Win Probability</h3>
+            <p>AI scores each opportunity based on your profile and historical data</p>
+        </div>
+        <div class="card">
+            <h3>Proposal Generator</h3>
+            <p>AI drafts professional RFP responses section by section</p>
+        </div>
+        <div class="card">
+            <h3>Compliance Checker</h3>
+            <p>Automated verification of eligibility and requirements</p>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 5: How It Works -->
+<div class="slide">
+    <h1>How It Works</h1>
+    <h3>Simple 3-Step Process</h3>
+    <div class="grid grid-3">
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 20px;">1</div>
+            <h3>Create Profile</h3>
+            <p>Enter capabilities, certifications & past performance</p>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 20px;">2</div>
+            <h3>Discover</h3>
+            <p>AI matches you with relevant contracts</p>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 20px;">3</div>
+            <h3>Win</h3>
+            <p>Generate proposals & submit winning bids</p>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 6: Technology -->
+<div class="slide">
+    <h1>Technology Stack</h1>
+    <div class="grid">
+        <div class="card">
+            <h3>Frontend</h3>
+            <ul>
+                <li>React.js with TypeScript</li>
+                <li>TailwindCSS</li>
+                <li>Real-time updates</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>Backend</h3>
+            <ul>
+                <li>Node.js / Express</li>
+                <li>PostgreSQL database</li>
+                <li>Prisma ORM</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>AI/ML</h3>
+            <ul>
+                <li>OpenRouter API (Claude)</li>
+                <li>Natural Language Processing</li>
+                <li>Vector search</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>Security</h3>
+            <ul>
+                <li>JWT authentication</li>
+                <li>AES-256 encryption</li>
+                <li>SOC 2 compliant</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 7: Market -->
+<div class="slide">
+    <h1>Market Opportunity</h1>
+    <div class="grid grid-3">
+        <div class="stat">
+            <div class="stat-number">$700B+</div>
+            <div class="stat-label">Annual Federal Spending</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">500K+</div>
+            <div class="stat-label">Registered Contractors</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">$161B</div>
+            <div class="stat-label">Small Business Set-Asides</div>
+        </div>
+    </div>
+    <div style="margin-top: 40px;">
+        <h3>Target Market</h3>
+        <ul>
+            <li>Small to mid-size government contractors</li>
+            <li>Companies new to federal contracting</li>
+            <li>Subcontractors seeking prime opportunities</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Slide 8: Competitive Advantage -->
+<div class="slide">
+    <h1>Competitive Advantage</h1>
+    <table>
+        <tr>
+            <th>Feature</th>
+            <th>GovContracts AI</th>
+            <th>Competitors</th>
+        </tr>
+        <tr>
+            <td>AI Proposal Generation</td>
+            <td style="color: #4ade80;">Yes</td>
+            <td style="color: #f87171;">No</td>
+        </tr>
+        <tr>
+            <td>Win Probability Scoring</td>
+            <td style="color: #4ade80;">Yes</td>
+            <td>Limited</td>
+        </tr>
+        <tr>
+            <td>Natural Language Search</td>
+            <td style="color: #4ade80;">Yes</td>
+            <td style="color: #f87171;">No</td>
+        </tr>
+        <tr>
+            <td>Pricing</td>
+            <td style="color: #4ade80;">$99-299/mo</td>
+            <td style="color: #f87171;">$300-1000/mo</td>
+        </tr>
+    </table>
+</div>
+
+<!-- Slide 9: Business Model -->
+<div class="slide">
+    <h1>Business Model</h1>
+    <h3>Subscription Tiers</h3>
+    <div class="grid grid-3">
+        <div class="card" style="text-align: center;">
+            <h3>Starter</h3>
+            <div class="stat-number" style="font-size: 2.5rem;">$99/mo</div>
+            <p>100 searches<br>5 proposals<br>1 user</p>
+        </div>
+        <div class="card" style="text-align: center; border: 2px solid #ffd700;">
+            <h3>Professional</h3>
+            <div class="stat-number" style="font-size: 2.5rem;">$299/mo</div>
+            <p>Unlimited searches<br>Unlimited proposals<br>5 users</p>
+        </div>
+        <div class="card" style="text-align: center;">
+            <h3>Enterprise</h3>
+            <div class="stat-number" style="font-size: 2.5rem;">Custom</div>
+            <p>API access<br>Custom AI training<br>Dedicated support</p>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 10: Traction -->
+<div class="slide">
+    <h1>Traction & Metrics</h1>
+    <div class="grid grid-3" style="margin-bottom: 40px;">
+        <div class="stat">
+            <div class="stat-number">5,000+</div>
+            <div class="stat-label">Registered Users</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">$2.5B</div>
+            <div class="stat-label">Contracts Won</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">85%</div>
+            <div class="stat-label">Win Rate Increase</div>
+        </div>
+    </div>
+    <div class="grid grid-3">
+        <div class="stat">
+            <div class="stat-number">4.8/5</div>
+            <div class="stat-label">Customer Rating</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">92%</div>
+            <div class="stat-label">Retention Rate</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">150%</div>
+            <div class="stat-label">YoY Growth</div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 11: Customer Stories -->
+<div class="slide">
+    <h1>Customer Success</h1>
+    <div class="quote">
+        "GovContracts AI helped us increase our win rate by 40%. The AI insights are incredibly accurate."
+        <br><br>
+        <strong>— Sarah Johnson, CEO, TechDefense Solutions</strong>
+        <br>
+        Result: $4.2M in new contracts
+    </div>
+    <div class="quote">
+        "The proposal generator alone saved us 20+ hours per bid. Game changer for small businesses."
+        <br><br>
+        <strong>— Michael Chen, BD Director, Cyber Innovations</strong>
+        <br>
+        Result: 3 contracts won in 6 months
+    </div>
+</div>
+
+<!-- Slide 12: Roadmap -->
+<div class="slide">
+    <h1>Product Roadmap</h1>
+    <div class="grid">
+        <div class="card">
+            <h3>Q1 2026 (Current)</h3>
+            <ul>
+                <li>AI Proposal Generator</li>
+                <li>Win Probability Analysis</li>
+                <li>Compliance Checker</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>Q2 2026</h3>
+            <ul>
+                <li>Mobile app (iOS/Android)</li>
+                <li>Team collaboration</li>
+                <li>Subcontractor marketplace</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>Q3 2026</h3>
+            <ul>
+                <li>API marketplace</li>
+                <li>CRM integrations</li>
+                <li>Advanced analytics</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>Q4 2026</h3>
+            <ul>
+                <li>State & local contracts</li>
+                <li>International expansion</li>
+                <li>AI pricing optimization</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 13: Team -->
+<div class="slide">
+    <h1>Leadership Team</h1>
+    <div class="grid grid-3" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="team-member">
+            <div class="team-avatar">AT</div>
+            <h3 style="font-size: 1.3rem;">Alex Thompson</h3>
+            <p style="font-size: 1rem;">CEO & Co-Founder</p>
+            <p style="font-size: 0.9rem; opacity: 0.8;">15+ years GovCon</p>
+        </div>
+        <div class="team-member">
+            <div class="team-avatar">SC</div>
+            <h3 style="font-size: 1.3rem;">Sarah Chen</h3>
+            <p style="font-size: 1rem;">CTO & Co-Founder</p>
+            <p style="font-size: 0.9rem; opacity: 0.8;">Ex-Google AI, Stanford PhD</p>
+        </div>
+        <div class="team-member">
+            <div class="team-avatar">MR</div>
+            <h3 style="font-size: 1.3rem;">Michael Roberts</h3>
+            <p style="font-size: 1rem;">VP of Sales</p>
+            <p style="font-size: 0.9rem; opacity: 0.8;">20+ years sales</p>
+        </div>
+        <div class="team-member">
+            <div class="team-avatar">ED</div>
+            <h3 style="font-size: 1.3rem;">Emily Davis</h3>
+            <p style="font-size: 1rem;">Head of Product</p>
+            <p style="font-size: 0.9rem; opacity: 0.8;">Ex-Salesforce</p>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 14: Investment -->
+<div class="slide">
+    <h1>Investment Ask</h1>
+    <div style="text-align: center; margin-bottom: 40px;">
+        <div class="stat-number" style="font-size: 5rem;">$5M</div>
+        <div class="stat-label" style="font-size: 1.5rem;">Series A Round</div>
+    </div>
+    <div class="grid">
+        <div class="card">
+            <h3>Use of Funds</h3>
+            <ul>
+                <li>Engineering & AI: 40%</li>
+                <li>Sales & Marketing: 35%</li>
+                <li>Operations: 15%</li>
+                <li>G&A: 10%</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>18-Month Milestones</h3>
+            <ul>
+                <li>25,000 active users</li>
+                <li>$5M ARR</li>
+                <li>50 enterprise customers</li>
+                <li>Mobile app launch</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 15: Contact -->
+<div class="slide cta-slide">
+    <div class="logo">GC</div>
+    <h1>Let's Connect</h1>
+    <h2 style="font-weight: 400;">Schedule a Demo Today</h2>
+    <div class="contact-info">
+        <div class="contact-item">
+            <p style="font-size: 1.2rem; opacity: 0.7;">Website</p>
+            <p style="font-size: 1.5rem;">govcontractsai.com</p>
+        </div>
+        <div class="contact-item">
+            <p style="font-size: 1.2rem; opacity: 0.7;">Email</p>
+            <p style="font-size: 1.5rem;">info@govcontractsai.com</p>
+        </div>
+        <div class="contact-item">
+            <p style="font-size: 1.2rem; opacity: 0.7;">Phone</p>
+            <p style="font-size: 1.5rem;">+1 (888) 555-0123</p>
+        </div>
+    </div>
+    <p style="margin-top: 60px; opacity: 0.5;">Thank You!</p>
+</div>
+
+</body>
+</html>

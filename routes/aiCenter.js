@@ -17,7 +17,7 @@ async function callOpenRouterAI(systemPrompt, userPrompt, maxTokens = 2000) {
         'X-Title': 'ContractAI'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3-haiku',
+        model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -304,7 +304,7 @@ Contract Details:
         'X-Title': 'ContractAI'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3-haiku',
+        model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
         messages: messages,
         max_tokens: 1000,
         temperature: 0.7

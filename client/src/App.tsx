@@ -28,7 +28,7 @@ import Careers from './pages/Careers';
 // Dashboard Pages
 import Dashboard from './pages/Dashboard';
 import Search from './pages/Search';
-import NLPSearch from './pages/NLPSearch';
+// NLPSearch is now integrated into Search with mode=nlp parameter
 import ContractDetail from './pages/ContractDetail';
 import Jobs from './pages/Jobs';
 import Documents from './pages/Documents';
@@ -115,7 +115,7 @@ function App() {
                 {/* Protected Pages - With Layout */}
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
-                <Route path="/nlp-search" element={<ProtectedRoute><NLPSearch /></ProtectedRoute>} />
+                <Route path="/nlp-search" element={<Navigate to="/search?mode=nlp" replace />} />
                 <Route path="/contracts/:noticeId" element={<ProtectedRoute><ContractDetail /></ProtectedRoute>} />
                 <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
                 <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />

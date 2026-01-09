@@ -114,7 +114,7 @@ async function processTestDocumentsSequentially(documents, jobId) {
           filePathToProcess,
           doc.filename || 'test_document',
           '',
-          'openai/gpt-4.1'
+          process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4'
         );
 
         if (result) {

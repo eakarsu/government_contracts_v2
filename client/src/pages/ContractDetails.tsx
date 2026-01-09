@@ -101,9 +101,22 @@ const ContractDetails: React.FC = () => {
         {/* Description */}
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Description</h2>
-          <p className="text-sm text-gray-700">
-            {contract.description || 'No description available.'}
-          </p>
+          {contract.description ? (
+            contract.description.includes('<') && contract.description.includes('>') ? (
+              // Render HTML content from SAM.gov
+              <div
+                className="text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-1 [&_a]:text-blue-600 [&_a]:underline"
+                dangerouslySetInnerHTML={{ __html: contract.description }}
+              />
+            ) : (
+              // Render plain text
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                {contract.description}
+              </p>
+            )
+          ) : (
+            <p className="text-sm text-gray-500 italic">No description available.</p>
+          )}
         </div>
       </div>
 

@@ -21,6 +21,9 @@ export interface Contract {
   indexedAt?: string;
   createdAt: string;
   updatedAt: string;
+  // Fields for incomplete descriptions
+  descriptionIncomplete?: boolean;
+  samGovUrl?: string;
   // Search result specific fields
   semanticScore?: number;
   keywordScore?: number;
@@ -97,14 +100,29 @@ export interface ContractAnalysis {
       description_length: number;
       has_description: boolean;
     };
+    // Company profile used for fit analysis
+    company_profile_used?: {
+      id: number;
+      company_name: string;
+      naics_codes: string[];
+      certifications: string[];
+      size_standard?: string;
+      core_competencies: string[];
+      security_clearances: string[];
+      past_performance_count: number;
+    };
     document_analysis: {
       total_resource_links: number;
       documents_processed: number;
+      documents_summarized_on_demand?: number;
       documents_failed: number;
       documents_in_vector_db: number;
+      documents_included_in_analysis?: number;
+      attachments_analyzed?: boolean;
       processing_success_rate: number;
     };
     ai_insights?: {
+      // General analysis fields
       executive_summary?: string;
       opportunity_score?: number;
       key_requirements?: string[];
@@ -115,7 +133,27 @@ export interface ContractAnalysis {
       recommended_actions?: string[];
       deadline_urgency?: string;
       bid_decision_factors?: string[];
+      attachment_insights?: string[];
       raw_analysis?: string;
+      // Company fit analysis fields
+      fit_score?: number;
+      go_no_go_recommendation?: 'GO' | 'NO-GO' | 'CONDITIONAL';
+      win_probability?: string;
+      naics_match?: boolean | string;
+      set_aside_eligible?: boolean | string;
+      strengths?: string[];
+      gaps?: string[];
+      gap_mitigation?: string[];
+      competitive_advantages?: string[];
+      required_vs_available?: {
+        certifications?: { required: string[]; company_has: string[]; missing: string[] };
+        clearances?: { required: string[]; company_has: string[]; missing: string[] };
+        capabilities?: { required: string[]; company_has: string[]; missing: string[] };
+      };
+      past_performance_relevance?: string;
+      teaming_suggestions?: string[];
+      bid_investment_level?: string;
+      risks?: string[];
     };
     content_insights: {
       contract_text_length: number;

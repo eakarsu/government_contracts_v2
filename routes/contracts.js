@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
+const fs = require('fs-extra');
 const { query } = require('../config/database');
 const VectorService = require('../services/vectorService');
 const config = require('../config/env');
@@ -262,34 +263,125 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get single contract by noticeId - VECTOR DATABASE ONLY
+// Helper function to fetch full description from SAM.gov API
+async function fetchFullDescription(noticeId) {
+  try {
+    const descUrl = `https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=${noticeId}&api_key=${config.samGovApiKey}`;
+    console.log(`📄 Fetching full description for contract ${noticeId}`);
+
+    const response = await axios.get(descUrl, { timeout: 10000 });
+
+    // SAM.gov returns HTML content in the description
+    if (response.data && response.data.description) {
+      return response.data.description;
+    }
+
+    // Some responses return it in a different format
+    if (typeof response.data === 'string') {
+      return response.data;
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`Failed to fetch description for ${noticeId}:`, error.message);
+    return null;
+  }
+}
+
+// Get single contract by noticeId - PostgreSQL first, then Vector DB
 router.get('/:noticeId', async (req, res) => {
   try {
     const { noticeId } = req.params;
-    
-    if (!vectorService || !vectorService.isConnected) {
-      return res.status(503).json({
-        success: false,
-        error: 'Vector database not available'
-      });
+
+    // First try to get from PostgreSQL (has full descriptions)
+    let contract = null;
+    try {
+      const dbResult = await query(`
+        SELECT
+          notice_id, title, description, agency, naics_code,
+          classification_code, posted_date, set_aside_code, resource_links,
+          indexed_at, created_at, updated_at, contract_value
+        FROM contract
+        WHERE notice_id = $1
+      `, [noticeId]);
+
+      if (dbResult.rows.length > 0) {
+        const row = dbResult.rows[0];
+        contract = {
+          id: row.notice_id,
+          noticeId: row.notice_id,
+          title: row.title,
+          description: row.description,
+          agency: row.agency,
+          naicsCode: row.naics_code,
+          classificationCode: row.classification_code,
+          postedDate: row.posted_date,
+          setAsideCode: row.set_aside_code,
+          resourceLinks: (() => {
+            if (!row.resource_links) return [];
+            if (Array.isArray(row.resource_links)) return row.resource_links;
+            if (typeof row.resource_links === 'string') {
+              try {
+                return JSON.parse(row.resource_links);
+              } catch (e) {
+                return [];
+              }
+            }
+            return [];
+          })(),
+          indexedAt: row.indexed_at,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          contractValue: row.contract_value,
+          source: 'postgresql'
+        };
+        console.log(`📋 Contract ${noticeId} loaded from PostgreSQL (${(contract.description || '').length} char description)`);
+      }
+    } catch (dbError) {
+      console.warn(`⚠️ PostgreSQL lookup failed for ${noticeId}:`, dbError.message);
     }
-    
-    // Get contract using smart search function
-    const contract = await getContractFromVector(noticeId);
-    
+
+    // Fall back to vector database if not found in PostgreSQL
+    if (!contract) {
+      if (!vectorService || !vectorService.isConnected) {
+        return res.status(503).json({
+          success: false,
+          error: 'Database not available'
+        });
+      }
+
+      contract = await getContractFromVector(noticeId);
+      if (contract) {
+        contract.source = 'vector';
+        console.log(`📋 Contract ${noticeId} loaded from Vector DB`);
+      }
+    }
+
     if (!contract) {
       return res.status(404).json({
         success: false,
-        error: 'Contract not found in vector database'
+        error: 'Contract not found'
       });
     }
-    
+
+    // Check if description is incomplete (URL-only or too short)
+    const description = contract.description || '';
+    const isSamGovUrl = description.includes('api.sam.gov') && description.includes('noticedesc');
+    const isIncomplete = isSamGovUrl || !description || description.length < 100;
+
+    if (isIncomplete) {
+      // Mark as incomplete and provide SAM.gov URL instead of fetching
+      contract.descriptionIncomplete = true;
+      contract.samGovUrl = `https://sam.gov/opp/${noticeId}/view`;
+      contract.description = null; // Clear the URL-only description
+    }
+
     res.json(contract);
   } catch (error) {
-    console.error('Error fetching contract from vector DB:', error);
+    console.error('Error fetching contract:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch contract from vector database',
+      error: 'Failed to fetch contract',
       details: error.message
     });
   }
@@ -356,16 +448,32 @@ router.post('/fetch', async (req, res) => {
 
       const response = await axios.get(`${samGovUrl}?${params}`);
       const contractsData = response.data.opportunitiesData || [];
-      
+
       let processedCount = 0;
       let errorsCount = 0;
 
+      console.log(`📋 Processing ${contractsData.length} contracts, fetching full descriptions...`);
+
       for (const contractData of contractsData) {
         try {
+          if (!contractData.noticeId) continue;
+
+          // Fetch full description from SAM.gov noticedesc API
+          let fullDescription = contractData.description || '';
+          try {
+            const descResponse = await fetchFullDescription(contractData.noticeId);
+            if (descResponse) {
+              fullDescription = descResponse;
+              console.log(`📄 [${processedCount + 1}/${contractsData.length}] Fetched description for ${contractData.noticeId} (${fullDescription.length} chars)`);
+            }
+          } catch (descError) {
+            console.warn(`⚠️ Could not fetch description for ${contractData.noticeId}:`, descError.message);
+          }
+
           const contractDetails = {
             noticeId: contractData.noticeId,
             title: contractData.title,
-            description: contractData.description,
+            description: fullDescription,
             agency: contractData.fullParentPathName,
             naicsCode: contractData.naicsCode,
             classificationCode: contractData.classificationCode,
@@ -373,18 +481,16 @@ router.post('/fetch', async (req, res) => {
             setAsideCode: contractData.typeOfSetAsideCode,
             resourceLinks: Array.isArray(contractData.resourceLinks) ? contractData.resourceLinks : []
           };
-          
-          if (!contractDetails.noticeId) continue;
 
           // Upsert contract using raw SQL
           await query(`
             INSERT INTO contract (
-              notice_id, title, description, agency, naics_code, 
+              notice_id, title, description, agency, naics_code,
               classification_code, posted_date, set_aside_code, resource_links,
               created_at, updated_at
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-            ON CONFLICT (notice_id) 
-            DO UPDATE SET 
+            ON CONFLICT (notice_id)
+            DO UPDATE SET
               title = EXCLUDED.title,
               description = EXCLUDED.description,
               agency = EXCLUDED.agency,
@@ -405,6 +511,42 @@ router.post('/fetch', async (req, res) => {
             contractDetails.setAsideCode,
             JSON.stringify(contractDetails.resourceLinks || [])
           ]);
+
+          // Auto-download and queue attachments for processing
+          if (contractDetails.resourceLinks && contractDetails.resourceLinks.length > 0) {
+            console.log(`📎 [${contractDetails.noticeId}] Queueing ${contractDetails.resourceLinks.length} attachments for download`);
+
+            // Queue attachments in background (don't block the main fetch)
+            setImmediate(async () => {
+              try {
+                for (const resourceUrl of contractDetails.resourceLinks.slice(0, 10)) { // Limit to 10 attachments per contract
+                  if (typeof resourceUrl === 'string' && resourceUrl.includes('sam.gov')) {
+                    // Download the file
+                    const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+                    await fs.ensureDir(downloadPath);
+
+                    const filename = `${contractDetails.noticeId}_download_${Date.now()}${path.extname(resourceUrl) || '.pdf'}`;
+                    const filePath = path.join(downloadPath, filename);
+
+                    try {
+                      const response = await axios.get(resourceUrl, {
+                        responseType: 'arraybuffer',
+                        timeout: 30000,
+                        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)' }
+                      });
+
+                      await fs.writeFile(filePath, response.data);
+                      console.log(`📥 Downloaded: ${filename} (${(response.data.length / 1024).toFixed(1)} KB)`);
+                    } catch (dlError) {
+                      console.warn(`⚠️ Failed to download ${resourceUrl}:`, dlError.message);
+                    }
+                  }
+                }
+              } catch (bgError) {
+                console.error(`❌ Background download error for ${contractDetails.noticeId}:`, bgError.message);
+              }
+            });
+          }
 
           processedCount++;
         } catch (error) {
@@ -1240,12 +1382,28 @@ router.post('/fetch-by-criteria', async (req, res) => {
       let errorsCount = 0;
       const processedContracts = [];
 
+      console.log(`📋 Processing ${contractsData.length} contracts by criteria, fetching full descriptions...`);
+
       for (const contractData of contractsData) {
         try {
+          if (!contractData.noticeId) continue;
+
+          // Fetch full description from SAM.gov noticedesc API
+          let fullDescription = contractData.description || '';
+          try {
+            const descResponse = await fetchFullDescription(contractData.noticeId);
+            if (descResponse) {
+              fullDescription = descResponse;
+              console.log(`📄 [${processedCount + 1}/${contractsData.length}] Fetched description for ${contractData.noticeId} (${fullDescription.length} chars)`);
+            }
+          } catch (descError) {
+            console.warn(`⚠️ Could not fetch description for ${contractData.noticeId}:`, descError.message);
+          }
+
           const contractDetails = {
             noticeId: contractData.noticeId,
             title: contractData.title,
-            description: contractData.description,
+            description: fullDescription,
             agency: contractData.fullParentPathName,
             naicsCode: contractData.naicsCode,
             classificationCode: contractData.classificationCode,
@@ -1253,8 +1411,6 @@ router.post('/fetch-by-criteria', async (req, res) => {
             setAsideCode: contractData.typeOfSetAsideCode,
             resourceLinks: Array.isArray(contractData.resourceLinks) ? contractData.resourceLinks : []
           };
-          
-          if (!contractDetails.noticeId) continue;
 
           // Upsert contract using raw SQL
           await query(`
@@ -1286,6 +1442,40 @@ router.post('/fetch-by-criteria', async (req, res) => {
             JSON.stringify(contractDetails.resourceLinks || [])
           ]);
 
+          // Auto-download and queue attachments for processing
+          if (contractDetails.resourceLinks && contractDetails.resourceLinks.length > 0) {
+            console.log(`📎 [${contractDetails.noticeId}] Queueing ${contractDetails.resourceLinks.length} attachments for download`);
+
+            setImmediate(async () => {
+              try {
+                for (const resourceUrl of contractDetails.resourceLinks.slice(0, 10)) {
+                  if (typeof resourceUrl === 'string' && resourceUrl.includes('sam.gov')) {
+                    const downloadPath = path.join(process.cwd(), 'downloaded_documents');
+                    await fs.ensureDir(downloadPath);
+
+                    const filename = `${contractDetails.noticeId}_download_${Date.now()}${path.extname(resourceUrl) || '.pdf'}`;
+                    const filePath = path.join(downloadPath, filename);
+
+                    try {
+                      const response = await axios.get(resourceUrl, {
+                        responseType: 'arraybuffer',
+                        timeout: 30000,
+                        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ContractIndexer/1.0)' }
+                      });
+
+                      await fs.writeFile(filePath, response.data);
+                      console.log(`📥 Downloaded: ${filename} (${(response.data.length / 1024).toFixed(1)} KB)`);
+                    } catch (dlError) {
+                      console.warn(`⚠️ Failed to download ${resourceUrl}:`, dlError.message);
+                    }
+                  }
+                }
+              } catch (bgError) {
+                console.error(`❌ Background download error for ${contractDetails.noticeId}:`, bgError.message);
+              }
+            });
+          }
+
           processedContracts.push({
             noticeId: contractDetails.noticeId,
             title: contractDetails.title,
@@ -1300,7 +1490,7 @@ router.post('/fetch-by-criteria', async (req, res) => {
 
       // Update job status
       await query(`
-        UPDATE indexing_jobs 
+        UPDATE indexing_jobs
         SET status = $1, records_processed = $2, errors_count = $3, completed_at = NOW()
         WHERE id = $4
       `, ['completed', processedCount, errorsCount, job.id]);
@@ -1731,7 +1921,7 @@ router.delete('/reset-vector-database', async (req, res) => {
     }
     
     console.log(`💥 [RESET] Vector database reset completed: ${contractsRemoved} contracts removed, ${documentsRemoved} documents removed, ${errors} errors`);
-    
+
     res.json({
       success: true,
       message: 'Vector database completely reset',
@@ -1739,13 +1929,98 @@ router.delete('/reset-vector-database', async (req, res) => {
       documentsRemoved,
       errors
     });
-    
+
   } catch (error) {
     console.error('❌ [RESET] Vector database reset failed:', error);
     res.status(500).json({
       success: false,
       error: error.message,
       message: 'Vector database reset failed'
+    });
+  }
+});
+
+// Re-fetch descriptions for existing contracts that have URL-only descriptions
+router.post('/refetch-descriptions', async (req, res) => {
+  try {
+    const { limit = 50 } = req.body;
+
+    console.log(`📄 [REFETCH] Starting to re-fetch descriptions for contracts with URL-only descriptions...`);
+
+    // Get contracts that have URL-only descriptions (contain api.sam.gov)
+    const result = await query(`
+      SELECT notice_id, title, description
+      FROM contract
+      WHERE description LIKE '%api.sam.gov%noticedesc%'
+         OR description IS NULL
+         OR LENGTH(description) < 100
+      LIMIT $1
+    `, [limit]);
+
+    const contractsToUpdate = result.rows;
+
+    if (contractsToUpdate.length === 0) {
+      return res.json({
+        success: true,
+        message: 'All contracts already have full descriptions',
+        updated: 0
+      });
+    }
+
+    console.log(`📄 [REFETCH] Found ${contractsToUpdate.length} contracts needing description updates`);
+
+    let updatedCount = 0;
+    let errorsCount = 0;
+    const updatedContracts = [];
+
+    for (const contract of contractsToUpdate) {
+      try {
+        // Fetch full description from SAM.gov
+        const fullDescription = await fetchFullDescription(contract.notice_id);
+
+        if (fullDescription && fullDescription.length > 100) {
+          // Update the database with full description
+          await query(`
+            UPDATE contract
+            SET description = $1, updated_at = NOW()
+            WHERE notice_id = $2
+          `, [fullDescription, contract.notice_id]);
+
+          updatedContracts.push({
+            noticeId: contract.notice_id,
+            title: contract.title,
+            descriptionLength: fullDescription.length
+          });
+
+          updatedCount++;
+          console.log(`✅ [${updatedCount}/${contractsToUpdate.length}] Updated description for ${contract.notice_id} (${fullDescription.length} chars)`);
+        } else {
+          console.warn(`⚠️ No valid description found for ${contract.notice_id}`);
+          errorsCount++;
+        }
+      } catch (error) {
+        console.error(`❌ Error updating description for ${contract.notice_id}:`, error.message);
+        errorsCount++;
+      }
+    }
+
+    console.log(`📄 [REFETCH] Completed: ${updatedCount} updated, ${errorsCount} errors`);
+
+    res.json({
+      success: true,
+      message: `Updated descriptions for ${updatedCount} contracts`,
+      updated: updatedCount,
+      errors: errorsCount,
+      total_found: contractsToUpdate.length,
+      updated_contracts: updatedContracts.slice(0, 10) // Show first 10
+    });
+
+  } catch (error) {
+    console.error('❌ [REFETCH] Description re-fetch failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to re-fetch descriptions'
     });
   }
 });

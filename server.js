@@ -45,6 +45,7 @@ const bidPredictionRoutes = require('./routes/bidPrediction');
 const nlpSearchRoutes = require('./routes/nlpSearch');
 const aiFeaturesRoutes = require('./routes/aiFeatures');
 const aiCenterRoutes = require('./routes/aiCenter');
+const adminRoutes = require('./routes/admin');
 
 // Import middleware
 const { rateLimiter, statusRateLimiter } = require('./middleware/rateLimiter');
@@ -191,6 +192,7 @@ app.use('/api/nlp', nlpSearchRoutes);
 app.use('/api/ai', aiFeaturesRoutes);
 app.use('/api/ai-center', authMiddleware, aiCenterRoutes);
 app.use('/api/profiles', profileRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Debug: Log when routers are loaded
 console.log('📋 [DEBUG] Contracts router mounted at /api/contracts');

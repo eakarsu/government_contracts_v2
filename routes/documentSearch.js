@@ -288,7 +288,7 @@ router.post('/download', async (req, res) => {
             // Document not found in vector DB, download and process it
             console.log(`📥 [DEBUG] Downloading document from government: ${docUrl}`);
             try {
-              const result = await summarizeContent(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4.1');
+              const result = await summarizeContent(docUrl, `doc_${contract.noticeId}`, '', process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4');
               
               if (result) {
                 // Index the processed document in vector database
@@ -1129,10 +1129,12 @@ router.post('/queue/process-test', async (req, res) => {
 // Process queued documents with parallel processing and real-time updates
 router.post('/queue/process', async (req, res) => {
   try {
-    const { concurrency = 20, batch_size = 1000, process_all = true, test_limit = 3 } = req.body; // Minimum 20 concurrency
-    
-    console.log('🔄 [DEBUG] Starting parallel document processing...');
-    console.log(`🔄 [DEBUG] Concurrency: ${concurrency}, Batch size: ${batch_size}, Process all: ${process_all}, Test limit: ${test_limit}`);
+    const { concurrency = 10, batch_size = 1000, process_all = true, limit = 100 } = req.body;
+    // Use limit parameter (default 100, can be increased)
+    const test_limit = limit;
+
+    console.log('🔄 [PROCESS] Starting document processing...');
+    console.log(`🔄 [PROCESS] Concurrency: ${concurrency}, Batch size: ${batch_size}, Limit: ${limit}`);
 
     // Check if there's already a running job
     const existingJob = await prisma.indexingJob.findFirst({
@@ -1542,7 +1544,7 @@ async function processTestDocumentsSequentially(documents, jobId) {
           finalProcessingPath,
           doc.filename || 'test_document',
           '',
-          'openai/gpt-4.1'
+          process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4'
         );
         
         // Clean up temp conversion directory if it was created
@@ -3457,6 +3459,20 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
     console.log(`📊 [DEBUG] ❌ Errors: ${errorCount}`);
     console.log(`📊 [DEBUG] ⏭️  Skipped: ${skippedCount}`);
     
+    // Update job progress after each batch so frontend can display real-time counters
+    try {
+      await prisma.indexingJob.update({
+        where: { id: jobId },
+        data: {
+          recordsProcessed: downloadedCount,
+          errorsCount: errorCount
+        }
+      });
+      console.log(`📊 [DEBUG] Job ${jobId} progress updated: ${downloadedCount} downloaded, ${errorCount} errors`);
+    } catch (updateError) {
+      console.error(`⚠️ [DEBUG] Failed to update job progress:`, updateError.message);
+    }
+
     // Small delay between batches to avoid overwhelming the server
     if (batchIndex < batches.length - 1) {
       console.log(`⏸️ [DEBUG] Waiting 1 second before next batch...`);
@@ -3712,11 +3728,12 @@ router.get('/contracts/:contractId', async (req, res) => {
   }
 });
 
-// Analyze contract endpoint - Enhanced with OpenRouter AI
+// Analyze contract endpoint - Enhanced with OpenRouter AI and Company Profile Matching
 router.post('/contracts/:contractId/analyze', async (req, res) => {
   try {
     const { contractId } = req.params;
-    console.log(`🔍 [DEBUG] Analyzing contract with AI: ${contractId}`);
+    const { companyProfileId } = req.body;
+    console.log(`🔍 [DEBUG] Analyzing contract with AI: ${contractId}, Company Profile: ${companyProfileId || 'default'}`);
 
     // Find the contract in the database
     const contract = await prisma.contract.findUnique({
@@ -3729,6 +3746,28 @@ router.post('/contracts/:contractId/analyze', async (req, res) => {
         error: 'Contract not found',
         contractId: contractId
       });
+    }
+
+    // Fetch company profile (use provided ID or get the first/default profile)
+    let companyProfile = null;
+    try {
+      if (companyProfileId) {
+        companyProfile = await prisma.companyProfile.findUnique({
+          where: { id: parseInt(companyProfileId) }
+        });
+      } else {
+        // Get the most complete profile (one with most data) as default
+        const profiles = await prisma.companyProfile.findMany({
+          orderBy: { updatedAt: 'desc' },
+          take: 1
+        });
+        companyProfile = profiles[0] || null;
+      }
+      if (companyProfile) {
+        console.log(`🏢 [DEBUG] Using company profile: ${companyProfile.companyName}`);
+      }
+    } catch (profileError) {
+      console.warn(`⚠️ [DEBUG] Could not fetch company profile: ${profileError.message}`);
     }
 
     // Get related documents and their processing status
@@ -3768,33 +3807,172 @@ Description:
 ${contract.description || 'No description available'}
     `.trim();
 
+    // Extract attachment content from processed documents and vector database
+    let attachmentContent = '';
+    let attachmentSummaries = [];
+    const processedDocs = relatedDocuments.filter(doc => doc.status === 'completed' && doc.processedData);
+
+    // Check if we have unprocessed attachments that need on-demand processing
+    const resourceLinks = contract.resourceLinks || [];
+    const processedUrls = relatedDocuments.map(d => d.documentUrl);
+    const unprocessedLinks = Array.isArray(resourceLinks)
+      ? resourceLinks.filter(url => !processedUrls.includes(url))
+      : [];
+
+    // Process unprocessed attachments on-demand (limit to 5 to avoid timeout)
+    if (unprocessedLinks.length > 0) {
+      console.log(`📥 [DEBUG] Found ${unprocessedLinks.length} unprocessed attachment(s), processing on-demand...`);
+
+      for (const docUrl of unprocessedLinks.slice(0, 5)) {
+        try {
+          console.log(`📄 [DEBUG] Summarizing attachment: ${docUrl}`);
+          const filename = docUrl.split('/').pop() || `attachment_${Date.now()}`;
+
+          // Use summarizeContent to process the document
+          const result = await summarizeContent(
+            docUrl,
+            filename,
+            'Extract key information, requirements, and important details from this government contract attachment document.',
+            process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4'
+          );
+
+          if (result) {
+            const summaryText = typeof result === 'string'
+              ? result
+              : (result.executive_summary || result.summary || result.content || JSON.stringify(result).substring(0, 3000));
+
+            attachmentSummaries.push({
+              filename: filename,
+              summary: summaryText.substring(0, 3000)
+            });
+            console.log(`✅ [DEBUG] Summarized attachment: ${filename}`);
+          }
+        } catch (docError) {
+          console.warn(`⚠️ [DEBUG] Could not process attachment ${docUrl}: ${docError.message}`);
+        }
+      }
+    }
+
+    // Include already processed documents
+    if (processedDocs.length > 0) {
+      console.log(`📎 [DEBUG] Including ${processedDocs.length} pre-processed document(s) in analysis`);
+      attachmentContent = '\n\n--- ATTACHMENT DOCUMENTS ---\n';
+
+      for (const doc of processedDocs) {
+        // Limit each document to ~3000 chars to avoid token limits
+        const docContent = doc.processedData.substring(0, 3000);
+        attachmentContent += `\n[Document: ${doc.filename}]\n${docContent}\n`;
+      }
+    }
+
+    // Include on-demand summarized attachments
+    if (attachmentSummaries.length > 0) {
+      if (!attachmentContent) {
+        attachmentContent = '\n\n--- ATTACHMENT DOCUMENTS ---\n';
+      }
+      for (const summary of attachmentSummaries) {
+        attachmentContent += `\n[Document: ${summary.filename}]\n${summary.summary}\n`;
+      }
+      console.log(`📎 [DEBUG] Added ${attachmentSummaries.length} on-demand summarized attachment(s)`);
+    }
+
+    // Also include vector database document content if available
+    if (vectorDocuments.length > 0 && !attachmentContent) {
+      console.log(`📎 [DEBUG] Including ${vectorDocuments.length} vector document(s) in analysis`);
+      attachmentContent = '\n\n--- ATTACHMENT DOCUMENTS ---\n';
+
+      for (const doc of vectorDocuments.slice(0, 5)) { // Limit to 5 docs
+        const docContent = (doc.metadata?.text || doc.document || '').substring(0, 3000);
+        if (docContent) {
+          attachmentContent += `\n[Document: ${doc.metadata?.filename || doc.filename || 'Attachment'}]\n${docContent}\n`;
+        }
+      }
+    }
+
+    const hasAttachments = attachmentContent.length > 50 || attachmentSummaries.length > 0;
+
+    // Build company profile text for analysis
+    let companyProfileText = '';
+    if (companyProfile) {
+      const basicInfo = companyProfile.basicInfo || {};
+      const capabilities = companyProfile.capabilities || {};
+      const pastPerformance = companyProfile.pastPerformance || [];
+      const keyPersonnel = companyProfile.keyPersonnel || [];
+
+      companyProfileText = `
+
+--- COMPANY PROFILE ---
+Company Name: ${companyProfile.companyName}
+DUNS Number: ${basicInfo.dunsNumber || 'N/A'}
+CAGE Code: ${basicInfo.cageCode || 'N/A'}
+Size Standard: ${basicInfo.sizeStandard || 'N/A'}
+NAICS Codes: ${(basicInfo.naicsCode || []).join(', ') || 'N/A'}
+Certifications: ${(basicInfo.certifications || []).join(', ') || 'None'}
+
+Core Competencies: ${(capabilities.coreCompetencies || []).join(', ') || 'N/A'}
+Technical Skills: ${(capabilities.technicalSkills || []).join(', ') || 'N/A'}
+Security Clearances: ${(capabilities.securityClearances || []).join(', ') || 'None'}
+Methodologies: ${(capabilities.methodologies || []).join(', ') || 'N/A'}
+
+Past Performance:
+${pastPerformance.map(pp => `- ${pp.contractName || 'Contract'}: ${pp.agency || 'Agency'}, $${(pp.value || 0).toLocaleString()}, ${pp.performanceRating || 'N/A'}`).join('\n') || 'No past performance recorded'}
+
+Key Personnel:
+${keyPersonnel.map(kp => `- ${kp.name}: ${kp.role}, ${kp.experience}, Clearance: ${kp.clearance || 'None'}`).join('\n') || 'No key personnel recorded'}
+`;
+      console.log(`🏢 [DEBUG] Including company profile in analysis: ${companyProfile.companyName}`);
+    }
+
+    const fullAnalysisContent = contractText + attachmentContent + companyProfileText;
+    console.log(`📊 [DEBUG] Analysis content: ${contractText.length} chars contract + ${attachmentContent.length} chars attachments + ${companyProfileText.length} chars company profile`);
+
     // AI-powered analysis using OpenRouter
     let aiInsights = null;
     const config = require('../config/env');
+    const hasCompanyProfile = !!companyProfile;
 
     if (config.openRouterApiKey) {
       try {
         console.log('🤖 [DEBUG] Calling OpenRouter AI for contract analysis...');
-        const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${config.openRouterApiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': config.apiBaseUrl || 'http://localhost:5013',
-            'X-Title': 'GovContracts AI'
-          },
-          body: JSON.stringify({
-            model: 'anthropic/claude-3-haiku',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are an expert government contracting analyst. Analyze contracts and provide actionable insights for potential bidders. Return your analysis as valid JSON.'
-              },
-              {
-                role: 'user',
-                content: `Analyze this government contract opportunity and provide insights:
 
-${contractText}
+        // Build the appropriate prompt based on whether we have a company profile
+        const systemPrompt = hasCompanyProfile
+          ? 'You are an expert government contracting analyst specializing in bid/no-bid decisions. Analyze contracts against company capabilities to determine fit and win probability. Be specific about strengths, gaps, and actionable recommendations. Return your analysis as valid JSON.'
+          : 'You are an expert government contracting analyst. Analyze contracts and their attachments to provide actionable insights for potential bidders. Pay special attention to requirements, qualifications, and evaluation criteria found in attachment documents. Return your analysis as valid JSON.';
+
+        const userPrompt = hasCompanyProfile
+          ? `Analyze this government contract opportunity against the company profile to determine fit and win probability:
+
+${fullAnalysisContent}
+
+Evaluate how well the company matches the contract requirements. Return a JSON object with this structure:
+{
+  "executive_summary": "2-3 sentence summary of the opportunity and company fit",
+  "fit_score": 1-100 score indicating how well company matches requirements,
+  "go_no_go_recommendation": "GO" or "NO-GO" or "CONDITIONAL",
+  "win_probability": "Low" or "Medium" or "Medium-High" or "High",
+  "naics_match": true/false and explanation,
+  "set_aside_eligible": true/false and which set-asides company qualifies for,
+  "strengths": ["specific company strengths that match this contract"],
+  "gaps": ["specific gaps or missing requirements"],
+  "gap_mitigation": ["how to address each gap - teaming, certifications, hiring"],
+  "competitive_advantages": ["what gives company edge over competitors"],
+  "key_requirements": ["list of key requirements from contract"],
+  "required_vs_available": {
+    "certifications": {"required": [], "company_has": [], "missing": []},
+    "clearances": {"required": [], "company_has": [], "missing": []},
+    "capabilities": {"required": [], "company_has": [], "missing": []}
+  },
+  "past_performance_relevance": "How relevant is company's past performance (High/Medium/Low)",
+  "teaming_suggestions": ["suggested teaming partners or subcontractors to fill gaps"],
+  "bid_investment_level": "Low/Medium/High - recommended investment in this bid",
+  "recommended_actions": ["specific next steps if pursuing this contract"],
+  "risks": ["key risks to consider"],
+  "attachment_insights": ${hasAttachments ? '["key insights from attachments relevant to company fit"]' : 'null'}
+}`
+          : `Analyze this government contract opportunity${hasAttachments ? ' and its attachment documents' : ''} and provide insights:
+
+${fullAnalysisContent}
 
 Return a JSON object with the following structure:
 {
@@ -3807,11 +3985,25 @@ Return a JSON object with the following structure:
   "estimated_competition_level": "low/medium/high",
   "recommended_actions": ["specific actions to take"],
   "deadline_urgency": "low/medium/high/critical",
-  "bid_decision_factors": ["factors to consider when deciding to bid"]
-}`
-              }
+  "bid_decision_factors": ["factors to consider when deciding to bid"],
+  "attachment_insights": ${hasAttachments ? '["key insights extracted from attachment documents"]' : 'null'}
+}`;
+
+        const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${config.openRouterApiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': config.apiBaseUrl || 'http://localhost:5013',
+            'X-Title': 'GovContracts AI'
+          },
+          body: JSON.stringify({
+            model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
             ],
-            max_tokens: 1500,
+            max_tokens: 4000,
             temperature: 0.3
           })
         });
@@ -3857,14 +4049,28 @@ Return a JSON object with the following structure:
         description_length: contract.description?.length || 0,
         has_description: !!contract.description
       },
+      // Company profile used for analysis
+      company_profile_used: companyProfile ? {
+        id: companyProfile.id,
+        company_name: companyProfile.companyName,
+        naics_codes: (companyProfile.basicInfo?.naicsCode || []),
+        certifications: (companyProfile.basicInfo?.certifications || []),
+        size_standard: companyProfile.basicInfo?.sizeStandard || null,
+        core_competencies: (companyProfile.capabilities?.coreCompetencies || []),
+        security_clearances: (companyProfile.capabilities?.securityClearances || []),
+        past_performance_count: (companyProfile.pastPerformance || []).length
+      } : null,
       document_analysis: {
         total_resource_links: contract.resourceLinks ? (Array.isArray(contract.resourceLinks) ? contract.resourceLinks.length : 1) : 0,
         documents_processed: relatedDocuments.filter(doc => doc.status === 'completed').length,
+        documents_summarized_on_demand: attachmentSummaries.length,
         documents_failed: relatedDocuments.filter(doc => doc.status === 'failed').length,
         documents_in_vector_db: vectorDocuments.length,
+        documents_included_in_analysis: processedDocs.length + attachmentSummaries.length + (hasAttachments && !processedDocs.length && !attachmentSummaries.length ? vectorDocuments.slice(0, 5).length : 0),
+        attachments_analyzed: hasAttachments,
         processing_success_rate: relatedDocuments.length > 0
           ? Math.round((relatedDocuments.filter(doc => doc.status === 'completed').length / relatedDocuments.length) * 100)
-          : 0
+          : (attachmentSummaries.length > 0 ? 100 : 0)
       },
       // AI-powered insights
       ai_insights: aiInsights || {
@@ -4022,6 +4228,142 @@ function getNaicsInsights(naicsCode) {
   
   return null;
 }
+
+// Get notifications for document processing
+router.get('/notifications', async (req, res) => {
+  try {
+    const recentCompleted = await prisma.documentProcessingQueue.findMany({
+      where: { status: 'completed' },
+      orderBy: { completedAt: 'desc' },
+      take: 5,
+      select: { id: true, filename: true, completedAt: true, contractNoticeId: true }
+    });
+
+    const recentFailed = await prisma.documentProcessingQueue.findMany({
+      where: { status: 'failed' },
+      orderBy: { failedAt: 'desc' },
+      take: 5,
+      select: { id: true, filename: true, failedAt: true, errorMessage: true, contractNoticeId: true }
+    });
+
+    const notifications = [
+      ...recentCompleted.map(d => ({
+        type: 'success',
+        message: `Document ${d.filename} processed successfully`,
+        timestamp: d.completedAt,
+        contractId: d.contractNoticeId
+      })),
+      ...recentFailed.map(d => ({
+        type: 'error',
+        message: `Document ${d.filename} failed: ${d.errorMessage || 'Unknown error'}`,
+        timestamp: d.failedAt,
+        contractId: d.contractNoticeId
+      }))
+    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
+
+    res.json({ success: true, notifications });
+  } catch (error) {
+    console.error('Error getting notifications:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get processed documents
+router.get('/processed', async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+
+    const processedDocs = await prisma.documentProcessingQueue.findMany({
+      where: { status: 'completed' },
+      orderBy: { completedAt: 'desc' },
+      take: parseInt(limit),
+      skip: parseInt(offset)
+    });
+
+    const total = await prisma.documentProcessingQueue.count({
+      where: { status: 'completed' }
+    });
+
+    res.json({
+      success: true,
+      documents: processedDocs,
+      total,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+  } catch (error) {
+    console.error('Error getting processed documents:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Retry failed documents
+router.post('/retry-failed', async (req, res) => {
+  try {
+    const result = await prisma.documentProcessingQueue.updateMany({
+      where: { status: 'failed' },
+      data: {
+        status: 'queued',
+        errorMessage: null,
+        failedAt: null
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Reset ${result.count} failed documents to queued`,
+      reset_count: result.count
+    });
+  } catch (error) {
+    console.error('Error retrying failed documents:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Index completed documents into vector database
+router.post('/index-completed', async (req, res) => {
+  try {
+    const completedDocs = await prisma.documentProcessingQueue.findMany({
+      where: {
+        status: 'completed',
+        processedData: { not: null }
+      },
+      take: 100
+    });
+
+    let indexedCount = 0;
+    let errorCount = 0;
+
+    for (const doc of completedDocs) {
+      try {
+        if (doc.processedData && vectorService.isConnected) {
+          await vectorService.indexDocument({
+            id: `${doc.contractNoticeId}_${doc.id}`,
+            contractId: doc.contractNoticeId,
+            filename: doc.filename,
+            content: typeof doc.processedData === 'string' ? doc.processedData : JSON.stringify(doc.processedData),
+            processedAt: doc.completedAt
+          });
+          indexedCount++;
+        }
+      } catch (indexError) {
+        console.error(`Error indexing document ${doc.id}:`, indexError.message);
+        errorCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Indexed ${indexedCount} documents, ${errorCount} errors`,
+      indexed: indexedCount,
+      errors: errorCount,
+      total_completed: completedDocs.length
+    });
+  } catch (error) {
+    console.error('Error indexing completed documents:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 console.log('📄 [DEBUG] Document search and analytics router module loaded successfully');
 module.exports = router;

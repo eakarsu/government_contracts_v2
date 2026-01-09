@@ -1,0 +1,47 @@
+# Robots.txt for GovContracts AI
+# https://govcontractsai.com
+
+User-agent: *
+Allow: /
+
+# Allow all major search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+# Disallow admin and API paths
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /rfp/
+Disallow: /ai/
+Disallow: /contracts/
+Disallow: /jobs
+Disallow: /documents
+Disallow: /search
+Disallow: /nlp-search
+Disallow: /opportunities
+
+# Allow public pages
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /about
+Allow: /blog
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /forgot-password
+
+# Sitemap location
+Sitemap: https://govcontractsai.com/sitemap.xml
+
+# Crawl-delay for politeness
+Crawl-delay: 1

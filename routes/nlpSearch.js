@@ -3,8 +3,61 @@ const nlpService = require('../services/nlpService');
 const queryParser = require('../services/queryParser');
 const logger = require('../utils/logger');
 const config = require('../config/env');
+const { query } = require('../config/database');
 
 const router = express.Router();
+
+// Helper function to fetch resourceLinks from PostgreSQL for results that don't have them
+async function enrichWithResourceLinks(results) {
+  if (!results || results.length === 0) return results;
+
+  // Get notice IDs that need resourceLinks
+  const noticeIdsNeedingLinks = results
+    .filter(r => !r.resourceLinks || r.resourceLinks.length === 0)
+    .map(r => r.noticeId || r.id);
+
+  if (noticeIdsNeedingLinks.length === 0) return results;
+
+  try {
+    // Fetch resourceLinks from PostgreSQL
+    const placeholders = noticeIdsNeedingLinks.map((_, i) => `$${i + 1}`).join(',');
+    const dbResult = await query(`
+      SELECT notice_id, resource_links
+      FROM contract
+      WHERE notice_id IN (${placeholders})
+    `, noticeIdsNeedingLinks);
+
+    // Create lookup map
+    const resourceLinksMap = {};
+    dbResult.rows.forEach(row => {
+      let links = [];
+      if (row.resource_links) {
+        if (Array.isArray(row.resource_links)) {
+          links = row.resource_links;
+        } else if (typeof row.resource_links === 'string') {
+          try {
+            links = JSON.parse(row.resource_links);
+          } catch (e) {
+            links = [];
+          }
+        }
+      }
+      resourceLinksMap[row.notice_id] = links;
+    });
+
+    // Enrich results with resourceLinks
+    return results.map(result => {
+      const noticeId = result.noticeId || result.id;
+      if ((!result.resourceLinks || result.resourceLinks.length === 0) && resourceLinksMap[noticeId]) {
+        return { ...result, resourceLinks: resourceLinksMap[noticeId] };
+      }
+      return result;
+    });
+  } catch (error) {
+    logger.warn('Failed to enrich results with resourceLinks:', error.message);
+    return results;
+  }
+}
 
 // Natural language search endpoint
 router.post('/natural', async (req, res) => {
@@ -96,7 +149,10 @@ router.post('/natural', async (req, res) => {
     // Step 4: Merge and rank results
     const finalResults = await mergeAndRankResults(vectorResults, semanticResults, parsedQuery);
 
-    // Step 5: Generate explanation
+    // Step 5: Fetch resourceLinks from PostgreSQL for results that don't have them
+    const resultsWithResources = await enrichWithResourceLinks(finalResults);
+
+    // Step 6: Generate explanation
     const explanation = await queryParser.generateQueryExplanation(parsedQuery);
 
     // Log search for analytics (skip PostgreSQL logging)
@@ -106,8 +162,8 @@ router.post('/natural', async (req, res) => {
       success: true,
       query: query,
       explanation: explanation,
-      results: finalResults,
-      totalCount: finalResults.length,
+      results: resultsWithResources,
+      totalCount: resultsWithResources.length,
       parsedQuery: {
         intent: parsedQuery.intent,
         criteria: parsedQuery.parsedCriteria,

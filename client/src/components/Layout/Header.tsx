@@ -93,7 +93,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           {/* Breadcrumbs */}
           <nav className="hidden sm:flex items-center gap-1 text-sm">
             {breadcrumbs.map((crumb, index) => (
-              <React.Fragment key={crumb.path}>
+              <React.Fragment key={`${index}-${crumb.path}`}>
                 {index > 0 && (
                   <ChevronRight className="h-4 w-4 text-secondary-300" />
                 )}

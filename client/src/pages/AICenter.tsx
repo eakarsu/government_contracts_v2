@@ -68,6 +68,7 @@ const AICenter: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<Array<{role: string, content: string}>>([]);
   const [chatInput, setChatInput] = useState('');
 
+
   const tabs = [
     { id: 'proposal', label: 'Generate Proposal', icon: Wand2, color: 'indigo' },
     { id: 'summarizer', label: 'Summarizer', icon: FileText, color: 'blue' },

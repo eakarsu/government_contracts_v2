@@ -71,6 +71,7 @@ class VectorService {
           naicsCode: contract.naicsCode,
           postedDate: contract.postedDate?.toISOString(),
           setAsideCode: contract.setAsideCode,
+          resourceLinks: contract.resourceLinks || [],
           text: text
         }
       });
@@ -272,6 +273,8 @@ class VectorService {
           agency: result.item.metadata.agency,
           naicsCode: result.item.metadata.naicsCode,
           postedDate: result.item.metadata.postedDate,
+          resourceLinks: result.item.metadata.resourceLinks || [],
+          setAsideCode: result.item.metadata.setAsideCode,
           score: result.score,
           metadata: result.item.metadata,
           document: result.item.metadata.text,

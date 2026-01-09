@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -9,11 +9,9 @@ import {
   RefreshCw,
   CheckCircle,
   XCircle,
-  Clock,
   FolderOpen,
   Database,
   Sparkles,
-  Brain,
   AlertCircle,
   ExternalLink,
   X,
@@ -25,7 +23,7 @@ import DocumentDownload from '../components/Dashboard/DocumentDownload';
 
 const Documents: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'download' | 'search' | 'upload' | 'queue'>('download');
+  const [activeTab, setActiveTab] = useState<'download' | 'search' | 'upload'>('download');
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [customPrompt, setCustomPrompt] = useState('');
   const [searchForm, setSearchForm] = useState<DocumentSearchForm>({
@@ -38,25 +36,9 @@ const Documents: React.FC = () => {
   });
   const [searchResults, setSearchResults] = useState<DocumentSearchResponse | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [isProcessingActive, setIsProcessingActive] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<any | null>(null);
 
   const queryClient = useQueryClient();
-
-  // Use faster polling (2s) when processing is active, otherwise 5s
-  const { data: queueStatus, isLoading: queueLoading, refetch: refetchQueue } = useQuery({
-    queryKey: ['queueStatus'],
-    queryFn: () => apiService.getQueueStatus(),
-    refetchInterval: isProcessingActive ? 2000 : 5000,
-  });
-
-  // Update processing state based on queue status
-  useEffect(() => {
-    if (queueStatus?.queue_status) {
-      const isActive = queueStatus.queue_status.is_processing || queueStatus.queue_status.processing > 0;
-      setIsProcessingActive(isActive);
-    }
-  }, [queueStatus]);
 
   const { data: documentStats, isLoading: statsLoading } = useQuery({
     queryKey: ['documentStats'],
@@ -73,28 +55,11 @@ const Documents: React.FC = () => {
     mutationFn: (data: { files: FileList; customPrompt?: string }) =>
       apiService.uploadMultipleDocuments(data.files, data.customPrompt),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
+      queryClient.invalidateQueries({ queryKey: ['documentStats'] });
       setSelectedFiles(null);
       setCustomPrompt('');
     },
   });
-
-  const processQueueMutation = useMutation({
-    mutationFn: () => apiService.processQueueAsync(),
-    onSuccess: () => {
-      setIsProcessingActive(true); // Start fast polling
-      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
-    },
-  });
-
-  const queueDocumentsMutation = useMutation({
-    mutationFn: () => apiService.queueDocuments(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queueStatus'] }),
-  });
-
-  const handleRefreshQueue = () => {
-    refetchQueue();
-  };
 
   const handleSearch = async () => {
     if (!searchForm.query.trim()) return;
@@ -113,10 +78,7 @@ const Documents: React.FC = () => {
     { id: 'download', label: 'Download', icon: Download, description: 'Download files from SAM.gov' },
     { id: 'search', label: 'Search', icon: Search, description: 'Search downloaded documents' },
     { id: 'upload', label: 'Upload', icon: Upload, description: 'Upload local files' },
-    { id: 'queue', label: 'AI Processing', icon: Sparkles, description: 'AI summarization (uses OpenRouter)' },
   ];
-
-  const queue = queueStatus?.queue_status;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -129,7 +91,7 @@ const Documents: React.FC = () => {
           <h1 className="text-2xl font-semibold text-gray-900">Document Management</h1>
         </div>
         <p className="text-sm text-gray-500">
-          Download, upload, search, and process contract documents
+          Download, upload, and search contract documents
         </p>
       </div>
 
@@ -383,133 +345,6 @@ const Documents: React.FC = () => {
             </div>
           )}
 
-          {/* AI Processing Tab */}
-          {activeTab === 'queue' && (
-            <div className="space-y-6">
-              {/* Info Banner */}
-              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <Brain className="h-5 w-5 text-purple-600 mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-medium text-purple-900">AI Document Processing</h3>
-                    <p className="text-sm text-purple-700 mt-1">
-                      This section uses <strong>OpenRouter AI</strong> to analyze and summarize downloaded documents.
-                      Documents are read by AI and summaries are stored for quick reference.
-                    </p>
-                    <p className="text-xs text-purple-600 mt-2">
-                      For downloading files only (no AI), use the <strong>Download</strong> tab instead.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => queueDocumentsMutation.mutate()}
-                  disabled={queueDocumentsMutation.isPending}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {queueDocumentsMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
-                  Queue for AI Analysis
-                </button>
-                <button
-                  onClick={() => processQueueMutation.mutate()}
-                  disabled={processQueueMutation.isPending}
-                  className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {processQueueMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  Run AI Summarization
-                </button>
-                <button
-                  onClick={handleRefreshQueue}
-                  disabled={queueLoading}
-                  className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 flex items-center gap-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${queueLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </button>
-              </div>
-
-              {/* Polling Status Indicator */}
-              <div className="text-xs text-gray-500">
-                Auto-refreshing every {isProcessingActive ? '2' : '5'} seconds
-                {isProcessingActive && <span className="ml-2 text-purple-600 font-medium">(AI processing active)</span>}
-              </div>
-
-              {/* Queue Status */}
-              {queueLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
-                </div>
-              ) : queue ? (
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium text-gray-700">AI Summarization Status</h4>
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="p-4 bg-blue-50 rounded-lg text-center">
-                      <Clock className="h-5 w-5 text-blue-600 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-blue-700">{queue.queued}</p>
-                      <p className="text-xs text-blue-600">Awaiting AI</p>
-                    </div>
-                    <div className="p-4 bg-purple-50 rounded-lg text-center">
-                      <Sparkles className="h-5 w-5 text-purple-600 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-purple-700">{queue.processing}</p>
-                      <p className="text-xs text-purple-600">AI Analyzing</p>
-                    </div>
-                    <div className="p-4 bg-green-50 rounded-lg text-center">
-                      <CheckCircle className="h-5 w-5 text-green-600 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-green-700">{queue.completed}</p>
-                      <p className="text-xs text-green-600">Summarized</p>
-                    </div>
-                    <div className="p-4 bg-red-50 rounded-lg text-center">
-                      <XCircle className="h-5 w-5 text-red-600 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-red-700">{queue.failed}</p>
-                      <p className="text-xs text-red-600">AI Failed</p>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all"
-                        style={{ width: `${queue.total > 0 ? (queue.completed / queue.total) * 100 : 0}%` }}
-                      />
-                    </div>
-                    <span className="text-sm text-gray-600">{queue.completed}/{queue.total}</span>
-                  </div>
-
-                  {queue.is_processing && (
-                    <div className="flex items-center gap-2 text-sm text-yellow-600 bg-yellow-50 p-3 rounded-lg">
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Processing in progress...
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                  <p>No AI processing data available</p>
-                </div>
-              )}
-
-              {/* Success Messages */}
-              {queueDocumentsMutation.isSuccess && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-700 flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4" /> Documents queued for AI analysis!
-                  </p>
-                </div>
-              )}
-              {processQueueMutation.isSuccess && (
-                <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                  <p className="text-sm text-purple-700 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" /> AI summarization started! Watch the counters update.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
