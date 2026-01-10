@@ -48,20 +48,26 @@ async function generateRFPContentWithAI(contract, template, profile, section, cu
     return `[Placeholder content for ${section.title}]\n\nThis section would contain AI-generated content based on the contract requirements and company capabilities.`;
   }
 
+  // Build contract info section - only if contract is provided
+  const contractInfo = contract
+    ? `**CONTRACT INFORMATION:**
+- Title: ${contract.title}
+- Agency: ${contract.agency}
+- Description: ${contract.description}`
+    : `**GENERIC TEMPLATE MODE:**
+This is a generic RFP template. Generate reusable content that can be adapted for any government contract.`;
+
   const prompt = `
 You are an expert RFP response writer. Generate a comprehensive, professional response for the following RFP section:
 
-**CONTRACT INFORMATION:**
-- Title: ${contract.title}
-- Agency: ${contract.agency}
-- Description: ${contract.description}
+${contractInfo}
 
 **COMPANY PROFILE:**
-- Company: ${profile.company_name}
-- Basic Info: ${JSON.stringify(profile.basic_info || {})}
+- Company: ${profile.companyName || profile.company_name}
+- Basic Info: ${JSON.stringify(profile.basicInfo || profile.basic_info || {})}
 - Capabilities: ${JSON.stringify(profile.capabilities || {})}
-- Past Performance: ${JSON.stringify(profile.past_performance || [])}
-- Key Personnel: ${JSON.stringify(profile.key_personnel || [])}
+- Past Performance: ${JSON.stringify(profile.pastPerformance || profile.past_performance || [])}
+- Key Personnel: ${JSON.stringify(profile.keyPersonnel || profile.key_personnel || [])}
 
 **SECTION TO GENERATE:**
 - Title: ${section.title}
@@ -73,13 +79,13 @@ ${customInstructions ? `Custom Instructions: ${customInstructions}` : 'Follow st
 ${focusAreas && focusAreas.length > 0 ? `Focus Areas: ${focusAreas.join(', ')}` : ''}
 
 Generate a comprehensive, professional response that:
-1. Directly addresses the section requirements and evaluation criteria
+1. ${contract ? 'Directly addresses the contract requirements' : 'Creates reusable template content'}
 2. Highlights relevant company capabilities and experience
 3. Uses specific examples from past performance when applicable
 4. Maintains a professional, confident tone
 5. Is between 1500-3000 words depending on section importance
 6. Includes specific technical details and methodologies
-7. Demonstrates understanding of the agency's mission and objectives
+7. ${contract ? 'Demonstrates understanding of the agency\'s mission' : 'Uses placeholder text like [AGENCY NAME] where needed'}
 8. Provides quantifiable benefits and outcomes
 9. Addresses risk mitigation and quality assurance
 
@@ -93,8 +99,11 @@ Do not include any meta-commentary or explanations - provide only the RFP sectio
     try {
       console.log(`🔄 [DEBUG] Generating content for section "${section.title}" (attempt ${attempt}/${maxRetries})`);
       
+      const model = process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4';
+      console.log(`🤖 [MODEL] Using AI model: ${model}`);
+
       const response = await axios.post(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        model: 'anthropic/claude-3.5-sonnet',
+        model: model,
         messages: [
           {
             role: 'user',
@@ -126,6 +135,7 @@ Do not include any meta-commentary or explanations - provide only the RFP sectio
         status: error.response?.status,
         code: error.code,
         message: error.message,
+        responseData: error.response?.data,
         isRetryable
       });
 
@@ -183,25 +193,26 @@ async function processRFPJobAsync(jobId) {
     
     console.log(`📋 [ASYNC] Request prepared:`, request);
 
-    // Get contract, template, profile - try multiple approaches
-    console.log(`🔍 [DEBUG] Looking for contract: ${job.contractId}`);
-    
-    let contract = await prisma.contract.findFirst({
-      where: { 
-        noticeId: job.contractId
+    // Get contract (OPTIONAL), template, profile
+    let contract = null;
+    if (job.contractId) {
+      console.log(`🔍 [DEBUG] Looking for contract: ${job.contractId}`);
+      contract = await prisma.contract.findFirst({
+        where: { noticeId: job.contractId }
+      });
+
+      if (!contract) {
+        console.log(`⚠️ [DEBUG] Contract not found, using placeholder`);
+        contract = {
+          id: job.contractId,
+          noticeId: job.contractId,
+          title: `Contract ${job.contractId}`,
+          description: 'Contract details not available',
+          agency: 'Not specified'
+        };
       }
-    });
-    
-    // If still not found, create a mock contract for testing
-    if (!contract) {
-      console.log(`⚠️ [DEBUG] Contract not found, creating mock contract for: ${job.contractId}`);
-      contract = {
-        id: job.contractId,
-        noticeId: job.contractId,
-        title: `Mock Contract ${job.contractId}`,
-        description: 'Mock contract for RFP generation testing',
-        agency: 'Test Agency'
-      };
+    } else {
+      console.log(`📋 [DEBUG] No contract - generating generic RFP template`);
     }
     
     const template = await prisma.rfpTemplate.findUnique({
@@ -220,53 +231,108 @@ async function processRFPJobAsync(jobId) {
       throw new Error(`Company profile not found: ${job.companyProfileId}`);
     }
 
-    const templateSections = generateDetailedSections(15);
-
-    console.log(`📊 [ASYNC] Generated ${templateSections.length} template sections`);
-    job.progress.message = 'Processing sections with AI...';
-
-    // Process sections with progress updates
-    const generatedSections = [];
-    for (let i = 0; i < templateSections.length; i++) {
-      job.progress.current = i + 1;
-      job.progress.message = `Processing section ${i + 1}/15: ${templateSections[i].title}`;
-      
-      console.log(`🤖 [ASYNC] Processing section ${i + 1}/15: "${templateSections[i].title}"`);
-      console.log(`📋 [ASYNC] Section details:`, {
-        title: templateSections[i].title,
-        description: templateSections[i].description,
-        requirements: templateSections[i].requirements?.length || 0
-      });
-      
-      const startTime = Date.now();
-      const content = await generateRFPContentWithAI(
-        contract, template, profile, templateSections[i], 
-        job.customInstructions, job.focusAreas
-      );
-      const endTime = Date.now();
-      
-      const wordCount = content.split(' ').length;
-      console.log(`✅ [ASYNC] Section ${i + 1}/15 completed in ${endTime - startTime}ms (${wordCount} words)`);
-      
-      generatedSections.push({
-        ...templateSections[i],
-        content: content,
-        wordCount: wordCount
-      });
+    // Use template's actual sections from database (generic approach)
+    let templateSections = [];
+    if (template.sections) {
+      if (typeof template.sections === 'string') {
+        templateSections = JSON.parse(template.sections);
+      } else if (Array.isArray(template.sections)) {
+        templateSections = template.sections;
+      }
     }
+
+    // Fallback to default sections if template has no sections defined
+    if (templateSections.length === 0) {
+      console.log(`⚠️ [ASYNC] Template has no sections, using default sections`);
+      templateSections = generateDetailedSections(15);
+    }
+
+    console.log(`📊 [ASYNC] Using ${templateSections.length} sections from template`);
+    job.progress.total = templateSections.length;
+    job.progress.message = 'Processing sections in parallel...';
+
+    // PARALLEL PROCESSING - process all sections concurrently
+    const CONCURRENCY_LIMIT = 5; // Process 5 sections at a time to avoid API overload
+    const generatedSections = [];
+    let completedCount = 0;
+
+    console.log(`🚀 [ASYNC] Starting PARALLEL processing with concurrency limit of ${CONCURRENCY_LIMIT}`);
+    const overallStartTime = Date.now();
+
+    // Process sections in batches
+    for (let batchStart = 0; batchStart < templateSections.length; batchStart += CONCURRENCY_LIMIT) {
+      const batchEnd = Math.min(batchStart + CONCURRENCY_LIMIT, templateSections.length);
+      const batch = templateSections.slice(batchStart, batchEnd);
+      const batchNum = Math.floor(batchStart / CONCURRENCY_LIMIT) + 1;
+      const totalBatches = Math.ceil(templateSections.length / CONCURRENCY_LIMIT);
+
+      console.log(`📦 [ASYNC] Processing batch ${batchNum}/${totalBatches} (sections ${batchStart + 1}-${batchEnd})`);
+      job.progress.message = `Processing batch ${batchNum}/${totalBatches} (${batch.length} sections in parallel)...`;
+
+      // Process batch in parallel
+      const batchPromises = batch.map(async (section, batchIndex) => {
+        const sectionIndex = batchStart + batchIndex;
+        console.log(`🤖 [PARALLEL] Starting section ${sectionIndex + 1}: "${section.title}"`);
+
+        const startTime = Date.now();
+        const content = await generateRFPContentWithAI(
+          contract, template, profile, section,
+          job.customInstructions, job.focusAreas
+        );
+        const endTime = Date.now();
+
+        const wordCount = content.split(' ').length;
+        completedCount++;
+        job.progress.current = completedCount;
+
+        console.log(`✅ [PARALLEL] Section ${sectionIndex + 1} "${section.title}" completed in ${endTime - startTime}ms (${wordCount} words)`);
+
+        return {
+          ...section,
+          content: content,
+          wordCount: wordCount,
+          originalIndex: sectionIndex
+        };
+      });
+
+      // Wait for batch to complete
+      const batchResults = await Promise.all(batchPromises);
+      generatedSections.push(...batchResults);
+    }
+
+    // Sort by original index to maintain order
+    generatedSections.sort((a, b) => a.originalIndex - b.originalIndex);
+
+    const overallEndTime = Date.now();
+    const totalTime = Math.round((overallEndTime - overallStartTime) / 1000);
+    console.log(`🎉 [ASYNC] All ${templateSections.length} sections completed in ${totalTime} seconds (parallel processing)`);
+    console.log(`⚡ [ASYNC] Average time per section: ${Math.round(totalTime / templateSections.length)}s (effective), actual ~${Math.round(totalTime / Math.ceil(templateSections.length / CONCURRENCY_LIMIT))}s per batch`);
 
     console.log(`💾 [ASYNC] Creating RFP response in database...`);
     job.progress.message = 'Saving RFP response...';
 
-    // Create RFP response
+    // Create RFP response - handle null contract for generic templates
+    const responseTitle = contract
+      ? `${contract.title} - ${profile.companyName} Response`
+      : `${template.name} - ${profile.companyName} Generic Template`;
+
     const rfpResponse = await prisma.rfpResponse.create({
       data: {
-        contractId: String(contract.noticeId || contract.id),
+        contractId: contract ? String(contract.noticeId || contract.id) : 'GENERIC_TEMPLATE',
         templateId: parseInt(job.templateId),
         companyProfileId: parseInt(job.companyProfileId),
-        title: `${contract.title || 'RFP Response'} - Generated`,
+        title: responseTitle,
         status: 'draft',
-        responseData: { sections: generatedSections }
+        responseData: {
+          sections: generatedSections,
+          contract: contract ? {
+            id: contract.id,
+            noticeId: contract.noticeId,
+            title: contract.title,
+            agency: contract.agency
+          } : null,
+          isGenericTemplate: !contract
+        }
       }
     });
 
@@ -802,24 +868,24 @@ router.delete('/company-profiles/:id', async (req, res) => {
       });
     }
 
-    // Check if the company profile exists
-    const checkResult = await query(`
-      SELECT id, company_name FROM company_profiles WHERE id = $1
-    `, [parseInt(id)]);
+    // Check if the company profile exists using Prisma
+    const existingProfile = await prisma.companyProfile.findUnique({
+      where: { id: parseInt(id) }
+    });
 
-    if (checkResult.rows.length === 0) {
+    if (!existingProfile) {
       return res.status(404).json({
         success: false,
         error: 'Company profile not found'
       });
     }
 
-    const profileName = checkResult.rows[0].company_name;
+    const profileName = existingProfile.companyName;
 
-    // Delete the company profile
-    const deleteResult = await query(`
-      DELETE FROM company_profiles WHERE id = $1
-    `, [parseInt(id)]);
+    // Delete the company profile using Prisma
+    await prisma.companyProfile.delete({
+      where: { id: parseInt(id) }
+    });
 
     console.log(`🗑️ [DEBUG] Deleted company profile: ${profileName} (ID: ${id})`);
 
@@ -855,11 +921,11 @@ router.post('/generate-async', async (req, res) => {
       requestId
     });
 
-    // Validate required fields
-    if (!contractId || !templateId || !companyProfileId) {
+    // Validate required fields - contractId is OPTIONAL for generic templates
+    if (!templateId || !companyProfileId) {
       return res.status(400).json({
         success: false,
-        message: 'Contract ID, template ID, and company profile ID are required'
+        message: 'Template ID and company profile ID are required'
       });
     }
 
@@ -875,7 +941,7 @@ router.post('/generate-async', async (req, res) => {
     const jobData = {
       id: jobId,
       status: 'queued', // queued -> processing -> completed -> failed
-      progress: { current: 0, total: 15, message: 'Starting generation...' },
+      progress: { current: 0, total: 0, message: 'Starting generation...' },
       contractId,
       templateId,
       companyProfileId,
@@ -977,7 +1043,7 @@ router.post('/generate', async (req, res) => {
     }
 
     // Create a unique key for this generation request
-    const generationKey = `${contractId}-${templateId}-${companyProfileId}`;
+    const generationKey = `${contractId || 'generic'}-${templateId}-${companyProfileId}`;
     
     if (requestId && global.activeRFPGenerations.has(requestId)) {
       console.log(`⚠️ [DEBUG] Duplicate request detected for requestId: ${requestId}. Ignoring.`);
@@ -1003,74 +1069,58 @@ router.post('/generate', async (req, res) => {
     global.activeRFPGenerations.add(activeKey);
     console.log(`🔒 [DEBUG] Marked generation as active: ${activeKey}`);
 
-    // Validate required fields
-    if (!contractId || !templateId || !companyProfileId) {
+    // Validate required fields - contractId is now OPTIONAL for generic templates
+    if (!templateId || !companyProfileId) {
       return res.status(400).json({
         success: false,
-        message: 'Contract ID, template ID, and company profile ID are required'
+        message: 'Template ID and company profile ID are required'
       });
     }
 
-    // Get contract details using Prisma - handle case where contracts table might be empty
-    let contract;
-    try {
-      // Try to find contract by notice_id first, then by id
-      contract = await prisma.contract.findFirst({
-        where: {
-          OR: [
-            { noticeId: contractId },
-            { id: isNaN(contractId) ? undefined : parseInt(contractId) }
-          ]
-        },
-        select: {
-          id: true,
-          noticeId: true,
-          title: true,
-          agency: true,
-          description: true
-        }
-      });
+    // Get contract details - OPTIONAL (for generic template generation)
+    let contract = null;
+    if (contractId) {
+      try {
+        // Try to find contract by notice_id first, then by id
+        contract = await prisma.contract.findFirst({
+          where: {
+            OR: [
+              { noticeId: contractId },
+              { id: isNaN(contractId) ? undefined : parseInt(contractId) }
+            ]
+          },
+          select: {
+            id: true,
+            noticeId: true,
+            title: true,
+            agency: true,
+            description: true
+          }
+        });
 
-      if (!contract) {
-        // If contract not found in database, create a mock contract entry
-        console.log(`⚠️ [DEBUG] Contract ${contractId} not found in database, creating mock contract`);
-        
-        try {
-          contract = await prisma.contract.upsert({
-            where: { noticeId: contractId },
-            update: { updatedAt: new Date() },
-            create: {
-              noticeId: contractId,
-              title: `Mock Contract ${contractId.substring(0, 50)}...`,
-              agency: 'Demo Agency',
-              description: 'This is a mock contract for demonstration purposes since the contract was not found in the database.',
-              postedDate: new Date()
-            }
-          });
-          
-          console.log(`✅ [DEBUG] Mock contract created with ID: ${contract.noticeId}`);
-        } catch (insertError) {
-          console.error(`❌ [DEBUG] Error creating mock contract:`, insertError.message);
-          // Fallback to in-memory mock contract
+        if (!contract) {
+          console.log(`⚠️ [DEBUG] Contract ${contractId} not found, using placeholder`);
           contract = {
             id: contractId,
             noticeId: contractId,
-            title: `Mock Contract ${contractId}`,
-            agency: 'Demo Agency',
-            description: 'This is a mock contract for demonstration purposes since the contract was not found in the database.'
+            title: `Contract ${contractId}`,
+            agency: 'Not specified',
+            description: 'Contract details not available'
           };
         }
+      } catch (contractError) {
+        console.error('❌ [DEBUG] Error querying contracts:', contractError.message);
+        contract = {
+          id: contractId,
+          noticeId: contractId,
+          title: `Contract ${contractId}`,
+          agency: 'Not specified',
+          description: 'Contract details not available'
+        };
       }
-    } catch (contractError) {
-      console.error('❌ [DEBUG] Error querying contracts table:', contractError.message);
-      // Create a mock contract if there's a database error
-      contract = {
-        id: contractId,
-        noticeId: contractId,
-        title: `Mock Contract ${contractId}`,
-        agency: 'Demo Agency',
-        description: 'This is a mock contract for demonstration purposes due to database error.'
-      };
+    } else {
+      // No contract selected - generic template generation
+      console.log('📋 [DEBUG] No contract selected - generating generic RFP template');
     }
 
     // Get template details using Prisma
@@ -1108,12 +1158,15 @@ router.post('/generate', async (req, res) => {
     }
 
     // Generate a title for the RFP response
-    const responseTitle = `${contract.title} - ${profile.companyName} Response`;
+    const responseTitle = contract
+      ? `${contract.title} - ${profile.companyName} Response`
+      : `${template.name} - ${profile.companyName} Generic Template`;
 
-    console.log(`🤖 [DEBUG] Starting AI content generation for ${templateSections.length} individual sections...`);
+    console.log(`🚀 [DEBUG] Starting PARALLEL AI content generation for ${templateSections.length} sections...`);
     const startTime = Date.now();
 
-    // Generate AI content for each section individually with enhanced tracking
+    // PARALLEL PROCESSING - process sections concurrently in batches
+    const CONCURRENCY_LIMIT = 5;
     const generatedSections = [];
     const sectionResults = {
       successful: 0,
@@ -1122,73 +1175,86 @@ router.post('/generate', async (req, res) => {
       details: []
     };
 
-    for (let i = 0; i < templateSections.length; i++) {
-      const section = templateSections[i];
-      const progress = `${i + 1}/${templateSections.length}`;
-      
-      console.log(`🤖 [DEBUG] Processing section ${progress}: "${section.title}"`);
-      
-      const sectionStartTime = Date.now();
-      const content = await generateRFPContentWithAI(
-        contract, 
-        template, 
-        profile, 
-        section, 
-        customInstructions, 
-        focusAreas
-      );
-      const sectionEndTime = Date.now();
-      const sectionTime = Math.round((sectionEndTime - sectionStartTime) / 1000);
-      
-      // Determine if this section had errors based on content
-      const hadErrors = content.includes('[AI generation failed') || content.includes('service errors');
-      const wasRetried = content.includes('failed after') && content.includes('attempts');
-      
-      // Track results for final summary
-      if (hadErrors) {
-        sectionResults.failed++;
-        if (wasRetried) {
-          sectionResults.retried++;
-        }
-      } else {
-        sectionResults.successful++;
-      }
+    // Process sections in batches for parallel execution
+    for (let batchStart = 0; batchStart < templateSections.length; batchStart += CONCURRENCY_LIMIT) {
+      const batchEnd = Math.min(batchStart + CONCURRENCY_LIMIT, templateSections.length);
+      const batch = templateSections.slice(batchStart, batchEnd);
+      const batchNum = Math.floor(batchStart / CONCURRENCY_LIMIT) + 1;
+      const totalBatches = Math.ceil(templateSections.length / CONCURRENCY_LIMIT);
 
-      sectionResults.details.push({
-        title: section.title,
-        status: hadErrors ? 'failed' : 'success',
-        timeSeconds: sectionTime,
-        wasRetried: wasRetried,
-        wordCount: content.split(/\s+/).length
-      });
-      
-      generatedSections.push({
-        id: section.id || `section_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        title: section.title,
-        content: content,
-        wordCount: content.split(/\s+/).length,
-        status: hadErrors ? 'error' : 'generated',
-        lastModified: new Date().toISOString(),
-        requirements: section.requirements || [],
-        description: section.description || '',
-        compliance: {
-          wordLimit: {
-            current: content.split(/\s+/).length,
-            maximum: section.wordLimit || 5000,
-            compliant: content.split(/\s+/).length <= (section.wordLimit || 5000)
+      console.log(`📦 [PARALLEL] Processing batch ${batchNum}/${totalBatches} (sections ${batchStart + 1}-${batchEnd})`);
+
+      // Process batch in parallel
+      const batchPromises = batch.map(async (section, batchIndex) => {
+        const sectionIndex = batchStart + batchIndex;
+        console.log(`🤖 [PARALLEL] Starting section ${sectionIndex + 1}: "${section.title}"`);
+
+        const sectionStartTime = Date.now();
+        const content = await generateRFPContentWithAI(
+          contract, template, profile, section, customInstructions, focusAreas
+        );
+        const sectionEndTime = Date.now();
+        const sectionTime = Math.round((sectionEndTime - sectionStartTime) / 1000);
+
+        const hadErrors = content.includes('[AI generation failed') || content.includes('service errors');
+        const wasRetried = content.includes('failed after') && content.includes('attempts');
+        const wordCount = content.split(/\s+/).length;
+
+        console.log(`${hadErrors ? '⚠️' : '✅'} [PARALLEL] Section ${sectionIndex + 1} "${section.title}" done in ${sectionTime}s`);
+
+        return {
+          id: section.id || `section_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          title: section.title,
+          content: content,
+          wordCount: wordCount,
+          status: hadErrors ? 'error' : 'generated',
+          lastModified: new Date().toISOString(),
+          requirements: section.requirements || [],
+          description: section.description || '',
+          compliance: {
+            wordLimit: {
+              current: wordCount,
+              maximum: section.wordLimit || 5000,
+              compliant: wordCount <= (section.wordLimit || 5000)
+            },
+            requirementCoverage: {
+              covered: section.requirements || [],
+              missing: [],
+              percentage: hadErrors ? 0 : 85
+            }
           },
-          requirementCoverage: {
-            covered: section.requirements || [],
-            missing: [],
-            percentage: hadErrors ? 0 : 85
-          }
-        },
-        generationTime: sectionTime,
-        hadErrors: hadErrors
+          generationTime: sectionTime,
+          hadErrors: hadErrors,
+          wasRetried: wasRetried,
+          originalIndex: sectionIndex
+        };
       });
 
-      console.log(`${hadErrors ? '⚠️' : '✅'} [DEBUG] Section ${progress} "${section.title}" completed in ${sectionTime}s ${hadErrors ? '(WITH ERRORS)' : ''}`);
+      // Wait for batch to complete
+      const batchResults = await Promise.all(batchPromises);
+
+      // Track results
+      batchResults.forEach(result => {
+        if (result.hadErrors) {
+          sectionResults.failed++;
+          if (result.wasRetried) sectionResults.retried++;
+        } else {
+          sectionResults.successful++;
+        }
+        sectionResults.details.push({
+          title: result.title,
+          status: result.hadErrors ? 'failed' : 'success',
+          timeSeconds: result.generationTime,
+          wasRetried: result.wasRetried,
+          wordCount: result.wordCount
+        });
+      });
+
+      generatedSections.push(...batchResults);
     }
+
+    // Sort by original index to maintain order
+    generatedSections.sort((a, b) => a.originalIndex - b.originalIndex);
 
     const endTime = Date.now();
     const generationTime = Math.round((endTime - startTime) / 1000);
@@ -1221,7 +1287,9 @@ router.post('/generate', async (req, res) => {
     console.log(`✅ [DEBUG] RFP generation completed with ${sectionResults.successful}/${generatedSections.length} sections successful\n`);
 
     // Create the RFP response record using Prisma
-    const actualContractId = String(contract.noticeId || contract.id || contractId);
+    const actualContractId = contract
+      ? String(contract.noticeId || contract.id || contractId)
+      : 'GENERIC_TEMPLATE';
     const rfpResponse = await prisma.rfpResponse.create({
       data: {
         contractId: actualContractId,
@@ -1231,12 +1299,13 @@ router.post('/generate', async (req, res) => {
         status: 'draft',
         responseData: {
           sections: generatedSections,
-          contract: {
+          contract: contract ? {
             id: contract.id,
             noticeId: contract.noticeId,
             title: contract.title,
             agency: contract.agency
-          },
+          } : null,
+          isGenericTemplate: !contract,
           template: {
             id: template.id,
             name: template.name,
@@ -1272,7 +1341,7 @@ router.post('/generate', async (req, res) => {
           sectionsGenerated: templateSections.length,
           sectionResults: sectionResults,
           totalWords: totalWords,
-          aiModel: OPENROUTER_API_KEY ? 'anthropic/claude-3.5-sonnet' : 'placeholder-model',
+          aiModel: OPENROUTER_API_KEY ? (process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4') : 'placeholder-model',
           version: '1.0'
         }
       }
@@ -1482,36 +1551,39 @@ router.get('/responses/:id/download/:format', async (req, res) => {
 router.get('/contracts', async (req, res) => {
   try {
     const { limit = 50 } = req.query;
-    
-    // Get contracts from the main contracts table
-    try {
-      const result = await query(`
-        SELECT 
-          id,
-          notice_id,
-          title,
-          agency,
-          posted_date,
-          description
-        FROM contracts 
-        ORDER BY posted_date DESC NULLS LAST, created_at DESC
-        LIMIT $1
-      `, [parseInt(limit)]);
 
-      const contracts = result.rows.map(row => ({
-        id: row.id,
-        noticeId: row.notice_id,
-        title: row.title,
-        agency: row.agency,
-        postedDate: row.posted_date,
-        description: row.description?.substring(0, 200) + '...' || 'No description available'
+    // Get contracts from the main contracts table using Prisma
+    try {
+      const contracts = await prisma.contract.findMany({
+        take: parseInt(limit),
+        orderBy: [
+          { postedDate: 'desc' },
+          { createdAt: 'desc' }
+        ],
+        select: {
+          id: true,
+          noticeId: true,
+          title: true,
+          agency: true,
+          postedDate: true,
+          description: true
+        }
+      });
+
+      const formattedContracts = contracts.map(contract => ({
+        id: contract.id,
+        noticeId: contract.noticeId,
+        title: contract.title,
+        agency: contract.agency,
+        postedDate: contract.postedDate,
+        description: contract.description?.substring(0, 200) + '...' || 'No description available'
       }));
-      
-      console.log(`📋 [DEBUG] Found ${contracts.length} contracts for RFP generation`);
-      
+
+      console.log(`📋 [DEBUG] Found ${formattedContracts.length} contracts for RFP generation`);
+
       res.json({
         success: true,
-        contracts: contracts
+        contracts: formattedContracts
       });
     } catch (dbError) {
       console.warn('Contracts table may not exist:', dbError.message);

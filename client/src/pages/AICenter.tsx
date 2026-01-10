@@ -4,7 +4,7 @@ import {
   ArrowLeft, Sparkles, FileText, Shield, AlertTriangle, DollarSign,
   MessageSquare, Target, Users, Tags, RefreshCw, Search, Building2,
   Calendar, ChevronLeft, ChevronRight, CheckCircle, XCircle, Send,
-  TrendingUp, Lightbulb, Clock, Zap, Wand2, Download
+  TrendingUp, Lightbulb
 } from 'lucide-react';
 
 interface Contract {
@@ -25,23 +25,9 @@ interface AIResponse {
   error?: string;
 }
 
-interface ProposalSection {
-  id: string;
-  title: string;
-  content: string;
-}
-
-interface GeneratedProposal {
-  id: string;
-  contractId: string;
-  contractTitle: string;
-  sections: ProposalSection[];
-  generatedAt: string;
-}
-
 const AICenter: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('proposal');
+  const [activeTab, setActiveTab] = useState('summarizer');
 
   // Contracts state
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -61,16 +47,13 @@ const AICenter: React.FC = () => {
   const [strategyResult, setStrategyResult] = useState<any>(null);
   const [teamingResult, setTeamingResult] = useState<any>(null);
   const [tagsResult, setTagsResult] = useState<any>(null);
-  const [generatedProposal, setGeneratedProposal] = useState<GeneratedProposal | null>(null);
-  const [proposalLoading, setProposalLoading] = useState(false);
-
+  
   // Chat state
   const [chatMessages, setChatMessages] = useState<Array<{role: string, content: string}>>([]);
   const [chatInput, setChatInput] = useState('');
 
 
   const tabs = [
-    { id: 'proposal', label: 'Generate Proposal', icon: Wand2, color: 'indigo' },
     { id: 'summarizer', label: 'Summarizer', icon: FileText, color: 'blue' },
     { id: 'compliance', label: 'Compliance', icon: Shield, color: 'green' },
     { id: 'risk', label: 'Risk Assessment', icon: AlertTriangle, color: 'amber' },
@@ -200,121 +183,6 @@ const AICenter: React.FC = () => {
     setAiLoading(false);
   };
 
-  const handleGenerateProposal = async () => {
-    if (!selectedContract) return;
-    setProposalLoading(true);
-    setGeneratedProposal(null);
-    try {
-      const response = await fetch('/api/ai/generate-proposal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contractId: selectedContract.noticeId,
-          contractTitle: selectedContract.title,
-          agency: selectedContract.agency,
-          description: selectedContract.description,
-          naicsCode: selectedContract.naicsCode
-        })
-      });
-      if (!response.ok) throw new Error('Failed to generate proposal');
-      const data = await response.json();
-      setGeneratedProposal(data.proposal);
-    } catch (error) {
-      console.error('Proposal generation failed:', error);
-    } finally {
-      setProposalLoading(false);
-    }
-  };
-
-  const downloadProposal = (format: 'pdf' | 'doc' | 'txt') => {
-    if (!generatedProposal) return;
-
-    if (format === 'pdf') {
-      fetch('/api/ai/export-proposal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proposal: generatedProposal, format: 'pdf' })
-      })
-        .then(response => response.blob())
-        .then(blob => {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `proposal-${generatedProposal.contractId}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        })
-        .catch(err => {
-          console.error('PDF download failed:', err);
-          alert('PDF download failed. Try Word or Text format.');
-        });
-      return;
-    }
-
-    let content = '';
-
-    if (format === 'doc') {
-      content = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Proposal - ${generatedProposal.contractTitle}</title>
-<style>
-body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-h1 { color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px; }
-h2 { color: #2c5282; margin-top: 30px; }
-p { margin: 10px 0; }
-</style>
-</head>
-<body>
-<h1>PROPOSAL</h1>
-<p><strong>Contract:</strong> ${generatedProposal.contractTitle}</p>
-<p><strong>Generated:</strong> ${new Date(generatedProposal.generatedAt).toLocaleString()}</p>
-`;
-      generatedProposal.sections.forEach((section, index) => {
-        content += `<h2>${index + 1}. ${section.title}</h2>
-<p>${section.content.replace(/\n/g, '</p><p>')}</p>
-`;
-      });
-      content += '</body></html>';
-
-      const blob = new Blob([content], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `proposal-${generatedProposal.contractId}.doc`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } else {
-      content = `PROPOSAL: ${generatedProposal.contractTitle}
-Generated: ${new Date(generatedProposal.generatedAt).toLocaleString()}
-${'='.repeat(60)}
-
-`;
-      generatedProposal.sections.forEach((section, index) => {
-        content += `${index + 1}. ${section.title.toUpperCase()}
-${'-'.repeat(40)}
-${section.content}
-
-`;
-      });
-
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `proposal-${generatedProposal.contractId}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-  };
-
   const handleChat = async () => {
     if (!selectedContract || !chatInput.trim()) return;
     const userMessage = chatInput.trim();
@@ -389,7 +257,6 @@ ${section.content}
               setStrategyResult(null);
               setTeamingResult(null);
               setTagsResult(null);
-              setGeneratedProposal(null);
               setChatMessages([]);
             }}
             className={`px-4 py-3 cursor-pointer transition-colors ${
@@ -481,83 +348,6 @@ ${section.content}
     }
 
     switch (activeTab) {
-      case 'proposal':
-        return (
-          <div className="space-y-4">
-            {renderSelectedContractInfo()}
-
-            <button
-              onClick={handleGenerateProposal}
-              disabled={!selectedContract || proposalLoading}
-              className="w-full px-4 py-3 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {proposalLoading ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  Generating proposal with AI...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="h-4 w-4" />
-                  Generate AI Proposal
-                </>
-              )}
-            </button>
-
-            {generatedProposal && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <h3 className="font-semibold text-gray-900">Proposal Generated</h3>
-                </div>
-
-                <div className="space-y-4 max-h-[350px] overflow-y-auto">
-                  {generatedProposal.sections.map((section, index) => (
-                    <div key={section.id} className="p-4 bg-gray-50 rounded-lg">
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">
-                        {index + 1}. {section.title}
-                      </h4>
-                      <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                        {section.content}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
-                    <Download className="h-3 w-3" />
-                    Download proposal:
-                  </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      onClick={() => downloadProposal('pdf')}
-                      className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 flex items-center justify-center gap-1"
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      PDF
-                    </button>
-                    <button
-                      onClick={() => downloadProposal('doc')}
-                      className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 flex items-center justify-center gap-1"
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      Word
-                    </button>
-                    <button
-                      onClick={() => downloadProposal('txt')}
-                      className="px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 flex items-center justify-center gap-1"
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      Text
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-
       case 'summarizer':
         return (
           <div className="space-y-4">

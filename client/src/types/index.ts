@@ -686,7 +686,7 @@ export interface RFPAnalysis {
 }
 
 export interface RFPGenerationRequest {
-  contractId: string;
+  contractId?: string; // Optional - for generic template generation
   templateId: number;
   companyProfileId: number;
   customInstructions?: string;

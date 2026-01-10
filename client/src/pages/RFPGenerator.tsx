@@ -18,16 +18,58 @@ const RFPGenerator: React.FC = () => {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState<string>('');
+  const [contractSearch, setContractSearch] = useState('');
+  const [contractsLoading, setContractsLoading] = useState(false);
 
   useEffect(() => {
     loadData();
   }, []);
 
+  // Search contracts when search term changes
+  useEffect(() => {
+    const searchTimer = setTimeout(() => {
+      if (contractSearch.length >= 2) {
+        searchContracts(contractSearch);
+      } else if (contractSearch.length === 0) {
+        loadContracts();
+      }
+    }, 300);
+    return () => clearTimeout(searchTimer);
+  }, [contractSearch]);
+
+  const loadContracts = async () => {
+    setContractsLoading(true);
+    try {
+      const response = await apiService.searchContracts({ query: '*', limit: 500, include_analysis: false });
+      if (response && response.success) {
+        setContracts(response.results || []);
+      }
+    } catch (err) {
+      console.error('Failed to load contracts:', err);
+    } finally {
+      setContractsLoading(false);
+    }
+  };
+
+  const searchContracts = async (query: string) => {
+    setContractsLoading(true);
+    try {
+      const response = await apiService.searchContracts({ query, limit: 100, include_analysis: false });
+      if (response && response.success) {
+        setContracts(response.results || []);
+      }
+    } catch (err) {
+      console.error('Search failed:', err);
+    } finally {
+      setContractsLoading(false);
+    }
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
 
-      const contractsResponse = await apiService.searchContracts({ query: '*', limit: 100, include_analysis: false });
+      const contractsResponse = await apiService.searchContracts({ query: '*', limit: 500, include_analysis: false });
       const templatesResponse = await apiService.getRFPTemplates();
       const profilesResponse = await apiService.getCompanyProfiles();
 
@@ -166,7 +208,7 @@ const RFPGenerator: React.FC = () => {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Generate RFP Response</h1>
-        <p className="text-gray-600">Create an AI-powered RFP response from a government contract</p>
+        <p className="text-gray-600">Create an AI-powered RFP response tailored to a specific contract</p>
       </div>
 
       {error && (
@@ -192,26 +234,62 @@ const RFPGenerator: React.FC = () => {
 
       <div className="bg-white shadow rounded-lg p-6">
         <div className="space-y-6">
-          {/* Contract Selection */}
+          {/* Contract Selection with Search */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Contract
+              Select Contract <span className="text-red-500">*</span>
             </label>
-            <select
-              value={selectedContract}
-              onChange={(e) => setSelectedContract(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Choose a contract...</option>
-              {contracts.map((contract) => (
-                <option key={contract.noticeId} value={contract.noticeId}>
-                  {contract.title} - {contract.agency}
+
+            {/* Search Box */}
+            <div className="mb-2">
+              <input
+                type="text"
+                placeholder="Search contracts by title, agency, or NAICS..."
+                value={contractSearch}
+                onChange={(e) => setContractSearch(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+            </div>
+
+            {/* Contract Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedContract}
+                onChange={(e) => setSelectedContract(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={contractsLoading}
+              >
+                <option value="">
+                  {contractsLoading ? 'Loading contracts...' : `Choose from ${contracts.length} contracts...`}
                 </option>
-              ))}
-            </select>
-            {contracts.length === 0 && (
+                {contracts.map((contract) => (
+                  <option key={contract.noticeId} value={contract.noticeId}>
+                    {contract.title?.substring(0, 80)}{contract.title && contract.title.length > 80 ? '...' : ''} | {contract.agency?.split('.')[0]}
+                  </option>
+                ))}
+              </select>
+              {contractsLoading && (
+                <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                  <LoadingSpinner size="sm" />
+                </div>
+              )}
+            </div>
+
+            {/* Selected Contract Preview */}
+            {selectedContract && (
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-sm font-medium text-blue-900">
+                  {contracts.find(c => c.noticeId === selectedContract)?.title}
+                </p>
+                <p className="text-xs text-blue-700 mt-1">
+                  {contracts.find(c => c.noticeId === selectedContract)?.agency}
+                </p>
+              </div>
+            )}
+
+            {contracts.length === 0 && !loading && !contractsLoading && (
               <p className="text-sm text-gray-500 mt-1">
-                No contracts available. Please index some contracts first.
+                No contracts found. {contractSearch ? 'Try a different search term.' : 'Please index some contracts first.'}
               </p>
             )}
           </div>
