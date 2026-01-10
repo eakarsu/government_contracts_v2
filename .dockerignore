@@ -1,15 +1,55 @@
+# Dependencies
 node_modules
-npm-debug.log
-Dockerfile
-.dockerignore
+client/node_modules
+
+# Build outputs (we build in Docker)
+client/build
+
+# Git
 .git
 .gitignore
-*.md
-logs
-temp_*
-*.pdf
-*.png
-*.jpg
-*.jpeg
-*.zip
 
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Environment files (use --env-file instead)
+.env
+.env.local
+.env.*.local
+
+# Test files
+coverage
+*.test.js
+*.spec.js
+
+# Temporary files
+temp_*
+*.tmp
+*.temp
+
+# Documentation
+README.md
+docs
+
+# Development tools
+.eslintrc*
+.prettierrc*
+Dockerfile.dev
+
+# Data directories (mount as volumes)
+uploads/*
+documents/*
+downloaded_documents/*
+vector_indexes/*
+
+# Keep directory structure
+!uploads/.gitkeep
+!documents/.gitkeep
