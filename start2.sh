@@ -43,18 +43,23 @@ cleanup_dev_processes() {
 # Function to build and serve client for hosting (production)
 start_client_hosting() {
   if [ -d "client" ]; then
-    echo "Building React client for hosting..."
-    cd client
-    # Set NODE_ENV for production build
-    NODE_ENV=production npm run build
-    cd ..
+    # Check if client is already built (e.g., in Docker)
+    if [ -d "client/build" ] && [ -f "client/build/index.html" ]; then
+      echo "✅ Client already built, skipping build step..."
+    else
+      echo "Building React client for hosting..."
+      cd client
+      # Set NODE_ENV for production build
+      NODE_ENV=production npm run build
+      cd ..
+    fi
     # Remove old build dir if it exists
     rm -rf public
     # Copy built client to your backend's static directory
     mkdir -p public
     cp -r client/build/* public/
-    echo "✅ React client built and served from backend"
-    
+    echo "✅ React client served from backend"
+
     # Debug: Show generated config
     if [ -f "public/config.js" ]; then
       echo "🔧 Generated config.js:"
@@ -135,32 +140,41 @@ PGDATA="${PGDATA:-/var/lib/postgresql/data}"
 if [ "$OS_TYPE" = "Darwin" ]; then
   echo "🟢 macOS detected: Skipping installations. Ensure all dependencies are present."
 else
-  echo "🔵 Debian/Ubuntu detected: Installing dependencies..."
+  # Linux (Docker or bare metal)
 
-  # Update package index
-  apt-get update
+  # Skip package installations in Docker (already in image)
+  if [ -f /.dockerenv ]; then
+    echo "🐳 Docker detected: Skipping package installations (already in image)."
+  else
+    echo "🔵 Debian/Ubuntu detected: Installing dependencies..."
 
-  # Install Node.js (LTS) and build tools if needed
-  if ! command -v node >/dev/null 2>&1; then
-    curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
-    apt-get install -y nodejs
-    apt-get install -y build-essential
+    # Update package index
+    apt-get update
+
+    # Install Node.js (LTS) and build tools if needed
+    if ! command -v node >/dev/null 2>&1; then
+      curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+      apt-get install -y nodejs
+      apt-get install -y build-essential
+    fi
+
+    # Install PostgreSQL server and client if needed
+    if ! command -v postgres >/dev/null 2>&1; then
+      apt-get install -y postgresql-15 postgresql-client-15 postgresql-contrib-15 libpq-dev
+    fi
+
+    # Install additional system dependencies if needed
+    apt-get install -y libffi-dev libssl-dev openjdk-17-jre-headless \
+      sqlite3 libsqlite3-dev libreoffice tesseract-ocr tesseract-ocr-eng imagemagick git
+
+    if ! command -v npx >/dev/null 2>&1; then
+      apt-get install -y npm
+    fi
+
+    echo "✅ All system dependencies installed."
   fi
 
-  # Install PostgreSQL server and client if needed
-  if ! command -v postgres >/dev/null 2>&1; then
-    apt-get install -y postgresql-15 postgresql-client-15 postgresql-contrib-15 libpq-dev
-  fi
-
-  # Install additional system dependencies if needed
-  apt-get install -y libffi-dev libssl-dev openjdk-17-jre-headless \
-    sqlite3 libsqlite3-dev libreoffice tesseract-ocr tesseract-ocr-eng imagemagick git
-
-  if ! command -v npx >/dev/null 2>&1; then
-    apt-get install -y npm
-  fi
-
-  echo "✅ All system dependencies installed."
+  # PostgreSQL setup (runs in both Docker and bare metal Linux)
 
   # Create postgres user if missing
   if ! id postgres >/dev/null 2>&1; then
@@ -199,13 +213,13 @@ else
 
   # Create application user and database if missing
   echo "Creating PostgreSQL user and database..."
-  
+
   # Create user (handle if already exists)
   su - postgres -c "psql -c \"SELECT 1 FROM pg_user WHERE usename = '$POSTGRES_USER'\" | grep -q 1 || psql -c \"CREATE USER $POSTGRES_USER WITH PASSWORD '$POSTGRES_PASSWORD';\""
-  
-  # Create database (handle if already exists)  
+
+  # Create database (handle if already exists)
   su - postgres -c "psql -c \"SELECT 1 FROM pg_database WHERE datname = '$POSTGRES_DB'\" | grep -q 1 || psql -c \"CREATE DATABASE $POSTGRES_DB OWNER $POSTGRES_USER;\""
-  
+
   # Grant privileges
   su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE $POSTGRES_DB TO $POSTGRES_USER;\""
 fi
@@ -274,7 +288,11 @@ echo "Vector Database: Vectra (Pure Node.js - embedded)"
 echo "Press Ctrl+C to stop all servers"
 
 # Start the API server in background
-PORT=$PROXY_PORT BROWSER=none npm run dev &
+if [ "$MODE" = "hosting" ]; then
+  PORT=$PROXY_PORT node server.js &
+else
+  PORT=$PROXY_PORT BROWSER=none npm run dev &
+fi
 SERVER_PID=$!
 echo $SERVER_PID > logs/server.pid
 
