@@ -160,7 +160,36 @@ router.post('/fetch-contracts', async (req, res) => {
     console.log(`📋 [DEBUG] Date range: ${formatDateForSAM(startDate)} to ${formatDateForSAM(endDate)}`);
     console.log(`📋 [DEBUG] Requesting ${limit} contracts...`);
 
-    const response = await axios.get(`${samGovUrl}?${params}`);
+    let response;
+    try {
+      response = await axios.get(`${samGovUrl}?${params}`);
+    } catch (apiError) {
+      // Handle rate limiting (429) specifically
+      if (apiError.response && apiError.response.status === 429) {
+        const retryAfter = apiError.response.data?.nextAccessTime || 'later';
+        console.warn(`⚠️ SAM.gov API rate limit hit. Retry after: ${retryAfter}`);
+
+        // Update job status
+        await prisma.indexingJob.update({
+          where: { id: job.id },
+          data: {
+            status: 'rate_limited',
+            errorDetails: `SAM.gov API rate limit exceeded. Try again after ${retryAfter}`,
+            completedAt: new Date()
+          }
+        });
+
+        return res.status(429).json({
+          success: false,
+          error: 'SAM.gov API rate limit exceeded',
+          message: `You have exceeded the SAM.gov API daily quota. Please try again after ${retryAfter}`,
+          nextAccessTime: retryAfter,
+          job_id: job.id
+        });
+      }
+      throw apiError; // Re-throw other errors
+    }
+
     const contractsData = response.data.opportunitiesData || [];
 
     console.log(`✅ [DEBUG] Received ${contractsData.length} contracts from SAM.gov`);
