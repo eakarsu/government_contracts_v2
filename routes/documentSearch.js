@@ -165,12 +165,41 @@ router.post('/fetch-contracts', async (req, res) => {
 
     console.log(`✅ [DEBUG] Received ${contractsData.length} contracts from SAM.gov`);
 
+    // Helper function to fetch full description from SAM.gov
+    const fetchFullDescription = async (noticeId) => {
+      try {
+        const descUrl = `https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=${noticeId}&api_key=${samGovApiKey}`;
+        const response = await axios.get(descUrl, { timeout: 10000 });
+        if (response.data && response.data.description) {
+          return response.data.description;
+        }
+        if (typeof response.data === 'string') {
+          return response.data;
+        }
+        return null;
+      } catch (error) {
+        return null;
+      }
+    };
+
     let fetchedCount = 0;
     let errorsCount = 0;
 
     for (const contractData of contractsData) {
       try {
         if (!contractData.noticeId) continue;
+
+        // Fetch full description from SAM.gov
+        let fullDescription = contractData.description || '';
+        try {
+          const descResponse = await fetchFullDescription(contractData.noticeId);
+          if (descResponse) {
+            fullDescription = descResponse;
+            console.log(`📄 [${fetchedCount + 1}/${contractsData.length}] Fetched full description for ${contractData.noticeId}`);
+          }
+        } catch (descError) {
+          console.warn(`⚠️ Could not fetch description for ${contractData.noticeId}`);
+        }
 
         // Extract resource links (document URLs)
         let resourceLinks = [];
@@ -181,7 +210,7 @@ router.post('/fetch-contracts', async (req, res) => {
         const contractDetails = {
           noticeId: contractData.noticeId,
           title: contractData.title || 'Untitled',
-          description: contractData.description || '',
+          description: fullDescription,
           agency: contractData.fullParentPathName || contractData.department || '',
           naicsCode: contractData.naicsCode || '',
           classificationCode: contractData.classificationCode || '',
