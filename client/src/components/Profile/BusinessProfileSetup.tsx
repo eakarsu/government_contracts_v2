@@ -4,15 +4,74 @@ import { Building, Users, DollarSign, Shield, MapPin, Award, Save, Plus, X } fro
 interface BusinessProfile {
   id?: string;
   companyName: string;
+  dunsNumber?: string;
+  cageCode?: string;
   naicsCodes: string[];
   capabilities: string[];
+  technicalSkills: string[];
+  methodologies: string[];
   certifications: Record<string, any>;
+  certificationsList: string[];
   pastPerformance: Record<string, any>;
   geographicPreferences: Record<string, any>;
   annualRevenue?: number;
   employeeCount?: number;
   securityClearanceLevel?: string;
 }
+
+// Sample data for pre-population
+const SAMPLE_DATA: BusinessProfile = {
+  companyName: 'TechGov Solutions LLC',
+  dunsNumber: '123456789',
+  cageCode: '5ABC1',
+  naicsCodes: ['541511', '541512', '541519', '541611', '518210'],
+  capabilities: [
+    'Cloud Migration and Modernization',
+    'Cybersecurity and Risk Management',
+    'Enterprise Software Development',
+    'Data Analytics and Business Intelligence',
+    'IT Infrastructure Management',
+    'Agile Project Management',
+    'DevSecOps Implementation',
+    'Artificial Intelligence and Machine Learning'
+  ],
+  technicalSkills: [
+    'AWS / Azure / Google Cloud Platform',
+    'Python, Java, JavaScript, TypeScript',
+    'React, Angular, Node.js',
+    'PostgreSQL, MongoDB, SQL Server',
+    'Kubernetes, Docker, Terraform',
+    'CI/CD Pipelines (Jenkins, GitLab)',
+    'RESTful APIs and Microservices',
+    'Machine Learning (TensorFlow, PyTorch)'
+  ],
+  methodologies: [
+    'Agile/Scrum',
+    'SAFe (Scaled Agile Framework)',
+    'DevSecOps',
+    'ITIL v4',
+    'CMMI Level 3',
+    'Lean Six Sigma',
+    'Risk Management Framework (RMF)',
+    'Human-Centered Design'
+  ],
+  certificationsList: [
+    'ISO 9001:2015 Quality Management',
+    'ISO 27001 Information Security',
+    'SOC 2 Type II',
+    'FedRAMP Authorized',
+    'CMMI Level 3 Development',
+    '8(a) Certified Small Business',
+    'Service-Disabled Veteran-Owned (SDVOSB)',
+    'GSA Schedule Contract Holder'
+  ],
+  certifications: {},
+  pastPerformance: {},
+  geographicPreferences: {},
+  annualRevenue: 15000000,
+  employeeCount: 75,
+  securityClearanceLevel: 'Secret'
+};
 
 interface CompletionStatus {
   completionPercentage: number;
@@ -23,12 +82,21 @@ interface CompletionStatus {
 const BusinessProfileSetup: React.FC = () => {
   const [profile, setProfile] = useState<BusinessProfile>({
     companyName: '',
+    dunsNumber: '',
+    cageCode: '',
     naicsCodes: [],
     capabilities: [],
+    technicalSkills: [],
+    methodologies: [],
     certifications: {},
+    certificationsList: [],
     pastPerformance: {},
     geographicPreferences: {}
   });
+
+  const loadSampleData = () => {
+    setProfile(SAMPLE_DATA);
+  };
 
   const [completion, setCompletion] = useState<CompletionStatus>({
     completionPercentage: 0,
@@ -41,6 +109,9 @@ const BusinessProfileSetup: React.FC = () => {
   const [activeTab, setActiveTab] = useState('basic');
   const [newCapability, setNewCapability] = useState('');
   const [newNaicsCode, setNewNaicsCode] = useState('');
+  const [newTechnicalSkill, setNewTechnicalSkill] = useState('');
+  const [newMethodology, setNewMethodology] = useState('');
+  const [newCertification, setNewCertification] = useState('');
 
   const securityClearanceLevels = [
     'None',
@@ -188,11 +259,20 @@ const BusinessProfileSetup: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Business Profile Setup</h1>
-        <p className="text-gray-600">
-          Complete your business profile to receive personalized contract recommendations
-        </p>
+      <div className="mb-8 flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Business Profile Setup</h1>
+          <p className="text-gray-600">
+            Complete your business profile to receive personalized contract recommendations
+          </p>
+        </div>
+        <button
+          onClick={loadSampleData}
+          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2 text-sm"
+        >
+          <Plus className="h-4 w-4" />
+          Load Sample Data
+        </button>
       </div>
 
       {/* Completion Status */}
@@ -259,6 +339,36 @@ const BusinessProfileSetup: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter your company name"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    DUNS Number
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.dunsNumber || ''}
+                    onChange={(e) => setProfile({ ...profile, dunsNumber: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    placeholder="9-digit DUNS number"
+                    maxLength={9}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    CAGE Code
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.cageCode || ''}
+                    onChange={(e) => setProfile({ ...profile, cageCode: e.target.value.toUpperCase() })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    placeholder="5-character CAGE code"
+                    maxLength={5}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -379,21 +489,22 @@ const BusinessProfileSetup: React.FC = () => {
 
           {/* Capabilities Tab */}
           {activeTab === 'capabilities' && (
-            <div className="space-y-6">
+            <div className="space-y-8">
+              {/* Core Capabilities */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Core Capabilities
+                  Core Competencies
                 </label>
                 <p className="text-sm text-gray-600 mb-4">
                   List your company's key capabilities and services
                 </p>
-                
+
                 <div className="flex gap-2 mb-4">
                   <input
                     type="text"
                     value={newCapability}
                     onChange={(e) => setNewCapability(e.target.value)}
-                    placeholder="Enter a capability"
+                    placeholder="e.g., Cloud Migration and Modernization"
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                     onKeyPress={(e) => e.key === 'Enter' && addCapability()}
                   />
@@ -408,21 +519,157 @@ const BusinessProfileSetup: React.FC = () => {
                 </div>
 
                 {profile.capabilities.length > 0 && (
-                  <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
                     {profile.capabilities.map((capability, index) => (
-                      <div
+                      <span
                         key={index}
-                        className="flex items-center justify-between p-3 border border-gray-200 rounded-md"
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
                       >
-                        <span>{capability}</span>
+                        {capability}
                         <button
                           type="button"
                           onClick={() => removeCapability(index)}
-                          className="text-red-600 hover:text-red-800"
+                          className="ml-2 text-blue-600 hover:text-blue-800"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-3 w-3" />
                         </button>
-                      </div>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Technical Skills */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Technical Skills
+                </label>
+                <p className="text-sm text-gray-600 mb-4">
+                  Technologies, platforms, and tools your team is proficient in
+                </p>
+
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    value={newTechnicalSkill}
+                    onChange={(e) => setNewTechnicalSkill(e.target.value)}
+                    placeholder="e.g., AWS / Azure / Google Cloud Platform"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && newTechnicalSkill.trim()) {
+                        setProfile({
+                          ...profile,
+                          technicalSkills: [...(profile.technicalSkills || []), newTechnicalSkill.trim()]
+                        });
+                        setNewTechnicalSkill('');
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newTechnicalSkill.trim()) {
+                        setProfile({
+                          ...profile,
+                          technicalSkills: [...(profile.technicalSkills || []), newTechnicalSkill.trim()]
+                        });
+                        setNewTechnicalSkill('');
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add
+                  </button>
+                </div>
+
+                {profile.technicalSkills && profile.technicalSkills.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {profile.technicalSkills.map((skill, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800"
+                      >
+                        {skill}
+                        <button
+                          type="button"
+                          onClick={() => setProfile({
+                            ...profile,
+                            technicalSkills: profile.technicalSkills.filter((_, i) => i !== index)
+                          })}
+                          className="ml-2 text-green-600 hover:text-green-800"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Methodologies */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Methodologies
+                </label>
+                <p className="text-sm text-gray-600 mb-4">
+                  Project management and development methodologies
+                </p>
+
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    value={newMethodology}
+                    onChange={(e) => setNewMethodology(e.target.value)}
+                    placeholder="e.g., Agile/Scrum, DevSecOps"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && newMethodology.trim()) {
+                        setProfile({
+                          ...profile,
+                          methodologies: [...(profile.methodologies || []), newMethodology.trim()]
+                        });
+                        setNewMethodology('');
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newMethodology.trim()) {
+                        setProfile({
+                          ...profile,
+                          methodologies: [...(profile.methodologies || []), newMethodology.trim()]
+                        });
+                        setNewMethodology('');
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add
+                  </button>
+                </div>
+
+                {profile.methodologies && profile.methodologies.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {profile.methodologies.map((method, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-800"
+                      >
+                        {method}
+                        <button
+                          type="button"
+                          onClick={() => setProfile({
+                            ...profile,
+                            methodologies: profile.methodologies.filter((_, i) => i !== index)
+                          })}
+                          className="ml-2 text-purple-600 hover:text-purple-800"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
                     ))}
                   </div>
                 )}
@@ -430,10 +677,121 @@ const BusinessProfileSetup: React.FC = () => {
             </div>
           )}
 
-          {/* Other tabs would be implemented similarly */}
+          {/* Certifications Tab */}
           {activeTab === 'certifications' && (
-            <div className="text-center py-8 text-gray-500">
-              Certifications section - Coming soon
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Certifications & Accreditations
+                </label>
+                <p className="text-sm text-gray-600 mb-4">
+                  Add your company's certifications, accreditations, and set-aside qualifications
+                </p>
+
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    value={newCertification}
+                    onChange={(e) => setNewCertification(e.target.value)}
+                    placeholder="e.g., ISO 9001:2015, 8(a) Certified, SDVOSB"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && newCertification.trim()) {
+                        if (!profile.certificationsList.includes(newCertification.trim())) {
+                          setProfile({
+                            ...profile,
+                            certificationsList: [...(profile.certificationsList || []), newCertification.trim()]
+                          });
+                        }
+                        setNewCertification('');
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newCertification.trim() && !profile.certificationsList.includes(newCertification.trim())) {
+                        setProfile({
+                          ...profile,
+                          certificationsList: [...(profile.certificationsList || []), newCertification.trim()]
+                        });
+                        setNewCertification('');
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add
+                  </button>
+                </div>
+
+                {/* Common Certifications Quick Add */}
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-2">Common certifications:</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {[
+                      { label: '8(a) Certified Small Business', desc: 'SBA 8(a) Business Development Program' },
+                      { label: 'SDVOSB', desc: 'Service-Disabled Veteran-Owned Small Business' },
+                      { label: 'HUBZone Certified', desc: 'Historically Underutilized Business Zone' },
+                      { label: 'WOSB', desc: 'Women-Owned Small Business' },
+                      { label: 'ISO 9001:2015', desc: 'Quality Management System' },
+                      { label: 'ISO 27001', desc: 'Information Security Management' },
+                      { label: 'CMMI Level 3', desc: 'Capability Maturity Model Integration' },
+                      { label: 'FedRAMP Authorized', desc: 'Federal Risk and Authorization Management' },
+                      { label: 'SOC 2 Type II', desc: 'Service Organization Control' },
+                      { label: 'GSA Schedule Contract', desc: 'General Services Administration Schedule' }
+                    ].map((cert) => (
+                      <button
+                        key={cert.label}
+                        type="button"
+                        onClick={() => {
+                          if (!profile.certificationsList?.includes(cert.label)) {
+                            setProfile({
+                              ...profile,
+                              certificationsList: [...(profile.certificationsList || []), cert.label]
+                            });
+                          }
+                        }}
+                        disabled={profile.certificationsList?.includes(cert.label)}
+                        className={`text-left p-2 border border-gray-200 rounded hover:bg-gray-50 text-sm ${
+                          profile.certificationsList?.includes(cert.label) ? 'bg-green-50 border-green-200' : ''
+                        }`}
+                      >
+                        <div className="font-medium">{cert.label}</div>
+                        <div className="text-gray-600 text-xs">{cert.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Selected Certifications */}
+                {profile.certificationsList && profile.certificationsList.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Your Certifications:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {profile.certificationsList.map((cert, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-amber-100 text-amber-800"
+                        >
+                          <Shield className="h-3 w-3 mr-1" />
+                          {cert}
+                          <button
+                            type="button"
+                            onClick={() => setProfile({
+                              ...profile,
+                              certificationsList: profile.certificationsList.filter((_, i) => i !== index)
+                            })}
+                            className="ml-2 text-amber-600 hover:text-amber-800"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
