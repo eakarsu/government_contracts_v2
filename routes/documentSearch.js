@@ -126,55 +126,98 @@ router.post('/fetch-contracts', async (req, res) => {
     // Check current contract count
     const currentContractCount = await prisma.contract.count();
     console.log(`📊 [DEBUG] Current contracts in database: ${currentContractCount}`);
-    
-    // Simulate contract fetching by creating some sample contracts with documents
-    console.log('🔄 [DEBUG] Simulating contract fetch process...');
-    
+
+    // Fetch contracts from SAM.gov API
+    console.log('🔄 [DEBUG] Fetching contracts from SAM.gov API...');
+
+    // Format dates for SAM.gov API (MM/dd/yyyy format)
+    const formatDateForSAM = (date) => {
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${month}/${day}/${year}`;
+    };
+
+    // Parse dates or use defaults (last 60 days)
+    let startDate = start_date ? new Date(start_date) : new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+    let endDate = end_date ? new Date(end_date) : new Date();
+
+    const samGovApiKey = process.env.SAM_GOV_API_KEY;
+    if (!samGovApiKey) {
+      throw new Error('SAM_GOV_API_KEY environment variable is not set');
+    }
+
+    const samGovUrl = `https://api.sam.gov/opportunities/v2/search`;
+    const params = new URLSearchParams({
+      api_key: samGovApiKey,
+      limit: Math.min(limit, 1000).toString(),
+      offset: offset.toString(),
+      postedFrom: formatDateForSAM(startDate),
+      postedTo: formatDateForSAM(endDate)
+    });
+
+    console.log(`📋 [DEBUG] SAM.gov API URL: ${samGovUrl}`);
+    console.log(`📋 [DEBUG] Date range: ${formatDateForSAM(startDate)} to ${formatDateForSAM(endDate)}`);
+    console.log(`📋 [DEBUG] Requesting ${limit} contracts...`);
+
+    const response = await axios.get(`${samGovUrl}?${params}`);
+    const contractsData = response.data.opportunitiesData || [];
+
+    console.log(`✅ [DEBUG] Received ${contractsData.length} contracts from SAM.gov`);
+
     let fetchedCount = 0;
-    const sampleContracts = [];
-    
-    // Create sample contracts with REAL downloadable document URLs
-    for (let i = 1; i <= Math.min(limit, 10); i++) {
-      const contractId = `SAMPLE_${Date.now()}_${i}`;
-      const sampleContract = {
-        noticeId: contractId,
-        title: `Sample Government Contract ${i} - ${new Date().toLocaleDateString()}`,
-        description: `This is a sample government contract created for testing document download functionality. Contract ${i} of ${limit}.`,
-        agency: `Department of Testing - Agency ${i}`,
-        naicsCode: `54151${i}`,
-        classificationCode: `R--RESEARCH AND DEVELOPMENT`,
-        postedDate: new Date(),
-        setAsideCode: 'SBA',
-        resourceLinks: [
-          // Use real, publicly available PDF documents for testing
-          `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`,
-          `https://www.africau.edu/images/default/sample.pdf`,
-          `https://file-examples.com/storage/fe68c1b7c66c4d6c8e9b8c7/2017/10/file_example_PDF_500_kB.pdf`
-        ]
-      };
-      
+    let errorsCount = 0;
+
+    for (const contractData of contractsData) {
       try {
-        // Check if contract already exists
-        const existing = await prisma.contract.findUnique({
-          where: { noticeId: contractId }
-        });
-        
-        if (!existing) {
-          await prisma.contract.create({
-            data: sampleContract
-          });
-          fetchedCount++;
-          console.log(`✅ [DEBUG] Created sample contract: ${contractId}`);
-        } else {
-          console.log(`⚠️ [DEBUG] Contract already exists: ${contractId}`);
+        if (!contractData.noticeId) continue;
+
+        // Extract resource links (document URLs)
+        let resourceLinks = [];
+        if (contractData.resourceLinks && Array.isArray(contractData.resourceLinks)) {
+          resourceLinks = contractData.resourceLinks;
         }
-        
-        sampleContracts.push(sampleContract);
+
+        const contractDetails = {
+          noticeId: contractData.noticeId,
+          title: contractData.title || 'Untitled',
+          description: contractData.description || '',
+          agency: contractData.fullParentPathName || contractData.department || '',
+          naicsCode: contractData.naicsCode || '',
+          classificationCode: contractData.classificationCode || '',
+          postedDate: contractData.postedDate ? new Date(contractData.postedDate) : new Date(),
+          responseDeadline: contractData.responseDeadLine ? new Date(contractData.responseDeadLine) : null,
+          setAsideCode: contractData.typeOfSetAsideCode || '',
+          resourceLinks: resourceLinks
+        };
+
+        // Upsert contract
+        await prisma.contract.upsert({
+          where: { noticeId: contractDetails.noticeId },
+          update: {
+            title: contractDetails.title,
+            description: contractDetails.description,
+            agency: contractDetails.agency,
+            naicsCode: contractDetails.naicsCode,
+            classificationCode: contractDetails.classificationCode,
+            postedDate: contractDetails.postedDate,
+            responseDeadline: contractDetails.responseDeadline,
+            setAsideCode: contractDetails.setAsideCode,
+            resourceLinks: contractDetails.resourceLinks
+          },
+          create: contractDetails
+        });
+
+        fetchedCount++;
+        if (fetchedCount % 50 === 0) {
+          console.log(`📋 [DEBUG] Processed ${fetchedCount}/${contractsData.length} contracts...`);
+        }
       } catch (createError) {
-        console.error(`❌ [DEBUG] Error creating contract ${contractId}:`, createError.message);
+        errorsCount++;
+        console.error(`❌ [DEBUG] Error creating contract ${contractData.noticeId}:`, createError.message);
       }
     }
-    
+
     // Update job status
     await prisma.indexingJob.update({
       where: { id: job.id },
@@ -184,41 +227,34 @@ router.post('/fetch-contracts', async (req, res) => {
         completedAt: new Date()
       }
     });
-    
+
     const finalContractCount = await prisma.contract.count();
-    
+
     console.log('');
     console.log('🎉 ========================================');
-    console.log('🎉 FETCH CONTRACTS SIMULATION COMPLETED!');
+    console.log('🎉 SAM.GOV CONTRACT FETCH COMPLETED!');
     console.log('🎉 ========================================');
     console.log(`📊 Contracts before: ${currentContractCount}`);
     console.log(`📊 Contracts after: ${finalContractCount}`);
-    console.log(`📊 New contracts created: ${fetchedCount}`);
-    console.log(`📄 Each contract has 3 REAL downloadable PDF documents`);
-    console.log(`📥 Total documents available for download: ${fetchedCount * 3}`);
+    console.log(`📊 New contracts fetched: ${fetchedCount}`);
+    console.log(`❌ Errors: ${errorsCount}`);
     console.log('🎉 ========================================');
     console.log('');
     
     res.json({
       success: true,
-      message: `Successfully simulated fetching ${fetchedCount} new contracts with document links`,
+      message: `Successfully fetched ${fetchedCount} contracts from SAM.gov`,
       job_id: job.id,
       contracts_fetched: fetchedCount,
       total_contracts_now: finalContractCount,
       contracts_before: currentContractCount,
-      sample_contracts: sampleContracts.map(c => ({
-        notice_id: c.noticeId,
-        title: c.title,
-        agency: c.agency,
-        document_count: c.resourceLinks.length
-      })),
+      errors: errorsCount,
       parameters: {
-        start_date,
-        end_date,
+        start_date: formatDateForSAM(startDate),
+        end_date: formatDateForSAM(endDate),
         limit,
         offset
       },
-      note: 'This is a simulation. In production, this would fetch real contracts from SAM.gov API.',
       timestamp: new Date().toISOString()
     });
     
