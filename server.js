@@ -521,7 +521,17 @@ async function startServer() {
 
     // Catch all handler for React routing - must be AFTER API routes
     app.get('*', (req, res) => {
-      res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+      // Check public folder first (hosting mode), then client/build (dev mode)
+      const publicPath = path.join(__dirname, 'public', 'index.html');
+      const buildPath = path.join(__dirname, 'client/build', 'index.html');
+
+      if (fs.existsSync(publicPath)) {
+        res.sendFile(publicPath);
+      } else if (fs.existsSync(buildPath)) {
+        res.sendFile(buildPath);
+      } else {
+        res.status(404).json({ error: 'Frontend not found. Please build the client.' });
+      }
     });
     
     // Create custom HTTP server with MASSIVE header limits to prevent 431 errors
