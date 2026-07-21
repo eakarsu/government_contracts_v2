@@ -189,74 +189,30 @@ Return structured data that can be parsed into factors, recommendations, and com
       console.warn('Failed to parse AI response as JSON, using fallback');
     }
 
-    // Fallback parsing
-    return {
-      sections: [
-        { id: 'exec', title: 'Executive Summary', wordLimit: 1000, required: true },
-        { id: 'tech', title: 'Technical Approach', wordLimit: 5000, required: true },
-        { id: 'mgmt', title: 'Management Plan', wordLimit: 3000, required: true },
-        { id: 'cost', title: 'Cost Proposal', wordLimit: 2000, required: true }
-      ],
-      requirements: {
-        deadlines: [new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()],
-        evaluation_criteria: { technical: 60, cost: 30, past_performance: 10 }
-      }
-    };
+    throw new Error('AI analysis response did not contain valid structured JSON');
   }
 
   parseBidAnalysis(analysisText) {
-    // Extract probability and confidence from text
-    const probabilityMatch = analysisText.match(/probability[:\s]*(\d+)/i);
-    const confidenceMatch = analysisText.match(/confidence[:\s]*(\d+)/i);
-    
-    const probability = probabilityMatch ? parseInt(probabilityMatch[1]) : Math.floor(Math.random() * 40) + 50;
-    const confidence = confidenceMatch ? parseInt(confidenceMatch[1]) : Math.floor(Math.random() * 30) + 70;
-    
-    return {
-      probability,
-      confidence,
-      factors: [
-        { factor: 'Past Performance Match', impact: 'positive', score: Math.floor(Math.random() * 20) + 75, description: 'Track record in similar projects' },
-        { factor: 'Technical Capability', impact: 'positive', score: Math.floor(Math.random() * 25) + 70, description: 'Technical expertise alignment' },
-        { factor: 'Competition Level', impact: 'negative', score: Math.floor(Math.random() * 25) + 50, description: 'Market competition intensity' }
-      ],
-      recommendations: [
-        { type: 'strength', title: 'Leverage Core Competencies', description: 'Emphasize your strongest capabilities' },
-        { type: 'improvement', title: 'Address Weak Areas', description: 'Strengthen competitive disadvantages' }
-      ],
-      competitiveAnalysis: {
-        estimatedCompetitors: Math.floor(Math.random() * 10) + 5,
-        marketPosition: probability > 75 ? 'Strong' : probability > 50 ? 'Moderate' : 'Weak',
-        keyDifferentiators: ['Technical expertise', 'Past performance'],
-        threats: ['Established incumbents', 'Price competition']
-      }
-    };
+    const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Bid analysis response must contain structured JSON');
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (
+      !Number.isFinite(parsed.probability) ||
+      !Number.isFinite(parsed.confidence) ||
+      !Array.isArray(parsed.factors) ||
+      !Array.isArray(parsed.recommendations)
+    ) {
+      throw new Error('Bid analysis JSON is missing required fields');
+    }
+    return parsed;
   }
 
   getFallbackAnalysis(documentType) {
-    return {
-      sections: [
-        { id: 'exec', title: 'Executive Summary', wordLimit: 1000, required: true },
-        { id: 'tech', title: 'Technical Approach', wordLimit: 5000, required: true },
-        { id: 'mgmt', title: 'Management Plan', wordLimit: 3000, required: true },
-        { id: 'cost', title: 'Cost Proposal', wordLimit: 2000, required: true }
-      ],
-      requirements: {
-        deadlines: [new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()],
-        evaluation_criteria: { technical: 60, cost: 30, past_performance: 10 }
-      }
-    };
+    throw new Error(`AI analysis unavailable for ${documentType}; fabricated fallback output is disabled`);
   }
 
   getFallbackSectionContent(sectionTitle) {
-    const templates = {
-      'Executive Summary': 'Our organization brings extensive experience and proven capabilities to deliver exceptional results for this critical project. We understand the unique requirements and challenges outlined in the RFP and have assembled a world-class team of experts to ensure successful project execution.',
-      'Technical Approach': 'Our technical methodology leverages cutting-edge technologies and proven frameworks to deliver robust, scalable solutions. We employ agile development practices, continuous integration/continuous deployment (CI/CD) pipelines, and comprehensive testing strategies.',
-      'Management Plan': 'Our project management approach follows PMI best practices and agile methodologies to ensure successful delivery. We have established clear governance structures, communication protocols, and risk management procedures.',
-      'Cost Proposal': 'Our pricing structure reflects competitive market rates while ensuring the highest quality deliverables. We have carefully analyzed the project requirements and allocated resources efficiently to provide maximum value.'
-    };
-    
-    return templates[sectionTitle] || `Detailed ${sectionTitle.toLowerCase()} content will be developed based on the specific requirements outlined in the RFP.`;
+    throw new Error(`AI content unavailable for ${sectionTitle}; fabricated fallback output is disabled`);
   }
 
   async generateEmbedding(text) {
@@ -281,11 +237,10 @@ Return structured data that can be parsed into factors, recommendations, and com
         return await this.vectorService.generateEmbedding(text);
       }
 
-      console.warn('No embedding service available, using fallback');
-      return this.getFallbackEmbedding(text);
+      throw new Error('No embedding service is configured');
     } catch (error) {
       console.error('AI embedding generation error:', error);
-      return this.getFallbackEmbedding(text);
+      throw error;
     }
   }
 
@@ -405,31 +360,16 @@ Return structured data that can be parsed into factors, recommendations, and com
       return data.choices[0].message.content;
     } catch (error) {
       console.error('AI chat completion error:', error);
-      return 'AI analysis temporarily unavailable';
+      throw error;
     }
   }
 
   getFallbackEmbedding(text) {
-    // Generate a simple hash-based embedding for fallback
-    const words = text.toLowerCase().split(/\s+/).slice(0, 100);
-    const embedding = new Array(384).fill(0);
-    
-    words.forEach((word, index) => {
-      const hash = this.simpleHash(word);
-      embedding[hash % 384] += 1;
-    });
-    
-    // Normalize the embedding
-    const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
-    return embedding.map(val => magnitude > 0 ? val / magnitude : 0);
+    throw new Error(`Embedding unavailable for ${text.length} characters; fabricated vectors are disabled`);
   }
 
   getFallbackSummary(text) {
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
-    const firstSentence = sentences[0] || 'Document content available';
-    const lastSentence = sentences[sentences.length - 1] || '';
-    
-    return `${firstSentence.trim()}. ${lastSentence.trim()}`.substring(0, 200);
+    throw new Error(`Summary unavailable for ${text.length} characters; fabricated summaries are disabled`);
   }
 
   simpleHash(str) {
@@ -443,23 +383,7 @@ Return structured data that can be parsed into factors, recommendations, and com
   }
 
   getFallbackBidAnalysis() {
-    return {
-      probability: Math.floor(Math.random() * 40) + 50,
-      confidence: Math.floor(Math.random() * 30) + 70,
-      factors: [
-        { factor: 'Past Performance Match', impact: 'positive', score: 80, description: 'Good track record' },
-        { factor: 'Technical Capability', impact: 'positive', score: 75, description: 'Strong technical skills' }
-      ],
-      recommendations: [
-        { type: 'improvement', title: 'Enhance Proposal', description: 'Focus on key differentiators' }
-      ],
-      competitiveAnalysis: {
-        estimatedCompetitors: 8,
-        marketPosition: 'Moderate',
-        keyDifferentiators: ['Experience', 'Quality'],
-        threats: ['Competition', 'Pricing']
-      }
-    };
+    throw new Error('Bid analysis unavailable; fabricated probabilities are disabled');
   }
 }
 

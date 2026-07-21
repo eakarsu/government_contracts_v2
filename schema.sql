@@ -15,8 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user';
 
 -- RFP Documents table
-DROP TABLE IF EXISTS rfp_documents CASCADE;
-CREATE TABLE rfp_documents (
+CREATE TABLE IF NOT EXISTS rfp_documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id),
     contract_id VARCHAR(255),
@@ -30,8 +29,7 @@ CREATE TABLE rfp_documents (
 );
 
 -- Proposals table
-DROP TABLE IF EXISTS proposals CASCADE;
-CREATE TABLE proposals (
+CREATE TABLE IF NOT EXISTS proposals (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
     rfp_document_id UUID REFERENCES rfp_documents(id),
@@ -46,8 +44,7 @@ CREATE TABLE proposals (
 );
 
 -- Bid Predictions table
-DROP TABLE IF EXISTS bid_predictions CASCADE;
-CREATE TABLE bid_predictions (
+CREATE TABLE IF NOT EXISTS bid_predictions (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
     contract_id VARCHAR(255) NOT NULL,
@@ -63,8 +60,7 @@ CREATE TABLE bid_predictions (
 );
 
 -- Bid History table
-DROP TABLE IF EXISTS bid_history CASCADE;
-CREATE TABLE bid_history (
+CREATE TABLE IF NOT EXISTS bid_history (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
     contract_id VARCHAR(255) NOT NULL,
@@ -76,8 +72,7 @@ CREATE TABLE bid_history (
 );
 
 -- Company Profiles table
-DROP TABLE IF EXISTS company_profiles CASCADE;
-CREATE TABLE company_profiles (
+CREATE TABLE IF NOT EXISTS company_profiles (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
     company_name VARCHAR(255) NOT NULL,
@@ -88,9 +83,6 @@ CREATE TABLE company_profiles (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- Clean up orphaned rfp_responses data that references non-existent company_profiles
-DELETE FROM rfp_responses WHERE company_profile_id IS NOT NULL;
 
 -- RFP Templates table
 CREATE TABLE IF NOT EXISTS rfp_templates (
@@ -136,11 +128,6 @@ CREATE INDEX IF NOT EXISTS idx_company_profiles_user_id ON company_profiles(user
 CREATE INDEX IF NOT EXISTS idx_contracts_notice_id ON contracts(notice_id);
 CREATE INDEX IF NOT EXISTS idx_contracts_agency ON contracts(agency);
 CREATE INDEX IF NOT EXISTS idx_contracts_naics_code ON contracts(naics_code);
-
--- Insert default user for development
-INSERT INTO users (id, email, password_hash, first_name, last_name, role) 
-VALUES ('00000000-0000-0000-0000-000000000001', 'test@example.com', 'dummy_hash', 'Test', 'User', 'user')
-ON CONFLICT DO NOTHING;
 
 -- Insert sample RFP templates
 INSERT INTO rfp_templates (name, agency, description, sections, evaluation_criteria, updated_at) VALUES

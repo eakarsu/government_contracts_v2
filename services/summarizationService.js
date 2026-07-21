@@ -101,7 +101,7 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
     
     // Now call processPDF on the PDF file (either original or converted)
     const extractResult = await pdfService.processPDF(finalPdfPath, {
-      apiKey: process.env.REACT_APP_OPENROUTER_KEY,
+      apiKey: process.env.OPENROUTER_API_KEY,
       saveExtracted: false,
       outputDir: null
     });
@@ -132,7 +132,7 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
     // Summarize content using your local service
     const summaryResult = await pdfService.summarizeContent(
       contentToSummarize,
-      process.env.REACT_APP_OPENROUTER_KEY
+      process.env.OPENROUTER_API_KEY
     );
     
     if (!summaryResult.success) {
@@ -171,4 +171,3 @@ const summarizeContent = async (filePathOrUrl, originalName, customPrompt = '', 
 module.exports = {
   summarizeContent
 };
-

@@ -38,11 +38,12 @@ const documentAnalysisRoutes = require('./routes/documentAnalysis');
 const bidPredictionRoutes = require('./routes/bidPrediction');
 const nlpSearchRoutes = require('./routes/nlpSearch');
 const aiFeaturesRoutes = require('./routes/aiFeatures');
+const governanceRoutes = require('./routes/governance');
 
 // Import middleware
 const { rateLimiter, statusRateLimiter } = require('./middleware/rateLimiter');
 const { errorHandler } = require('./middleware/errorHandler');
-const { authMiddleware } = require('./middleware/auth');
+const { authMiddleware, requirePermission } = require('./middleware/auth');
 
 const app = express();
 
@@ -55,13 +56,27 @@ if (config.nodeEnv === 'development') {
   app.set('trust proxy', 1);
 }
 
-// Middleware
-app.use(cors());
+// Reject untrusted Host headers before routing.
+app.use((req, res, next) => {
+  if (!config.allowedHosts.includes(req.hostname)) return res.status(400).send('Invalid Host header');
+  return next();
+});
+
+// Browser access is restricted to explicit origins; non-browser clients without
+// an Origin header are handled by bearer authentication below.
+app.use(
+  cors({
+    credentials: true,
+    origin(origin, callback) {
+      if (!origin || config.corsOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error('CORS origin is not allowed'));
+    },
+  })
+);
 app.use(rateLimiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static('public'));
-app.use('/uploads', express.static(config.uploadDir));
 
 // Ensure directories exist
 const ensureDirectories = () => {
@@ -109,6 +124,15 @@ app.use('/api/config', statusRateLimiter);
 app.use('/api/health', statusRateLimiter);
 app.use('/api/documents/queue/status', statusRateLimiter);
 
+// OIDC discovery and disabled legacy-login responses are public. Every other
+// API route is authenticated except GET /api/health.
+app.use('/api/auth', authRoutes);
+app.use('/api', authMiddleware);
+app.use('/api', (req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || req.path.startsWith('/governance')) return next();
+  return requirePermission('legacy:write')(req, res, next);
+});
+
 // Existing routes
 app.use('/api/contracts', contractsRouter);
 app.use('/api/documents', documentSearchRouter);
@@ -116,25 +140,19 @@ app.use('/api/search', searchRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/recommendations', recommendationsRouter);
 
-// Simple auth middleware that provides a default user for development
-const devAuthMiddleware = (req, res, next) => {
-  // In development, provide a default user
-  req.user = req.user || { id: 'dev-user-1', email: 'dev@example.com' };
-  next();
-};
-
 // Mount RFP routes at /api/rfp/*
-app.use('/api/rfp', devAuthMiddleware, rfpRouter);
+app.use('/api/rfp', rfpRouter);
 
 // Mount document processing routes at /api/documents/processing/*
 app.use('/api/documents/processing', documentProcessingRouter);
 
 // New AI-powered routes
-app.use('/api/auth', authRoutes);
 app.use('/api/ai-rfp', authMiddleware, aiRfpRoutes);
 app.use('/api/bid-prediction', authMiddleware, bidPredictionRoutes);
 app.use('/api/nlp', nlpSearchRoutes);
 app.use('/api/ai', aiFeaturesRoutes);
+app.use('/api/compliance', complianceRoutes);
+app.use('/api/governance', governanceRoutes);
 
 // Debug: Log when routers are loaded
 console.log('📋 [DEBUG] Contracts router mounted at /api/contracts');
@@ -242,7 +260,7 @@ app.get('/api/config', (req, res) => {
       norshinApi: !!config.norshinApiKey,
       samGovApi: !!config.samGovApiKey,
       openRouterApi: !!config.openRouterApiKey,
-      vectorDatabase: true // ChromaDB is always available
+      vectorDatabase: vectorService.isConnected
     },
     version: require('./package.json').version || '1.0.0'
   });
@@ -254,7 +272,7 @@ app.get('/api/health', (req, res) => {
     status: 'OK', 
     timestamp: new Date(),
     norshinAPI: config.norshinApiUrl,
-    vectorDB: 'Vectra (Pure Node.js)'
+    vectorDB: vectorService.isConnected ? 'local-index-connected' : 'local-index-disconnected'
   });
 });
 
@@ -345,26 +363,10 @@ app.use((error, req, res, next) => {
 // Use the error handler middleware
 app.use(errorHandler);
 
-// In your server.js or app.js
-app.use((req, res, next) => {
-  // Allow specific hosts
-  const allowedHosts = [
-    'localhost',
-    '127.0.0.1',
-    'contracts.orderlybite.com'
-  ];
-  
-  if (allowedHosts.includes(req.get('host'))) {
-    next();
-  } else {
-    res.status(400).send('Invalid Host header');
-  }
-});
-
-
 // Initialize services and start server
 async function startServer() {
   try {
+    config.validateForStartup(config);
     // Test database connection
     await testConnection();
     
@@ -377,7 +379,7 @@ async function startServer() {
       console.log(`📁 Upload folder: ${path.join(__dirname, config.uploadDir)}`);
       console.log(`📄 Documents folder: ${path.join(__dirname, config.documentsDir)}`);
       console.log(`🌐 Norshin API: ${config.norshinApiUrl}`);
-      console.log(`🔍 Vector DB: Vectra (Pure Node.js) ${vectorService.isConnected ? '(Connected)' : '(Disconnected)'}`);
+      console.log(`🔍 Vector index: ${vectorService.isConnected ? 'Connected' : 'Disconnected'}`);
       console.log(`📊 Database: Connected`);
       console.log(`🔑 Environment: ${config.nodeEnv}`);
       
@@ -401,8 +403,10 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-// Start the server
-startServer();
+// Start only when invoked as the application entry point, not when imported by tests.
+if (require.main === module) startServer();
 
 // Export vector service for routes
 module.exports.vectorService = vectorService;
+module.exports.app = app;
+module.exports.startServer = startServer;

@@ -10,6 +10,7 @@ const path = require('path');
 const documentAnalyzer = require('../utils/documentAnalyzer');
 const LibreOfficeService = require('../services/libreoffice.service');
 const libreOfficeService = new LibreOfficeService();
+const { hasPermission, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -90,8 +91,15 @@ router.get('/pdf-service/status', async (req, res) => {
   }
 });
 
-// Fetch contracts endpoint (temporary - should be in contracts router)
-router.post('/fetch-contracts', async (req, res) => {
+router.post('/fetch-contracts', (req, res) => {
+  res.status(410).json({
+    code: 'SIMULATED_INGESTION_DISABLED',
+    error: 'Simulated contract ingestion is disabled. Ingest authoritative regulatory sources through /api/governance/sources.',
+  });
+});
+
+// Retained temporarily for migration reference; it is deliberately not registered as a route.
+async function disabledSampleFetchContracts(req, res) {
   try {
     console.log('');
     console.log('🚀 ==========================================');
@@ -227,7 +235,7 @@ router.post('/fetch-contracts', async (req, res) => {
       error: error.message 
     });
   }
-});
+}
 
 // Note: Main document processing endpoint moved to /api/documents/processing/
 // This avoids duplication with routes/documentProcessing.js
@@ -351,7 +359,10 @@ router.post('/download', async (req, res) => {
 // Test bed endpoint - process only 10 documents for cost-effective testing
 router.post('/queue/test', async (req, res) => {
   try {
-    const { test_limit = 10, clear_existing = true } = req.body;
+    const { test_limit = 10, clear_existing = false } = req.body;
+    if (clear_existing && !hasPermission(req.user, 'queue:admin')) {
+      return res.status(403).json({ error: 'queue:admin permission is required to clear existing work' });
+    }
     
     console.log('🧪 [DEBUG] Starting TEST BED document queue population...');
     console.log(`🧪 [DEBUG] TEST MODE: Processing only ${test_limit} documents to minimize costs`);
@@ -598,7 +609,10 @@ router.post('/queue/test', async (req, res) => {
 // Queue documents for processing from all indexed contracts using parallel processing
 router.post('/queue', async (req, res) => {
   try {
-    const { limit = 1000, clear_existing = true, concurrency = 10 } = req.body;
+    const { limit = 1000, clear_existing = false, concurrency = 10 } = req.body;
+    if (clear_existing && !hasPermission(req.user, 'queue:admin')) {
+      return res.status(403).json({ error: 'queue:admin permission is required to clear existing work' });
+    }
     
     console.log('🔄 [DEBUG] Starting parallel document queue population...');
     console.log(`🔄 [DEBUG] Parameters: limit=${limit}, clear_existing=${clear_existing}, concurrency=${concurrency}`);
@@ -1824,7 +1838,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           const pdfService = require('../services/summaryService.js');
           console.log(`📄 [DEBUG] Starting PDF extraction for queue ID ${doc.id}: ${path.basename(pdfPath)}`);
           const result = await pdfService.processPDF(pdfPath, {
-            apiKey: process.env.REACT_APP_OPENROUTER_KEY,
+            apiKey: process.env.OPENROUTER_API_KEY,
             saveExtracted: false,
             outputDir: null
           });
@@ -1846,7 +1860,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           const pdfService = require('../services/summaryService.js');
           return await pdfService.summarizeContent(
             extractResult.extractedContent,
-            process.env.REACT_APP_OPENROUTER_KEY
+            process.env.OPENROUTER_API_KEY
           );
         })();
         
@@ -2271,7 +2285,7 @@ router.get('/file-types', async (req, res) => {
 });
 
 // Clear queue (remove completed/failed documents)
-router.post('/queue/clear', async (req, res) => {
+router.post('/queue/clear', requirePermission('queue:admin'), async (req, res) => {
   try {
     const { clear_completed = true, clear_failed = true, clear_all = false } = req.body;
     
@@ -2331,7 +2345,7 @@ router.post('/queue/clear', async (req, res) => {
 });
 
 // Reset all documents to processing state at once
-router.post('/queue/reset-to-processing', async (req, res) => {
+router.post('/queue/reset-to-processing', requirePermission('queue:admin'), async (req, res) => {
   try {
     console.log('🔄 [DEBUG] Resetting ALL documents to processing state...');
     
@@ -2421,7 +2435,7 @@ router.post('/queue/reset-to-processing', async (req, res) => {
 });
 
 // Reset entire queue system (documents + jobs)
-router.post('/queue/reset', async (req, res) => {
+router.post('/queue/reset', requirePermission('queue:admin'), async (req, res) => {
   try {
     console.log('🔄 [DEBUG] ========================================');
     console.log('🔄 [DEBUG] QUEUE RESET ENDPOINT CALLED!');
@@ -2511,7 +2525,7 @@ router.post('/queue/reset', async (req, res) => {
 });
 
 // Stop all running queue processing jobs
-router.post('/queue/stop', async (req, res) => {
+router.post('/queue/stop', requirePermission('queue:admin'), async (req, res) => {
   try {
     console.log('🛑 [DEBUG] Stopping all queue processing...');
     

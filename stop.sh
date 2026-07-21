@@ -44,11 +44,6 @@ if [ -f logs/client.pid ]; then
     rm -f logs/client.pid
 fi
 
-# Stop any remaining node processes on ports 3000 and 3001
-print_status "Cleaning up any remaining processes..."
-pkill -f "node.*3000" 2>/dev/null || true
-pkill -f "node.*3001" 2>/dev/null || true
-
 # Stop database
 if [ -f docker-compose.yml ]; then
     print_status "Stopping PostgreSQL database..."

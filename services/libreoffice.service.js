@@ -35,30 +35,6 @@ class LibreOfficeSemaphore {
 class LibreOfficeService {
     constructor() {
         this.semaphore = new LibreOfficeSemaphore(2);
-        this.setupCleanup();
-    }
-
-    setupCleanup() {
-        // Run cleanup every 5 minutes
-        setInterval(() => this.cleanupProcesses(), 300000);
-    }
-
-    cleanupProcesses() {
-        try {
-            exec('pkill -f soffice.bin', (error) => {
-                if (!error) {
-                    console.log('Cleaned up stuck LibreOffice processes');
-                }
-            });
-            
-            exec('pkill -f "libreoffice"', (error) => {
-                if (!error) {
-                    console.log('Cleaned up stuck LibreOffice main processes');
-                }
-            });
-        } catch (error) {
-            console.error('Error cleaning up processes:', error);
-        }
     }
 
     async convertToPdfWithRetry(inputPath, outputDir, maxRetries = 3) {
@@ -77,7 +53,6 @@ class LibreOfficeService {
                         const backoffDelay = 1000 * Math.pow(2, attempt - 1);
                         console.log(`Retrying LibreOffice PDF conversion in ${backoffDelay}ms... (attempt ${attempt + 1}/${maxRetries})`);
                         
-                        this.cleanupProcesses();
                         await new Promise(resolve => setTimeout(resolve, backoffDelay));
                         continue;
                     }
@@ -103,7 +78,6 @@ class LibreOfficeService {
                         const backoffDelay = 1000 * Math.pow(2, attempt - 1);
                         console.log(`Retrying LibreOffice Word conversion in ${backoffDelay}ms... (attempt ${attempt + 1}/${maxRetries})`);
                         
-                        this.cleanupProcesses();
                         await new Promise(resolve => setTimeout(resolve, backoffDelay));
                         continue;
                     }
@@ -221,4 +195,3 @@ class LibreOfficeService {
 }
 
 module.exports = LibreOfficeService;
-

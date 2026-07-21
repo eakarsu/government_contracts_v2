@@ -8,20 +8,21 @@ datasource db {
 }
 
 model Contract {
-  id                 Int           @id @default(autoincrement())
-  noticeId           String        @unique @map("notice_id")
-  title              String?
-  description        String?
-  agency             String?
-  naicsCode          String?       @map("naics_code")
-  classificationCode String?       @map("classification_code")
-  postedDate         DateTime?     @map("posted_date")
-  setAsideCode       String?       @map("set_aside_code")
-  resourceLinks      Json?         @map("resource_links")
-  indexedAt          DateTime?     @map("indexed_at")
-  createdAt          DateTime      @default(now()) @map("created_at")
-  updatedAt          DateTime      @updatedAt @map("updated_at")
-  rfpResponses       RfpResponse[]
+  id                    Int                    @id @default(autoincrement())
+  noticeId              String                 @unique @map("notice_id")
+  title                 String?
+  description           String?
+  agency                String?
+  naicsCode             String?                @map("naics_code")
+  classificationCode    String?                @map("classification_code")
+  postedDate            DateTime?              @map("posted_date")
+  setAsideCode          String?                @map("set_aside_code")
+  resourceLinks         Json?                  @map("resource_links")
+  indexedAt             DateTime?              @map("indexed_at")
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
+  rfpResponses          RfpResponse[]
+  complianceEvaluations ComplianceEvaluation[]
 
   @@map("contract")
 }
@@ -61,8 +62,22 @@ model User {
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  localSessions LocalAuthSession[]
 
   @@map("user")
+}
+
+model LocalAuthSession {
+  tokenHash  String   @id @map("token_hash")
+  userId     Int      @map("user_id")
+  roles      String[] @default(["admin"])
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("local_auth_session")
 }
 
 model Company {
@@ -147,17 +162,17 @@ model CompanyProfile {
 }
 
 model RfpResponse {
-  id               Int            @id @default(autoincrement())
-  contractId       String         @map("contract_id")
-  templateId       Int?           @map("template_id")
-  companyProfileId Int?           @map("company_profile_id")
+  id               Int             @id @default(autoincrement())
+  contractId       String          @map("contract_id")
+  templateId       Int?            @map("template_id")
+  companyProfileId Int?            @map("company_profile_id")
   title            String
-  status           String         @default("draft")
-  responseData     String         @map("response_data")
-  complianceStatus String         @map("compliance_status")
-  predictedScore   Float?         @map("predicted_score")
-  createdAt        DateTime       @default(now()) @map("created_at")
-  updatedAt        DateTime       @updatedAt @map("updated_at")
+  status           String          @default("draft")
+  responseData     String          @map("response_data")
+  complianceStatus String          @map("compliance_status")
+  predictedScore   Float?          @map("predicted_score")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
   companyProfile   CompanyProfile? @relation(fields: [companyProfileId], references: [id])
   contract         Contract?       @relation(fields: [contractId], references: [noticeId])
   template         RfpTemplate?    @relation(fields: [templateId], references: [id])
@@ -177,4 +192,106 @@ model RfpVersion {
   rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
 
   @@map("rfp_versions")
+}
+
+model GovernancePolicy {
+  id            String                 @id @default(uuid())
+  policyKey     String                 @map("policy_key")
+  version       Int
+  title         String
+  jurisdiction  String
+  effectiveFrom DateTime               @map("effective_from")
+  effectiveTo   DateTime?              @map("effective_to")
+  rules         Json
+  createdBy     String                 @map("created_by")
+  createdAt     DateTime               @default(now()) @map("created_at")
+  evaluations   ComplianceEvaluation[]
+
+  @@unique([policyKey, version])
+  @@index([jurisdiction, effectiveFrom])
+  @@map("governance_policy")
+}
+
+model RegulatorySource {
+  id                 String                 @id @default(uuid())
+  sourceKey          String                 @map("source_key")
+  version            Int
+  title              String
+  authority          String
+  documentIdentifier String                 @map("document_identifier")
+  evidenceUrl        String                 @map("evidence_url")
+  jurisdiction       String
+  effectiveFrom      DateTime               @map("effective_from")
+  effectiveTo        DateTime?              @map("effective_to")
+  retrievedAt        DateTime               @map("retrieved_at")
+  contentHash        String                 @map("content_hash")
+  ingestedBy         String                 @map("ingested_by")
+  supersedesId       String?                @map("supersedes_id")
+  supersedes         RegulatorySource?      @relation("SourceVersions", fields: [supersedesId], references: [id])
+  supersededBy       RegulatorySource[]     @relation("SourceVersions")
+  evaluations        ComplianceEvaluation[]
+
+  @@unique([sourceKey, version])
+  @@index([jurisdiction, effectiveFrom])
+  @@index([contentHash])
+  @@map("regulatory_source")
+}
+
+model ComplianceEvaluation {
+  id                String           @id @default(uuid())
+  contractId        String           @map("contract_id")
+  contract          Contract         @relation(fields: [contractId], references: [noticeId])
+  scenario          String
+  jurisdiction      String
+  policyId          String           @map("policy_id")
+  policy            GovernancePolicy @relation(fields: [policyId], references: [id])
+  policyKey         String           @map("policy_key")
+  policyVersion     Int              @map("policy_version")
+  sourceId          String           @map("source_id")
+  source            RegulatorySource @relation(fields: [sourceId], references: [id])
+  sourceContentHash String           @map("source_content_hash")
+  citations         Json
+  evidenceLinks     Json             @map("evidence_links")
+  obligations       Json
+  deadlines         Json
+  riskRating        String           @map("risk_rating")
+  riskRationale     String           @map("risk_rationale")
+  advisoryOutput    Json?            @map("advisory_output")
+  ownerId           String           @map("owner_id")
+  createdBy         String           @map("created_by")
+  submittedBy       String?          @map("submitted_by")
+  approvedBy        String?          @map("approved_by")
+  decisionRationale String?          @map("decision_rationale")
+  status            String           @default("DRAFT")
+  evaluatedAt       DateTime         @map("evaluated_at")
+  submittedAt       DateTime?        @map("submitted_at")
+  approvedAt        DateTime?        @map("approved_at")
+  immutableHash     String?          @unique @map("immutable_hash")
+  retentionUntil    DateTime         @map("retention_until")
+  legalHold         Boolean          @default(false) @map("legal_hold")
+  legalHoldReason   String?          @map("legal_hold_reason")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  @@index([contractId, scenario])
+  @@index([status, ownerId])
+  @@index([retentionUntil, legalHold])
+  @@map("compliance_evaluation")
+}
+
+model GovernanceAuditEvent {
+  id            String   @id @default(uuid())
+  aggregateType String   @map("aggregate_type")
+  aggregateId   String   @map("aggregate_id")
+  sequence      Int
+  action        String
+  actorId       String   @map("actor_id")
+  occurredAt    DateTime @map("occurred_at")
+  payload       Json
+  previousHash  String   @map("previous_hash")
+  hash          String   @unique
+
+  @@unique([aggregateId, sequence])
+  @@index([aggregateType, occurredAt])
+  @@map("governance_audit_event")
 }

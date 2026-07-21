@@ -268,33 +268,9 @@ class ComplianceTrackingService {
   }
 
   async updateRegulatoryRequirements() {
-    try {
-      // This would typically fetch from government APIs or databases
-      // For now, we'll use AI to generate updated requirements
-      const agencies = ['DOD', 'GSA', 'VA', 'DHS', 'NASA'];
-      const updates = [];
-
-      for (const agency of agencies) {
-        try {
-          const prompt = `Generate current regulatory compliance requirements for ${agency} government contracts. Return as JSON array with fields: requirement, description, effectiveDate, category.`;
-          
-          const response = await this.aiService.generateChatCompletion([
-            { role: 'system', content: 'Generate current government contract compliance requirements.' },
-            { role: 'user', content: prompt }
-          ]);
-
-          const requirements = JSON.parse(response);
-          updates.push({ agency, requirements });
-        } catch (error) {
-          logger.error(`Error updating requirements for ${agency}:`, error);
-        }
-      }
-
-      return updates;
-    } catch (error) {
-      logger.error('Error updating regulatory requirements:', error);
-      throw error;
-    }
+    throw new Error(
+      'AUTHORITATIVE_SOURCE_REQUIRED: regulatory requirements must be ingested through /api/governance/sources with provenance and change detection'
+    );
   }
 }
 

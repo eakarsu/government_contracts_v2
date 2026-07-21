@@ -415,6 +415,7 @@ class SemanticSearchService {
   }
 
   async getMockSearchResults(queryText, options = {}) {
+    throw new Error('Mock search results are disabled; authoritative search backends are unavailable');
     const { limit = 20, filters = {} } = options;
     
     // Generate mock contract results based on search query

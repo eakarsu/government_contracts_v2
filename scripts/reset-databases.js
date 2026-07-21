@@ -2,10 +2,12 @@ const { PrismaClient } = require('@prisma/client');
 const vectorService = require('../services/vectorService');
 const fs = require('fs-extra');
 const path = require('path');
+const { assertDestructiveResetAllowed } = require('./destructiveGuard');
 
 const prisma = new PrismaClient();
 
 async function resetDatabases() {
+  assertDestructiveResetAllowed();
   console.log('🔄 Starting complete database reset...');
   
   try {

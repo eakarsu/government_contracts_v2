@@ -1,5 +1,5 @@
-const { LocalIndex } = require('vectra');
-const { pipeline } = require('@xenova/transformers');
+const LocalVectorIndex = require('./localVectorIndex');
+const { pipeline } = require('@huggingface/transformers');
 const path = require('path');
 const fs = require('fs-extra');
 const config = require('../config/env');
@@ -10,7 +10,7 @@ class VectorService {
     this.documentsIndex = null;
     this.embedder = null;
     this.isConnected = false;
-    this.indexPath = path.join(process.cwd(), 'vector_indexes');
+    this.indexPath = path.resolve(config.vectorIndexPath);
   }
 
   async initialize() {
@@ -23,8 +23,8 @@ class VectorService {
       this.embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
 
       // Initialize local vector indexes
-      this.contractsIndex = new LocalIndex(path.join(this.indexPath, 'contracts'));
-      this.documentsIndex = new LocalIndex(path.join(this.indexPath, 'documents'));
+      this.contractsIndex = new LocalVectorIndex(path.join(this.indexPath, 'contracts'));
+      this.documentsIndex = new LocalVectorIndex(path.join(this.indexPath, 'documents'));
 
       // Create indexes if they don't exist
       if (!await this.contractsIndex.isIndexCreated()) {
@@ -34,7 +34,7 @@ class VectorService {
         await this.documentsIndex.createIndex();
       }
 
-      console.log('✅ Vector database (Vectra) initialized - Pure Node.js solution');
+      console.log('✅ Local vector index initialized');
       this.isConnected = true;
     } catch (error) {
       console.warn('⚠️ Vector database initialization failed:', error.message);

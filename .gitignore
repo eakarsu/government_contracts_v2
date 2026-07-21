@@ -6,9 +6,6 @@ client/node_modules/
 downloaded_documents/
 /downloaded_documents
 
-package-lock.json
-client/package-lock.json
-
 # Dependencies
 /node_modules
 /.pnp
@@ -286,6 +283,10 @@ jspm_packages/
 
 # dotenv environment variables file
 .env
+**/.env
+!**/.env.example
+*token.txt
+*secret.txt
 
 # Parcel related files
 dist/

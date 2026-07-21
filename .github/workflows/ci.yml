@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: contract_db
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_USER: contract_user
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U contract_user -d contract_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      AUTH_MODE: local
+      CORS_ORIGINS: http://localhost:3001
+      DATABASE_URL: postgresql://contract_user:ci-only-password@localhost:5432/contract_db
+      JWT_SECRET: ci-only-secret-that-is-longer-than-thirty-two-characters
+      NODE_ENV: test
+      RUN_DATABASE_TESTS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm run ci
+
+  client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+        working-directory: client
+      - run: npm test
+        working-directory: client
+      - run: npm run build
+        working-directory: client

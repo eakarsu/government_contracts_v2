@@ -27,9 +27,7 @@ router.post('/', async (req, res) => {
     if (shouldUseTestMode) {
       console.log('🧪 [DEBUG] Using TEST MODE for cost-effective processing (limit ≤ 5 or test_mode enabled)');
       
-      // Clear existing queue if in test mode
-      const deletedCount = await prisma.documentProcessingQueue.deleteMany({});
-      console.log(`🗑️ [DEBUG] Cleared ${deletedCount.count} existing queue entries for test mode`);
+      // Test mode is additive; it never clears existing queue entries.
 
       // Get contracts with resourceLinks (limit to first few for testing)
       const contracts = await prisma.contract.findMany({
@@ -733,7 +731,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         const extractionPromise = (async () => {
           const pdfService = require('../services/summaryService.js');
           const result = await pdfService.processPDF(pdfPath, {
-            apiKey: process.env.REACT_APP_OPENROUTER_KEY,
+            apiKey: process.env.OPENROUTER_API_KEY,
             saveExtracted: false,
             outputDir: null
           });
@@ -754,7 +752,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           const pdfService = require('../services/summaryService.js');
           return await pdfService.summarizeContent(
             extractResult.extractedContent,
-            process.env.REACT_APP_OPENROUTER_KEY
+            process.env.OPENROUTER_API_KEY
           );
         })();
         

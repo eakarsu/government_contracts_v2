@@ -1,4 +1,4 @@
-const pdf2table = require('pdf2table');
+const pdfParse = require('pdf-parse');
 const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
@@ -462,14 +462,9 @@ Structure the response as a JSON object with descriptive field names. Provide de
 // Main PDF processing function with OCR fallback
 async function processPDF(pdfPath, options = {}) {
   const {
-    apiKey = process.env.REACT_APP_OPENROUTER_KEY,
     saveExtracted = false,
     outputDir = null
   } = options;
-  
-  if (!apiKey) {
-    throw new Error('API key is required (REACT_APP_OPENROUTER_KEY)');
-  }
 
   console.log(`📄 Processing PDF: ${path.basename(pdfPath)}`);
   console.log(`📄 [DEBUG] Full PDF path: ${pdfPath}`);
@@ -479,109 +474,39 @@ async function processPDF(pdfPath, options = {}) {
   
   try {
     const buffer = fs.readFileSync(pdfPath);
-    
-    return new Promise((resolve, reject) => {
-      // First try pdf2table
-      pdf2table.parse(buffer, async function (err, rows, rowsdebug) {
-        try {
-          if (err) {
-            console.log('❌ pdf2table failed, trying OCR fallback...');
-            
-            const ocrContent = await processWithOCR(pdfPath);
-            const wordCount = ocrContent.split(/\s+/).length;
-            
-            console.log(`📊 OCR extracted ${wordCount} words`);
-            
-            if (wordCount < 50) {
-              throw new Error('OCR extraction yielded very few words, document may be problematic');
-            }
-            
-            // Save extracted content if requested
-            if (saveExtracted && outputDir) {
-              const extractedPath = path.join(outputDir, `${path.basename(pdfPath, '.pdf')}_ocr_extracted.txt`);
-              fs.writeFileSync(extractedPath, ocrContent, 'utf8');
-            }
-            
-            const chunks = splitContentByTokens(ocrContent, 100000);
-            console.log(`📝 OCR content split into ${chunks.length} chunk(s)`);
-            
-            const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
-            
-            resolve({
-              success: true,
-              method: 'OCR',
-              wordCount: wordCount,
-              chunks: chunks,
-              extractedContent: ocrContent,
-              processingTime: `${processingTime}s`
-            });
-            return;
-          }
-          
-          // pdf2table succeeded
-          const extractedContent = formatTableContent(rows);
-          const wordCount = extractedContent.split(/\s+/).length;
-          const estimatedTokens = estimateTokens(extractedContent);
-          
-          console.log(`📊 pdf2table extracted ${wordCount} words, ${estimatedTokens.toLocaleString()} tokens`);
-          
-          // Check if we need OCR fallback (less than 100 words)
-          if (wordCount < 100) {
-            console.log(`⚠️ Low word count (${wordCount} < 100), switching to OCR processing...`);
-            
-            const ocrContent = await processWithOCR(pdfPath);
-            const ocrWordCount = ocrContent.split(/\s+/).length;
-            
-            console.log(`📊 OCR extracted ${ocrWordCount} words (vs ${wordCount} from pdf2table)`);
-            
-            if (ocrWordCount > wordCount * 2) {
-              console.log('✅ Using OCR content (significantly more text extracted)');
-              
-              // Save extracted content if requested
-              if (saveExtracted && outputDir) {
-                const extractedPath = path.join(outputDir, `${path.basename(pdfPath, '.pdf')}_ocr_extracted.txt`);
-                fs.writeFileSync(extractedPath, ocrContent, 'utf8');
-              }
-              
-              const chunks = splitContentByTokens(ocrContent, 100000);
-              const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
-              
-              resolve({
-                success: true,
-                method: 'OCR (fallback)',
-                wordCount: ocrWordCount,
-                chunks: chunks,
-                extractedContent: ocrContent,
-                processingTime: `${processingTime}s`
-              });
-              return;
-            }
-          }
-          
-          // Continue with pdf2table content
-          // Save extracted content if requested
-          if (saveExtracted && outputDir) {
-            const extractedPath = path.join(outputDir, `${path.basename(pdfPath, '.pdf')}_extracted.txt`);
-            fs.writeFileSync(extractedPath, extractedContent, 'utf8');
-          }
-          
-          const chunks = splitContentByTokens(extractedContent, 100000);
-          const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
-          
-          resolve({
-            success: true,
-            method: 'pdf2table',
-            wordCount: wordCount,
-            chunks: chunks,
-            extractedContent: extractedContent,
-            processingTime: `${processingTime}s`
-          });
-          
-        } catch (error) {
-          reject(error);
-        }
-      });
-    });
+    const parsed = await pdfParse(buffer);
+    let extractedContent = parsed.text.trim();
+    let method = 'pdf-parse';
+    let wordCount = extractedContent ? extractedContent.split(/\s+/).length : 0;
+
+    if (wordCount < 100) {
+      const ocrContent = await processWithOCR(pdfPath);
+      const ocrWordCount = ocrContent.trim() ? ocrContent.trim().split(/\s+/).length : 0;
+      if (ocrWordCount > wordCount) {
+        extractedContent = ocrContent;
+        method = 'OCR (fallback)';
+        wordCount = ocrWordCount;
+      }
+    }
+
+    if (wordCount < 50) {
+      throw new Error('PDF extraction yielded too little text for a reliable summary');
+    }
+
+    if (saveExtracted && outputDir) {
+      const suffix = method.startsWith('OCR') ? '_ocr_extracted.txt' : '_extracted.txt';
+      fs.writeFileSync(path.join(outputDir, `${path.basename(pdfPath, '.pdf')}${suffix}`), extractedContent, 'utf8');
+    }
+
+    const chunks = splitContentByTokens(extractedContent, 100000);
+    return {
+      success: true,
+      method,
+      wordCount,
+      chunks,
+      extractedContent,
+      processingTime: `${((Date.now() - startTime) / 1000).toFixed(2)}s`
+    };
   } catch (error) {
     throw new Error(`PDF processing failed: ${error.message}`);
   }

@@ -1,8 +1,10 @@
 const vectorService = require('../services/vectorService');
 const fs = require('fs-extra');
 const path = require('path');
+const { assertDestructiveResetAllowed } = require('./destructiveGuard');
 
 async function resetVectorDatabase() {
+  assertDestructiveResetAllowed();
   console.log('🔄 Starting vector database reset...');
   
   try {

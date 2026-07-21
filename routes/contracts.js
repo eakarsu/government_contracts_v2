@@ -482,24 +482,9 @@ router.post('/:noticeId/analyze', async (req, res) => {
       return res.status(404).json({ error: 'Contract not found' });
     }
 
-    // Simple AI analysis (placeholder)
-    const analysis = {
-      summary: `Analysis for contract ${contract.title}`,
-      key_points: [
-        'Contract opportunity identified',
-        'Agency: ' + (contract.agency || 'Unknown'),
-        'NAICS Code: ' + (contract.naicsCode || 'Not specified')
-      ],
-      recommendations: [
-        'Review contract requirements carefully',
-        'Prepare competitive proposal',
-        'Consider partnership opportunities'
-      ]
-    };
-
-    res.json({
+    res.status(501).json({
       contract_id: noticeId,
-      analysis
+      error: 'Contract analysis is unavailable until a validated analysis pipeline is configured.',
     });
 
   } catch (error) {

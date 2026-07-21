@@ -1,86 +1,34 @@
 const express = require('express');
+const { authMiddleware } = require('../middleware/auth');
+const config = require('../config/env');
+const { login } = require('../services/localAuthService');
+
 const router = express.Router();
 
-// POST /api/auth/login
+router.get('/config', (req, res) => {
+  res.json({
+    audience: config.oidcAudience || null,
+    issuer: config.oidcIssuer || null,
+    mode: config.authMode,
+  });
+});
+
 router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    
-    // Mock authentication - replace with real auth logic
-    if (email && password) {
-      const token = 'mock-jwt-token';
-      const user = {
-        id: 1,
-        email,
-        name: 'Test User'
-      };
-      
-      res.json({
-        success: true,
-        token,
-        user
-      });
-    } else {
-      res.status(401).json({
-        success: false,
-        error: 'Invalid credentials'
-      });
-    }
-  } catch (error) {
-    console.error('Error during login:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Login failed'
-    });
-  }
+  if (config.authMode !== 'local') return res.status(410).json({ error: 'Password login is disabled outside explicitly configured local auth.' });
+  const { email, password } = req.body || {};
+  if (typeof email !== 'string' || typeof password !== 'string') return res.status(400).json({ error: 'Email and password are required' });
+  const session = await login(email, password);
+  return session ? res.json(session) : res.status(401).json({ error: 'Invalid credentials' });
 });
 
-// POST /api/auth/register
-router.post('/register', async (req, res) => {
-  try {
-    const { email, password, name } = req.body;
-    
-    // Mock registration
-    const user = {
-      id: Date.now(),
-      email,
-      name
-    };
-    
-    res.json({
-      success: true,
-      user,
-      message: 'User registered successfully'
-    });
-  } catch (error) {
-    console.error('Error during registration:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Registration failed'
-    });
-  }
+router.post('/register', (req, res) => {
+  res.status(410).json({
+    error: 'Public registration is disabled. Authenticate through the configured provider.',
+  });
 });
 
-// GET /api/auth/me
-router.get('/me', async (req, res) => {
-  try {
-    const user = {
-      id: 1,
-      email: 'test@example.com',
-      name: 'Test User'
-    };
-    
-    res.json({
-      success: true,
-      user
-    });
-  } catch (error) {
-    console.error('Error getting user:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get user'
-    });
-  }
+router.get('/me', authMiddleware, (req, res) => {
+  res.json({ success: true, user: req.user });
 });
 
 module.exports = router;

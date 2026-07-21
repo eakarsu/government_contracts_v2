@@ -2,12 +2,16 @@ const express = require('express');
 const { resetDatabases } = require('../scripts/reset-databases');
 const { prisma } = require('../config/database');
 const vectorService = require('../services/vectorService');
+const { requirePermission } = require('../middleware/auth');
+const { assertDestructiveResetAllowed } = require('../scripts/destructiveGuard');
 
 const router = express.Router();
+router.use(requirePermission('system:reset'));
 
 // Reset all databases endpoint
 router.post('/reset-databases', async (req, res) => {
   try {
+    assertDestructiveResetAllowed();
     console.log('🔄 Admin requested database reset...');
     
     await resetDatabases();
@@ -66,6 +70,7 @@ router.get('/database-stats', async (req, res) => {
 // Reset only PostgreSQL database
 router.post('/reset-postgres', async (req, res) => {
   try {
+    assertDestructiveResetAllowed();
     console.log('🔄 Admin requested PostgreSQL reset...');
     
     // Delete all records from all tables
@@ -101,6 +106,7 @@ router.post('/reset-postgres', async (req, res) => {
 // Reset only Vector database
 router.post('/reset-vector', async (req, res) => {
   try {
+    assertDestructiveResetAllowed();
     console.log('🔄 Admin requested Vector database reset...');
     
     const fs = require('fs-extra');

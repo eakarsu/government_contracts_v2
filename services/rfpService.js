@@ -304,7 +304,7 @@ Extract and provide structured RFP analysis in JSON format:
 
     const result = await summaryService.summarizeContent(
       prompt,
-      process.env.REACT_APP_OPENROUTER_KEY
+      process.env.OPENROUTER_API_KEY
     );
 
     try {
@@ -350,7 +350,7 @@ Extract and provide structured RFP analysis in JSON format:
       // Make single call to get structured JSON response for ALL sections
       const result = await summaryService.summarizeContent(
         contractContent,
-        process.env.REACT_APP_OPENROUTER_KEY
+        process.env.OPENROUTER_API_KEY
       );
 
       if (!result.success || !result.result) {
