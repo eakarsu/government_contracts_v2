@@ -7,11 +7,13 @@ async function main() {
   const password = String(process.env.PROVISION_ADMIN_PASSWORD || '');
   const name = String(process.env.PROVISION_ADMIN_NAME || '').trim();
   if (!email.includes('@') || password.length < 12 || !name) throw new Error('Valid PROVISION_ADMIN_* environment is required');
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) { console.log(JSON.stringify({ event: 'initial_admin_exists' })); return; }
   const [firstName, ...last] = name.split(/\s+/);
-  const user = await prisma.user.create({ data: { email, firstName, lastName: last.join(' ') || null, password: await bcrypt.hash(password, 12) } });
-  console.log(JSON.stringify({ event: 'initial_admin_created', userId: user.id }));
+  const user = await prisma.user.upsert({
+    where: { email },
+    create: { email, firstName, lastName: last.join(' ') || null, password: await bcrypt.hash(password, 12) },
+    update: { firstName, lastName: last.join(' ') || null, password: await bcrypt.hash(password, 12), isActive: true },
+  });
+  console.log(JSON.stringify({ event: 'runtime_admin_provisioned', userId: user.id }));
 }
 
 main().catch(error => { console.error(error.message); process.exitCode = 1; }).finally(() => prisma.$disconnect());

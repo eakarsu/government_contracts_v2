@@ -19,7 +19,7 @@ const pool = new Pool({
   ssl: databaseSsl(config),
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 30000,
 });
 const prisma = new PrismaClient();
 
