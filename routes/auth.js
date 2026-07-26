@@ -13,6 +13,15 @@ router.get('/config', (req, res) => {
   });
 });
 
+router.get('/demo-credentials', (_req, res) => {
+  if (config.nodeEnv === 'production') return res.status(404).json({ error: 'Not found' });
+  const email = process.env.PROVISION_ADMIN_EMAIL || process.env.ADMIN_EMAIL || '';
+  const password = process.env.PROVISION_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || '';
+  if (!email || !password) return res.status(503).json({ error: 'Demo credentials unavailable' });
+  res.set('Cache-Control', 'no-store');
+  return res.json({ email, password });
+});
+
 router.post('/login', async (req, res) => {
   if (config.authMode !== 'local') return res.status(410).json({ error: 'Password login is disabled outside explicitly configured local auth.' });
   const { email, password } = req.body || {};
