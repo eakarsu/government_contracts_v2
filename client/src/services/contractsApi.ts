@@ -44,7 +44,8 @@ export class ContractsApiService {
     
     const response = await api.get<{ 
       success: boolean;
-      data: Contract[];
+      data?: Contract[];
+      contracts?: Contract[];
       pagination: {
         page: number;
         limit: number;
@@ -52,7 +53,11 @@ export class ContractsApiService {
         totalPages: number;
       };
     }>(`/contracts?${params.toString()}`);
-    return response.data;
+    return {
+      success: response.data.success,
+      data: response.data.data ?? response.data.contracts ?? [],
+      pagination: response.data.pagination,
+    };
   }
 
   async getContract(noticeId: string): Promise<Contract> {

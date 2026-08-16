@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, Target, Clock, DollarSign, AlertTriangle } from 'lucide-react';
 import api from '../services/api';
+import { contextStorageKey } from '../features/aiQuickActionPresets';
+import type { UserContext } from '../services/aiService';
 
 interface AnalysisData {
   contract: {
@@ -104,7 +106,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
         console.log(`Fetching ${currentAnalysisType} analysis for contract:`, contractId);
         
         let endpoint, data;
-        const userContext = {
+        const fallbackContext: UserContext = {
           companyProfile: {
             annualRevenue: 5000000,
             certifications: ['8(a)', 'HUBZone'],
@@ -118,6 +120,15 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
             keywords: ['cybersecurity', 'IT services', 'software development']
           }
         };
+        let userContext = fallbackContext;
+        const savedContext = sessionStorage.getItem(contextStorageKey(contractId));
+        if (savedContext) {
+          try {
+            userContext = JSON.parse(savedContext) as UserContext;
+          } catch {
+            sessionStorage.removeItem(contextStorageKey(contractId));
+          }
+        }
 
         switch (currentAnalysisType) {
           case 'probability':

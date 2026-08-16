@@ -3,8 +3,10 @@ const axios = require('axios');
 const { query } = require('../config/database');
 const VectorService = require('../services/vectorService');
 const config = require('../config/env');
+const { PrismaClient } = require('@prisma/client');
 
 const router = express.Router();
+const prisma = new PrismaClient();
 
 // Debug middleware for contracts router
 router.use((req, res, next) => {
@@ -38,49 +40,17 @@ router.get('/', async (req, res) => {
       where.naicsCode = naicsCode;
     }
 
-    // Check if contracts table exists, if not return empty result
-    let totalCount = 0;
-    let contracts = [];
-
-    try {
-      // Get total count for pagination
-      const totalResult = await query('SELECT COUNT(*) FROM contracts');
-      totalCount = parseInt(totalResult.rows[0].count);
-
-      // Get contracts with pagination
-      const result = await query(`
-        SELECT 
-          id, notice_id, title, description, agency, naics_code, 
-          classification_code, posted_date, set_aside_code, 
-          resource_links, indexed_at, created_at, updated_at,
-          contract_value
-        FROM contracts 
-        ORDER BY posted_date DESC NULLS LAST, created_at DESC
-        LIMIT $1 OFFSET $2
-      `, [parseInt(limit), offset]);
-
-      contracts = result.rows.map(row => ({
-        id: row.id,
-        noticeId: row.notice_id,
-        title: row.title,
-        description: row.description,
-        agency: row.agency,
-        naicsCode: row.naics_code,
-        classificationCode: row.classification_code,
-        postedDate: row.posted_date,
-        setAsideCode: row.set_aside_code,
-        resourceLinks: row.resource_links ? JSON.parse(row.resource_links) : [],
-        indexedAt: row.indexed_at,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        contractValue: row.contract_value
-      }));
-    } catch (dbError) {
-      console.warn('Contracts table may not exist:', dbError.message);
-      // Return empty result if table doesn't exist
-      totalCount = 0;
-      contracts = [];
-    }
+    // AI endpoints use the Prisma Contract model. Returning that same source
+    // prevents a contract selected in the UI from failing AI lookup later.
+    const [totalCount, contracts] = await Promise.all([
+      prisma.contract.count({ where }),
+      prisma.contract.findMany({
+        where,
+        orderBy: [{ postedDate: 'desc' }, { createdAt: 'desc' }],
+        skip: offset,
+        take: parseInt(limit)
+      })
+    ]);
 
     res.json({
       success: true,
@@ -105,37 +75,25 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get single contract by noticeId - VECTOR DATABASE ONLY
+// Get a single contract from the same canonical source used by AI analysis.
 router.get('/:noticeId', async (req, res) => {
   try {
     const { noticeId } = req.params;
-    
-    // Get the vector service from the global instance
-    const vectorService = require('../server').vectorService;
-    
-    if (!vectorService || !vectorService.isConnected) {
-      return res.status(503).json({
-        success: false,
-        error: 'Vector database not available'
-      });
-    }
-    
-    // Get contract directly from vector database by ID
-    const contract = await vectorService.getContractById(noticeId);
+    const contract = await prisma.contract.findUnique({ where: { noticeId } });
     
     if (!contract) {
       return res.status(404).json({
         success: false,
-        error: 'Contract not found in vector database'
+        error: 'Contract not found'
       });
     }
     
     res.json(contract);
   } catch (error) {
-    console.error('Error fetching contract from vector DB:', error);
+    console.error('Error fetching contract:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch contract from vector database',
+      error: 'Failed to fetch contract',
       details: error.message
     });
   }

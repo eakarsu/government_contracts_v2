@@ -45,7 +45,9 @@ class WinProbabilityPredictor {
       return model;
     } catch (error) {
       console.error('Error training model:', error);
-      return this.getDefaultModel();
+      this.model = this.getDefaultModel();
+      this.trainingData = [];
+      return this.model;
     }
   }
 
@@ -113,7 +115,7 @@ class WinProbabilityPredictor {
 
   async predictWinProbability(newContract, userContext = {}) {
     if (!this.model) {
-      await this.trainModel();
+      this.model = await this.trainModel();
     }
 
     const features = this.extractFeatures(newContract);
@@ -236,14 +238,14 @@ class WinProbabilityPredictor {
     const largeAgencies = ['DEFENSE', 'ARMY', 'NAVY', 'AIR FORCE', 'DHS'];
     const mediumAgencies = ['GSA', 'NASA', 'EPA', 'FEMA'];
     
-    const agencyUpper = agency.toUpperCase();
+    const agencyUpper = String(agency || '').toUpperCase();
     if (largeAgencies.some(a => agencyUpper.includes(a))) return 10;
     if (mediumAgencies.some(a => agencyUpper.includes(a))) return 7;
     return 5;
   }
 
   getAgencyType(agency) {
-    const agencyUpper = agency.toUpperCase();
+    const agencyUpper = String(agency || '').toUpperCase();
     if (agencyUpper.includes('DEFENSE') || agencyUpper.includes('ARMY') || agencyUpper.includes('NAVY')) {
       return 'DEFENSE';
     }

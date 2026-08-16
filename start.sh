@@ -48,6 +48,7 @@ export VITE_BACKEND_URL="http://127.0.0.1:$api_port"
 "$project_dir/node_modules/.bin/prisma" generate
 "$project_dir/node_modules/.bin/prisma" migrate deploy
 npm --prefix "$project_dir" run create-admin
+npm --prefix "$project_dir" run seed:ai-opportunities
 
 cleanup() {
   trap - INT TERM EXIT

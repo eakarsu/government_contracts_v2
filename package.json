@@ -14,6 +14,7 @@
     "prisma:migrate": "prisma migrate dev",
     "seed:lifecycle": "node scripts/seed-contract-lifecycle.js",
     "seed:contract-suite": "node scripts/seed-contract-suite.js",
+    "seed:ai-opportunities": "node scripts/seed-ai-opportunities.js",
     "create-admin": "node scripts/provision-admin.js",
     "prisma:studio": "prisma studio",
     "init-db": "chmod +x init-db.sh && ./init-db.sh",
