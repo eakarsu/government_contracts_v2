@@ -41,6 +41,9 @@ export BOOTSTRAP_ACKNOWLEDGEMENT=create-initial-admin
 export PROVISION_ADMIN_EMAIL="${ADMIN_EMAIL:?ADMIN_EMAIL is required}"
 export PROVISION_ADMIN_PASSWORD="${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}"
 export PROVISION_ADMIN_NAME="${PROVISION_ADMIN_NAME:-Runtime Administrator}"
+# Browser API calls must stay on the UI origin. This lets Vite proxy them to
+# the loopback-only backend without making mobile clients call themselves.
+export VITE_API_URL="/api"
 export VITE_BACKEND_URL="http://127.0.0.1:$api_port"
 "$project_dir/node_modules/.bin/prisma" generate
 "$project_dir/node_modules/.bin/prisma" migrate deploy
