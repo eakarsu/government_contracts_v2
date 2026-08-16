@@ -4,6 +4,8 @@ import { ArrowLeft, TrendingUp, Target, Clock, DollarSign, AlertTriangle } from 
 import api from '../services/api';
 import { contextStorageKey } from '../features/aiQuickActionPresets';
 import type { UserContext } from '../services/aiService';
+import ProfessionalAiReport from '../components/AI/ProfessionalAiReport';
+import { resultStorageKey, type AiQuickActionType } from '../features/aiQuickActionPresets';
 
 interface AnalysisData {
   contract: {
@@ -41,6 +43,8 @@ interface AnalysisData {
     reasoning: string;
     priority: string;
   };
+  aiAdvisory?: unknown;
+  aiMetadata?: { provider?: string; model?: string; providerResponseId?: string | null; elapsedMs?: number; localFallback?: boolean };
 }
 
 interface ComprehensiveAnalysis {
@@ -79,6 +83,8 @@ interface ComprehensiveAnalysis {
     reasoning: string;
     priority: string;
   };
+  aiAdvisory?: unknown;
+  aiMetadata?: { provider?: string; model?: string; providerResponseId?: string | null; elapsedMs?: number; localFallback?: boolean };
 }
 
 interface AIAnalysisResultsProps {
@@ -150,16 +156,23 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
             break;
         }
 
-        const response = await api.post(endpoint, data);
-        console.log('API response:', response.data);
+        const cacheKey = resultStorageKey(currentAnalysisType as AiQuickActionType, contractId);
+        const cached = sessionStorage.getItem(cacheKey);
+        let responseData: any;
+        if (cached) {
+          responseData = JSON.parse(cached);
+          sessionStorage.removeItem(cacheKey);
+        } else {
+          responseData = (await api.post(endpoint, data)).data;
+        }
         
         // Handle different response structures
         let analysisData: AnalysisData;
         if (currentAnalysisType === 'comprehensive') {
-          analysisData = (response.data.analysis || response.data.data || response.data) as ComprehensiveAnalysis;
+          analysisData = (responseData.analysis || responseData.data || responseData) as ComprehensiveAnalysis;
         } else {
           // For specific analysis types, build a comprehensive structure
-          const contract = response.data.contract || await api.get(`/contracts/${contractId}`).then(r => r.data);
+          const contract = responseData.contract || await api.get(`/contracts/${contractId}`).then(r => r.data);
           
           analysisData = {
             contract: {
@@ -175,7 +188,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
 
           switch (currentAnalysisType) {
             case 'probability':
-              analysisData.winProbability = response.data.prediction || response.data;
+              analysisData.winProbability = responseData.prediction || responseData;
               analysisData.overallRecommendation = {
                 action: 'evaluate',
                 confidence: 'low',
@@ -208,7 +221,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
               }
               break;
             case 'similarity':
-              analysisData.similarContracts = response.data.similarities || response.data;
+              analysisData.similarContracts = responseData.similarities || responseData;
               analysisData.overallRecommendation = {
                 action: 'analyze',
                 confidence: 'medium',
@@ -217,7 +230,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
               };
               break;
             case 'strategy':
-              analysisData.bidStrategy = response.data.strategy || response.data;
+              analysisData.bidStrategy = responseData.strategy || responseData;
               analysisData.overallRecommendation = {
                 action: 'plan',
                 confidence: 'high',
@@ -226,14 +239,16 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
               };
               break;
           }
+          analysisData.aiAdvisory = responseData.aiAdvisory;
+          analysisData.aiMetadata = responseData.aiMetadata;
         }
 
         if (analysisData && analysisData.contract) {
           setAnalysis(analysisData);
-        } else if (response.data.success === false) {
-          setError(response.data.error || 'Analysis failed');
+        } else if (responseData.success === false) {
+          setError(responseData.error || 'Analysis failed');
         } else {
-          console.error('Invalid data structure:', response.data);
+          console.error('Invalid data structure:', responseData);
           setError('Invalid analysis data format received');
         }
       } catch (error: any) {
@@ -311,7 +326,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading AI Analysis Results...</p>
+          <p className="mt-4 text-gray-600">Connecting to OpenRouter and preparing your report…</p>
         </div>
       </div>
     );
@@ -408,6 +423,18 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
             </div>
           </div>
         </CustomCard>
+
+        {analysis.aiAdvisory != null && (
+          <div className="mb-6">
+            <ProfessionalAiReport
+              value={analysis.aiAdvisory}
+              title="OpenRouter Capture Advisory"
+              subtitle={`${analysis.aiMetadata?.provider || 'AI provider'} response in ${analysis.aiMetadata?.elapsedMs ?? '—'} ms${analysis.aiMetadata?.providerResponseId ? ` · Response ${analysis.aiMetadata.providerResponseId}` : ''}`}
+              model={analysis.aiMetadata?.model}
+              status="Human capture review required"
+            />
+          </div>
+        )}
 
         {/* Overall Recommendation */}
         <CustomCard className="mb-6">

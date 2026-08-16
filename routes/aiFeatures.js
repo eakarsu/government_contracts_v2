@@ -4,9 +4,18 @@ const winProbabilityPredictor = require('../services/mlWinProbability');
 const contractSimilarity = require('../services/contractSimilarity');
 const aiOpportunityAlerts = require('../services/aiOpportunityAlerts');
 const bidStrategyOptimizer = require('../services/bidStrategyOptimizer');
+const { captureAiService } = require('../services/captureAiService');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
+
+function respondAiError(res, error, fallbackMessage) {
+  const status = Number.isInteger(error?.status) ? error.status : 500;
+  return res.status(status).json({
+    error: status >= 500 && !error?.code ? fallbackMessage : error.message,
+    code: error?.code || 'AI_ANALYSIS_FAILED',
+  });
+}
 
 // Win Probability Prediction Endpoint
 router.post('/win-probability', async (req, res) => {
@@ -29,16 +38,19 @@ router.post('/win-probability', async (req, res) => {
       contract, 
       userContext
     );
+    const ai = await captureAiService.analyze({ analysisType: 'WIN_PROBABILITY', contract, userContext, localEvidence: { prediction } });
 
     res.json({
       success: true,
       contractId,
       prediction,
+      aiAdvisory: ai.report,
+      aiMetadata: ai.metadata,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Win probability prediction error:', error);
-    res.status(500).json({ error: 'Failed to predict win probability' });
+    respondAiError(res, error, 'Failed to predict win probability');
   }
 });
 
@@ -63,16 +75,19 @@ router.post('/similar-contracts', async (req, res) => {
       contract, 
       limit
     );
+    const ai = await captureAiService.analyze({ analysisType: 'SIMILAR_CONTRACTS', contract, userContext, localEvidence: { similarities } });
 
     res.json({
       success: true,
       contractId,
       similarities,
+      aiAdvisory: ai.report,
+      aiMetadata: ai.metadata,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Similar contracts error:', error);
-    res.status(500).json({ error: 'Failed to find similar contracts' });
+    respondAiError(res, error, 'Failed to find similar contracts');
   }
 });
 
@@ -89,16 +104,19 @@ router.post('/opportunity-alerts', async (req, res) => {
       userId, 
       userContext
     );
+    const ai = await captureAiService.analyze({ analysisType: 'OPPORTUNITY_ALERTS', contract: { title: 'Opportunity portfolio' }, userContext, localEvidence: { alerts } });
 
     res.json({
       success: true,
       userId,
       alerts,
+      aiAdvisory: ai.report,
+      aiMetadata: ai.metadata,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Opportunity alerts error:', error);
-    res.status(500).json({ error: 'Failed to generate opportunity alerts' });
+    respondAiError(res, error, 'Failed to generate opportunity alerts');
   }
 });
 
@@ -123,16 +141,19 @@ router.post('/optimize-strategy', async (req, res) => {
       contract, 
       userContext
     );
+    const ai = await captureAiService.analyze({ analysisType: 'BID_STRATEGY', contract, userContext, localEvidence: { strategy } });
 
     res.json({
       success: true,
       contractId,
       strategy,
+      aiAdvisory: ai.report,
+      aiMetadata: ai.metadata,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Strategy optimization error:', error);
-    res.status(500).json({ error: 'Failed to optimize bid strategy' });
+    respondAiError(res, error, 'Failed to optimize bid strategy');
   }
 });
 
@@ -188,6 +209,9 @@ router.post('/comprehensive-analysis', async (req, res) => {
         bidStrategy
       })
     };
+    const ai = await captureAiService.analyze({ analysisType: 'COMPREHENSIVE_CAPTURE_REVIEW', contract, userContext, localEvidence: comprehensiveAnalysis });
+    comprehensiveAnalysis.aiAdvisory = ai.report;
+    comprehensiveAnalysis.aiMetadata = ai.metadata;
 
     res.json({
       success: true,
@@ -196,7 +220,7 @@ router.post('/comprehensive-analysis', async (req, res) => {
     });
   } catch (error) {
     console.error('Comprehensive analysis error:', error);
-    res.status(500).json({ error: 'Failed to generate comprehensive analysis' });
+    respondAiError(res, error, 'Failed to generate comprehensive analysis');
   }
 });
 
@@ -285,15 +309,19 @@ router.post('/batch-analysis', async (req, res) => {
     );
 
     const validResults = results.filter(r => r !== null);
+    const sortedResults = validResults.sort((a, b) => b.overallScore - a.overallScore);
+    const ai = await captureAiService.analyze({ analysisType: 'BATCH_OPPORTUNITY_RANKING', contract: { title: 'Opportunity portfolio' }, userContext, localEvidence: { results: sortedResults } });
 
     res.json({
       success: true,
-      results: validResults.sort((a, b) => b.overallScore - a.overallScore),
+      results: sortedResults,
+      aiAdvisory: ai.report,
+      aiMetadata: ai.metadata,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Batch analysis error:', error);
-    res.status(500).json({ error: 'Failed to perform batch analysis' });
+    respondAiError(res, error, 'Failed to perform batch analysis');
   }
 });
 
@@ -304,13 +332,14 @@ router.get('/health', async (req, res) => {
       'winProbabilityPredictor',
       'contractSimilarity',
       'aiOpportunityAlerts',
-      'bidStrategyOptimizer'
+      'bidStrategyOptimizer',
+      'openRouterCaptureAdvisor'
     ];
 
     const healthStatus = {
       status: 'healthy',
       services: services.reduce((acc, service) => {
-        acc[service] = 'available';
+        acc[service] = service === 'openRouterCaptureAdvisor' ? (captureAiService.status().configured ? 'configured' : 'not-configured') : 'available';
         return acc;
       }, {}),
       timestamp: new Date().toISOString()

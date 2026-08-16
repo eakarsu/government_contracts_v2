@@ -123,3 +123,4 @@ export const hasCompleteAiRequest = (form: AiRequestForm) =>
   ].every(value => value.trim().length > 0);
 
 export const contextStorageKey = (contractId: string) => `aiQuickActionContext:${contractId}`;
+export const resultStorageKey = (type: AiQuickActionType, contractId: string) => `aiQuickActionResult:${type}:${contractId}`;

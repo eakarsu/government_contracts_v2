@@ -11,6 +11,7 @@ import {
   AiRequestForm,
   contextStorageKey,
   hasCompleteAiRequest,
+  resultStorageKey,
   toUserContext,
 } from '../features/aiQuickActionPresets';
 
@@ -49,11 +50,12 @@ const AIQuickActionsPage: React.FC = () => {
       if (type === 'strategy') return aiService.optimizeBidStrategy(id, context);
       return aiService.getComprehensiveAnalysis(id, 'current-user', context);
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
       const paths: Record<AiQuickActionType, string> = {
         comprehensive: 'analysis-results', probability: 'win-probability',
         similarity: 'similar-contracts', strategy: 'bid-strategy',
       };
+      sessionStorage.setItem(resultStorageKey(variables.type, variables.id), JSON.stringify(data));
       navigate(`/ai/${paths[variables.type]}/${variables.id}`);
     },
   });
@@ -137,7 +139,7 @@ const AIQuickActionsPage: React.FC = () => {
       <section className="rounded-2xl border border-purple-200 bg-purple-50 p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-5 sm:p-6">
         <div><div className="flex items-center gap-2 font-semibold text-slate-950"><Brain className="h-5 w-5 text-purple-700" /> Ready: {activePreset.name}</div><p className="mt-1 text-sm text-slate-600">Runs {activePreset.action.replace('-', ' ')} analysis with the complete context above.</p></div>
         <button onClick={runAnalysis} disabled={!ready || analysisMutation.isPending} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-purple-700 px-6 py-3.5 font-semibold text-white shadow-lg transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-50 sm:mt-0 sm:w-auto">
-          {analysisMutation.isPending ? <><Loader2 className="h-5 w-5 animate-spin" /> Analyzing…</> : <><Play className="h-5 w-5" /> Run AI analysis</>}
+          {analysisMutation.isPending ? <><Loader2 className="h-5 w-5 animate-spin" /> Connecting to OpenRouter…</> : <><Play className="h-5 w-5" /> Run AI analysis</>}
         </button>
       </section>
       {analysisMutation.isError && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{analysisMutation.error instanceof Error ? analysisMutation.error.message : 'AI analysis failed. Please try again.'}</div>}
