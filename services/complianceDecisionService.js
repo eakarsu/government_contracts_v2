@@ -129,6 +129,18 @@ class InMemoryGovernanceRepository {
   async listAudit(aggregateId) {
     return clone(this.auditEvents.filter(event => event.aggregateId === aggregateId));
   }
+
+  async listPolicies() {
+    return clone([...this.policies.values()].sort((left, right) => right.version - left.version));
+  }
+
+  async listSources() {
+    return clone([...this.sources.values()].sort((left, right) => right.version - left.version));
+  }
+
+  async listEvaluations() {
+    return clone([...this.evaluations.values()].sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt))));
+  }
 }
 
 class ComplianceDecisionService {
@@ -140,6 +152,18 @@ class ComplianceDecisionService {
   now() {
     return this.clock().toISOString();
   }
+
+  async overview() {
+    const [policies, sources, evaluations] = await Promise.all([
+      this.repository.listPolicies(), this.repository.listSources(), this.repository.listEvaluations(),
+    ]);
+    const statuses = evaluations.reduce((counts, item) => ({ ...counts, [item.status]: (counts[item.status] || 0) + 1 }), {});
+    return { policies: policies.length, sources: sources.length, evaluations: evaluations.length, statuses };
+  }
+
+  listPolicies() { return this.repository.listPolicies(); }
+  listSources() { return this.repository.listSources(); }
+  listEvaluations() { return this.repository.listEvaluations(); }
 
   async audit(aggregateType, aggregateId, action, actor, payload = {}) {
     return this.repository.appendAudit({

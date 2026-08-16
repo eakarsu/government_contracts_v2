@@ -1,6 +1,6 @@
-# Government Contracts Compliance Platform
+# Government Contract Lifecycle and Compliance Platform
 
-This service provides an evidence-backed, approval-controlled compliance decision workflow for government-contract scenarios. It records the exact policy version and authoritative regulatory source used for each evaluation, enforces separation of duties, and exports a verifiable append-only audit chain.
+This service combines government opportunity intelligence with an evidence-backed contract lifecycle and approval-controlled compliance decision workflow. It manages matters from intake through closeout, records the exact policy version and authoritative regulatory source used for consequential evaluations, enforces separation of duties, and exports verifiable append-only audit chains.
 
 Legacy RFP generation, bid prediction, and AI-generated regulatory-checklist endpoints are intentionally unavailable. They return `410` or `501` instead of presenting sample, random, or model-generated content as authoritative output.
 
@@ -14,6 +14,25 @@ Legacy RFP generation, bid prediction, and AI-generated regulatory-checklist end
 6. The released decision is immutable. Records officers may apply a legal hold, and auditors may export the decision and its verified hash-chained audit manifest.
 
 See [docs/GOVERNANCE_DECISIONS.md](docs/GOVERNANCE_DECISIONS.md) for API requests and acceptance criteria.
+
+## Contract lifecycle journey
+
+The unified lifecycle workspace adds:
+
+- government contract matters linked to SAM.gov notices when applicable;
+- parties, UEI/CAGE identifiers, counterparty roles, sanctions status, and risk;
+- immutable document versions with source URLs, content digests, privilege labels, and effective dates;
+- cited clauses, approved fallback language, human disposition, and AI confidence evidence;
+- obligations, milestones, accountable owners, recurrence, deadlines, evidence, and escalation;
+- amendments and redlines with price, schedule, clause, and compliance impact;
+- independent legal, business, compliance, and security approval evidence;
+- option periods, renewal decisions, notice deadlines, and expected value;
+- multi-domain risk assessments, advisory AI reviews, and an idempotent integration outbox;
+- a separately hash-chained lifecycle audit export.
+
+Lifecycle stages advance only through `INTAKE`, `DILIGENCE`, `NEGOTIATION`, `APPROVAL`, `EXECUTION`, `PERFORMANCE`, `RENEWAL`, and `CLOSEOUT`. Execution requires legal, business, and compliance approvals. AI reviews are always stored as advisory-only evidence and cannot change a lifecycle stage or compliance decision.
+
+See [docs/CONTRACT_LIFECYCLE.md](docs/CONTRACT_LIFECYCLE.md) for the data model, API surface, permissions, and operational boundaries.
 
 ## Configuration
 
@@ -35,6 +54,7 @@ Apply committed migrations before starting an application release:
 npm ci
 npx prisma generate
 npx prisma migrate deploy
+npm run seed:lifecycle # optional, idempotent demonstration records
 npm start
 ```
 
@@ -67,4 +87,4 @@ Reset utilities and reset administration endpoints are denied unless all of the 
 
 ## Security
 
-Authorization is permission-based and deny-by-default. The main roles are `policy_admin`, `regulatory_ingestor`, `compliance_analyst`, `compliance_approver`, `records_officer`, and `auditor`; `admin` is the only wildcard role. See [SECURITY.md](SECURITY.md) before deploying or using a clone that predates the credential cleanup.
+Authorization is permission-based and deny-by-default. The main roles are `policy_admin`, `regulatory_ingestor`, `compliance_analyst`, `compliance_approver`, `contract_manager`, `legal_reviewer`, `contract_viewer`, `records_officer`, and `auditor`; `admin` is the only wildcard role. See [SECURITY.md](SECURITY.md) before deploying or using a clone that predates the credential cleanup.

@@ -40,6 +40,7 @@ const nlpSearchRoutes = require('./routes/nlpSearch');
 const aiFeaturesRoutes = require('./routes/aiFeatures');
 const governanceRoutes = require('./routes/governance');
 const runtimeAiRoutes = require('./routes/runtimeAi');
+const lifecycleRoutes = require('./routes/lifecycle');
 
 // Import middleware
 const { rateLimiter, statusRateLimiter } = require('./middleware/rateLimiter');
@@ -130,7 +131,7 @@ app.use('/api/documents/queue/status', statusRateLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api', authMiddleware);
 app.use('/api', (req, res, next) => {
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || req.path.startsWith('/governance')) return next();
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || req.path.startsWith('/governance') || req.path.startsWith('/lifecycle')) return next();
   return requirePermission('legacy:write')(req, res, next);
 });
 
@@ -155,6 +156,7 @@ app.use('/api/ai', aiFeaturesRoutes);
 app.use('/api/compliance', complianceRoutes);
 app.use('/api/governance', governanceRoutes);
 app.use('/api/runtime-ai', runtimeAiRoutes);
+app.use('/api/lifecycle', lifecycleRoutes);
 
 // Debug: Log when routers are loaded
 console.log('📋 [DEBUG] Contracts router mounted at /api/contracts');

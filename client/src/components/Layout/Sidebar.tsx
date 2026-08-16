@@ -15,7 +15,15 @@ import {
   Target,
   Wand2,
   Sparkles,
-  Brain
+  Brain,
+  FolderKanban,
+  Users,
+  ListChecks,
+  GitCompareArrows,
+  CalendarClock,
+  ShieldCheck,
+  Scale,
+  FileCheck2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -40,6 +48,28 @@ const aiEnhancements = [
   { name: 'Bid Analyzer', href: '/ai/bid-analyzer', icon: Target },
 ];
 
+const lifecycleNavigation = [
+  { name: 'Lifecycle Overview', href: '/lifecycle', icon: FolderKanban },
+  { name: 'Contract Matters', href: '/lifecycle/matters', icon: Briefcase },
+  { name: 'Parties', href: '/lifecycle/parties', icon: Users },
+  { name: 'Documents', href: '/lifecycle/document-versions', icon: FileText },
+  { name: 'Clauses & Playbooks', href: '/lifecycle/clauses', icon: FileCheck2 },
+  { name: 'Obligations', href: '/lifecycle/obligations', icon: ListChecks },
+  { name: 'Amendments', href: '/lifecycle/amendments', icon: GitCompareArrows },
+  { name: 'Approvals', href: '/lifecycle/approvals', icon: ShieldCheck },
+  { name: 'Renewals & Options', href: '/lifecycle/renewals', icon: CalendarClock },
+  { name: 'Risk & AI Evidence', href: '/lifecycle/risk-assessments', icon: Brain },
+];
+
+function NavigationLink({ item, active, onClose }: { item: { name: string; href: string; icon: React.ElementType }; active: boolean; onClose: () => void }) {
+  return <li>
+    <NavLink to={item.href} onClick={onClose} className={clsx('group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors duration-200', active ? 'border-r-2 border-primary-500 bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900')}>
+      <item.icon className={clsx('mr-3 h-5 w-5 shrink-0', active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500')} />
+      {item.name}
+    </NavLink>
+  </li>;
+}
+
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
 
@@ -57,14 +87,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
       {/* Sidebar */}
       <div className={clsx(
-        'fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0',
+        'fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0',
         isOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
           <div className="flex items-center">
             <Zap className="h-8 w-8 text-primary-600" />
             <span className="ml-2 text-xl font-bold text-gray-900">
-              ContractAI
+              GovContract AI
             </span>
           </div>
           <button
@@ -75,36 +105,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <nav className="mt-8 px-4">
+        <nav className="flex-1 overflow-y-auto px-4 py-6">
+          <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Opportunity Intelligence</h3>
           <ul className="space-y-2">
             {navigation.map((item) => {
               const isActive = location.pathname === item.href || (item.href === '/rfp' && location.pathname.startsWith('/rfp'));
-              return (
-                <li key={item.name}>
-                  <NavLink
-                    to={item.href}
-                    onClick={onClose}
-                    className={clsx(
-                      'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200',
-                      isActive
-                        ? 'bg-primary-100 text-primary-700 border-r-2 border-primary-500'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    )}
-                  >
-                    <item.icon
-                      className={clsx(
-                        'mr-3 h-5 w-5 transition-colors duration-200',
-                        isActive
-                          ? 'text-primary-500'
-                          : 'text-gray-400 group-hover:text-gray-500'
-                      )}
-                    />
-                    {item.name}
-                  </NavLink>
-                </li>
-              );
+              return <NavigationLink key={item.name} item={item} active={isActive} onClose={onClose} />;
             })}
           </ul>
+
+          <div className="mt-8">
+            <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Contract Lifecycle</h3>
+            <ul className="mt-2 space-y-1">
+              {lifecycleNavigation.map(item => {
+                const isActive = item.href === '/lifecycle' ? location.pathname === '/lifecycle' : location.pathname === item.href;
+                return <NavigationLink key={item.name} item={item} active={isActive} onClose={onClose} />;
+              })}
+              <NavigationLink item={{ name: 'Compliance Governance', href: '/governance', icon: Scale }} active={location.pathname === '/governance'} onClose={onClose} />
+            </ul>
+          </div>
 
           {/* AI Enhancements Links */}
           <div className="mt-8">
@@ -112,41 +131,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               AI Enhancements
             </h3>
             <ul className="mt-2 space-y-1">
-              {aiEnhancements.map((item) => {
-                const isActive = location.pathname === item.href || location.pathname.startsWith('/ai');
-                return (
-                  <li key={item.name}>
-                    <NavLink
-                      to={item.href}
-                      onClick={onClose}
-                      className={clsx(
-                        'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200',
-                        isActive
-                          ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-500'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      )}
-                    >
-                      <item.icon
-                        className={clsx(
-                          'mr-3 h-5 w-5 transition-colors duration-200',
-                          isActive
-                            ? 'text-blue-500'
-                            : 'text-gray-400 group-hover:text-gray-500'
-                        )}
-                      />
-                      {item.name}
-                    </NavLink>
-                  </li>
-                );
-              })}
+              {aiEnhancements.map(item => <NavigationLink key={item.name} item={item} active={location.pathname === item.href} onClose={onClose} />)}
             </ul>
           </div>
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        <div className="border-t border-gray-200 p-4">
           <div className="text-xs text-gray-500 text-center">
-            Government Contract Indexer
+            Government Contract Lifecycle
             <br />
             Powered by AI
           </div>

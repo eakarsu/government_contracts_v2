@@ -10,9 +10,11 @@ The tracked client `.env` file was also removed. Client builds must contain only
 
 - Production accepts OIDC JWTs verified with the configured issuer, audience, JWKS URI, and `RS256` signature.
 - Missing or invalid bearer credentials receive `401`; there is no anonymous development user.
-- Permissions are enforced on governance, queue, legacy-write, audit-export, legal-hold, and reset operations.
+- Permissions are enforced on governance, lifecycle read/create/update/submit/approve/AI/export, queue, legacy-write, audit-export, legal-hold, and reset operations.
 - A decision creator, owner, or submitter cannot approve that decision.
 - Released approval/rejection records and audit events are protected from update or deletion by service logic and database triggers.
+- Contract document versions, lifecycle approvals, risk assessments, AI review evidence, and lifecycle audit events are append-only at the database layer.
+- Lifecycle execution requires separate legal, business, and compliance approval records; AI cannot satisfy an approval requirement.
 
 ## Data and transport
 
@@ -20,6 +22,7 @@ The tracked client `.env` file was also removed. Client builds must contain only
 - Production CORS must use an explicit origin allowlist.
 - Uploaded documents are not exposed through a static public route.
 - Authoritative regulatory evidence must use HTTPS and is stored with retrieval/effective dates and a content digest.
+- Lifecycle AI prompts are constructed from stored matter evidence. Responses are retained with their model, prompt digest, citations, status, and advisory-only flag for human review.
 
 ## Reporting
 

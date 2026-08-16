@@ -22,7 +22,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, config }) => {
           
           <div className="ml-4 lg:ml-0">
             <h1 className="text-2xl font-bold text-gray-900">
-              Contract Indexer
+              Government Contract Intelligence
             </h1>
             {config && (
               <p className="text-sm text-gray-500">

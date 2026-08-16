@@ -23,6 +23,7 @@ model Contract {
   updatedAt             DateTime               @updatedAt @map("updated_at")
   rfpResponses          RfpResponse[]
   complianceEvaluations ComplianceEvaluation[]
+  lifecycleMatters      ContractMatter[]
 
   @@map("contract")
 }
@@ -54,14 +55,14 @@ model SearchQuery {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  firstName String?  @map("first_name")
-  lastName  String?  @map("last_name")
-  password  String
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id            Int                @id @default(autoincrement())
+  email         String             @unique
+  firstName     String?            @map("first_name")
+  lastName      String?            @map("last_name")
+  password      String
+  isActive      Boolean            @default(true) @map("is_active")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
   localSessions LocalAuthSession[]
 
   @@map("user")
@@ -294,4 +295,296 @@ model GovernanceAuditEvent {
   @@unique([aggregateId, sequence])
   @@index([aggregateType, occurredAt])
   @@map("governance_audit_event")
+}
+
+model ContractMatter {
+  id                String                      @id @default(uuid())
+  contractNoticeId  String?                     @map("contract_notice_id")
+  contract          Contract?                   @relation(fields: [contractNoticeId], references: [noticeId], onDelete: SetNull)
+  matterNumber      String                      @unique @map("matter_number")
+  title             String
+  agency            String
+  contractType      String                      @map("contract_type")
+  jurisdiction      String
+  stage             String                      @default("INTAKE")
+  status            String                      @default("ACTIVE")
+  ownerId           String                      @map("owner_id")
+  createdBy         String                      @map("created_by")
+  legalHold         Boolean                     @default(false) @map("legal_hold")
+  retentionUntil    DateTime                    @map("retention_until")
+  createdAt         DateTime                    @default(now()) @map("created_at")
+  updatedAt         DateTime                    @updatedAt @map("updated_at")
+  parties           ContractParty[]
+  documentVersions  ContractDocumentVersion[]
+  clauses           ContractClause[]
+  obligations       ContractObligation[]
+  milestones        ContractMilestone[]
+  amendments        ContractAmendment[]
+  approvals         ContractApproval[]
+  renewals          ContractRenewal[]
+  riskAssessments   ContractRiskAssessment[]
+  aiReviews         ContractAiReview[]
+  integrationOutbox ContractIntegrationOutbox[]
+
+  @@index([stage, status])
+  @@index([ownerId, updatedAt])
+  @@map("contract_matter")
+}
+
+model ContractParty {
+  id              String         @id @default(uuid())
+  matterId        String         @map("matter_id")
+  matter          ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  name            String
+  partyType       String         @map("party_type")
+  contractRole    String         @map("contract_role")
+  uei             String?
+  cageCode        String?        @map("cage_code")
+  riskRating      String         @default("LOW") @map("risk_rating")
+  sanctionsStatus String         @default("CLEAR") @map("sanctions_status")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  @@unique([matterId, name, contractRole])
+  @@index([matterId, partyType])
+  @@map("contract_party")
+}
+
+model ContractDocumentVersion {
+  id            String              @id @default(uuid())
+  matterId      String              @map("matter_id")
+  matter        ContractMatter      @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  documentType  String              @map("document_type")
+  title         String
+  version       Int
+  sourceUrl     String?             @map("source_url")
+  contentHash   String              @map("content_hash")
+  privilege     String              @default("BUSINESS_CONFIDENTIAL")
+  effectiveDate DateTime?           @map("effective_date")
+  uploadedBy    String              @map("uploaded_by")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  clauses       ContractClause[]
+  amendments    ContractAmendment[]
+
+  @@unique([matterId, title, version])
+  @@index([matterId, documentType])
+  @@map("contract_document_version")
+}
+
+model ContractClause {
+  id                String                   @id @default(uuid())
+  matterId          String                   @map("matter_id")
+  matter            ContractMatter           @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  documentVersionId String?                  @map("document_version_id")
+  documentVersion   ContractDocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+  clauseKey         String                   @map("clause_key")
+  title             String
+  category          String
+  text              String
+  citation          String
+  riskLevel         String                   @default("LOW") @map("risk_level")
+  status            String                   @default("IDENTIFIED")
+  fallbackText      String?                  @map("fallback_text")
+  aiConfidence      Float?                   @map("ai_confidence")
+  reviewedBy        String?                  @map("reviewed_by")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+  obligations       ContractObligation[]
+
+  @@unique([matterId, clauseKey])
+  @@index([matterId, riskLevel, status])
+  @@map("contract_clause")
+}
+
+model ContractObligation {
+  id              String          @id @default(uuid())
+  matterId        String          @map("matter_id")
+  matter          ContractMatter  @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  clauseId        String?         @map("clause_id")
+  clause          ContractClause? @relation(fields: [clauseId], references: [id], onDelete: SetNull)
+  reference       String
+  description     String
+  ownerId         String          @map("owner_id")
+  dueDate         DateTime?       @map("due_date")
+  recurrence      String?
+  status          String          @default("OPEN")
+  evidenceUrl     String?         @map("evidence_url")
+  escalationLevel Int             @default(0) @map("escalation_level")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  @@unique([matterId, reference])
+  @@index([status, dueDate])
+  @@map("contract_obligation")
+}
+
+model ContractMilestone {
+  id          String         @id @default(uuid())
+  matterId    String         @map("matter_id")
+  matter      ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  reference   String
+  name        String
+  dueDate     DateTime       @map("due_date")
+  status      String         @default("UPCOMING")
+  ownerId     String         @map("owner_id")
+  evidenceUrl String?        @map("evidence_url")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  @@unique([matterId, reference])
+  @@index([status, dueDate])
+  @@map("contract_milestone")
+}
+
+model ContractAmendment {
+  id                String                   @id @default(uuid())
+  matterId          String                   @map("matter_id")
+  matter            ContractMatter           @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  documentVersionId String?                  @map("document_version_id")
+  documentVersion   ContractDocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+  amendmentNumber   String                   @map("amendment_number")
+  title             String
+  description       String
+  effectiveDate     DateTime                 @map("effective_date")
+  priceDelta        Float                    @default(0) @map("price_delta")
+  impactSummary     String                   @map("impact_summary")
+  riskLevel         String                   @default("MEDIUM") @map("risk_level")
+  status            String                   @default("DRAFT")
+  createdBy         String                   @map("created_by")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+
+  @@unique([matterId, amendmentNumber])
+  @@index([status, effectiveDate])
+  @@map("contract_amendment")
+}
+
+model ContractApproval {
+  id           String         @id @default(uuid())
+  matterId     String         @map("matter_id")
+  matter       ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  resourceType String         @map("resource_type")
+  resourceId   String         @map("resource_id")
+  step         String
+  decision     String
+  rationale    String
+  actorId      String         @map("actor_id")
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  @@index([matterId, resourceType, resourceId])
+  @@map("contract_approval")
+}
+
+model ContractRenewal {
+  id               String         @id @default(uuid())
+  matterId         String         @map("matter_id")
+  matter           ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  optionPeriod     String         @map("option_period")
+  noticeDeadline   DateTime       @map("notice_deadline")
+  exerciseDeadline DateTime       @map("exercise_deadline")
+  estimatedValue   Float          @default(0) @map("estimated_value")
+  status           String         @default("MONITORING")
+  recommendation   String
+  ownerId          String         @map("owner_id")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  @@unique([matterId, optionPeriod])
+  @@index([status, noticeDeadline])
+  @@map("contract_renewal")
+}
+
+model ContractRiskAssessment {
+  id                 String         @id @default(uuid())
+  matterId           String         @map("matter_id")
+  matter             ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  assessmentKey      String         @map("assessment_key")
+  legalScore         Int            @map("legal_score")
+  financialScore     Int            @map("financial_score")
+  operationalScore   Int            @map("operational_score")
+  cybersecurityScore Int            @map("cybersecurity_score")
+  complianceScore    Int            @map("compliance_score")
+  overallRating      String         @map("overall_rating")
+  findings           Json
+  assessedBy         String         @map("assessed_by")
+  sourceDigest       String         @map("source_digest")
+  createdAt          DateTime       @default(now()) @map("created_at")
+
+  @@unique([matterId, assessmentKey])
+  @@index([overallRating, createdAt])
+  @@map("contract_risk_assessment")
+}
+
+model ContractTemplate {
+  id            String    @id @default(uuid())
+  templateKey   String    @map("template_key")
+  version       Int
+  name          String
+  agency        String?
+  contractType  String    @map("contract_type")
+  content       String
+  playbookRules Json      @map("playbook_rules")
+  status        String    @default("DRAFT")
+  approvedBy    String?   @map("approved_by")
+  effectiveFrom DateTime? @map("effective_from")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@unique([templateKey, version])
+  @@index([status, contractType])
+  @@map("contract_template")
+}
+
+model ContractAiReview {
+  id           String         @id @default(uuid())
+  matterId     String         @map("matter_id")
+  matter       ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  reviewType   String         @map("review_type")
+  promptDigest String         @map("prompt_digest")
+  output       String
+  model        String
+  citations    Json
+  confidence   Float?
+  advisoryOnly Boolean        @default(true) @map("advisory_only")
+  status       String         @default("PENDING_HUMAN_REVIEW")
+  createdBy    String         @map("created_by")
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  @@index([matterId, createdAt])
+  @@map("contract_ai_review")
+}
+
+model ContractIntegrationOutbox {
+  id             String         @id @default(uuid())
+  matterId       String         @map("matter_id")
+  matter         ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  provider       String
+  operation      String
+  idempotencyKey String         @unique @map("idempotency_key")
+  payload        Json
+  status         String         @default("PENDING")
+  attempts       Int            @default(0)
+  nextAttemptAt  DateTime       @default(now()) @map("next_attempt_at")
+  receipt        Json?
+  lastErrorCode  String?        @map("last_error_code")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  @@index([status, nextAttemptAt])
+  @@map("contract_integration_outbox")
+}
+
+model ContractLifecycleAuditEvent {
+  id           String   @id @default(uuid())
+  aggregateId  String   @map("aggregate_id")
+  sequence     Int
+  action       String
+  actorId      String   @map("actor_id")
+  occurredAt   DateTime @map("occurred_at")
+  payload      Json
+  previousHash String   @map("previous_hash")
+  hash         String   @unique
+
+  @@unique([aggregateId, sequence])
+  @@index([aggregateId, occurredAt])
+  @@map("contract_lifecycle_audit_event")
 }

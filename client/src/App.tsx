@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -6,31 +6,30 @@ import { Toaster } from 'react-hot-toast';
 // Layout Components
 import Layout from './components/Layout/Layout';
 
-// Pages
-import Dashboard from './pages/Dashboard';
-import Search from './pages/Search';
-import NLPSearch from './pages/NLPSearch';
-import ContractDetail from './pages/ContractDetail';
-import Jobs from './pages/Jobs';
-import Documents from './pages/Documents';
-import ApiDocs from './pages/ApiDocs';
-import NotFound from './pages/NotFound';
+import AuthGate from './components/AuthGate';
 
-// RFP Pages
-import RFPDashboard from './pages/RFPDashboard';
-import RFPGenerator from './pages/RFPGenerator';
-import RFPTemplates from './pages/RFPTemplates';
-import CompanyProfiles from './pages/CompanyProfiles';
-import RFPAnalytics from './pages/RFPAnalytics';
-import RFPResponses from './pages/RFPResponses';
-import RFPResponseDetail from './pages/RFPResponseDetail';
-import RFPResponseEdit from './pages/RFPResponseEdit';
-
-// AI Enhancement Components
-import ProposalDrafter from './components/Proposals/ProposalDrafter';
-import BidProbabilityAnalyzer from './components/Bidding/BidProbabilityAnalyzer';
-import AIAnalysisResults from './pages/AIAnalysisResults';
-import AIQuickActionsPage from './pages/AIQuickActionsPage';
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Search = lazy(() => import('./pages/Search'));
+const NLPSearch = lazy(() => import('./pages/NLPSearch'));
+const ContractDetail = lazy(() => import('./pages/ContractDetail'));
+const Jobs = lazy(() => import('./pages/Jobs'));
+const Documents = lazy(() => import('./pages/Documents'));
+const ApiDocs = lazy(() => import('./pages/ApiDocs'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const RFPDashboard = lazy(() => import('./pages/RFPDashboard'));
+const RFPGenerator = lazy(() => import('./pages/RFPGenerator'));
+const RFPTemplates = lazy(() => import('./pages/RFPTemplates'));
+const CompanyProfiles = lazy(() => import('./pages/CompanyProfiles'));
+const RFPAnalytics = lazy(() => import('./pages/RFPAnalytics'));
+const RFPResponses = lazy(() => import('./pages/RFPResponses'));
+const RFPResponseDetail = lazy(() => import('./pages/RFPResponseDetail'));
+const RFPResponseEdit = lazy(() => import('./pages/RFPResponseEdit'));
+const ProposalDrafter = lazy(() => import('./components/Proposals/ProposalDrafter'));
+const BidProbabilityAnalyzer = lazy(() => import('./components/Bidding/BidProbabilityAnalyzer'));
+const AIAnalysisResults = lazy(() => import('./pages/AIAnalysisResults'));
+const AIQuickActionsPage = lazy(() => import('./pages/AIQuickActionsPage'));
+const LifecycleWorkspace = lazy(() => import('./pages/LifecycleWorkspace'));
+const GovernanceWorkspace = lazy(() => import('./pages/GovernanceWorkspace'));
 
 // Create a client
 const queryClient = new QueryClient({
@@ -47,9 +46,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Layout>
-            <Routes>
+        <AuthGate>
+          <div className="min-h-screen bg-gray-50">
+            <Layout>
+            <Suspense fallback={<div className="flex h-64 items-center justify-center"><div className="loading-spinner" /></div>}>
+              <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/search" element={<Search />} />
               <Route path="/nlp-search" element={<NLPSearch />} />
@@ -57,6 +58,9 @@ function App() {
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/documents" element={<Documents />} />
               <Route path="/api-docs" element={<ApiDocs />} />
+              <Route path="/lifecycle" element={<LifecycleWorkspace />} />
+              <Route path="/lifecycle/:resource" element={<LifecycleWorkspace />} />
+              <Route path="/governance" element={<GovernanceWorkspace />} />
               
               {/* RFP System Routes */}
               <Route path="/rfp" element={<RFPDashboard />} />
@@ -79,9 +83,10 @@ function App() {
               <Route path="/ai/bid-strategy/:contractId" element={<AIAnalysisResults type="strategy" />} />
               
               <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Layout>
-          <Toaster
+              </Routes>
+            </Suspense>
+            </Layout>
+            <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
@@ -104,8 +109,9 @@ function App() {
                 },
               },
             }}
-          />
-        </div>
+            />
+          </div>
+        </AuthGate>
       </Router>
     </QueryClientProvider>
   );

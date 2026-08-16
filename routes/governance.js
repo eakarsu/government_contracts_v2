@@ -20,6 +20,11 @@ function createGovernanceRouter(service) {
     };
   }
 
+  router.get('/overview', requirePermission('governance:read'), route(async (_req, res) => res.json(await service.overview())));
+  router.get('/policies', requirePermission('governance:read'), route(async (_req, res) => res.json({ records: await service.listPolicies() })));
+  router.get('/sources', requirePermission('governance:read'), route(async (_req, res) => res.json({ records: await service.listSources() })));
+  router.get('/evaluations', requirePermission('governance:read'), route(async (_req, res) => res.json({ records: await service.listEvaluations() })));
+
   router.post(
     '/policies',
     requirePermission('policy:create'),

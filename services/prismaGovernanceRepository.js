@@ -59,6 +59,18 @@ class PrismaGovernanceRepository {
   listAudit(aggregateId) {
     return this.prisma.governanceAuditEvent.findMany({ where: { aggregateId }, orderBy: { sequence: 'asc' } });
   }
+
+  listPolicies() {
+    return this.prisma.governancePolicy.findMany({ orderBy: [{ policyKey: 'asc' }, { version: 'desc' }] });
+  }
+
+  listSources() {
+    return this.prisma.regulatorySource.findMany({ orderBy: [{ sourceKey: 'asc' }, { version: 'desc' }] });
+  }
+
+  listEvaluations() {
+    return this.prisma.complianceEvaluation.findMany({ orderBy: { updatedAt: 'desc' }, take: 200 });
+  }
 }
 
 module.exports = PrismaGovernanceRepository;

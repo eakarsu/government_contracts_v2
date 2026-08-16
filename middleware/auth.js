@@ -5,13 +5,15 @@ const { verifySession } = require('../services/localAuthService');
 
 const ROLE_PERMISSIONS = Object.freeze({
   admin: ['*'],
-  auditor: ['audit:export', 'audit:read', 'governance:read'],
-  compliance_analyst: ['evaluation:create', 'evaluation:submit', 'governance:read'],
-  compliance_approver: ['decision:approve', 'governance:read'],
-  contract_viewer: ['governance:read'],
-  document_operator: ['legacy:write', 'queue:write'],
-  policy_admin: ['governance:read', 'policy:create'],
-  records_officer: ['audit:export', 'governance:read', 'legal_hold:manage'],
+  auditor: ['audit:export', 'audit:read', 'governance:read', 'lifecycle:export', 'lifecycle:read'],
+  compliance_analyst: ['evaluation:create', 'evaluation:submit', 'governance:read', 'lifecycle:ai', 'lifecycle:create', 'lifecycle:read', 'lifecycle:submit', 'lifecycle:update'],
+  compliance_approver: ['decision:approve', 'governance:read', 'lifecycle:approve', 'lifecycle:read'],
+  contract_manager: ['governance:read', 'lifecycle:ai', 'lifecycle:create', 'lifecycle:export', 'lifecycle:read', 'lifecycle:submit', 'lifecycle:update'],
+  contract_viewer: ['governance:read', 'lifecycle:read'],
+  document_operator: ['legacy:write', 'queue:write', 'lifecycle:create', 'lifecycle:read', 'lifecycle:update'],
+  legal_reviewer: ['governance:read', 'lifecycle:ai', 'lifecycle:approve', 'lifecycle:read', 'lifecycle:update'],
+  policy_admin: ['governance:read', 'policy:create', 'lifecycle:read'],
+  records_officer: ['audit:export', 'governance:read', 'legal_hold:manage', 'lifecycle:export', 'lifecycle:read'],
   regulatory_ingestor: ['governance:read', 'source:ingest'],
 });
 
