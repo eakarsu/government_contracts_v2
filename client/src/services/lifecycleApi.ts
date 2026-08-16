@@ -12,8 +12,9 @@ export const lifecycleApi = {
     const response = await api.get('/lifecycle/overview');
     return response.data;
   },
-  async records(resource: string, search = ''): Promise<LifecycleRecord[]> {
-    const response = await api.get(`/lifecycle/${resource}`, { params: search ? { search } : undefined });
+  async records(resource: string, search = '', matterId = ''): Promise<LifecycleRecord[]> {
+    const params = { ...(search ? { search } : {}), ...(matterId ? { matterId } : {}) };
+    const response = await api.get(`/lifecycle/${resource}`, { params: Object.keys(params).length ? params : undefined });
     return response.data.records;
   },
   async createMatter(input: Record<string, any>): Promise<LifecycleRecord> {
@@ -24,8 +25,8 @@ export const lifecycleApi = {
     const response = await api.post(`/lifecycle/matters/${id}/transition`, { nextStage, rationale });
     return response.data.record;
   },
-  async aiReview(id: string, question: string): Promise<LifecycleRecord> {
-    const response = await api.post(`/lifecycle/matters/${id}/ai-review`, { question, reviewType: 'LIFECYCLE_READINESS' });
+  async aiReview(id: string, input: { question: string; reviewType: string; chainPrevious: boolean; previousReviewId?: string | null }): Promise<LifecycleRecord> {
+    const response = await api.post(`/lifecycle/matters/${id}/ai-review`, input);
     return response.data.record;
   },
   async createApproval(id: string, input: { step: string; decision: string; rationale: string }): Promise<LifecycleRecord> {

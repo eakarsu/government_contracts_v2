@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { parseStructuredOutput } = require('./contractSuiteService');
 
 const LIFECYCLE_STAGES = Object.freeze(['INTAKE', 'DILIGENCE', 'NEGOTIATION', 'APPROVAL', 'EXECUTION', 'PERFORMANCE', 'RENEWAL', 'CLOSEOUT']);
 const RISK_LEVELS = new Set(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
@@ -182,18 +183,31 @@ class ContractLifecycleService {
     const baseUrl = this.environment.OPENROUTER_BASE_URL;
     if (!apiKey || !model || !baseUrl) throw new LifecycleError('AI_NOT_CONFIGURED', 'OpenRouter runtime is not configured', 503);
     const question = requiredText(input.question, 'question').slice(0, 10000);
-    const evidence = { matter: { matterNumber: matter.matterNumber, title: matter.title, agency: matter.agency, stage: matter.stage }, clauses: matter.clauses, obligations: matter.obligations, amendments: matter.amendments, renewals: matter.renewals, riskAssessments: matter.riskAssessments };
-    const response = await this.fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, { method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, temperature: 0.1, messages: [
-      { role: 'system', content: 'You are an advisory government-contract lifecycle reviewer. Ground every finding in the supplied record, identify evidence gaps, cite record references, distinguish FAR/DFARS compliance from commercial advice, and require authorized human review. Never approve, sign, submit, or commit the government or contractor.' },
+    let previousReview = null;
+    if (input.previousReviewId) previousReview = await this.prisma.contractAiReview.findUnique({ where: { id: input.previousReviewId } });
+    else if (input.chainPrevious) previousReview = await this.prisma.contractAiReview.findFirst({ where: { matterId }, orderBy: { createdAt: 'desc' } });
+    if (previousReview && previousReview.matterId !== matterId) throw new LifecycleError('INVALID_REVIEW_CHAIN', 'Previous AI review belongs to a different contract matter', 409);
+    const evidence = {
+      matter: { matterNumber: matter.matterNumber, title: matter.title, agency: matter.agency, stage: matter.stage },
+      clauses: matter.clauses, obligations: matter.obligations, amendments: matter.amendments, renewals: matter.renewals, riskAssessments: matter.riskAssessments,
+      previousAdvisory: previousReview ? { id: previousReview.id, reviewType: previousReview.reviewType, output: previousReview.output, createdAt: previousReview.createdAt } : null,
+    };
+    const startedAt = Date.now();
+    const response = await this.fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, { method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, temperature: 0.1, max_tokens: 4000, response_format: { type: 'json_object' }, messages: [
+      { role: 'system', content: 'You are an advisory government-contract lifecycle reviewer. Continue from previousAdvisory when supplied; preserve supported findings, identify changes, and do not restart the analysis. Use only supplied evidence. Return only one concise JSON object with these required keys: summary (string), executiveDecision (object), scenarioMetrics (array), riskAssessment (array), evidenceGaps (array), controls (array), recommendations (array), humanDecision (string). Include every key and no more than three entries per array. Distinguish FAR/DFARS compliance from commercial advice, require authorized human review, and never approve, sign, submit, or commit either party. No Markdown.' },
       { role: 'user', content: `Question: ${question}\n\nGoverned matter evidence:\n${JSON.stringify(evidence)}` },
     ] }) });
     if (!response.ok) throw new LifecycleError('AI_PROVIDER_ERROR', `OpenRouter returned ${response.status}`, 502);
     const payload = await response.json();
-    const output = String(payload?.choices?.[0]?.message?.content || '').trim();
-    if (!output) throw new LifecycleError('AI_EMPTY_RESPONSE', 'OpenRouter returned an empty response', 502);
-    const review = await this.prisma.contractAiReview.create({ data: { matterId, reviewType: input.reviewType || 'LIFECYCLE_READINESS', promptDigest: digest(question), output, model, citations: matter.clauses.map(clause => ({ clauseKey: clause.clauseKey, citation: clause.citation })), advisoryOnly: true, status: 'PENDING_HUMAN_REVIEW', createdBy: actor.id } });
-    await this.audit(matterId, 'AI_REVIEW_RECORDED', actor, { reviewId: review.id, model, advisoryOnly: true });
-    return review;
+    const rawOutput = String(payload?.choices?.[0]?.message?.content || '').trim();
+    if (!rawOutput) throw new LifecycleError('AI_EMPTY_RESPONSE', 'OpenRouter returned an empty response', 502);
+    let output;
+    try { output = parseStructuredOutput(rawOutput); }
+    catch (error) { throw new LifecycleError('AI_INVALID_RESPONSE', error.message, 502); }
+    const reviewType = requiredText(input.reviewType || 'LIFECYCLE_READINESS', 'reviewType').slice(0, 120);
+    const review = await this.prisma.contractAiReview.create({ data: { matterId, reviewType, promptDigest: digest({ question, reviewType, previousReviewId: previousReview?.id || null }), output: JSON.stringify(output), model, citations: matter.clauses.map(clause => ({ clauseKey: clause.clauseKey, citation: clause.citation })), advisoryOnly: true, status: 'PENDING_HUMAN_REVIEW', createdBy: actor.id } });
+    await this.audit(matterId, 'AI_REVIEW_RECORDED', actor, { reviewId: review.id, previousReviewId: previousReview?.id || null, model, advisoryOnly: true });
+    return { ...review, output, chain: { previousReviewId: previousReview?.id || null, chained: Boolean(previousReview), provider: 'openrouter', providerResponseId: payload.id || null, elapsedMs: Date.now() - startedAt } };
   }
 
   async auditExport(matterId, actor) {
