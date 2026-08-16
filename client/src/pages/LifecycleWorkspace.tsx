@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { lifecycleApi, LifecycleRecord } from '../services/lifecycleApi';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 import { formatLifecycleValue, statusTone, titleCase } from '../utils/lifecyclePresentation';
+import ProfessionalAiReport from '../components/AI/ProfessionalAiReport';
 
 const resourceIcons: Record<string, React.ElementType> = {
   matters: FolderKanban, parties: Users, 'document-versions': FileText, clauses: FileCheck2, obligations: CheckCircle2,
@@ -82,7 +83,7 @@ const AiReviewPanel: React.FC<{ matters: LifecycleRecord[] }> = ({ matters }) =>
         <textarea className="mt-3 min-h-28 w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm placeholder:text-blue-200" value={question} onChange={e => setQuestion(e.target.value)} />
         <button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending || !question.trim()} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-indigo-900 hover:bg-blue-50 disabled:opacity-60"><Bot className="h-4 w-4" />{mutation.isPending ? 'Reviewing evidence…' : 'Run AI review'}</button>
       </div>
-      <div className="rounded-xl border border-white/15 bg-white/10 p-5"><div className="text-xs font-semibold uppercase tracking-widest text-blue-200">Human review required</div>{result ? <><div className="mt-2 flex flex-wrap gap-2"><span className="rounded-full bg-white/15 px-3 py-1 text-xs">{result.model}</span><span className="rounded-full bg-amber-300/20 px-3 py-1 text-xs text-amber-100">Advisory only</span></div><div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-blue-50">{result.output}</div></> : <div className="flex min-h-48 items-center justify-center text-center text-sm text-blue-200">Select a matter and run the review to receive a structured professional assessment.</div>}</div>
+      <div>{result ? <ProfessionalAiReport value={result.output} title="Lifecycle Readiness Report" subtitle="Evidence, risks, approvals, and next-stage readiness" model={result.model} status={result.status} dark /> : <div className="flex min-h-64 items-center justify-center rounded-xl border border-white/15 bg-white/10 p-5 text-center text-sm text-blue-200">Select a matter and run the review to receive a structured professional assessment.</div>}</div>
     </div>
   </section>;
 };

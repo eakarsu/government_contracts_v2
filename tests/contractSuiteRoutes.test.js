@@ -57,6 +57,38 @@ test('structured AI reports reject raw or incomplete output', () => {
   expect(() => parseStructuredOutput('not json')).toThrow(ContractSuiteError);
 });
 
+test('structured AI reports normalize wrapped provider fields for professional rendering', () => {
+  const report = parseStructuredOutput(JSON.stringify({ report: {
+    executive_summary: 'Deployment review complete',
+    executive_decision: { recommendation: 'Hold', confidence: 0.82, rationale: 'Critical evidence is missing' },
+    scenario_metrics: [{ label: 'Coverage', value: '84%', interpretation: 'Below target' }],
+    risk_assessment: [{ finding: 'Upgrade key exposure', severity: 'HIGH', evidence: 'Admin role' }],
+    evidence_gaps: ['Multisig signer evidence'], control_checks: [{ control: 'Independent approval', status: 'OPEN' }],
+    recommended_actions: [{ action: 'Verify signers', owner: 'Security', priority: 'HIGH' }], decision_gate: 'Security owner disposition',
+  } }));
+  expect(report.summary).toBe('Deployment review complete');
+  expect(report.scenarioMetrics).toHaveLength(1);
+  expect(report.controls).toHaveLength(1);
+  expect(report.humanDecision).toBe('Security owner disposition');
+});
+
+test('AI review sends complete optional context and stores normalized sections', async () => {
+  const create = jest.fn(async ({ data }) => ({ id: 'analysis-2', ...data }));
+  const fetchImpl = jest.fn(async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({
+    summary: 'Complete review', executiveDecision: { recommendation: 'Review', confidence: 0.8, rationale: 'Evidence' }, scenarioMetrics: [],
+    riskAssessment: [], evidenceGaps: ['Approval'], controls: [], recommendations: [], humanDecision: 'Owner review',
+  }) } }] }) }));
+  const service = new ContractSuiteService({ contractCapabilityAnalysis: { create } }, { fetchImpl, environment: { OPENROUTER_API_KEY: 'test-key', OPENROUTER_MODEL: 'test-model', OPENROUTER_BASE_URL: 'https://provider.example' } });
+  service.get = jest.fn(async () => ({ id: 'work-1', domain: 'SMART_CONTRACT', capability: 'source-audit', status: 'OPEN', riskLevel: 'HIGH', jurisdiction: 'MULTICHAIN', dueDate: new Date('2026-09-01T00:00:00Z'), monetaryValue: 500000, analyses: [] }));
+  const input = { question: 'Review source', analysisType: 'SOURCE_AUDIT', objective: 'Assess security', audience: 'Security and legal', riskTolerance: 'Conservative', focusAreas: ['reentrancy'], assumptions: 'Missing data is a gap', evidenceRequirements: 'Cite records', jurisdiction: 'MULTICHAIN', deadline: '2026-09-01', financialThreshold: '$500,000', outputTone: 'Executive', requestedSections: ['Risks'] };
+  const result = await service.aiReview('work-1', input, { id: 'manager-1' });
+  const providerBody = JSON.parse(fetchImpl.mock.calls[0][1].body);
+  const sentEvidence = JSON.parse(providerBody.messages[1].content);
+  expect(sentEvidence.request).toMatchObject(input);
+  expect(create.mock.calls[0][0].data.output.summary).toBe('Complete review');
+  expect(result.analysisType).toBe('SOURCE_AUDIT');
+});
+
 test('service refuses records attributed to the quarantined archive', async () => {
   const service = new ContractSuiteService({});
   await expect(service.create({ domain: 'smart-contract', capability: 'source-audit', sourceProject: 'smart-contract-work' }, { id: 'manager-1' }))

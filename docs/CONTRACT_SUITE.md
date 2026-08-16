@@ -41,6 +41,10 @@ Work items follow `OPEN → IN_REVIEW → DECISION_REQUIRED → APPROVED → CLO
 
 Read, create, submit, and AI actions use the existing `lifecycle:*` permissions. AI responses must use the structured report contract: executive summary, cited risk assessment, evidence gaps, recommended actions with owners, and a human-decision statement. Raw Markdown or JSON text is not rendered as the user-facing report.
 
+Each domain workspace includes multiple purpose-built AI actions. Smart-Contract Assurance provides full security audit, formal-verification planning, gas/deployment cost, test coverage, upgrade/oracle risk, and multichain monitoring actions. Selecting an action fills the complete request context before submission: analysis type, objective, audience, risk tolerance, focus areas, assumptions, evidence requirements, jurisdiction/rule set, deadline, financial/materiality threshold, output style, requested sections, and the evidence-grounded question.
+
+New reports are normalized into professional sections even when a provider uses wrapped or snake-case field names. The UI renders executive decision, decision metrics, risks, evidence gaps, control checks, recommended actions, and the required human decision gate. JSON syntax and code fences are never presented as the report.
+
 ## Demonstration data
 
 After lifecycle seeding, run:

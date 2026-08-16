@@ -5,6 +5,21 @@ export type SuiteDomain = { slug: string; key: string; label: string; sourceProj
 export type SuiteSource = { project: string; disposition: string; note: string };
 export type SuiteCatalog = { domains: SuiteDomain[]; sources: SuiteSource[]; duplicatePolicy: string };
 export type SuiteWorkItem = Record<string, any> & { id: string; domain: string; capability: string; title: string; summary: string; status: string; riskLevel: string };
+export type SuiteAiReviewInput = {
+  question: string;
+  analysisType: string;
+  objective: string;
+  audience: string;
+  riskTolerance: string;
+  focusAreas: string[];
+  assumptions: string;
+  evidenceRequirements: string;
+  jurisdiction: string;
+  deadline: string;
+  financialThreshold: string;
+  outputTone: string;
+  requestedSections: string[];
+};
 
 export const contractSuiteApi = {
   async catalog(): Promise<SuiteCatalog> {
@@ -31,8 +46,8 @@ export const contractSuiteApi = {
     const response = await api.post(`/contract-suite/work-items/${id}/transition`, { nextStatus, rationale });
     return response.data.record;
   },
-  async aiReview(id: string, question: string): Promise<Record<string, any>> {
-    const response = await api.post(`/contract-suite/work-items/${id}/ai-review`, { question });
+  async aiReview(id: string, input: SuiteAiReviewInput): Promise<Record<string, any>> {
+    const response = await api.post(`/contract-suite/work-items/${id}/ai-review`, input);
     return response.data.record;
   },
 };

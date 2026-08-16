@@ -483,19 +483,6 @@ const ContractDetails: React.FC = () => {
             Contract analysis completed successfully! 
             {analysisResults && analysisResults.analysis ? ' Analysis results are displayed above.' : ' Waiting for results to load...'}
           </div>
-          {/* Debug info - always show in development */}
-          <details className="mt-2">
-            <summary className="text-xs text-green-600 cursor-pointer">Debug: Raw Analysis Data</summary>
-            <pre className="text-xs text-green-700 mt-1 overflow-auto max-h-32">
-              {JSON.stringify(analysisResults, null, 2)}
-            </pre>
-          </details>
-          {/* Additional debug info */}
-          <div className="mt-2 text-xs text-gray-600">
-            <div>analysisResults exists: {analysisResults ? 'Yes' : 'No'}</div>
-            <div>analysisResults.analysis exists: {analysisResults?.analysis ? 'Yes' : 'No'}</div>
-            <div>analysisResults.success: {analysisResults?.success ? 'Yes' : 'No'}</div>
-          </div>
         </div>
       )}
 

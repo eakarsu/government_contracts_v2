@@ -98,13 +98,47 @@ function parseStructuredOutput(raw) {
   const cleaned = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   let parsed;
   try { parsed = JSON.parse(cleaned); } catch (_error) { throw new ContractSuiteError('AI_INVALID_RESPONSE', 'AI provider did not return the required structured report', 502); }
+  parsed = parsed.report || parsed.analysis || parsed.result || parsed;
+  const normalized = {
+    summary: parsed.summary || parsed.executiveSummary || parsed.executive_summary,
+    executiveDecision: parsed.executiveDecision || parsed.executive_decision || null,
+    scenarioMetrics: parsed.scenarioMetrics || parsed.scenario_metrics || parsed.metrics || [],
+    riskAssessment: parsed.riskAssessment || parsed.risk_assessment || parsed.risks,
+    evidenceGaps: parsed.evidenceGaps || parsed.evidence_gaps || parsed.missingEvidence,
+    controls: parsed.controls || parsed.controlChecks || parsed.control_checks || [],
+    recommendations: parsed.recommendations || parsed.recommendedActions || parsed.recommended_actions,
+    humanDecision: parsed.humanDecision || parsed.human_decision || parsed.decisionGate || parsed.decision_gate,
+  };
   for (const field of ['summary', 'riskAssessment', 'evidenceGaps', 'recommendations', 'humanDecision']) {
-    if (!(field in parsed)) throw new ContractSuiteError('AI_INVALID_RESPONSE', `AI report is missing ${field}`, 502);
+    if (!normalized[field]) throw new ContractSuiteError('AI_INVALID_RESPONSE', `AI report is missing ${field}`, 502);
   }
-  if (!Array.isArray(parsed.riskAssessment) || !Array.isArray(parsed.evidenceGaps) || !Array.isArray(parsed.recommendations)) {
+  if (!Array.isArray(normalized.riskAssessment) || !Array.isArray(normalized.evidenceGaps) || !Array.isArray(normalized.recommendations) || !Array.isArray(normalized.controls) || !Array.isArray(normalized.scenarioMetrics)) {
     throw new ContractSuiteError('AI_INVALID_RESPONSE', 'AI report list sections are invalid', 502);
   }
-  return parsed;
+  if (!normalized.executiveDecision || typeof normalized.executiveDecision !== 'object') normalized.executiveDecision = {
+    recommendation: normalized.humanDecision,
+    confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 'Requires human validation',
+    rationale: normalized.summary,
+  };
+  return normalized;
+}
+
+function reviewContext(input, record) {
+  const list = (value, fallback) => Array.isArray(value) && value.some(item => String(item).trim()) ? value.map(item => String(item).trim()).filter(Boolean) : fallback;
+  return {
+    analysisType: text(input.analysisType || `${record.domain}_ADVISORY_REVIEW`, 'analysisType').slice(0, 120),
+    objective: text(input.objective || input.question, 'objective').slice(0, 4000),
+    audience: text(input.audience || 'Contract owner, domain specialist, legal/compliance reviewer, and independent approver', 'audience').slice(0, 1000),
+    riskTolerance: text(input.riskTolerance || 'Conservative; escalate unresolved high and critical findings', 'riskTolerance').slice(0, 1000),
+    focusAreas: list(input.focusAreas, [record.capability]),
+    assumptions: text(input.assumptions || 'Treat missing information as an evidence gap and do not infer approval or authority.', 'assumptions').slice(0, 4000),
+    evidenceRequirements: text(input.evidenceRequirements || 'Cite supplied evidence for every material conclusion.', 'evidenceRequirements').slice(0, 4000),
+    jurisdiction: text(input.jurisdiction || record.jurisdiction || 'Applicable jurisdiction requires confirmation', 'jurisdiction').slice(0, 1000),
+    deadline: text(input.deadline || (record.dueDate ? record.dueDate.toISOString() : 'No fixed external deadline; use a 30-day review window'), 'deadline').slice(0, 1000),
+    financialThreshold: text(input.financialThreshold || (record.monetaryValue ? String(record.monetaryValue) : 'Any critical exposure is material'), 'financialThreshold').slice(0, 1000),
+    outputTone: text(input.outputTone || 'Executive, precise, evidence-based, and action-oriented', 'outputTone').slice(0, 1000),
+    requestedSections: list(input.requestedSections, ['Executive decision', 'Key metrics', 'Risk assessment', 'Evidence gaps', 'Control checks', 'Recommended actions', 'Human decision gate']),
+  };
 }
 
 function catalogResponse() {
@@ -210,15 +244,16 @@ class ContractSuiteService {
   async aiReview(id, input, actor) {
     const record = await this.get(id);
     const question = text(input.question, 'question').slice(0, 10000);
+    const context = reviewContext(input, record);
     const apiKey = this.environment.OPENROUTER_API_KEY;
     const model = this.environment.OPENROUTER_MODEL;
     const baseUrl = this.environment.OPENROUTER_BASE_URL;
     if (!apiKey || !model || !baseUrl) throw new ContractSuiteError('AI_NOT_CONFIGURED', 'OpenRouter runtime is not configured', 503);
-    const governedEvidence = { workItem: { ...record, analyses: undefined }, question };
+    const governedEvidence = { workItem: { ...record, analyses: undefined }, request: { question, ...context } };
     const response = await this.fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
       method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model, temperature: 0.1, response_format: { type: 'json_object' }, messages: [
-        { role: 'system', content: 'You are an advisory contract-domain reviewer. Use only supplied evidence. Return JSON with summary (string), riskAssessment (array of {finding,severity,evidence}), evidenceGaps (string array), recommendations (array of {action,owner,priority}), and humanDecision (string). Never approve, sign, submit, transact, connect a wallet, or make a binding decision.' },
+        { role: 'system', content: 'You are an advisory contract-domain reviewer. Use only supplied evidence and fill every requested report section. Return one JSON object with: summary (string); executiveDecision ({recommendation,confidence,rationale}); scenarioMetrics (array of {label,value,interpretation}); riskAssessment (array of {finding,severity,evidence}); evidenceGaps (string array); controls (array of {control,status,evidence,owner}); recommendations (array of {action,owner,priority,rationale}); and humanDecision (string). Be precise and professional. Never wrap JSON in Markdown. Never approve, sign, submit, transact, connect a wallet, or make a binding decision.' },
         { role: 'user', content: JSON.stringify(governedEvidence) },
       ] }),
     });
@@ -226,7 +261,7 @@ class ContractSuiteService {
     const payload = await response.json();
     const output = parseStructuredOutput(payload?.choices?.[0]?.message?.content);
     const analysis = await this.prisma.contractCapabilityAnalysis.create({ data: {
-      workItemId: record.id, analysisType: input.analysisType || `${record.domain}_ADVISORY_REVIEW`, inputDigest: digest(governedEvidence), output,
+      workItemId: record.id, analysisType: context.analysisType, inputDigest: digest(governedEvidence), output,
       model, confidence: typeof output.confidence === 'number' ? output.confidence : null, advisoryOnly: true, status: 'PENDING_HUMAN_REVIEW', createdBy: actor.id,
     } });
     if (this.lifecycleAudit) await this.lifecycleAudit(record.matterId, 'CAPABILITY_AI_REVIEW_RECORDED', actor, { workItemId: id, analysisId: analysis.id, model, advisoryOnly: true });

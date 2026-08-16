@@ -270,26 +270,6 @@ const ContractDetail: React.FC = () => {
             <div className="mt-8 bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">🔍 Contract Analysis Results</h2>
               
-              {/* Debug Section - Always Show */}
-              <div className="mb-6 p-4 bg-gray-100 rounded-lg">
-                <h3 className="text-md font-medium text-gray-700 mb-2">Debug Information</h3>
-                <div className="text-xs text-gray-600 space-y-1">
-                  <div>Analysis Results Received: {analysisResults ? 'Yes' : 'No'}</div>
-                  <div>Analysis Object Keys: {analysisResults ? Object.keys(analysisResults).join(', ') : 'None'}</div>
-                  <div>Has Analysis Property: {analysisResults?.analysis ? 'Yes' : 'No'}</div>
-                  <div>Success Property: {analysisResults?.success ? 'Yes' : 'No'}</div>
-                  {analysisResults?.analysis && (
-                    <div>Analysis Keys: {Object.keys(analysisResults.analysis).join(', ')}</div>
-                  )}
-                </div>
-                <details className="mt-2">
-                  <summary className="text-xs text-gray-600 cursor-pointer">Raw Analysis Data</summary>
-                  <pre className="text-xs text-gray-700 mt-1 overflow-auto max-h-32 bg-white p-2 rounded">
-                    {JSON.stringify(analysisResults, null, 2)}
-                  </pre>
-                </details>
-              </div>
-
               {analysisResults.analysis ? (
                 <>
                   {/* Contract Overview */}
