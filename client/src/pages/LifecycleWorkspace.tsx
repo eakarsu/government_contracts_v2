@@ -83,7 +83,6 @@ const AiReviewPanel: React.FC<{ matters: LifecycleRecord[] }> = ({ matters }) =>
   const queryClient = useQueryClient();
   const [matterId, setMatterId] = useState(() => localStorage.getItem('lifecycleAiMatterId') || '');
   const [stepIndex, setStepIndex] = useState(0);
-  const [question, setQuestion] = useState<string>(lifecycleAiSteps[0].question);
   const [result, setResult] = useState<LifecycleRecord | null>(null);
   const [chainPrevious, setChainPrevious] = useState(true);
   const selectedMatterId = matters.some(matter => matter.id === matterId) ? matterId : matters[0]?.id || '';
@@ -93,44 +92,38 @@ const AiReviewPanel: React.FC<{ matters: LifecycleRecord[] }> = ({ matters }) =>
     enabled: Boolean(selectedMatterId),
   });
   const previousReview = result || storedReviews.data?.[0] || null;
-  const selectedStep = lifecycleAiSteps[stepIndex];
   const mutation = useMutation({
-    mutationFn: () => lifecycleApi.aiReview(selectedMatterId, {
-      question,
-      reviewType: selectedStep.id,
+    mutationFn: (requestedStepIndex: number) => lifecycleApi.aiReview(selectedMatterId, {
+      question: lifecycleAiSteps[requestedStepIndex].question,
+      reviewType: lifecycleAiSteps[requestedStepIndex].id,
       chainPrevious: chainPrevious && Boolean(previousReview),
       previousReviewId: chainPrevious ? previousReview?.id : null,
     }),
-    onSuccess: record => {
+    onSuccess: (record, completedStepIndex) => {
       setResult(record);
       setChainPrevious(true);
       queryClient.invalidateQueries({ queryKey: ['lifecycle-ai-chain', selectedMatterId] });
-      if (stepIndex < lifecycleAiSteps.length - 1) {
-        const next = stepIndex + 1;
-        setStepIndex(next);
-        setQuestion(lifecycleAiSteps[next].question);
-      }
+      setStepIndex(Math.min(completedStepIndex + 1, lifecycleAiSteps.length - 1));
     },
   });
   useEffect(() => {
     if (!selectedMatterId) return;
     localStorage.setItem('lifecycleAiMatterId', selectedMatterId);
   }, [selectedMatterId]);
-  const chooseStep = (index: number) => { setStepIndex(index); setQuestion(lifecycleAiSteps[index].question); };
-  const changeMatter = (id: string) => { setMatterId(id); setResult(null); setStepIndex(0); setQuestion(lifecycleAiSteps[0].question); setChainPrevious(true); };
-  const startNewChain = () => { setResult(null); setChainPrevious(false); setStepIndex(0); setQuestion(lifecycleAiSteps[0].question); };
+  const runStep = (index: number) => { setStepIndex(index); mutation.mutate(index); };
+  const changeMatter = (id: string) => { setMatterId(id); setResult(null); setStepIndex(0); setChainPrevious(true); };
+  const startNewChain = () => { setResult(null); setChainPrevious(false); setStepIndex(0); };
   if (!matters.length) return null;
   return <section className="overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-br from-slate-950 via-indigo-950 to-blue-900 text-white shadow-lg">
     <div className="grid gap-6 p-6 xl:grid-cols-[1.05fr_1.3fr]">
-      <div><div className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-blue-200"><Sparkles className="h-4 w-4" /> Governed chained AI review</div><h2 className="text-2xl font-bold">Build a lifecycle analysis chain</h2><p className="mt-2 text-sm leading-6 text-blue-100">Each step fills the complete prompt, uses the prior verified report as context, and produces a structured advisory record for human review.</p>
+      <div><div className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-blue-200"><Sparkles className="h-4 w-4" /> Governed chained AI review</div><h2 className="text-2xl font-bold">Select a matter, then choose an analysis</h2><p className="mt-2 text-sm leading-6 text-blue-100">Each button fills every AI field and runs OpenRouter immediately. Later analyses continue from the prior verified report automatically.</p>
         <label className="mt-5 block text-xs font-semibold uppercase tracking-wide text-blue-200">Contract matter<select className="mt-2 w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white" value={selectedMatterId} onChange={e => changeMatter(e.target.value)}>{matters.map(matter => <option className="text-gray-900" key={matter.id} value={matter.id}>{matter.matterNumber} · {matter.title}</option>)}</select></label>
-        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">{lifecycleAiSteps.map((step, index) => <button key={step.id} type="button" onClick={() => chooseStep(index)} className={`rounded-xl border p-3 text-left transition ${index === stepIndex ? 'border-blue-300 bg-white/20 ring-2 ring-blue-300/30' : 'border-white/15 bg-white/5 hover:bg-white/10'}`}><div className="flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15 text-xs font-bold">{index + 1}</span><span className="text-sm font-semibold">{step.label}</span></div><p className="mt-2 text-xs leading-4 text-blue-200">{step.description}</p></button>)}</div>
+        <div className="mt-5"><div className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-200">One-tap AI analyses</div><div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{lifecycleAiSteps.map((step, index) => <button key={step.id} type="button" disabled={mutation.isPending} onClick={() => runStep(index)} className={`rounded-xl border p-3 text-left transition disabled:cursor-wait disabled:opacity-60 ${index === stepIndex ? 'border-blue-300 bg-white/20 ring-2 ring-blue-300/30' : 'border-white/15 bg-white/5 hover:bg-white/10'}`}><div className="flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15 text-xs font-bold">{mutation.isPending && mutation.variables === index ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : index + 1}</span><span className="text-sm font-semibold">{mutation.isPending && mutation.variables === index ? 'Running…' : step.label}</span></div><p className="mt-2 text-xs leading-4 text-blue-200">{step.description}</p></button>)}</div></div>
         <div className="mt-4 rounded-xl border border-white/15 bg-white/5 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2"><label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={chainPrevious && Boolean(previousReview)} disabled={!previousReview} onChange={e => setChainPrevious(e.target.checked)} className="h-4 w-4 rounded" /><Link2 className="h-4 w-4 text-blue-300" />Use previous report</label><button type="button" onClick={startNewChain} className="inline-flex items-center gap-1 text-xs font-semibold text-blue-200 hover:text-white"><RotateCcw className="h-3.5 w-3.5" />Start new chain</button></div>
           <p className="mt-2 text-xs text-blue-200">{chainPrevious && previousReview ? `Next request continues from ${previousReview.reviewType || 'the latest stored review'}.` : 'This request starts a new independent chain.'}</p>
         </div>
-        <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-blue-200">Complete prompt for step {stepIndex + 1}<textarea className="mt-2 min-h-36 w-full rounded-lg border border-white/20 bg-white/10 px-3 py-3 text-sm font-normal leading-6 text-white placeholder:text-blue-200" value={question} onChange={e => setQuestion(e.target.value)} /></label>
-        <button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending || !question.trim() || !selectedMatterId} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-indigo-900 hover:bg-blue-50 disabled:opacity-60"><Bot className="h-4 w-4" />{mutation.isPending ? `Running ${selectedStep.label} with OpenRouter…` : `Run step ${stepIndex + 1}: ${selectedStep.label}`}</button>
+        <div className="mt-4 rounded-lg border border-blue-300/20 bg-blue-400/10 p-3 text-xs leading-5 text-blue-100"><strong className="text-white">No extra form required.</strong> The selected analysis supplies its objective, evidence requirements, risk posture, requested sections, human-decision gate, and chained context automatically.</div>
         {mutation.isError && <div className="mt-3 rounded-lg border border-red-300/30 bg-red-500/15 p-3 text-sm text-red-100">{mutation.error instanceof Error ? mutation.error.message : 'AI review failed'}</div>}
       </div>
       <div>{result ? <ProfessionalAiReport value={result.output} title={`${lifecycleAiSteps.find(step => step.id === result.reviewType)?.label || titleCase(result.reviewType)} Report`} subtitle={`${result.chain?.chained ? 'Chained from prior review' : 'New analysis chain'} · OpenRouter response in ${result.chain?.elapsedMs ?? '—'} ms`} model={result.model} status={result.status} dark /> : <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-white/15 bg-white/10 p-5 text-center text-sm text-blue-200"><Bot className="mb-3 h-8 w-8 text-blue-300" /><div className="font-semibold text-white">Professional report appears here</div><p className="mt-2 max-w-sm">Choose one of six populated review steps. Later steps can continue from the latest stored report for this matter.</p>{storedReviews.data?.length ? <span className="mt-4 rounded-full bg-white/10 px-3 py-1 text-xs">{storedReviews.data.length} stored review{storedReviews.data.length === 1 ? '' : 's'} available for chaining</span> : null}</div>}</div>
