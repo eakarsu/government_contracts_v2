@@ -26,13 +26,17 @@ case "$DATABASE_URL" in
 esac
 api_port="${BACKEND_PORT:-${PORT:?BACKEND_PORT or PORT is required}}"
 ui_port="${FRONTEND_PORT:-${CLIENT_PORT:?FRONTEND_PORT or CLIENT_PORT is required}}"
+frontend_host="${FRONTEND_HOST:-127.0.0.1}"
+frontend_public_origin="${FRONTEND_PUBLIC_ORIGIN:-http://127.0.0.1:$ui_port}"
+frontend_public_host="${frontend_public_origin#*://}"
+frontend_public_host="${frontend_public_host%%:*}"
 [[ "$api_port" != "$ui_port" ]] || { echo 'API and UI ports must differ' >&2; exit 1; }
 for port in "$api_port" "$ui_port"; do
   ! lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1 || { echo "Port $port is occupied" >&2; exit 1; }
 done
 
 export PORT="$api_port" AUTH_MODE=local DATABASE_SSL=false
-export CORS_ORIGINS="http://127.0.0.1:$ui_port" ALLOWED_HOSTS="127.0.0.1,localhost"
+export CORS_ORIGINS="http://127.0.0.1:$ui_port,$frontend_public_origin" ALLOWED_HOSTS="127.0.0.1,localhost,$frontend_public_host"
 export BOOTSTRAP_ACKNOWLEDGEMENT=create-initial-admin
 export PROVISION_ADMIN_EMAIL="${ADMIN_EMAIL:?ADMIN_EMAIL is required}"
 export PROVISION_ADMIN_PASSWORD="${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}"
@@ -59,6 +63,7 @@ for ((attempt=0; attempt<180; attempt++)); do
   sleep 0.5
 done
 curl -fsS "http://127.0.0.1:$api_port/api/health" >/dev/null
-(cd "$project_dir/client" && exec ./node_modules/.bin/vite --host 127.0.0.1 --port "$ui_port") &
+(cd "$project_dir/client" && exec ./node_modules/.bin/vite --host "$frontend_host" --port "$ui_port") &
 ui_pid=$!
+echo "Frontend: $frontend_public_origin"
 wait "$api_pid" "$ui_pid"
