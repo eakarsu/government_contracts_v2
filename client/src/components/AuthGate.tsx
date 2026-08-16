@@ -10,14 +10,19 @@ const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
     if (!token) { setChecking(false); return; }
+    localStorage.setItem('auth_token', token);
+    localStorage.setItem('token', token);
     fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
       .then(response => {
         if (!response.ok) throw new Error('Session expired');
         setAuthenticated(true);
       })
-      .catch(() => localStorage.removeItem('auth_token'))
+      .catch(() => {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('token');
+      })
       .finally(() => setChecking(false));
   }, []);
 
@@ -37,6 +42,7 @@ const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const body = await response.json();
       if (!response.ok || !body.token) throw new Error(body.error || 'Login failed');
       localStorage.setItem('auth_token', body.token);
+      localStorage.setItem('token', body.token);
       setAuthenticated(true);
     } catch (loginError: any) { setError(loginError.message || 'Login failed'); }
     finally { setSubmitting(false); }
