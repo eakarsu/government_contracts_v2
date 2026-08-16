@@ -14,6 +14,7 @@ The tracked client `.env` file was also removed. Client builds must contain only
 - A decision creator, owner, or submitter cannot approve that decision.
 - Released approval/rejection records and audit events are protected from update or deletion by service logic and database triggers.
 - Contract document versions, lifecycle approvals, risk assessments, AI review evidence, and lifecycle audit events are append-only at the database layer.
+- Consolidated contract-suite AI analyses are structured, advisory-only, and append-only; only an authenticated human transition can approve a work item.
 - Lifecycle execution requires separate legal, business, and compliance approval records; AI cannot satisfy an approval requirement.
 
 ## Data and transport
@@ -23,6 +24,7 @@ The tracked client `.env` file was also removed. Client builds must contain only
 - Uploaded documents are not exposed through a static public route.
 - Authoritative regulatory evidence must use HTTPS and is stored with retrieval/effective dates and a content digest.
 - Lifecycle AI prompts are constructed from stored matter evidence. Responses are retained with their model, prompt digest, citations, status, and advisory-only flag for human review.
+- The `smart-contract-work` archive is a prohibited quarantine source. Do not import its code, ABIs, credentials, providers, wallets, transactions, build artifacts, or other assets into this application.
 
 ## Reporting
 

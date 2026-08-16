@@ -30,6 +30,7 @@ const AIAnalysisResults = lazy(() => import('./pages/AIAnalysisResults'));
 const AIQuickActionsPage = lazy(() => import('./pages/AIQuickActionsPage'));
 const LifecycleWorkspace = lazy(() => import('./pages/LifecycleWorkspace'));
 const GovernanceWorkspace = lazy(() => import('./pages/GovernanceWorkspace'));
+const ContractSuiteWorkspace = lazy(() => import('./pages/ContractSuiteWorkspace'));
 
 // Create a client
 const queryClient = new QueryClient({
@@ -61,6 +62,8 @@ function App() {
               <Route path="/lifecycle" element={<LifecycleWorkspace />} />
               <Route path="/lifecycle/:resource" element={<LifecycleWorkspace />} />
               <Route path="/governance" element={<GovernanceWorkspace />} />
+              <Route path="/contract-suite" element={<ContractSuiteWorkspace />} />
+              <Route path="/contract-suite/:domain" element={<ContractSuiteWorkspace />} />
               
               {/* RFP System Routes */}
               <Route path="/rfp" element={<RFPDashboard />} />

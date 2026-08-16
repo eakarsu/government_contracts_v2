@@ -41,6 +41,7 @@ const aiFeaturesRoutes = require('./routes/aiFeatures');
 const governanceRoutes = require('./routes/governance');
 const runtimeAiRoutes = require('./routes/runtimeAi');
 const lifecycleRoutes = require('./routes/lifecycle');
+const contractSuiteRoutes = require('./routes/contractSuite');
 
 // Import middleware
 const { rateLimiter, statusRateLimiter } = require('./middleware/rateLimiter');
@@ -157,6 +158,7 @@ app.use('/api/compliance', complianceRoutes);
 app.use('/api/governance', governanceRoutes);
 app.use('/api/runtime-ai', runtimeAiRoutes);
 app.use('/api/lifecycle', lifecycleRoutes);
+app.use('/api/contract-suite', contractSuiteRoutes);
 
 // Debug: Log when routers are loaded
 console.log('📋 [DEBUG] Contracts router mounted at /api/contracts');

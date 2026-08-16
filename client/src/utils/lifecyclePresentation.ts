@@ -16,6 +16,6 @@ export function formatLifecycleValue(field: string, value: unknown) {
   if (typeof value === 'object') return `${Object.keys(value).length} evidence field${Object.keys(value).length === 1 ? '' : 's'}`;
   if (/Date|At|Deadline|Until/.test(field) && !Number.isNaN(Date.parse(String(value)))) return new Date(String(value)).toLocaleDateString();
   if (/price|value/i.test(field) && typeof value === 'number') return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
-  if (/confidence/i.test(field) && typeof value === 'number') return `${Math.round(value * 100)}%`;
+  if (/confidence|probability/i.test(field) && typeof value === 'number') return `${Math.round(value * 100)}%`;
   return String(value);
 }

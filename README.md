@@ -34,6 +34,12 @@ Lifecycle stages advance only through `INTAKE`, `DILIGENCE`, `NEGOTIATION`, `APP
 
 See [docs/CONTRACT_LIFECYCLE.md](docs/CONTRACT_LIFECYCLE.md) for the data model, API surface, permissions, and operational boundaries.
 
+## Unified contract intelligence suite
+
+Five deduplicated domain workspaces extend the governed lifecycle without recreating its records: acquisition operations, negotiation intelligence, vendor risk, smart-contract assurance, and sports contracts. Each work item links to an existing contract matter, retains source provenance and evidence, follows a human-controlled status workflow, and stores AI output as structured append-only evidence.
+
+The historical `smart-contract-work` repository remains quarantined. No wallet, provider, credential, ABI, transaction, or source asset from that archive is included. See [docs/CONTRACT_SUITE.md](docs/CONTRACT_SUITE.md) for the feature map, duplicate decisions, API, and safety boundary.
+
 ## Configuration
 
 Copy `.env.example` to `.env` for local development and set every required value. Do not commit `.env` files.
@@ -55,6 +61,7 @@ npm ci
 npx prisma generate
 npx prisma migrate deploy
 npm run seed:lifecycle # optional, idempotent demonstration records
+npm run seed:contract-suite # optional; run after lifecycle seed
 npm start
 ```
 

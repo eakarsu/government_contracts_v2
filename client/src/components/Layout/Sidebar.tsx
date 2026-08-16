@@ -23,7 +23,12 @@ import {
   CalendarClock,
   ShieldCheck,
   Scale,
-  FileCheck2
+  FileCheck2,
+  Gavel,
+  Building2,
+  ShieldAlert,
+  Trophy,
+  BriefcaseBusiness
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -59,6 +64,15 @@ const lifecycleNavigation = [
   { name: 'Approvals', href: '/lifecycle/approvals', icon: ShieldCheck },
   { name: 'Renewals & Options', href: '/lifecycle/renewals', icon: CalendarClock },
   { name: 'Risk & AI Evidence', href: '/lifecycle/risk-assessments', icon: Brain },
+];
+
+const suiteNavigation = [
+  { name: 'Suite Overview', href: '/contract-suite', icon: FolderKanban },
+  { name: 'Acquisition Operations', href: '/contract-suite/acquisition', icon: BriefcaseBusiness },
+  { name: 'Negotiation Intelligence', href: '/contract-suite/negotiation', icon: Gavel },
+  { name: 'Vendor Risk', href: '/contract-suite/vendor-risk', icon: Building2 },
+  { name: 'Smart-Contract Assurance', href: '/contract-suite/smart-contract', icon: ShieldAlert },
+  { name: 'Sports Contracts', href: '/contract-suite/sports', icon: Trophy },
 ];
 
 function NavigationLink({ item, active, onClose }: { item: { name: string; href: string; icon: React.ElementType }; active: boolean; onClose: () => void }) {
@@ -122,6 +136,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 return <NavigationLink key={item.name} item={item} active={isActive} onClose={onClose} />;
               })}
               <NavigationLink item={{ name: 'Compliance Governance', href: '/governance', icon: Scale }} active={location.pathname === '/governance'} onClose={onClose} />
+            </ul>
+          </div>
+
+          <div className="mt-8">
+            <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Unified Contract Suite</h3>
+            <ul className="mt-2 space-y-1">
+              {suiteNavigation.map(item => {
+                const isActive = item.href === '/contract-suite' ? location.pathname === item.href : location.pathname === item.href;
+                return <NavigationLink key={item.name} item={item} active={isActive} onClose={onClose} />;
+              })}
             </ul>
           </div>
 
