@@ -980,6 +980,15 @@ router.get('/queue/status', async (req, res) => {
     const failedCount = statusCounts.failed || 0;
     const processingCount = statusCounts.processing || 0;
     const queuedCount = statusCounts.queued || 0;
+
+    const [awaitingDownloadCount, readyToProcessCount] = await Promise.all([
+      prisma.documentProcessingQueue.count({
+        where: { status: 'queued', localFilePath: null }
+      }),
+      prisma.documentProcessingQueue.count({
+        where: { status: 'queued', localFilePath: { not: null } }
+      })
+    ]);
     
     const completionRate = totalDocuments > 0 ? Math.round((completedCount / totalDocuments) * 100) : 0;
     const failureRate = totalDocuments > 0 ? Math.round((failedCount / totalDocuments) * 100) : 0;
@@ -1002,6 +1011,8 @@ router.get('/queue/status', async (req, res) => {
       queue_status: {
         // Use actual database counts only
         queued: queuedCount,
+        awaiting_download: awaitingDownloadCount,
+        ready_to_process: readyToProcessCount,
         processing: processingCount,
         completed: completedCount,
         failed: failedCount,
@@ -1056,6 +1067,41 @@ router.get('/queue/status', async (req, res) => {
       success: false,
       error: error.message 
     });
+  }
+});
+
+router.post('/retry-failed', requirePermission('queue:admin'), async (_req, res) => {
+  try {
+    const failedDocuments = await prisma.documentProcessingQueue.findMany({
+      where: { status: 'failed' },
+      select: { id: true, retryCount: true, maxRetries: true }
+    });
+    const retryable = failedDocuments.filter(document => document.retryCount < document.maxRetries);
+
+    await prisma.$transaction(retryable.map(document =>
+      prisma.documentProcessingQueue.update({
+        where: { id: document.id },
+        data: {
+          status: 'queued',
+          retryCount: document.retryCount + 1,
+          errorMessage: null,
+          failedAt: null,
+          startedAt: null
+        }
+      })
+    ));
+
+    return res.json({
+      success: true,
+      retried_count: retryable.length,
+      exhausted_count: failedDocuments.length - retryable.length,
+      message: retryable.length > 0
+        ? `Returned ${retryable.length} failed attachments to the resumable pipeline`
+        : 'No failed attachments remain eligible for retry'
+    });
+  } catch (error) {
+    console.error(`Failed attachment retry failed: ${error.message}`);
+    return res.status(500).json({ success: false, error: 'Failed attachments could not be retried' });
   }
 });
 
@@ -2688,50 +2734,58 @@ router.post('/download-all', async (req, res) => {
       throw new Error(`Download directory is not writable: ${downloadPath} - ${permError.message}`);
     }
 
-    // Get contracts with resourceLinks
-    let whereClause = { resourceLinks: { not: null } };
-    if (contract_id) {
-      whereClause.noticeId = contract_id;
-    }
-
-    const contracts = await prisma.contract.findMany({
-      where: whereClause,
-      take: limit,
+    // The fetch stage creates one queue row per SAM.gov resource link. Download
+    // from those rows so a rerun is resumable and never re-downloads completed
+    // work merely because the contract is still in PostgreSQL.
+    const queueCandidates = await prisma.documentProcessingQueue.findMany({
+      where: {
+        status: 'queued',
+        ...(contract_id ? { contractNoticeId: contract_id } : {})
+      },
+      orderBy: { queuedAt: 'asc' },
       select: {
-        noticeId: true,
-        title: true,
-        resourceLinks: true,
-        agency: true
+        id: true,
+        contractNoticeId: true,
+        documentUrl: true,
+        localFilePath: true
       }
     });
-
-    if (contracts.length === 0) {
-      return res.json({
-        success: false,
-        message: 'No contracts with documents found to download',
-        downloaded_count: 0
-      });
+    const awaitingDownload = [];
+    for (const entry of queueCandidates) {
+      if (!entry.localFilePath || !await fs.pathExists(entry.localFilePath)) awaitingDownload.push(entry);
+      if (awaitingDownload.length >= limit) break;
     }
 
-    // Filter contracts to only include those with valid document URLs
-    const contractsWithValidDocs = contracts.filter(contract => {
-      if (!contract.resourceLinks || !Array.isArray(contract.resourceLinks)) {
-        return false;
-      }
-      return contract.resourceLinks.some(url => url && url.trim() && typeof url === 'string');
-    });
-
-    console.log(`📄 [DEBUG] Found ${contracts.length} contracts with resourceLinks`);
-    console.log(`📄 [DEBUG] After filtering: ${contractsWithValidDocs.length} contracts have valid document URLs`);
-
-    if (contractsWithValidDocs.length === 0) {
+    if (awaitingDownload.length === 0) {
       return res.json({
-        success: false,
-        message: 'No contracts with valid document URLs found to download',
+        success: true,
+        message: 'All queued solicitation attachments are already downloaded',
         downloaded_count: 0,
-        contracts_scanned: contracts.length
+        awaiting_download: 0
       });
     }
+
+    const noticeIds = [...new Set(awaitingDownload.map(entry => entry.contractNoticeId))];
+    const contractMetadata = await prisma.contract.findMany({
+      where: { noticeId: { in: noticeIds } },
+      select: { noticeId: true, title: true, agency: true }
+    });
+    const metadataByNoticeId = new Map(contractMetadata.map(contract => [contract.noticeId, contract]));
+    const groupedContracts = new Map();
+    for (const entry of awaitingDownload) {
+      const metadata = metadataByNoticeId.get(entry.contractNoticeId) || {
+        noticeId: entry.contractNoticeId,
+        title: null,
+        agency: null
+      };
+      if (!groupedContracts.has(entry.contractNoticeId)) {
+        groupedContracts.set(entry.contractNoticeId, { ...metadata, resourceLinks: [], queueEntries: [] });
+      }
+      const grouped = groupedContracts.get(entry.contractNoticeId);
+      grouped.resourceLinks.push(entry.documentUrl);
+      grouped.queueEntries.push(entry);
+    }
+    const contractsWithValidDocs = [...groupedContracts.values()];
 
     // Create download job for tracking
     const job = await prisma.indexingJob.create({
@@ -2745,10 +2799,11 @@ router.post('/download-all', async (req, res) => {
     // Respond immediately and start background downloading
     res.json({
       success: true,
-      message: `Started downloading documents from ${contractsWithValidDocs.length} contracts with valid document URLs to folder: ${download_folder}`,
+      message: `Started downloading ${awaitingDownload.length} queued solicitation attachments from ${contractsWithValidDocs.length} opportunities`,
       job_id: job.id,
+      documents_count: awaitingDownload.length,
       contracts_with_valid_docs: contractsWithValidDocs.length,
-      contracts_scanned: contracts.length,
+      contracts_scanned: noticeIds.length,
       download_folder: download_folder,
       download_path: downloadPath
     });
@@ -3010,6 +3065,18 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
   let skippedCount = 0;
   let totalDocuments = 0;
 
+  const markQueueFailure = async (queueEntryId, message) => {
+    if (!queueEntryId) return;
+    await prisma.documentProcessingQueue.update({
+      where: { id: queueEntryId },
+      data: {
+        status: 'failed',
+        errorMessage: String(message || 'Attachment download failed').slice(0, 2000),
+        failedAt: new Date()
+      }
+    }).catch(() => {});
+  };
+
   // Count total documents first
   console.log(`📊 [DEBUG] Analyzing contracts for document links...`);
   contracts.forEach((contract, index) => {
@@ -3053,7 +3120,7 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
   }
 
   // Download single document with better error handling
-  const downloadDocument = async (contract, docUrl, docIndex) => {
+  const downloadDocument = async (contract, docUrl, docIndex, queueEntryId) => {
     const documentId = `${contract.noticeId}_doc${docIndex}`;
     
     try {
@@ -3117,11 +3184,12 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
           if (extractedFiles.length === 0) {
             console.log(`⚠️ [DEBUG] [${documentId}] No supported files found in ZIP: ${originalFilename}`);
             skippedCount++;
+            await markQueueFailure(queueEntryId, 'No supported files found in ZIP archive');
             return { success: false, reason: 'No supported files in ZIP' };
           }
 
           // Process each extracted file
-          let extractedCount = 0;
+          const savedExtractedFiles = [];
           for (const extractedFile of extractedFiles) {
             if (extractedFile.isSupported) {
               // Move the extracted file to the main download directory with proper naming
@@ -3131,7 +3199,11 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
               
               try {
                 await fs.move(extractedFile.extractedPath, finalPath);
-                extractedCount++;
+                savedExtractedFiles.push({
+                  filename: finalFilename,
+                  localFilePath: finalPath,
+                  originalFilename: extractedFile.fileName
+                });
                 console.log(`✅ [DEBUG] [${documentId}] Extracted and saved: ${finalFilename} (${extractedFile.documentType})`);
               } catch (moveError) {
                 console.error(`❌ [DEBUG] [${documentId}] Error moving extracted file:`, moveError.message);
@@ -3146,21 +3218,29 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
             console.warn(`⚠️ [DEBUG] [${documentId}] Could not clean up extraction directory:`, cleanupError.message);
           }
 
-          if (extractedCount > 0) {
-            downloadedCount += extractedCount;
-            console.log(`✅ [DEBUG] [${documentId}] Successfully extracted ${extractedCount} files from ZIP: ${originalFilename}`);
+          if (savedExtractedFiles.length > 0) {
+            downloadedCount += savedExtractedFiles.length;
+            console.log(`✅ [DEBUG] [${documentId}] Successfully extracted ${savedExtractedFiles.length} files from ZIP: ${originalFilename}`);
             
             // Add extracted files to processing queue
             try {
-              for (const extractedFile of extractedFiles) {
-                if (extractedFile.isSupported) {
-                  const extractedFilePath = path.join(downloadPath, path.basename(extractedFile.extractedPath));
-                  
+              for (const [savedIndex, savedFile] of savedExtractedFiles.entries()) {
+                if (savedIndex === 0 && queueEntryId) {
+                  await prisma.documentProcessingQueue.update({
+                    where: { id: queueEntryId },
+                    data: {
+                      localFilePath: savedFile.localFilePath,
+                      filename: savedFile.filename,
+                      errorMessage: null,
+                      failedAt: null
+                    }
+                  });
+                } else {
                   // Check if already queued
                   const existing = await prisma.documentProcessingQueue.findFirst({
                     where: {
                       contractNoticeId: contract.noticeId,
-                      filename: extractedFile.fileName
+                      filename: savedFile.filename
                     }
                   });
 
@@ -3169,16 +3249,16 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
                       data: {
                         contractNoticeId: contract.noticeId,
                         documentUrl: docUrl, // Original ZIP URL
-                        localFilePath: extractedFilePath,
+                        localFilePath: savedFile.localFilePath,
                         description: `Extracted from ZIP: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
-                        filename: extractedFile.fileName,
+                        filename: savedFile.filename,
                         status: 'queued',
                         queuedAt: new Date(),
                         retryCount: 0,
                         maxRetries: 3
                       }
                     });
-                    console.log(`📋 [DEBUG] [${documentId}] Added extracted file to queue: ${extractedFile.fileName}`);
+                    console.log(`📋 [DEBUG] [${documentId}] Added extracted file to queue: ${savedFile.filename}`);
                   }
                 }
               }
@@ -3186,14 +3266,16 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
               console.error(`❌ [DEBUG] [${documentId}] Error adding extracted files to queue:`, queueError.message);
             }
             
-            return { success: true, extractedFiles: extractedCount, type: 'ZIP Archive' };
+            return { success: true, extractedFiles: savedExtractedFiles.length, type: 'ZIP Archive' };
           } else {
             skippedCount++;
+            await markQueueFailure(queueEntryId, 'No supported files found in ZIP archive');
             return { success: false, reason: 'No files could be extracted from ZIP' };
           }
         } catch (zipError) {
           console.error(`❌ [DEBUG] [${documentId}] Error processing ZIP file:`, zipError.message);
           errorCount++;
+          await markQueueFailure(queueEntryId, zipError.message);
           return { success: false, error: zipError.message };
         }
       }
@@ -3204,6 +3286,7 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
         console.log(`⚠️ [DEBUG] [${documentId}] Content-Type: ${contentType}`);
         console.log(`⚠️ [DEBUG] [${documentId}] File extension: ${analysis.extension}`);
         skippedCount++;
+        await markQueueFailure(queueEntryId, `Unsupported document type: ${analysis.documentType}`);
         return { success: false, reason: 'Unsupported type' };
       }
 
@@ -3244,12 +3327,11 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
         // Add downloaded document to processing queue
         try {
           // Check if already queued
-          const existing = await prisma.documentProcessingQueue.findFirst({
-            where: {
-              contractNoticeId: contract.noticeId,
-              documentUrl: docUrl
-            }
-          });
+          const existing = queueEntryId
+            ? await prisma.documentProcessingQueue.findUnique({ where: { id: queueEntryId } })
+            : await prisma.documentProcessingQueue.findFirst({
+                where: { contractNoticeId: contract.noticeId, documentUrl: docUrl }
+              });
 
           if (!existing) {
             await prisma.documentProcessingQueue.create({
@@ -3271,7 +3353,7 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
             // Update the existing queue entry with the local file path
             await prisma.documentProcessingQueue.update({
               where: { id: existing.id },
-              data: { localFilePath: filePath }
+              data: { localFilePath: filePath, filename: properFilename, errorMessage: null, failedAt: null }
             });
           }
         } catch (queueError) {
@@ -3301,6 +3383,7 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
         console.error(`❌ [DEBUG] [${documentId}] HTTP Status Text: ${error.response.statusText}`);
       }
       errorCount++;
+      await markQueueFailure(queueEntryId, error.message);
       return { success: false, error: error.message, documentId };
     }
   };
@@ -3318,13 +3401,16 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       contractsWithDocs++;
       console.log(`📄 [DEBUG] ✅ Contract ${contract.noticeId} has ${contract.resourceLinks.length} documents`);
       
-      contract.resourceLinks.forEach((docUrl, index) => {
+      const resources = Array.isArray(contract.queueEntries) && contract.queueEntries.length > 0
+        ? contract.queueEntries.map(entry => ({ url: entry.documentUrl, queueEntryId: entry.id }))
+        : contract.resourceLinks.map(url => ({ url, queueEntryId: null }));
+      resources.forEach(({ url: docUrl, queueEntryId }, index) => {
         console.log(`📋 [DEBUG]   Checking URL ${index + 1}/${contract.resourceLinks.length}: ${docUrl}`);
         
         if (docUrl && docUrl.trim()) { // Ensure URL is not empty
           taskIndex++;
           console.log(`📋 [DEBUG]   ✅ Valid URL - Creating task ${taskIndex}: ${docUrl}`);
-          downloadTasks.push(() => downloadDocument(contract, docUrl, taskIndex));
+          downloadTasks.push(() => downloadDocument(contract, docUrl, taskIndex, queueEntryId));
         } else {
           console.log(`⚠️ [DEBUG]   ❌ Skipping empty/invalid URL for contract ${contract.noticeId}: "${docUrl}"`);
         }
@@ -3462,8 +3548,8 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
     await prisma.indexingJob.update({
       where: { id: jobId },
       data: {
-        status: 'completed',
-        recordsProcessed: actualFileCount, // Use actual file count
+        status: errorCount > 0 ? 'completed_with_errors' : 'completed',
+        recordsProcessed: downloadedCount,
         errorsCount: errorCount,
         completedAt: new Date()
       }

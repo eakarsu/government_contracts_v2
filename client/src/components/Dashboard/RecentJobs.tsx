@@ -39,6 +39,8 @@ const RecentJobs: React.FC = () => {
     switch (status) {
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'completed_with_errors':
+        return <AlertCircle className="h-4 w-4 text-amber-500" />;
       case 'failed':
         return <XCircle className="h-4 w-4 text-red-500" />;
       case 'running':
@@ -52,6 +54,8 @@ const RecentJobs: React.FC = () => {
     switch (status) {
       case 'completed':
         return 'text-green-600 bg-green-50';
+      case 'completed_with_errors':
+        return 'text-amber-700 bg-amber-50';
       case 'failed':
         return 'text-red-600 bg-red-50';
       case 'running':
@@ -62,7 +66,21 @@ const RecentJobs: React.FC = () => {
   };
 
   const formatJobType = (type: string) => {
-    return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const labels: Record<string, string> = {
+      contracts: 'SAM Records Stored in PostgreSQL',
+      contracts_indexing: 'Contract Vector Index',
+      document_download: 'Solicitation Attachment Download',
+      queue_processing: 'Attachment Extraction and AI Analysis',
+    };
+    return labels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const processedLabel = (type: string) => {
+    if (type === 'contracts') return 'opportunities stored';
+    if (type === 'contracts_indexing') return 'contracts vector-indexed';
+    if (type === 'document_download') return 'attachments downloaded';
+    if (type === 'queue_processing') return 'attachments completed';
+    return 'records processed';
   };
 
   return (
@@ -112,7 +130,7 @@ const RecentJobs: React.FC = () => {
                 <div className="mt-3 flex items-center space-x-4 text-sm text-gray-600">
                   {job.records_processed && (
                     <span>
-                      ✅ {job.records_processed} processed
+                      ✅ {job.records_processed} {processedLabel(job.type)}
                     </span>
                   )}
                   {job.errors_count > 0 && (

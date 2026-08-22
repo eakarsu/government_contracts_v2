@@ -43,8 +43,9 @@ const QueueStatus: React.FC = () => {
     );
   }
 
+  const terminalCount = queueStatus.completed + queueStatus.failed;
   const progressPercentage = queueStatus.total > 0 
-    ? (queueStatus.completed / queueStatus.total) * 100 
+    ? (terminalCount / queueStatus.total) * 100
     : 0;
 
   return (
@@ -53,7 +54,7 @@ const QueueStatus: React.FC = () => {
         <div>
           <h3 className="text-lg font-medium text-gray-900">Document Processing Status</h3>
           <p className="mt-1 text-xs text-gray-500">
-            Fetch queues document links; processing moves them to completed or failed.
+            PostgreSQL stores opportunity records. This panel tracks solicitation attachments through download, extraction, and AI analysis.
           </p>
         </div>
         {queueStatus.is_processing && (
@@ -66,8 +67,12 @@ const QueueStatus: React.FC = () => {
 
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-blue-50 p-3 rounded-lg text-center">
-          <div className="text-xl font-bold text-blue-600">{queueStatus.queued}</div>
-          <div className="text-xs text-blue-600">Queued</div>
+          <div className="text-xl font-bold text-blue-600">{queueStatus.awaiting_download ?? queueStatus.queued}</div>
+          <div className="text-xs text-blue-600">Awaiting Download</div>
+        </div>
+        <div className="bg-indigo-50 p-3 rounded-lg text-center">
+          <div className="text-xl font-bold text-indigo-600">{queueStatus.ready_to_process ?? 0}</div>
+          <div className="text-xs text-indigo-600">Ready to Process</div>
         </div>
         <div className="bg-yellow-50 p-3 rounded-lg text-center">
           <div className="text-xl font-bold text-yellow-600">{queueStatus.processing}</div>
@@ -87,7 +92,7 @@ const QueueStatus: React.FC = () => {
         <div className="mb-4">
           <div className="flex justify-between text-sm text-gray-600 mb-2">
             <span>Progress</span>
-            <span>{queueStatus.completed} / {queueStatus.total}</span>
+            <span>{terminalCount} / {queueStatus.total}</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
@@ -96,7 +101,7 @@ const QueueStatus: React.FC = () => {
             />
           </div>
           <div className="text-xs text-gray-500 mt-1">
-            {progressPercentage.toFixed(1)}% complete
+            {progressPercentage.toFixed(1)}% handled ({queueStatus.completed} completed, {queueStatus.failed} failed)
           </div>
         </div>
       )}

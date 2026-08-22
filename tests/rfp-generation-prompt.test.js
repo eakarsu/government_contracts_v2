@@ -75,6 +75,33 @@ describe('RFP generation prompt', () => {
     expect(prompt).toContain('No processed solicitation document content is available');
   });
 
+  test('passes the complete retained SAM.gov opportunity record to the model', () => {
+    const prompt = rfpService.buildContractContent(
+      {
+        title: 'Cloud Platform',
+        agency: 'Example Agency',
+        samData: {
+          noticeId: 'notice-123',
+          solicitationNumber: 'SOL-2026-001',
+          responseDeadLine: '2026-09-30T17:00:00-04:00',
+          pointOfContact: [{ type: 'primary', email: 'contracting@example.gov' }],
+          placeOfPerformance: { city: { name: 'Washington' }, state: { code: 'DC' } },
+          resourceLinks: ['https://sam.gov/api/prod/opps/v3/opportunities/resources/files/example/download']
+        }
+      },
+      company,
+      null,
+      [],
+      template
+    );
+
+    expect(prompt).toContain('COMPLETE SAM.GOV OPPORTUNITY RECORD');
+    expect(prompt).toContain('SOL-2026-001');
+    expect(prompt).toContain('contracting@example.gov');
+    expect(prompt).toContain('Washington');
+    expect(prompt).toContain('/download');
+  });
+
   test('routes enhanced business data and custom company sections into the proposal prompt', () => {
     const enhancedCompany = {
       ...company,

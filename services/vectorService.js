@@ -64,7 +64,8 @@ class VectorService {
     }
 
     try {
-      const text = `${contract.title || ''} ${contract.description || ''} ${contract.agency || ''}`.trim();
+      const samMetadata = contract.samData ? JSON.stringify(contract.samData) : '';
+      const text = `${contract.title || ''} ${contract.description || ''} ${contract.agency || ''} ${samMetadata}`.trim();
       
       if (!text) {
         console.warn(`Skipping contract ${contract.noticeId} - no text content`);

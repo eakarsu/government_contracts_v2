@@ -10,9 +10,19 @@ import type {
 
 export class DocumentsApiService {
   // Document processing
-  async processDocuments(contractId?: string, limit: number = 50): Promise<ApiResponse> {
+  async processDocuments(
+    contractId?: string,
+    limit: number = 50,
+    options?: { autoQueue?: boolean; concurrency?: number; testMode?: boolean }
+  ): Promise<ApiResponse> {
     try {
-      const response = await api.post<ApiResponse>('/documents/processing', { contract_id: contractId, limit }, {
+      const response = await api.post<ApiResponse>('/documents/processing', {
+        contract_id: contractId,
+        limit,
+        auto_queue: options?.autoQueue ?? true,
+        concurrency: options?.concurrency ?? 10,
+        test_mode: options?.testMode ?? false,
+      }, {
         timeout: 3600000 // 1 hour timeout
       });
       return response.data;

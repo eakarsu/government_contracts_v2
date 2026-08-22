@@ -8,10 +8,10 @@ type PipelineStageId = 'fetch' | 'index' | 'download' | 'process';
 type PipelineStageStatus = 'pending' | 'running' | 'completed' | 'failed';
 
 const INITIAL_PIPELINE_STAGES: Array<{ id: PipelineStageId; label: string; status: PipelineStageStatus }> = [
-  { id: 'fetch', label: 'Fetch contracts and queue links', status: 'pending' },
-  { id: 'index', label: 'Index all pending contract text', status: 'pending' },
-  { id: 'download', label: 'Download documents', status: 'pending' },
-  { id: 'process', label: 'Process up to 10 documents', status: 'pending' },
+  { id: 'fetch', label: 'Store complete SAM.gov records and queue every attachment', status: 'pending' },
+  { id: 'index', label: 'Vector-index all pending opportunity metadata', status: 'pending' },
+  { id: 'download', label: 'Download every queued solicitation attachment', status: 'pending' },
+  { id: 'process', label: 'Extract and analyze every downloaded attachment', status: 'pending' },
 ];
 
 const QuickActions: React.FC = () => {
@@ -23,7 +23,7 @@ const QuickActions: React.FC = () => {
   const refreshDashboard = () => {
     queryClient.invalidateQueries({ queryKey: ['api-status'] });
     queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
-    queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    queryClient.invalidateQueries({ queryKey: ['recent-jobs'] });
   };
 
   const updatePipelineStage = (id: PipelineStageId, status: PipelineStageStatus) => {
@@ -48,7 +48,7 @@ const QuickActions: React.FC = () => {
     const deadline = Date.now() + 30 * 60 * 1000;
     while (Date.now() < deadline) {
       const job = await apiService.getJob(jobId);
-      if (job.status === 'completed') return;
+      if (job.status === 'completed' || job.status === 'completed_with_errors') return;
       if (job.status === 'failed') throw new Error(job.error_details || `Job ${jobId} failed`);
       refreshDashboard();
       await new Promise(resolve => window.setTimeout(resolve, 15000));
@@ -79,21 +79,66 @@ const QuickActions: React.FC = () => {
       });
 
       await runPipelineStage('download', async () => {
-        const result = await apiService.downloadAllDocuments({
-          limit: 50,
-          download_folder: 'downloaded_documents',
-          concurrency: 10,
-        }) as any;
-        if (result.success === false) throw new Error(result.message || result.error || 'Document download failed');
-        await waitForJob(result.job_id);
-        return result;
+        let downloaded = 0;
+        let retryRounds = 0;
+        for (let batch = 0; batch < 100; batch++) {
+          const queue = await apiService.getQueueStatus();
+          if ((queue.queue_status.awaiting_download ?? queue.queue_status.queued) === 0) {
+            if (queue.queue_status.failed > 0 && retryRounds < 3) {
+              const retry = await apiService.retryFailedDocuments() as any;
+              if (Number(retry.retried_count) > 0) {
+                retryRounds += 1;
+                refreshDashboard();
+                continue;
+              }
+            }
+            return { success: true, downloaded_count: downloaded };
+          }
+          const result = await apiService.downloadAllDocuments({
+            limit: 1000,
+            download_folder: 'downloaded_documents',
+            concurrency: 10,
+          }) as any;
+          if (result.success === false) throw new Error(result.message || result.error || 'Document download failed');
+          if (!result.job_id) return { success: true, downloaded_count: downloaded };
+          await waitForJob(result.job_id);
+          downloaded += Number((await apiService.getJob(result.job_id)).records_processed) || 0;
+          refreshDashboard();
+        }
+        throw new Error('Attachment download exceeded 100 resumable batches');
       });
 
       await runPipelineStage('process', async () => {
-        const result = await apiService.processDocuments(undefined, 10) as any;
-        if (result.success === false) throw new Error(result.message || result.error || 'Document processing failed');
-        await waitForJob(result.job_id);
-        return result;
+        let completed = 0;
+        let retryRounds = 0;
+        for (let batch = 0; batch < 100; batch++) {
+          const queue = await apiService.getQueueStatus();
+          if (queue.queue_status.queued === 0) {
+            if (queue.queue_status.failed > 0 && retryRounds < 3) {
+              const retry = await apiService.retryFailedDocuments() as any;
+              if (Number(retry.retried_count) > 0) {
+                retryRounds += 1;
+                refreshDashboard();
+                continue;
+              }
+            }
+            if (queue.queue_status.failed > 0) {
+              throw new Error(`${queue.queue_status.failed} attachments remain failed after all retry attempts`);
+            }
+            return { success: true, completed_count: completed };
+          }
+          const result = await apiService.processDocuments(
+            undefined,
+            1000,
+            { autoQueue: false, concurrency: 10, testMode: false }
+          ) as any;
+          if (result.success === false) throw new Error(result.message || result.error || 'Document processing failed');
+          if (!result.job_id) return { success: true, completed_count: completed };
+          await waitForJob(result.job_id);
+          completed += Number((await apiService.getJob(result.job_id)).records_processed) || 0;
+          refreshDashboard();
+        }
+        throw new Error('Attachment processing exceeded 100 resumable batches');
       });
 
       return { success: true };
@@ -118,7 +163,11 @@ const QuickActions: React.FC = () => {
   });
 
   const processDocumentsMutation = useMutation({
-    mutationFn: () => apiService.processDocuments(undefined, 10), // Use limit of 10 to trigger test mode
+    mutationFn: () => apiService.processDocuments(
+      undefined,
+      1000,
+      { autoQueue: false, concurrency: 10, testMode: false }
+    ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
     },
@@ -146,7 +195,7 @@ const QuickActions: React.FC = () => {
 
   const downloadDocumentsMutation = useMutation({
     mutationFn: () => apiService.downloadAllDocuments({
-      limit: 50,
+      limit: 1000,
       download_folder: 'downloaded_documents'
     }),
     onSuccess: async (response) => {
@@ -265,7 +314,7 @@ const QuickActions: React.FC = () => {
         </button>
 
         <p className="text-xs text-gray-500">
-          Fetches 100 contracts, indexes all pending contracts, downloads from 50 contracts, then processes up to 10 documents.
+          Stores 100 complete SAM.gov opportunity records per run, then fully indexes, downloads, and processes every attachment those records add to the queue.
         </p>
 
         {(fullPipelineMutation.isPending || fullPipelineMutation.isSuccess || fullPipelineMutation.isError) && (
@@ -319,7 +368,7 @@ const QuickActions: React.FC = () => {
               disabled={processDocumentsMutation.isPending || fullPipelineMutation.isPending}
               className="w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
-              {processDocumentsMutation.isPending ? <LoadingSpinner size="sm" color="white" /> : 'Auto Queue & Process'}
+              {processDocumentsMutation.isPending ? <LoadingSpinner size="sm" color="white" /> : 'Process All Downloaded Documents'}
             </button>
           </div>
         </details>

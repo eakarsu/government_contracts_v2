@@ -107,7 +107,7 @@ class RFPService {
         predictedScore,
         metadata: {
           generatedAt: new Date().toISOString(),
-          promptVersion: 'evidence-routed-v4-batched',
+          promptVersion: 'evidence-routed-v5-complete-sam-and-attachments',
           sourceDocumentCount: sourceDocuments.length,
           templateName: templateData.name,
           companyName: companyData.companyName || companyProfile.companyName,
@@ -239,12 +239,16 @@ Classification: ${contract.classificationCode || 'N/A'}
 Description: ${contract.description || 'N/A'}
 `;
 
+    if (contract.samData) {
+      content += `\nComplete SAM.gov Opportunity Record:\n${JSON.stringify(contract.samData, null, 2)}\n`;
+    }
+
     if (processedDocs.length > 0) {
       content += '\n\nDocument Content:\n';
       processedDocs.forEach((doc, index) => {
         try {
           const docData = JSON.parse(doc.processedData);
-          content += `\nDocument ${index + 1} (${doc.filename}):\n${docData.content || docData.summary || 'No content available'}\n`;
+          content += `\nDocument ${index + 1} (${doc.filename}):\n${docData.extractedText || docData.content || docData.summary || 'No content available'}\n`;
         } catch (parseError) {
           console.warn(`Could not parse document data for ${doc.filename}`);
         }
@@ -504,9 +508,9 @@ Extract and provide structured RFP analysis in JSON format:
         // Keep plain-text processed data as-is.
       }
       const label = document.filename || document.description || `Document ${index + 1}`;
-      return `--- ${label} ---\n${String(processed).slice(0, 30000)}`;
+      return `--- ${label} ---\n${String(processed)}`;
     }).join('\n\n');
-    return content.slice(0, 90000);
+    return content;
   }
 
   normalizeSectionContent(content, sectionTitle) {
@@ -599,6 +603,10 @@ SOURCE AUTHORITY AND ROUTING RULES:
 10. Route approved rates and pricing data to the cost section. A pricing approach is not an approved price.
 11. Use the selected template section description, format, mappings, maximum words, and evidence instructions for every section.
 12. If company capabilities do not align with the opportunity, state the gap clearly rather than presenting an unrelated solution.
+13. Review every field in the complete SAM.gov opportunity record and every supplied solicitation attachment from beginning to end before drafting.
+14. Treat amendments, addenda, attachments, exhibits, schedules, clauses, evaluation factors, submission instructions, pricing instructions, and question-and-answer documents as separate authoritative evidence sections; do not silently omit any of them.
+15. Build an internal requirement-to-source coverage matrix across all supplied evidence. Every material response claim must trace to the SAM.gov record, a solicitation attachment, or verified company-profile evidence.
+16. If sources conflict, identify the conflict and prefer the latest explicit amendment only when the supplied evidence establishes its chronology. Otherwise insert REVIEW REQUIRED.
 
 SELECTED TEMPLATE:
 Name: ${template.name || 'Unnamed template'}
@@ -615,6 +623,9 @@ Description: ${contract.description || 'N/A'}
 NAICS Code: ${contract.naicsCode || 'N/A'}
 Classification: ${contract.classificationCode || 'N/A'}
 Posted Date: ${contract.postedDate || 'N/A'}
+
+COMPLETE SAM.GOV OPPORTUNITY RECORD (AUTHORITATIVE PUBLISHED METADATA):
+${contract.samData ? JSON.stringify(contract.samData, null, 2) : '[Complete SAM.gov metadata was not retained for this previously ingested opportunity. Refresh the opportunity before drafting.]'}
 
 SELECTED COMPANY PROFILE (USER-PROVIDED DATA):
 ${this.buildCompanyProfileContent(companyData)}

@@ -302,7 +302,7 @@ router.post('/', async (req, res) => {
 
     // Get queued documents
     const queuedDocs = await prisma.documentProcessingQueue.findMany({
-      where: { status: 'queued' },
+      where: { status: 'queued', localFilePath: { not: null } },
       take: limit,
       orderBy: { queuedAt: 'asc' }
     });
@@ -310,7 +310,7 @@ router.post('/', async (req, res) => {
     if (queuedDocs.length === 0) {
       return res.json({
         success: true,
-        message: 'No documents in queue to process',
+        message: 'No downloaded documents are ready to process',
         processed_count: 0,
         queue_status: statusCounts
       });
@@ -329,21 +329,19 @@ router.post('/', async (req, res) => {
 
     console.log(`✅ [DEBUG] Created processing job: ${job.id}`);
 
-    // Use high concurrency with minimum of 20 for auto-queue processing
-    const autoConcurrency = Math.max(20, Math.min(100, Math.floor(queuedDocs.length / 2)));
+    const processingConcurrency = Math.max(1, Math.min(10, Number(concurrency) || 5));
 
     // Respond immediately and start background processing
     res.json({
       success: true,
-      message: `Started processing ALL ${queuedDocs.length} documents from queue with ${autoConcurrency} workers (minimum 20)`,
+      message: `Started processing all ${queuedDocs.length} downloaded documents with ${processingConcurrency} workers`,
       job_id: job.id,
       documents_count: queuedDocs.length,
-      concurrency: autoConcurrency,
-      processing_method: 'high_concurrency_batch_processing'
+      concurrency: processingConcurrency,
+      processing_method: 'bounded_parallel_processing'
     });
 
-    // Process documents in background with high concurrency
-    processDocumentsInParallel(queuedDocs, autoConcurrency, job.id);
+    processDocumentsInParallel(queuedDocs, processingConcurrency, job.id);
 
   } catch (error) {
     console.error('❌ [DEBUG] Document processing failed:', error);
@@ -607,7 +605,7 @@ async function processTestDocumentsSequentially(documents, jobId) {
     await prisma.indexingJob.update({
       where: { id: jobId },
       data: {
-        status: 'completed',
+        status: errorCount > 0 ? 'completed_with_errors' : 'completed',
         recordsProcessed: successCount,
         errorsCount: errorCount,
         completedAt: new Date()
@@ -771,14 +769,20 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           }
         }
         
-        const result = summaryResult.result;
+        const summary = summaryResult.result;
+        const result = {
+          ...(summary && typeof summary === 'object' ? summary : { summary: String(summary || '') }),
+          extractedText: extractResult.extractedContent,
+          extractionMethod: extractResult.method,
+          extractedWordCount: extractResult.wordCount
+        };
         
         // Step 3: Start final operations in parallel
         await Promise.all([
           // Index in vector database
           vectorService.indexDocument({
             filename: doc.filename,
-            content: result.content || result.text || JSON.stringify(result),
+            content: result.extractedText,
             processedData: result
           }, doc.contractNoticeId),
           
@@ -857,7 +861,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
     await prisma.indexingJob.update({
       where: { id: jobId },
       data: {
-        status: 'completed',
+        status: errorCount > 0 ? 'completed_with_errors' : 'completed',
         recordsProcessed: successCount,
         errorsCount: errorCount,
         completedAt: new Date()

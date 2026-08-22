@@ -154,7 +154,11 @@ function contractFromSAM(contractData) {
     setAsideCode: optionalString(
       contractData.typeOfSetAsideCode || contractData.typeOfSetAside || contractData.setAsideCode
     ),
-    resourceLinks: Array.isArray(contractData.resourceLinks) ? contractData.resourceLinks : []
+    resourceLinks: Array.isArray(contractData.resourceLinks) ? contractData.resourceLinks : [],
+    // Preserve every field returned by SAM.gov. Proposal generation uses this
+    // authoritative metadata in addition to processed solicitation files.
+    samData: contractData,
+    samRetrievedAt: new Date()
   };
 }
 

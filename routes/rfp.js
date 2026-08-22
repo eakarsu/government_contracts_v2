@@ -223,6 +223,29 @@ async function generateAndSaveApplication({ contractId, templateId, companyProfi
     throw error;
   }
 
+  const [queuedAttachments, processingAttachments, failedAttachments, emptyCompletedAttachments] = await Promise.all([
+    prisma.documentProcessingQueue.count({ where: { contractNoticeId: contractId, status: 'queued' } }),
+    prisma.documentProcessingQueue.count({ where: { contractNoticeId: contractId, status: 'processing' } }),
+    prisma.documentProcessingQueue.count({ where: { contractNoticeId: contractId, status: 'failed' } }),
+    prisma.documentProcessingQueue.count({
+      where: { contractNoticeId: contractId, status: 'completed', processedData: null }
+    })
+  ]);
+  if (queuedAttachments || processingAttachments || failedAttachments || emptyCompletedAttachments) {
+    const error = new Error(
+      'Solicitation evidence is incomplete. Download and successfully process every attachment before generating the RFP draft.'
+    );
+    error.statusCode = 409;
+    error.code = 'SOLICITATION_EVIDENCE_INCOMPLETE';
+    error.evidenceStatus = {
+      queued: queuedAttachments,
+      processing: processingAttachments,
+      failed: failedAttachments,
+      completed_without_content: emptyCompletedAttachments
+    };
+    throw error;
+  }
+
   const template = templateId
     ? await prisma.rfpTemplate.findUnique({ where: { id: templateId } })
     : await ensureStandardTemplate();
@@ -496,7 +519,8 @@ router.post('/generate', async (req, res) => {
       success: false,
       code: error.code,
       error: error.message,
-      message: error.message
+      message: error.message,
+      evidenceStatus: error.evidenceStatus
     });
   }
 });

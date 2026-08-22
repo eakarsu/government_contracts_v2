@@ -18,6 +18,8 @@ export interface Contract {
   postedDate?: string;
   setAsideCode?: string;
   resourceLinks?: string[];
+  samData?: Record<string, unknown>;
+  samRetrievedAt?: string;
   indexedAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -130,7 +132,7 @@ export interface ContractAnalysis {
 export interface IndexingJob {
   id: number;
   type: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: 'pending' | 'running' | 'completed' | 'completed_with_errors' | 'failed';
   start_date?: string;
   end_date?: string;
   records_processed?: number;
@@ -201,6 +203,8 @@ export interface DocumentProcessingQueue {
 
 export interface QueueStatus {
   queued: number;
+  awaiting_download: number;
+  ready_to_process: number;
   processing: number;
   completed: number;
   failed: number;
