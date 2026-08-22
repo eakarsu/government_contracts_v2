@@ -329,7 +329,7 @@ app.post('/api/upload', upload.single('document'), async (req, res) => {
 // Get list of static documents
 app.get('/api/documents', (req, res) => {
   try {
-    const documentsDir = path.join(__dirname, config.documentsDir);
+    const documentsDir = path.resolve(config.documentsDir);
     
     if (!fs.existsSync(documentsDir)) {
       return res.json({ documents: [] });
@@ -394,8 +394,8 @@ async function startServer() {
     // Start server
     app.listen(config.port, () => {
       console.log(`🚀 Server running on http://localhost:${config.port}`);
-      console.log(`📁 Upload folder: ${path.join(__dirname, config.uploadDir)}`);
-      console.log(`📄 Documents folder: ${path.join(__dirname, config.documentsDir)}`);
+      console.log(`📁 Upload folder: ${path.resolve(config.uploadDir)}`);
+      console.log(`📄 Documents folder: ${path.resolve(config.documentsDir)}`);
       console.log(`🌐 Norshin API: ${config.norshinApiUrl}`);
       console.log(`🔍 Vector index: ${vectorService.isConnected ? 'Connected' : 'Disconnected'}`);
       console.log(`📊 Database: Connected`);
