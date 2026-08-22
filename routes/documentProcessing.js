@@ -725,7 +725,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         
         // Step 2: Wait for conversion to complete, then start extraction and summarization in parallel
         const pdfPath = await conversionPromise;
-        console.log(`📄 PDF ready, starting parallel extraction and analysis: ${doc.filename}`);
+        console.log(`📄 PDF ready, starting extraction and indexing: ${doc.filename}`);
         
         // Start extraction immediately
         const extractionPromise = (async () => {
@@ -738,30 +738,14 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           return result;
         })();
         
-        // Wait for extraction, then start summarization
+        // Extraction/OCR belongs to ingestion. Proposal analysis and writing
+        // happen later, only when the user requests an application draft.
         const extractResult = await extractionPromise;
         
         if (!extractResult.success) {
           throw new Error(`PDF extraction failed: ${extractResult.error}`);
         }
-        
-        console.log(`✅ Extraction completed, starting summarization: ${doc.filename}`);
-        
-        // Start summarization
-        const summaryPromise = (async () => {
-          const pdfService = require('../services/summaryService.js');
-          return await pdfService.summarizeContent(
-            extractResult.extractedContent,
-            process.env.OPENROUTER_API_KEY
-          );
-        })();
-        
-        // Wait for summarization
-        const summaryResult = await summaryPromise;
-        
-        if (!summaryResult.success) {
-          throw new Error(`Summarization failed: ${summaryResult.error}`);
-        }
+        console.log(`✅ Extraction completed, indexing evidence: ${doc.filename}`);
         
         // Clean up temp conversion files
         if (fileExt !== '.pdf' && pdfPath.includes('temp_parallel_conversion')) {
@@ -773,12 +757,12 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           }
         }
         
-        const summary = summaryResult.result;
         const result = {
-          ...(summary && typeof summary === 'object' ? summary : { summary: String(summary || '') }),
           extractedText: extractResult.extractedContent,
           extractionMethod: extractResult.method,
-          extractedWordCount: extractResult.wordCount
+          extractedWordCount: extractResult.wordCount,
+          processingMode: 'evidence_extraction',
+          extractedAt: new Date().toISOString()
         };
         
         // Step 3: Start final operations in parallel

@@ -10,7 +10,7 @@ const INITIAL_PIPELINE_STAGES: Array<{ id: PipelineStageId; label: string; statu
   { id: 'fetch', label: 'Store complete SAM.gov records and queue every attachment', status: 'pending' },
   { id: 'index', label: 'Vector-index all pending opportunity metadata', status: 'pending' },
   { id: 'download', label: 'Download every queued solicitation attachment', status: 'pending' },
-  { id: 'process', label: 'Extract and analyze every downloaded attachment', status: 'pending' },
+  { id: 'process', label: 'Extract, OCR, and index every downloaded attachment', status: 'pending' },
 ];
 
 const QuickActions: React.FC = () => {

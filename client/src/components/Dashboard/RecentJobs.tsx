@@ -70,7 +70,7 @@ const RecentJobs: React.FC = () => {
       contracts: 'SAM Records Stored in PostgreSQL',
       contracts_indexing: 'Contract Vector Index',
       document_download: 'Solicitation Attachment Download',
-      queue_processing: 'Attachment Extraction and AI Analysis',
+      queue_processing: 'Attachment Text Extraction and Indexing',
     };
     return labels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };

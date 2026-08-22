@@ -54,7 +54,7 @@ const QueueStatus: React.FC = () => {
         <div>
           <h3 className="text-lg font-medium text-gray-900">Document Processing Status</h3>
           <p className="mt-1 text-xs text-gray-500">
-            PostgreSQL stores opportunity records. This panel tracks solicitation attachments through download, extraction, and AI analysis.
+            PostgreSQL stores opportunity records. This panel tracks solicitation attachments through download, text extraction/OCR, and indexing.
           </p>
         </div>
         {queueStatus.is_processing && (
