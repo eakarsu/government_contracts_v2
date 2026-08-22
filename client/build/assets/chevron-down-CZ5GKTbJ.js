@@ -1,0 +1,1 @@
+import{w as e}from"./index-TL5yd-J7.js";var t=e(`ChevronDown`,[[`path`,{d:`m6 9 6 6 6-6`,key:`qrunsl`}]]);export{t};

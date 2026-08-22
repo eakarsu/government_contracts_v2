@@ -158,8 +158,13 @@ class WinProbabilityPredictor {
         return Math.min(value / 30, 1); // Max 30 days
       case 'keywordCount':
         return Math.min(value / 20, 1); // Max 20 keywords
+      case 'naicsCategory':
+        // Categorical values must be encoded before applying numeric weights.
+        return value && value !== 'OTHER' ? 1 : 0.25;
+      case 'setAsideType':
+        return value && value !== 'NONE' ? 1 : 0;
       default:
-        return value;
+        return typeof value === 'number' && Number.isFinite(value) ? value : 0;
     }
   }
 
@@ -228,9 +233,13 @@ class WinProbabilityPredictor {
   }
 
   calculateConfidence(features) {
-    // Simple confidence based on feature coverage
-    const featureCoverage = Object.keys(features).length / 10; // 10 total features
-    return Math.round(featureCoverage * 100);
+    // Confidence reflects coverage of the fields actually used by this model.
+    const weightedFeatures = Object.keys(this.model?.weights || this.getDefaultModel().weights);
+    const populatedFeatures = weightedFeatures.filter(key => {
+      const value = features[key];
+      return value !== undefined && value !== null && value !== '';
+    }).length;
+    return Math.min(100, Math.round((populatedFeatures / weightedFeatures.length) * 100));
   }
 
   // Helper methods

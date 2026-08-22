@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { Brain, TrendingUp, Target, AlertCircle, DollarSign, Clock } from 'lucide-react';
+import { Brain, TrendingUp, Target, AlertCircle, Gauge, Clock } from 'lucide-react';
 import { aiService } from '../../services/aiService';
 import LoadingSpinner from '../UI/LoadingSpinner';
 
@@ -10,13 +9,10 @@ interface AIInsightsProps {
 }
 
 const AIInsights: React.FC<AIInsightsProps> = ({ userId }) => {
-  const [selectedContractId, setSelectedContractId] = useState<string>('');
-  const navigate = useNavigate();
-
   // Fetch AI insights for dashboard overview
-  const { data: opportunityAlerts, isLoading: alertsLoading } = useQuery({
-    queryKey: ['opportunity-alerts', userId],
-    queryFn: () => aiService.getOpportunityAlerts(userId || 'anonymous'),
+  const { data: opportunityPredictions, isLoading: predictionsLoading } = useQuery({
+    queryKey: ['opportunity-predictions', userId],
+    queryFn: () => aiService.getOpportunityPredictions(),
     enabled: true,
     refetchInterval: 60000, // Refresh every minute
   });
@@ -26,12 +22,6 @@ const AIInsights: React.FC<AIInsightsProps> = ({ userId }) => {
     queryFn: () => aiService.checkAIServiceHealth(),
     refetchInterval: 30000, // Refresh every 30 seconds
   });
-
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `$${(amount / 1000).toFixed(0)}K`;
-    return `$${amount.toLocaleString()}`;
-  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -54,7 +44,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ userId }) => {
     return 'text-green-600';
   };
 
-  if (alertsLoading || healthLoading) {
+  if (predictionsLoading || healthLoading) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-center h-32">
@@ -64,8 +54,13 @@ const AIInsights: React.FC<AIInsightsProps> = ({ userId }) => {
     );
   }
 
-  const alerts = opportunityAlerts?.alerts || [];
-  const summary = opportunityAlerts?.summary || { totalAlerts: 0, totalValue: 0, averageWinProbability: 0 };
+  const predictions = opportunityPredictions?.predictions || [];
+  const summary = opportunityPredictions?.summary || {
+    totalPredictions: 0,
+    averageWinProbability: null,
+    highProbability: 0,
+    critical: 0,
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -73,7 +68,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ userId }) => {
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium text-gray-900 flex items-center">
             <Brain className="h-5 w-5 mr-2 text-purple-600" />
-            AI Insights & Opportunities
+            Opportunity Predictions
           </h3>
           <div className="flex items-center space-x-2">
             <span className={`text-xs px-2 py-1 rounded-full ${
@@ -92,76 +87,77 @@ const AIInsights: React.FC<AIInsightsProps> = ({ userId }) => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
-              <TrendingUp className="h-5 w-5 text-purple-600" />
-              <span className="text-xs text-gray-500">Total Value</span>
+              <Target className="h-5 w-5 text-purple-600" />
+              <span className="text-xs text-gray-500">Predictions</span>
             </div>
             <div className="text-2xl font-bold text-gray-900">
-              {formatCurrency(summary.totalValue)}
+              {summary.totalPredictions}
             </div>
           </div>
 
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
-              <Target className="h-5 w-5 text-green-600" />
-              <span className="text-xs text-gray-500">Opportunities</span>
+              <TrendingUp className="h-5 w-5 text-green-600" />
+              <span className="text-xs text-gray-500">Avg Win Probability</span>
             </div>
             <div className="text-2xl font-bold text-gray-900">
-              {summary.totalAlerts}
+              {summary.averageWinProbability == null ? 'N/A' : `${summary.averageWinProbability.toFixed(1)}%`}
             </div>
           </div>
 
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
-              <DollarSign className="h-5 w-5 text-blue-600" />
-              <span className="text-xs text-gray-500">Avg Win Rate</span>
+              <Gauge className="h-5 w-5 text-blue-600" />
+              <span className="text-xs text-gray-500">High Probability</span>
             </div>
             <div className="text-2xl font-bold text-gray-900">
-              {(summary.averageWinProbability || 0).toFixed(1)}%
+              {summary.highProbability}
             </div>
           </div>
 
           <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <AlertCircle className="h-5 w-5 text-orange-600" />
-              <span className="text-xs text-gray-500">Critical</span>
+              <span className="text-xs text-gray-500">Critical Deadlines</span>
             </div>
             <div className="text-2xl font-bold text-gray-900">
-              {'critical' in summary ? summary.critical : 0}
+              {summary.critical}
             </div>
           </div>
         </div>
 
-        {/* Recent AI Alerts */}
-        {alerts.length > 0 && (
+        <p className="mb-5 text-xs text-gray-500">
+          Directional model estimates for open SAM.gov opportunities; they are not historical win outcomes.
+        </p>
+
+        {/* Top opportunity predictions */}
+        {predictions.length > 0 && (
           <div>
-            <h4 className="text-sm font-medium text-gray-900 mb-3">Recent AI Opportunities</h4>
+            <h4 className="text-sm font-medium text-gray-900 mb-3">Top Predictions</h4>
             <div className="space-y-3 max-h-64 overflow-y-auto">
-              {alerts.slice(0, 5).map((alert) => {
-                const daysRemaining = getDaysRemaining(alert.opportunity.responseDeadline);
+              {predictions.slice(0, 5).map((prediction) => {
+                const daysRemaining = getDaysRemaining(prediction.opportunity.responseDeadline);
                 return (
                   <div
-                    key={alert.id}
-                    className={`border rounded-lg p-3 ${getPriorityColor(alert.priority)}`}
+                    key={prediction.id}
+                    className={`border rounded-lg p-3 ${getPriorityColor(prediction.priority)}`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h5 className="font-medium text-gray-900 text-sm mb-1">{alert.title}</h5>
-                        <p className="text-xs text-gray-600 mb-2">{alert.message}</p>
+                        <h5 className="font-medium text-gray-900 text-sm mb-1">{prediction.title}</h5>
+                        <p className="text-xs text-gray-600 mb-2">{prediction.opportunity.agency}</p>
                         <div className="flex items-center space-x-3 text-xs text-gray-500">
-                          <span className="flex items-center">
-                            <DollarSign className="h-3 w-3 mr-1" />
-                            {formatCurrency(parseFloat(alert.opportunity.awardAmount.replace(/[^0-9.]/g, '')))}
-                          </span>
                           <span className={`font-medium ${getDaysColor(daysRemaining)}`}>
                             <Clock className="h-3 w-3 mr-1 inline" />
                             {daysRemaining} days
                           </span>
-                          <span>Win: {alert.winProbability}%</span>
+                          <span>Probability: {prediction.winProbability}%</span>
+                          <span>Confidence: {prediction.confidence}%</span>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-xs font-medium text-gray-700">
-                          Score: {alert.overallScore}
+                          {prediction.priority}
                         </div>
                       </div>
                     </div>
@@ -170,22 +166,19 @@ const AIInsights: React.FC<AIInsightsProps> = ({ userId }) => {
               })}
             </div>
 
-            {alerts.length > 5 && (
-              <button
-                onClick={() => navigate('/ai-opportunities')}
-                className="mt-3 text-sm text-purple-600 hover:text-purple-800 font-medium"
-              >
-                View all {alerts.length} opportunities →
-              </button>
+            {predictions.length > 5 && (
+              <p className="mt-3 text-xs text-gray-500">
+                Showing the 5 most urgent of {predictions.length} open-opportunity predictions.
+              </p>
             )}
           </div>
         )}
 
-        {alerts.length === 0 && (
+        {predictions.length === 0 && (
           <div className="text-center py-8">
             <Brain className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-sm text-gray-500">No AI insights available</p>
-            <p className="text-xs text-gray-400 mt-1">Check back for AI-powered opportunities</p>
+            <p className="text-sm text-gray-500">No open opportunities to predict</p>
+            <p className="text-xs text-gray-400 mt-1">Import current SAM.gov opportunities to populate predictions.</p>
           </div>
         )}
       </div>

@@ -92,6 +92,25 @@ router.post('/similar-contracts', async (req, res) => {
 });
 
 // AI Opportunity Alerts Endpoint
+router.post('/opportunity-predictions', async (req, res) => {
+  try {
+    const { userContext = {} } = req.body || {};
+    const result = await aiOpportunityAlerts.generateOpportunityPredictions(userContext);
+
+    return res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error('Opportunity predictions error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to generate opportunity predictions',
+      code: 'OPPORTUNITY_PREDICTIONS_FAILED',
+    });
+  }
+});
+
 router.post('/opportunity-alerts', async (req, res) => {
   try {
     const { userId, userContext = {} } = req.body;

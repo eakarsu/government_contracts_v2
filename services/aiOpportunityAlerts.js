@@ -41,6 +41,99 @@ class AIOpportunityAlerts {
     }
   }
 
+  async generateOpportunityPredictions(userContext = {}) {
+    const contracts = await prisma.contract.findMany({
+      select: {
+        id: true,
+        noticeId: true,
+        title: true,
+        description: true,
+        agency: true,
+        naicsCode: true,
+        setAsideCode: true,
+        postedDate: true,
+        resourceLinks: true,
+        samData: true,
+      },
+    });
+
+    const now = Date.now();
+    const openOpportunities = contracts
+      .map(contract => this.withSamPredictionFields(contract))
+      .filter(contract => {
+        const deadline = new Date(contract.responseDeadline).getTime();
+        return Number.isFinite(deadline) && deadline >= now;
+      });
+
+    const predictions = await Promise.all(openOpportunities.map(async opportunity => {
+      const prediction = await winProbabilityPredictor.predictWinProbability(opportunity, userContext);
+      const deadlineTime = new Date(opportunity.responseDeadline).getTime();
+      const daysRemaining = Math.max(0, Math.ceil((deadlineTime - now) / (24 * 60 * 60 * 1000)));
+      const priority = daysRemaining <= 3
+        ? 'critical'
+        : prediction.probability >= 70
+          ? 'high'
+          : prediction.probability >= 50
+            ? 'medium'
+            : 'low';
+
+      return {
+        id: opportunity.noticeId,
+        title: opportunity.title || opportunity.noticeId,
+        priority,
+        opportunity: {
+          id: opportunity.noticeId,
+          title: opportunity.title || opportunity.noticeId,
+          agency: opportunity.agency || 'Agency not provided',
+          responseDeadline: opportunity.responseDeadline,
+        },
+        winProbability: prediction.probability,
+        confidence: prediction.confidence,
+        factors: prediction.factors,
+        recommendations: prediction.recommendations,
+        daysRemaining,
+      };
+    }));
+
+    predictions.sort((left, right) => {
+      if (left.priority === 'critical' && right.priority !== 'critical') return -1;
+      if (right.priority === 'critical' && left.priority !== 'critical') return 1;
+      return right.winProbability - left.winProbability || left.daysRemaining - right.daysRemaining;
+    });
+
+    const totalPredictions = predictions.length;
+    const averageWinProbability = totalPredictions
+      ? predictions.reduce((sum, item) => sum + item.winProbability, 0) / totalPredictions
+      : null;
+
+    return {
+      predictions,
+      summary: {
+        totalPredictions,
+        averageWinProbability: averageWinProbability == null
+          ? null
+          : Math.round(averageWinProbability * 10) / 10,
+        highProbability: predictions.filter(item => item.winProbability >= 70).length,
+        critical: predictions.filter(item => item.priority === 'critical').length,
+      },
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
+  withSamPredictionFields(contract) {
+    const samData = contract.samData && typeof contract.samData === 'object' && !Array.isArray(contract.samData)
+      ? contract.samData
+      : {};
+    const award = samData.award && typeof samData.award === 'object' ? samData.award : {};
+
+    return {
+      ...contract,
+      responseDeadline: samData.responseDeadLine || samData.responseDeadline || null,
+      awardAmount: award.amount || award.value || null,
+      awardedTo: award.awardee?.name || award.awardeeName || null,
+    };
+  }
+
   async getUserPreferences(userId, userContext) {
     const preferences = this.userPreferences.get(String(userId)) || this.inferPreferencesFromContext(userContext);
 
@@ -363,7 +456,9 @@ class AIOpportunityAlerts {
       medium: alerts.filter(a => a.priority === 'medium').length,
       low: alerts.filter(a => a.priority === 'low').length,
       totalValue: alerts.reduce((sum, a) => sum + this.parseAmount(a.opportunity.awardAmount), 0),
-      averageWinProbability: alerts.reduce((sum, a) => sum + a.winProbability, 0) / alerts.length
+      averageWinProbability: alerts.length
+        ? alerts.reduce((sum, a) => sum + a.winProbability, 0) / alerts.length
+        : null
     };
   }
 

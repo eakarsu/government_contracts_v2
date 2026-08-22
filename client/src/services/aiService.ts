@@ -71,6 +71,23 @@ export interface AIAlert {
   }>;
 }
 
+export interface OpportunityPrediction {
+  id: string;
+  title: string;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  opportunity: {
+    id: string;
+    title: string;
+    agency: string;
+    responseDeadline: string;
+  };
+  winProbability: number;
+  confidence: number;
+  factors: string[];
+  recommendations: string[];
+  daysRemaining: number;
+}
+
 export interface BidStrategyResponse {
   pricingStrategy: {
     recommendedPrice: number;
@@ -159,6 +176,20 @@ export interface UserContext {
 }
 
 class AIService {
+  async getOpportunityPredictions(userContext?: UserContext): Promise<{
+    predictions: OpportunityPrediction[];
+    summary: {
+      totalPredictions: number;
+      averageWinProbability: number | null;
+      highProbability: number;
+      critical: number;
+    };
+    generatedAt: string;
+  }> {
+    const response = await api.post('/ai/opportunity-predictions', { userContext });
+    return response.data;
+  }
+
   async predictWinProbability(contractId: string, userContext?: UserContext): Promise<WinProbabilityResponse> {
     const response = await api.post('/ai/win-probability', {
       contractId,
