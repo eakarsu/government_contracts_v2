@@ -83,6 +83,20 @@ const RecentJobs: React.FC = () => {
     return 'records processed';
   };
 
+  const formatJobTimestamp = (value?: string) => {
+    if (!value) return 'Unknown';
+    const timestamp = new Date(value);
+    if (Number.isNaN(timestamp.getTime())) return 'Unknown';
+    return timestamp.toLocaleString([], {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  };
+
   return (
     <div className="bg-white shadow rounded-lg p-6">
       <div className="flex justify-between items-center mb-6">
@@ -121,7 +135,7 @@ const RecentJobs: React.FC = () => {
                     {job.status}
                   </span>
                   <p className="text-xs text-gray-500 mt-1">
-                    {job.created_at ? new Date(job.created_at).toLocaleDateString() : 'Unknown'}
+                    {formatJobTimestamp(job.created_at)}
                   </p>
                 </div>
               </div>
