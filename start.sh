@@ -36,7 +36,7 @@ for port in "$api_port" "$ui_port"; do
 done
 
 export PORT="$api_port" AUTH_MODE=local DATABASE_SSL=false
-export CORS_ORIGINS="http://127.0.0.1:$ui_port,$frontend_public_origin" ALLOWED_HOSTS="127.0.0.1,localhost,$frontend_public_host"
+export CORS_ORIGINS="http://127.0.0.1:$ui_port,http://localhost:$ui_port,$frontend_public_origin" ALLOWED_HOSTS="127.0.0.1,localhost,$frontend_public_host"
 export BOOTSTRAP_ACKNOWLEDGEMENT=create-initial-admin
 export PROVISION_ADMIN_EMAIL="${ADMIN_EMAIL:?ADMIN_EMAIL is required}"
 export PROVISION_ADMIN_PASSWORD="${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}"
