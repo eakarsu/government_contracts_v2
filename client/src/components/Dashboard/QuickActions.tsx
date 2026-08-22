@@ -127,7 +127,7 @@ const QuickActions: React.FC = () => {
           const result = await apiService.processDocuments(
             undefined,
             1000,
-            { autoQueue: false, concurrency: 10, testMode: false }
+            { autoQueue: false, concurrency: 2, testMode: false }
           ) as any;
           if (result.success === false) throw new Error(result.message || result.error || 'Document processing failed');
           if (!result.job_id) return { success: true, completed_count: completed };
@@ -163,7 +163,7 @@ const QuickActions: React.FC = () => {
     mutationFn: () => apiService.processDocuments(
       undefined,
       1000,
-      { autoQueue: false, concurrency: 10, testMode: false }
+      { autoQueue: false, concurrency: 2, testMode: false }
     ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queueStatus'] });

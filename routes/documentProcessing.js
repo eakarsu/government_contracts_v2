@@ -18,7 +18,7 @@ router.post('/', async (req, res) => {
   console.log('🔄 [DEBUG] Request body:', req.body);
   
   try {
-    const { contract_id, limit = 50, auto_queue = true, concurrency = 5, test_mode = false } = req.body;
+    const { contract_id, limit = 50, auto_queue = true, concurrency = 2, test_mode = false } = req.body;
     console.log('🔄 [DEBUG] Parsed parameters:', { contract_id, limit, auto_queue, concurrency, test_mode });
 
     // If limit is small (≤ 5), automatically enable test mode for cost-effectiveness
@@ -329,7 +329,10 @@ router.post('/', async (req, res) => {
 
     console.log(`✅ [DEBUG] Created processing job: ${job.id}`);
 
-    const processingConcurrency = Math.max(1, Math.min(10, Number(concurrency) || 5));
+    // OCR and long OpenRouter generations are resource intensive. Keeping this
+    // bounded prevents shared-host memory pressure and provider in-flight
+    // budget exhaustion while still allowing useful parallelism.
+    const processingConcurrency = Math.max(1, Math.min(3, Number(concurrency) || 2));
 
     // Respond immediately and start background processing
     res.json({
@@ -684,8 +687,9 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       }
       
       // PARALLEL PIPELINE: Start all operations simultaneously
+      let processingTimeout;
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout (3min)')), 180000);
+        processingTimeout = setTimeout(() => reject(new Error('Timeout (8min)')), 480000);
       });
       
       const processingPromise = (async () => {
@@ -800,7 +804,11 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         return result;
       })();
       
-      await Promise.race([processingPromise, timeoutPromise]);
+      try {
+        await Promise.race([processingPromise, timeoutPromise]);
+      } finally {
+        clearTimeout(processingTimeout);
+      }
       
       successCount++;
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);

@@ -142,22 +142,31 @@ function formatTableContent(rows) {
 
 // OCR Functions from your ocr-cli.js
 async function convertPdfToImages(pdfPath) {
-  const tempDir = './temp_images';
-  await fs.ensureDir(tempDir);
-  
-  const options = {
-    density: 300,
-    saveFilename: "page",
-    savePath: tempDir,
-    format: "png",
-    width: 3000,
-    height: 3000,
-    quality: 100
-  };
-  
-  const convert = fromPath(pdfPath, options);
-  const pages = await convert.bulk(-1);
-  return { pages, tempDir };
+  // Each document must own its OCR workspace. A shared ./temp_images folder
+  // lets one concurrent document delete images that pdf2pic is still writing
+  // for another document, which can terminate the entire Node process.
+  const tempRoot = path.join(process.cwd(), 'temp_images');
+  await fs.ensureDir(tempRoot);
+  const tempDir = await fs.mkdtemp(path.join(tempRoot, 'ocr-'));
+
+  try {
+    const options = {
+      density: 300,
+      saveFilename: 'page',
+      savePath: tempDir,
+      format: 'png',
+      width: 3000,
+      height: 3000,
+      quality: 100
+    };
+
+    const convert = fromPath(pdfPath, options);
+    const pages = await convert.bulk(-1);
+    return { pages, tempDir };
+  } catch (error) {
+    await cleanupTempFiles(tempDir);
+    throw error;
+  }
 }
 
 async function preprocessImageForOCR(imagePath) {
@@ -239,19 +248,21 @@ async function cleanupTempFiles(tempDir) {
 }
 
 async function processWithOCR(pdfPath) {
+  let tempDir;
   try {
     console.log('🖼️ Converting PDF to images for OCR processing...');
-    const { pages, tempDir } = await convertPdfToImages(pdfPath);
+    const conversion = await convertPdfToImages(pdfPath);
+    tempDir = conversion.tempDir;
     
-    const workerCount = Math.min(8, pages.length);
-    const extractedText = await runParallelOCR(pages, tempDir, workerCount);
-    
-    await cleanupTempFiles(tempDir);
+    const workerCount = Math.min(8, conversion.pages.length);
+    const extractedText = await runParallelOCR(conversion.pages, tempDir, workerCount);
     
     return extractedText;
   } catch (error) {
     console.error('❌ OCR processing failed:', error.message);
     throw error;
+  } finally {
+    if (tempDir) await cleanupTempFiles(tempDir);
   }
 }
 
@@ -483,14 +494,33 @@ Structure the response as a JSON object with descriptive field names. Provide de
       console.error('❌ API Response Data:', error.response.data);
     }
     if (error.code === 'ECONNABORTED') {
-      console.error('❌ Request timed out after 90 seconds');
+      console.error('❌ Request timed out while waiting for OpenRouter');
     }
+
+    const statusCode = error.response?.status;
+    const retryAttempt = Number(requestOptions.retryAttempt) || 0;
+    if ((statusCode === 402 || statusCode === 429) && retryAttempt < 1) {
+      const retryAfterHeader = Number(error.response?.headers?.['retry-after']);
+      const retryAfterSeconds = Math.max(1, Math.min(120,
+        Number.isFinite(retryAfterHeader) ? retryAfterHeader : 15
+      ));
+      console.warn(
+        `⚠️ OpenRouter capacity is temporarily unavailable; retrying once in ${retryAfterSeconds}s`
+      );
+      await new Promise(resolve => setTimeout(resolve, retryAfterSeconds * 1000));
+      return summarizeContent(content, apiKey, isMultiPart, partInfo, {
+        ...requestOptions,
+        retryAttempt: retryAttempt + 1
+      });
+    }
+
+    const providerMessage = error.response?.data?.error?.message;
     
     return {
       success: false,
-      error: error.response?.data || error.message,
+      error: providerMessage || error.message,
       errorType: error.code || 'unknown',
-      statusCode: error.response?.status
+      statusCode
     };
   }
 }

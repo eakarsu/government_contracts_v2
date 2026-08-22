@@ -197,7 +197,7 @@ class ApiService {
         contract_id: contractId,
         limit,
         auto_queue: options?.autoQueue ?? true,
-        concurrency: options?.concurrency ?? 10,
+        concurrency: options?.concurrency ?? 2,
         test_mode: options?.testMode ?? false,
       }, {
         timeout: 3600000 // 1 hour timeout
