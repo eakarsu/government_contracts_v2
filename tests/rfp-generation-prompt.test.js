@@ -167,7 +167,8 @@ describe('RFP generation prompt', () => {
     for (const batch of batches) {
       expect(batch.length).toBeLessThanOrEqual(4);
       expect(rfpService.templateTargetWordCount(batch)).toBeLessThanOrEqual(2800);
-      expect(rfpService.sectionBatchTokenBudget(batch)).toBeLessThanOrEqual(32000);
+      expect(rfpService.sectionBatchTokenBudget(batch)).toBeGreaterThanOrEqual(12000);
+      expect(rfpService.sectionBatchTokenBudget(batch)).toBeLessThanOrEqual(64000);
     }
   });
 

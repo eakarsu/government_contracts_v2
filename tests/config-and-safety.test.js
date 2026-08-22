@@ -28,11 +28,13 @@ test('uses environment configuration as the OpenRouter chat model source', () =>
   const configuration = loadConfig({
     OPENROUTER_BASE_URL: 'https://openrouter.example/api/v1/',
     OPENROUTER_MODEL: 'anthropic/claude-haiku-4.5',
-    RFP_MAX_TOKENS: '32000',
+    RFP_MAX_TOKENS: '64000',
+    RFP_REQUEST_TIMEOUT_MS: '600000',
   });
   expect(configuration.openRouterBaseUrl).toBe('https://openrouter.example/api/v1/');
   expect(configuration.openRouterModel).toBe('anthropic/claude-haiku-4.5');
-  expect(configuration.rfpMaxTokens).toBe(32000);
+  expect(configuration.rfpMaxTokens).toBe(64000);
+  expect(configuration.rfpRequestTimeoutMs).toBe(600000);
 
   const root = path.resolve(__dirname, '..');
   const chatServices = ['services/aiService.js', 'services/nlpService.js', 'services/summaryService.js'];

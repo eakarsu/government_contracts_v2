@@ -419,8 +419,11 @@ Extract and provide structured RFP analysis in JSON format:
 
   sectionBatchTokenBudget(sections = []) {
     const targetWords = this.templateTargetWordCount(sections);
-    const estimatedOutputTokens = Math.ceil(targetWords * 1.8) + 1500;
-    return Math.min(config.rfpMaxTokens, Math.max(6000, estimatedOutputTokens));
+    // JSON framing, headings, tables, and structured proposal prose use more
+    // tokens than a plain word-count conversion suggests. Reserve enough room
+    // for complete sections while retaining the configured provider ceiling.
+    const estimatedOutputTokens = Math.ceil(targetWords * 2) + 4000;
+    return Math.min(config.rfpMaxTokens, Math.max(12000, estimatedOutputTokens));
   }
 
   async requestSectionBatch(batch, template, contract, companyData, options, batchNumber, batchCount, isRetry = false) {

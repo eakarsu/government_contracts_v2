@@ -379,7 +379,7 @@ Structure the response as a JSON object with descriptive field names. Provide de
           content: prompt
         }
       ],
-      max_tokens: requestOptions.maxTokens || 32000,
+      max_tokens: requestOptions.maxTokens || config.rfpMaxTokens,
       temperature: 0.2,
       transforms: ["middle-out"],
       response_format: { type: "json_object" }
@@ -390,7 +390,7 @@ Structure the response as a JSON object with descriptive field names. Provide de
         'HTTP-Referer': 'https://your-app.com',
         'X-Title': 'Government Contract Attachment Analyzer'
       },
-      timeout: 180000 // Increased to 3 minutes for large documents with middle-out
+      timeout: config.rfpRequestTimeoutMs
     });
     
     console.log(`✅ [DEBUG] API response received, status: ${response.status}`);
