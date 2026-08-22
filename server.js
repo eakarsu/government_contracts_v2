@@ -48,6 +48,7 @@ const { errorHandler } = require('./middleware/errorHandler');
 const { authMiddleware, requirePermission } = require('./middleware/auth');
 
 const app = express();
+const clientBuildPath = path.join(__dirname, 'client', 'build');
 
 // Configure Express to trust proxy headers (needed for rate limiting)
 // In development, trust localhost; in production, configure specific proxy IPs
@@ -79,6 +80,7 @@ app.use(rateLimiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static('public'));
+if (fs.existsSync(clientBuildPath)) app.use(express.static(clientBuildPath));
 
 // Ensure directories exist
 const ensureDirectories = () => {
@@ -187,7 +189,9 @@ app.get('/api/test-routes', (req, res) => {
 
 // Serve main page
 app.get('/', (req, res) => {
-  const indexPath = path.join(__dirname, 'public', 'index.html');
+  const builtClientIndex = path.join(clientBuildPath, 'index.html');
+  const publicIndex = path.join(__dirname, 'public', 'index.html');
+  const indexPath = fs.existsSync(builtClientIndex) ? builtClientIndex : publicIndex;
   
   // Check if index.html exists
   if (fs.existsSync(indexPath)) {
@@ -351,6 +355,15 @@ app.get('/api/documents', (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to list documents' });
   }
+});
+
+// Serve the React application for client-side routes in packaged deployments.
+// Unknown API routes remain JSON 404s instead of returning HTML.
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'API endpoint not found' });
+  const indexPath = path.join(clientBuildPath, 'index.html');
+  if (!fs.existsSync(indexPath)) return next();
+  return res.sendFile(indexPath);
 });
 
 // Error handling middleware
