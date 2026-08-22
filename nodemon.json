@@ -1,15 +1,28 @@
 {
-  "watch": ["server.js", "prisma/schema.prisma", ".env"],
+  "watch": [
+    "server.js",
+    "server",
+    "config",
+    "middleware",
+    "routes",
+    "services",
+    "utils"
+  ],
   "ignore": [
-    "node_modules",
-    "uploads/*",
-    "documents/*",
-    "logs/*",
-    "client/*",
-    ".git",
+    "node_modules/**",
+    "uploads/**",
+    "documents/**",
+    "logs/**",
+    "client/**",
+    "vector_indexes/**",
+    "downloaded_documents/**",
+    "queue_documents/**",
+    "processed_queue_documents/**",
+    "temp_*/**",
+    ".git/**",
     "*.log",
     "*.pid"
   ],
-  "ext": "js,json,env",
+  "ext": "js,json",
   "delay": 1000
 }

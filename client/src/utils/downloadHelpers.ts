@@ -1,14 +1,22 @@
 // Download helper functions for RFP responses
 
+const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
+
+const authenticatedHeaders = (json = false): HeadersInit => {
+  const token = localStorage.getItem('auth_token');
+  return {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(json ? { 'Content-Type': 'application/json' } : {})
+  };
+};
+
 export const downloadRFPResponse = async (rfpResponseId: number, format: 'txt' | 'pdf' | 'docx') => {
   try {
     console.log(`📄 [DEBUG] Downloading RFP response ${rfpResponseId} as ${format.toUpperCase()}`);
     
-    const response = await fetch(`/api/rfp/responses/${rfpResponseId}/download/${format}`, {
+    const response = await fetch(`${apiBaseUrl}/rfp/responses/${rfpResponseId}/download/${format}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: authenticatedHeaders(),
     });
 
     if (!response.ok) {
@@ -75,11 +83,9 @@ export const saveProposalDraft = async (proposalId: number, title: string, secti
   try {
     console.log(`💾 [DEBUG] Saving draft for proposal ${proposalId}`);
     
-    const response = await fetch(`/api/ai-rfp/proposals/${proposalId}`, {
+    const response = await fetch(`${apiBaseUrl}/ai-rfp/proposals/${proposalId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: authenticatedHeaders(true),
       body: JSON.stringify({
         title,
         sections
@@ -105,11 +111,9 @@ export const exportProposal = async (proposalId: number, format: 'txt' | 'pdf' |
   try {
     console.log(`📄 [DEBUG] Exporting proposal ${proposalId} as ${format.toUpperCase()}`);
     
-    const response = await fetch(`/api/ai-rfp/proposals/${proposalId}/export`, {
+    const response = await fetch(`${apiBaseUrl}/ai-rfp/proposals/${proposalId}/export`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: authenticatedHeaders(true),
       body: JSON.stringify({ format })
     });
 

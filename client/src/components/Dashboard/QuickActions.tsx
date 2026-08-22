@@ -4,15 +4,109 @@ import { apiService } from '../../services/api';
 import LoadingSpinner from '../UI/LoadingSpinner';
 import { useNavigate } from 'react-router-dom';
 
+type PipelineStageId = 'fetch' | 'index' | 'download' | 'process';
+type PipelineStageStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+const INITIAL_PIPELINE_STAGES: Array<{ id: PipelineStageId; label: string; status: PipelineStageStatus }> = [
+  { id: 'fetch', label: 'Fetch contracts and queue links', status: 'pending' },
+  { id: 'index', label: 'Index all pending contract text', status: 'pending' },
+  { id: 'download', label: 'Download documents', status: 'pending' },
+  { id: 'process', label: 'Process up to 10 documents', status: 'pending' },
+];
+
 const QuickActions: React.FC = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [nlpQuery, setNlpQuery] = useState('');
+  const [pipelineStages, setPipelineStages] = useState(INITIAL_PIPELINE_STAGES);
+
+  const refreshDashboard = () => {
+    queryClient.invalidateQueries({ queryKey: ['api-status'] });
+    queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
+    queryClient.invalidateQueries({ queryKey: ['jobs'] });
+  };
+
+  const updatePipelineStage = (id: PipelineStageId, status: PipelineStageStatus) => {
+    setPipelineStages(stages => stages.map(stage => stage.id === id ? { ...stage, status } : stage));
+  };
+
+  const runPipelineStage = async <T,>(id: PipelineStageId, action: () => Promise<T>): Promise<T> => {
+    updatePipelineStage(id, 'running');
+    try {
+      const result = await action();
+      updatePipelineStage(id, 'completed');
+      refreshDashboard();
+      return result;
+    } catch (error) {
+      updatePipelineStage(id, 'failed');
+      throw error;
+    }
+  };
+
+  const waitForJob = async (jobId?: number) => {
+    if (!jobId) return;
+    const deadline = Date.now() + 30 * 60 * 1000;
+    while (Date.now() < deadline) {
+      const job = await apiService.getJob(jobId);
+      if (job.status === 'completed') return;
+      if (job.status === 'failed') throw new Error(job.error_details || `Job ${jobId} failed`);
+      refreshDashboard();
+      await new Promise(resolve => window.setTimeout(resolve, 15000));
+    }
+    throw new Error(`Job ${jobId} did not finish within 30 minutes`);
+  };
+
+  const fullPipelineMutation = useMutation({
+    mutationFn: async () => {
+      setPipelineStages(INITIAL_PIPELINE_STAGES);
+
+      await runPipelineStage('fetch', () => apiService.fetchContracts({ limit: 100, offset: 0 }));
+      await runPipelineStage('index', async () => {
+        let totalIndexed = 0;
+        for (let batch = 0; batch < 100; batch++) {
+          const result = await apiService.indexContracts(100) as any;
+          const indexedCount = Number(result.indexed_count) || 0;
+          const errorsCount = Number(result.errors_count) || 0;
+          totalIndexed += indexedCount;
+          refreshDashboard();
+
+          if (indexedCount === 0) {
+            if (errorsCount > 0) throw new Error(`${errorsCount} contracts could not be indexed`);
+            return { success: true, indexed_count: totalIndexed };
+          }
+        }
+        throw new Error('Contract indexing exceeded 100 batches');
+      });
+
+      await runPipelineStage('download', async () => {
+        const result = await apiService.downloadAllDocuments({
+          limit: 50,
+          download_folder: 'downloaded_documents',
+          concurrency: 10,
+        }) as any;
+        if (result.success === false) throw new Error(result.message || result.error || 'Document download failed');
+        await waitForJob(result.job_id);
+        return result;
+      });
+
+      await runPipelineStage('process', async () => {
+        const result = await apiService.processDocuments(undefined, 10) as any;
+        if (result.success === false) throw new Error(result.message || result.error || 'Document processing failed');
+        await waitForJob(result.job_id);
+        return result;
+      });
+
+      return { success: true };
+    },
+    onSuccess: refreshDashboard,
+    onError: (error: any) => console.error('Full pipeline error:', error),
+  });
 
   const fetchContractsMutation = useMutation({
     mutationFn: () => apiService.fetchContracts({ limit: 100, offset: 0 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['api-status'] });
+      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
     },
   });
 
@@ -26,7 +120,7 @@ const QuickActions: React.FC = () => {
   const processDocumentsMutation = useMutation({
     mutationFn: () => apiService.processDocuments(undefined, 10), // Use limit of 10 to trigger test mode
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
     },
     onError: (error: any) => {
       console.error('Process documents error:', error);
@@ -36,14 +130,14 @@ const QuickActions: React.FC = () => {
   const queueDocumentsMutation = useMutation({
     mutationFn: () => apiService.queueDocuments(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
     },
   });
 
   const processQueueMutation = useMutation({
     mutationFn: () => apiService.processQueuedDocuments({ test_limit: 3 }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
     },
     onError: (error: any) => {
       console.error('Process queue error:', error);
@@ -57,7 +151,7 @@ const QuickActions: React.FC = () => {
     }),
     onSuccess: async (response) => {
       // Invalidate queries to refresh the data from the server
-      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
       queryClient.invalidateQueries({ queryKey: ['api-status'] });
     },
     onError: (error: any) => {
@@ -68,7 +162,7 @@ const QuickActions: React.FC = () => {
   const resetQueueMutation = useMutation({
     mutationFn: () => apiService.resetQueue(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
       queryClient.invalidateQueries({ queryKey: ['api-status'] });
     },
     onError: (error: any) => {
@@ -79,7 +173,7 @@ const QuickActions: React.FC = () => {
   const stopQueueMutation = useMutation({
     mutationFn: () => apiService.stopQueue(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
     },
     onError: (error: any) => {
       console.error('Stop queue error:', error);
@@ -133,7 +227,7 @@ const QuickActions: React.FC = () => {
   const queueTestDocumentsMutation = useMutation({
     mutationFn: () => apiService.queueTestDocuments({ test_limit: 10, clear_existing: true }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
     },
     onError: (error: any) => {
       console.error('Queue test documents error:', error);
@@ -143,77 +237,92 @@ const QuickActions: React.FC = () => {
   const processTestDocumentsMutation = useMutation({
     mutationFn: () => apiService.processTestDocuments(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue-status'] });
+      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
     },
     onError: (error: any) => {
       console.error('Process test documents error:', error);
     },
   });
 
+  const manualActionPending = [
+    fetchContractsMutation,
+    indexContractsMutation,
+    downloadDocumentsMutation,
+    processQueueMutation,
+    processDocumentsMutation,
+  ].some(mutation => mutation.isPending);
+
   return (
     <div className="bg-white shadow rounded-lg p-6 h-fit">
       <h3 className="text-lg font-medium text-gray-900 mb-6">Quick Actions</h3>
       <div className="space-y-4">
         <button
-          onClick={() => fetchContractsMutation.mutate()}
-          disabled={fetchContractsMutation.isPending}
-          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+          onClick={() => fullPipelineMutation.mutate()}
+          disabled={fullPipelineMutation.isPending || manualActionPending}
+          className="w-full flex items-center justify-center px-4 py-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
         >
-          {fetchContractsMutation.isPending ? (
-            <LoadingSpinner size="sm" color="white" />
-          ) : (
-            'Fetch Contracts'
-          )}
+          {fullPipelineMutation.isPending ? <><LoadingSpinner size="sm" color="white" /><span className="ml-2">Running Full Pipeline…</span></> : 'Run Full Pipeline'}
         </button>
 
-        <button
-          onClick={() => indexContractsMutation.mutate()}
-          disabled={indexContractsMutation.isPending}
-          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition-colors"
-        >
-          {indexContractsMutation.isPending ? (
-            <LoadingSpinner size="sm" color="white" />
-          ) : (
-            'Index Contracts'
-          )}
-        </button>
+        <p className="text-xs text-gray-500">
+          Fetches 100 contracts, indexes all pending contracts, downloads from 50 contracts, then processes up to 10 documents.
+        </p>
 
-        <button
-          onClick={() => downloadDocumentsMutation.mutate()}
-          disabled={downloadDocumentsMutation.isPending}
-          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
-        >
-          {downloadDocumentsMutation.isPending ? (
-            <LoadingSpinner size="sm" color="white" />
-          ) : (
-            'Download Documents'
-          )}
-        </button>
+        {(fullPipelineMutation.isPending || fullPipelineMutation.isSuccess || fullPipelineMutation.isError) && (
+          <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+            {pipelineStages.map(stage => (
+              <div key={stage.id} className="flex items-center justify-between text-xs">
+                <span className="text-gray-700">{stage.label}</span>
+                <span className={stage.status === 'completed' ? 'text-green-600' : stage.status === 'failed' ? 'text-red-600' : stage.status === 'running' ? 'text-indigo-600' : 'text-gray-400'}>
+                  {stage.status === 'running' ? 'Running…' : stage.status.charAt(0).toUpperCase() + stage.status.slice(1)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
-
-        <button
-          onClick={() => processQueueMutation.mutate()}
-          disabled={processQueueMutation.isPending}
-          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
-        >
-          {processQueueMutation.isPending ? (
-            <LoadingSpinner size="sm" color="white" />
-          ) : (
-            '🧪 Process Queue (3 docs)'
-          )}
-        </button>
-
-        <button
-          onClick={() => processDocumentsMutation.mutate()}
-          disabled={processDocumentsMutation.isPending}
-          className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
-        >
-          {processDocumentsMutation.isPending ? (
-            <LoadingSpinner size="sm" color="white" />
-          ) : (
-            'Auto Queue & Process'
-          )}
-        </button>
+        <details className="rounded-lg border border-gray-200 bg-white">
+          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            Advanced / Manual Actions
+          </summary>
+          <div className="space-y-3 border-t border-gray-200 p-4">
+            <button
+              onClick={() => fetchContractsMutation.mutate()}
+              disabled={fetchContractsMutation.isPending || fullPipelineMutation.isPending}
+              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {fetchContractsMutation.isPending ? <LoadingSpinner size="sm" color="white" /> : 'Fetch Contracts'}
+            </button>
+            <button
+              onClick={() => indexContractsMutation.mutate()}
+              disabled={indexContractsMutation.isPending || fullPipelineMutation.isPending}
+              className="w-full rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              {indexContractsMutation.isPending ? <LoadingSpinner size="sm" color="white" /> : 'Index Contracts'}
+            </button>
+            <button
+              onClick={() => downloadDocumentsMutation.mutate()}
+              disabled={downloadDocumentsMutation.isPending || fullPipelineMutation.isPending}
+              className="w-full rounded-lg bg-purple-600 px-4 py-3 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+            >
+              {downloadDocumentsMutation.isPending ? <LoadingSpinner size="sm" color="white" /> : 'Download Documents'}
+            </button>
+            <button
+              onClick={() => processQueueMutation.mutate()}
+              disabled={processQueueMutation.isPending || fullPipelineMutation.isPending}
+              className="w-full rounded-lg bg-purple-600 px-4 py-3 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+            >
+              {processQueueMutation.isPending ? <LoadingSpinner size="sm" color="white" /> : '🧪 Process Queue (3 docs)'}
+            </button>
+            <button
+              onClick={() => processDocumentsMutation.mutate()}
+              disabled={processDocumentsMutation.isPending || fullPipelineMutation.isPending}
+              className="w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {processDocumentsMutation.isPending ? <LoadingSpinner size="sm" color="white" /> : 'Auto Queue & Process'}
+            </button>
+          </div>
+        </details>
 
         {/* NLP Search Section */}
         <div className="border-t pt-4 mt-4">
@@ -357,6 +466,20 @@ const QuickActions: React.FC = () => {
       </div>
 
       {/* Success Messages */}
+      {fullPipelineMutation.isSuccess ? (
+        <div className="mt-4 rounded-md border border-green-200 bg-green-50 p-3">
+          <div className="text-sm text-green-800">Full pipeline completed successfully.</div>
+        </div>
+      ) : null}
+
+      {fullPipelineMutation.error ? (
+        <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3">
+          <div className="text-sm text-red-800">
+            Full pipeline stopped: {fullPipelineMutation.error instanceof Error ? fullPipelineMutation.error.message : 'Unknown error'}
+          </div>
+        </div>
+      ) : null}
+
       {fetchContractsMutation.isSuccess ? (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
           <div className="text-green-800 text-sm">Contracts fetched successfully!</div>

@@ -31,7 +31,7 @@ const RFPGenerator: React.FC = () => {
       
       // Load data sequentially to better debug issues
       console.log('🚀 [DEBUG] Loading contracts...');
-      const contractsResponse = await apiService.searchContracts({ query: '*', limit: 100, include_analysis: false });
+      const contractsResponse = await apiService.getContracts(1, 100);
       console.log('🚀 [DEBUG] Contracts response:', contractsResponse);
 
       console.log('🚀 [DEBUG] Loading templates...');
@@ -46,8 +46,9 @@ const RFPGenerator: React.FC = () => {
 
       // Handle contracts
       if (contractsResponse && contractsResponse.success) {
-        const contractsData = contractsResponse.results || [];
+        const contractsData = contractsResponse.data || [];
         setContracts(contractsData);
+        setSelectedContract(current => current || contractsData[0]?.noticeId || '');
         console.log('✅ [DEBUG] Loaded contracts:', contractsData.length);
       } else {
         console.error('❌ [DEBUG] Contracts failed:', contractsResponse);
@@ -58,6 +59,7 @@ const RFPGenerator: React.FC = () => {
       if (templatesResponse && templatesResponse.success) {
         const templatesData = templatesResponse.templates || [];
         setTemplates(templatesData);
+        setSelectedTemplate(current => current && templatesData.some(template => template.id === Number(current)) ? current : '');
         console.log('✅ [DEBUG] Loaded templates:', templatesData.length);
       } else {
         console.error('❌ [DEBUG] Templates failed:', templatesResponse);
@@ -68,7 +70,7 @@ const RFPGenerator: React.FC = () => {
       if (profilesResponse) {
         console.log('🚀 [DEBUG] Checking profiles response structure...');
         
-        let profilesData = [];
+        let profilesData: CompanyProfile[] = [];
         
         if (profilesResponse.success && profilesResponse.profiles) {
           profilesData = profilesResponse.profiles;
@@ -92,6 +94,7 @@ const RFPGenerator: React.FC = () => {
         }
         
         setProfiles(profilesData);
+        setSelectedProfile(current => current && profilesData.some(profile => profile.id === Number(current)) ? current : '');
         console.log('✅ [DEBUG] Final profiles set:', profilesData.length);
       } else {
         console.error('❌ [DEBUG] Profiles response is null/undefined:', profilesResponse);
@@ -236,6 +239,14 @@ const RFPGenerator: React.FC = () => {
     );
   }
 
+  const selectedContractRecord = contracts.find(contract => contract.noticeId === selectedContract);
+  const selectedTemplateRecord = templates.find(template => template.id === Number(selectedTemplate));
+  const selectedProfileRecord = profiles.find(profile => profile.id === Number(selectedProfile));
+  const selectedTemplateMaxWords = selectedTemplateRecord?.sections.reduce(
+    (total, section) => total + (Number(section.maxWords) || 0),
+    0
+  ) || 0;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -289,6 +300,11 @@ const RFPGenerator: React.FC = () => {
                 No contracts available. Please index some contracts first.
               </p>
             )}
+            {selectedContractRecord && (!selectedContractRecord.resourceLinks || selectedContractRecord.resourceLinks.length === 0) ? (
+              <p className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                <strong>Solicitation evidence warning:</strong> this SAM.gov record has no downloadable attachments. Unsupported requirements will remain REVIEW REQUIRED.
+              </p>
+            ) : null}
           </div>
 
           {/* Template Selection */}
@@ -325,6 +341,9 @@ const RFPGenerator: React.FC = () => {
                   </p>
                   <p className="text-sm text-blue-600">
                     Sections: {templates.find(t => t.id === Number(selectedTemplate))?.sections?.length || 0}
+                  </p>
+                  <p className="text-sm text-blue-600">
+                    Configured maximum: {selectedTemplateMaxWords > 0 ? `${selectedTemplateMaxWords.toLocaleString()} words` : 'No section word limits'}
                   </p>
                   {templates.find(t => t.id === Number(selectedTemplate))?.sections?.length === 0 && (
                     <p className="text-sm text-red-600 mt-1">
@@ -374,6 +393,17 @@ const RFPGenerator: React.FC = () => {
                   <p className="text-sm text-green-600">
                     Technical Skills: {profiles.find(p => p.id === Number(selectedProfile))?.capabilities?.technicalSkills?.length || 0}
                   </p>
+                  <p className="text-sm text-green-600">
+                    Past Performance: {selectedProfileRecord?.pastPerformance.length || 0} · Key Personnel: {selectedProfileRecord?.keyPersonnel.length || 0}
+                  </p>
+                  {selectedProfileRecord && (
+                    selectedProfileRecord.pastPerformance.filter(record => record.status !== 'placeholder').length === 0
+                    || selectedProfileRecord.keyPersonnel.filter(person => person.status !== 'placeholder').length === 0
+                  ) ? (
+                    <p className="mt-2 text-sm text-amber-800">
+                      Draft project shells and unassigned roles are excluded from factual AI claims. Enter real evidence and mark each record Verified to use it.
+                    </p>
+                  ) : null}
                 </div>
               )
             )}

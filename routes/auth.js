@@ -1,7 +1,7 @@
 const express = require('express');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, bearerToken } = require('../middleware/auth');
 const config = require('../config/env');
-const { login } = require('../services/localAuthService');
+const { login, logout } = require('../services/localAuthService');
 
 const router = express.Router();
 
@@ -38,6 +38,11 @@ router.post('/register', (req, res) => {
 
 router.get('/me', authMiddleware, (req, res) => {
   res.json({ success: true, user: req.user });
+});
+
+router.post('/logout', authMiddleware, async (req, res) => {
+  if (config.authMode === 'local') await logout(bearerToken(req));
+  return res.status(204).send();
 });
 
 module.exports = router;

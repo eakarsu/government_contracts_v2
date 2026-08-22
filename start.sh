@@ -59,7 +59,7 @@ cleanup() {
 }
 trap cleanup INT TERM EXIT
 
-(cd "$project_dir" && exec node server.js) &
+(cd "$project_dir" && exec ./node_modules/.bin/nodemon --config nodemon.json server.js) &
 api_pid=$!
 for ((attempt=0; attempt<180; attempt++)); do
   curl -fsS "http://127.0.0.1:$api_port/api/health" >/dev/null 2>&1 && break
@@ -70,4 +70,5 @@ curl -fsS "http://127.0.0.1:$api_port/api/health" >/dev/null
 (cd "$project_dir/client" && exec ./node_modules/.bin/vite --host "$frontend_host" --port "$ui_port") &
 ui_pid=$!
 echo "Frontend: $frontend_public_origin"
+echo "Backend auto-reload: enabled"
 wait "$api_pid" "$ui_pid"

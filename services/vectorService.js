@@ -10,10 +10,19 @@ class VectorService {
     this.documentsIndex = null;
     this.embedder = null;
     this.isConnected = false;
+    this.initializationPromise = null;
     this.indexPath = path.resolve(config.vectorIndexPath);
   }
 
   async initialize() {
+    if (this.isConnected) return true;
+    if (this.initializationPromise) return this.initializationPromise;
+
+    this.initializationPromise = this.initializeInternal();
+    return this.initializationPromise;
+  }
+
+  async initializeInternal() {
     try {
       // Ensure vector indexes directory exists
       await fs.ensureDir(this.indexPath);
@@ -36,11 +45,15 @@ class VectorService {
 
       console.log('✅ Local vector index initialized');
       this.isConnected = true;
+      return true;
     } catch (error) {
       console.warn('⚠️ Vector database initialization failed:', error.message);
       console.warn('⚠️ Vector search features will be disabled.');
       this.isConnected = false;
       // Don't throw error - allow server to start without vector DB
+      return false;
+    } finally {
+      this.initializationPromise = null;
     }
   }
 
@@ -122,11 +135,13 @@ class VectorService {
   }
 
   async searchContracts(query, options = {}) {
-    const { limit = 10, threshold = 0.01 } = options; // Much lower threshold
+    const limit = Math.max(1, Number.parseInt(options.limit, 10) || 10);
+    const offset = Math.max(0, Number.parseInt(options.offset, 10) || 0);
+    const threshold = Number.isFinite(options.threshold) ? options.threshold : 0.01;
     
     if (!this.isConnected) {
       console.warn('Vector database not connected - cannot perform vector search');
-      return [];
+      return { results: [], totalResults: 0, hasMore: false, limit, offset };
     }
 
     try {
@@ -135,10 +150,9 @@ class VectorService {
       const queryEmbedding = await this.generateEmbedding(query);
       console.log(`🔍 Generated embedding with length: ${queryEmbedding.length}`);
       
-      // Search in contracts index with higher limit for filtering
-      const searchLimit = Math.max(limit * 3, 50);
-      console.log(`🔍 Searching contracts index with limit: ${searchLimit}`);
-      const results = await this.contractsIndex.queryItems(queryEmbedding, searchLimit);
+      // Rank the complete local index so total counts and offsets are accurate.
+      console.log('🔍 Searching complete contracts index');
+      const results = await this.contractsIndex.queryItems(queryEmbedding, Number.MAX_SAFE_INTEGER);
       
       console.log(`🔍 Vector search found ${results.length} raw results for query: "${query}"`);
       
@@ -150,16 +164,17 @@ class VectorService {
         });
       }
       
-      // Filter by threshold and limit
-      const filteredResults = results
+      const matchingResults = results
         .filter(result => {
           const passesThreshold = result.score >= threshold;
           if (!passesThreshold) {
             console.log(`🔍 Filtered out result with score ${result.score.toFixed(4)} (below threshold ${threshold})`);
           }
           return passesThreshold;
-        })
-        .slice(0, limit)
+        });
+      const totalResults = matchingResults.length;
+      const pageResults = matchingResults
+        .slice(offset, offset + limit)
         .map(result => ({
           id: result.item.metadata.id,
           noticeId: result.item.metadata.id,
@@ -177,12 +192,18 @@ class VectorService {
           naicsMatch: result.item.metadata.naicsCode ? 85 : 0
         }));
       
-      console.log(`🔍 After filtering (threshold: ${threshold}): ${filteredResults.length} results`);
+      console.log(`🔍 After filtering (threshold: ${threshold}): ${totalResults} total, ${pageResults.length} returned`);
       
-      return filteredResults;
+      return {
+        results: pageResults,
+        totalResults,
+        hasMore: offset + pageResults.length < totalResults,
+        limit,
+        offset,
+      };
     } catch (error) {
       console.error('❌ Error searching contracts:', error);
-      return [];
+      return { results: [], totalResults: 0, hasMore: false, limit, offset };
     }
   }
 

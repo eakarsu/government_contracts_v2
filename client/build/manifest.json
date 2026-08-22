@@ -1,0 +1,17 @@
+{
+  "name": "Government Contract Intelligence",
+  "short_name": "GovContract AI",
+  "description": "Search and analyze government contract opportunities.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

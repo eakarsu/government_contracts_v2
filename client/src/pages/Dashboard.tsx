@@ -30,13 +30,6 @@ const Dashboard: React.FC = () => {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Fetch queue status
-  const { data: queueData, isLoading: queueLoading } = useQuery({
-    queryKey: ['queue-status'],
-    queryFn: () => apiService.getQueueStatus(),
-    refetchInterval: 5000, // Refresh every 5 seconds
-  });
-
   if (statusLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -58,8 +51,6 @@ const Dashboard: React.FC = () => {
   }
 
   const stats = status?.database_stats;
-  const queueStatus = queueData?.queue_status;
-
   return (
     <div className="space-y-8">
       {/* Header */}

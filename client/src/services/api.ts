@@ -189,7 +189,7 @@ class ApiService {
   // Documents
   async processDocuments(contractId?: string, limit: number = 50): Promise<ApiResponse> {
     try {
-      const response = await api.post<ApiResponse>('/documents/process', { contract_id: contractId, limit }, {
+      const response = await api.post<ApiResponse>('/documents/processing', { contract_id: contractId, limit }, {
         timeout: 3600000 // 1 hour timeout
       });
       return response.data;
@@ -510,7 +510,7 @@ class ApiService {
     
     try {
       const response = await api.post<RFPGenerationResponse>('/rfp/generate', request, {
-        timeout: 1200000 // 5 minutes timeout for RFP generation
+        timeout: 1200000 // 20-minute timeout for multi-batch RFP generation
       });
       console.log('🚀 [DEBUG] API Service generateRFPResponse response:', response.data);
       return response.data;
@@ -521,12 +521,15 @@ class ApiService {
       if (error.response?.status === 404) {
         console.error('❌ [DEBUG] RFP generation endpoint not found (404)');
         throw new Error('RFP generation service is not available. The server endpoint may not be implemented yet.');
+      } else if (error.response?.status === 502) {
+        console.error('❌ [DEBUG] AI provider error during RFP generation:', error.response.data);
+        throw new Error(error.response?.data?.error || 'The AI provider could not complete a proposal section. Please try generation again.');
       } else if (error.response?.status === 500) {
         console.error('❌ [DEBUG] Server error during RFP generation:', error.response.data);
         throw new Error('Server error during RFP generation. Please check the server logs for details.');
       } else if (error.code === 'ECONNABORTED') {
-        console.error('❌ [DEBUG] RFP generation timeout after 5 minutes');
-        throw new Error('RFP generation timed out after 5 minutes. The server may be overloaded or the generation process is not working properly.');
+        console.error('❌ [DEBUG] RFP generation timeout after 20 minutes');
+        throw new Error('RFP generation timed out after 20 minutes. Please try again with fewer template sections.');
       }
       
       throw error;
@@ -544,17 +547,6 @@ class ApiService {
   async getRFPResponses(page: number = 1, limit: number = 20): Promise<{ success: boolean; responses: RFPResponse[]; pagination: any }> {
     try {
       const response = await api.get<{ success: boolean; responses: RFPResponse[]; pagination: any }>(`/rfp/responses?page=${page}&limit=${limit}`);
-      
-      // Filter out deleted RFPs from the response
-      const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
-      if (response.data.success && response.data.responses) {
-        const filteredResponses = response.data.responses.filter(rfp => !deletedRFPs.includes(rfp.id));
-        return {
-          ...response.data,
-          responses: filteredResponses
-        };
-      }
-      
       return response.data;
     } catch (error: any) {
       // Handle 404 or other errors for missing endpoint
@@ -572,13 +564,6 @@ class ApiService {
 
   async getRFPResponse(responseId: number): Promise<{ success: boolean; response: RFPResponse }> {
     try {
-      // Check if this RFP has been deleted locally
-      const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
-      if (deletedRFPs.includes(responseId)) {
-        console.log('🗑️ [DEBUG] RFP Response', responseId, 'has been deleted locally');
-        throw new Error('RFP Response has been deleted');
-      }
-
       console.log(`🔍 [DEBUG] API Service getRFPResponse called with ID: ${responseId}`);
       const response = await api.get<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}`);
       console.log('✅ [DEBUG] API Service getRFPResponse success:', response.data);

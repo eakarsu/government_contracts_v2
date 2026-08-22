@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
-import { RFPDashboardStats, RFPResponse } from '../types';
+import { CompanyProfile, Contract, RFPDashboardStats, RFPResponse, RFPTemplate } from '../types';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 
 const RFPDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<RFPDashboardStats | null>(null);
   const [recentRFPs, setRecentRFPs] = useState<RFPResponse[]>([]);
+  const [opportunities, setOpportunities] = useState<Contract[]>([]);
+  const [profiles, setProfiles] = useState<CompanyProfile[]>([]);
+  const [templates, setTemplates] = useState<RFPTemplate[]>([]);
+  const [selectedContract, setSelectedContract] = useState('');
+  const [selectedProfile, setSelectedProfile] = useState<number | ''>('');
+  const [selectedTemplate, setSelectedTemplate] = useState<number | ''>('');
+  const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,11 +38,7 @@ const RFPDashboard: React.FC = () => {
     try {
       setLoading(true);
       
-      // Get list of deleted RFP IDs to adjust stats
-      const deletedRFPs = JSON.parse(localStorage.getItem('deleted_rfp_ids') || '[]');
-      console.log('🗑️ [DEBUG] Dashboard: Deleted RFP IDs:', deletedRFPs);
-
-      const [statsResponse, rfpsResponse] = await Promise.all([
+      const [statsResponse, rfpsResponse, contractsResponse, templatesResponse, profilesResponse] = await Promise.all([
         apiService.getRFPDashboardStats().catch(err => {
           console.warn('Dashboard stats not available:', err.message);
           return { success: false, stats: null };
@@ -42,17 +46,14 @@ const RFPDashboard: React.FC = () => {
         apiService.getRFPResponses(1, 5).catch(err => {
           console.warn('RFP responses not available:', err.message);
           return { success: false, responses: [] };
-        })
+        }),
+        apiService.getContracts(1, 100),
+        apiService.getRFPTemplates(),
+        apiService.getCompanyProfiles()
       ]);
 
       if (statsResponse.success && statsResponse.stats) {
-        // Adjust stats to account for deleted RFPs
-        const adjustedStats = {
-          ...statsResponse.stats,
-          totalRFPs: Math.max(0, statsResponse.stats.totalRFPs - deletedRFPs.length),
-          activeRFPs: Math.max(0, statsResponse.stats.activeRFPs - deletedRFPs.length)
-        };
-        setStats(adjustedStats);
+        setStats(statsResponse.stats);
       } else {
         // Set default stats if API not available
         setStats({
@@ -70,6 +71,16 @@ const RFPDashboard: React.FC = () => {
       } else {
         setRecentRFPs([]);
       }
+
+      const loadedContracts = contractsResponse.data || [];
+      const loadedProfiles = profilesResponse.profiles || [];
+      const loadedTemplates = templatesResponse.templates || [];
+      setOpportunities(loadedContracts);
+      setProfiles(loadedProfiles);
+      setTemplates(loadedTemplates);
+      setSelectedContract(current => current || loadedContracts[0]?.noticeId || '');
+      setSelectedProfile(current => current && loadedProfiles.some(profile => profile.id === Number(current)) ? current : '');
+      setSelectedTemplate(current => current && loadedTemplates.some(template => template.id === Number(current)) ? current : '');
     } catch (err: any) {
       console.error('Dashboard load error:', err);
       setError(err.message);
@@ -78,21 +89,46 @@ const RFPDashboard: React.FC = () => {
     }
   };
 
+  const handleGenerateApplication = async () => {
+    if (!selectedContract) return setError('Select a contract opportunity');
+    if (!selectedProfile) return setError('Create and select a company profile before generating an application');
+    if (!selectedTemplate) return setError('Select a proposal template before generating an application');
+
+    try {
+      setGenerating(true);
+      setError(null);
+      const response = await apiService.generateRFPResponse({
+        contractId: selectedContract,
+        templateId: Number(selectedTemplate),
+        companyProfileId: Number(selectedProfile),
+        customInstructions: 'Create a review-required proposal application draft. Never invent unsupported company claims.'
+      });
+      if (!response.success) throw new Error(response.message || 'Application generation failed');
+      navigate(`/rfp/responses/${response.rfpResponseId}`);
+    } catch (err: any) {
+      setError(err.message || 'Application generation failed');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const selectedContractRecord = opportunities.find(contract => contract.noticeId === selectedContract);
+  const selectedProfileRecord = profiles.find(profile => profile.id === Number(selectedProfile));
+  const selectedTemplateRecord = templates.find(template => template.id === Number(selectedTemplate));
+  const selectedTemplateMaxWords = selectedTemplateRecord?.sections.reduce(
+    (total, section) => total + (Number(section.maxWords) || 0),
+    0
+  ) || 0;
+  const verifiedPastPerformanceCount = selectedProfileRecord?.pastPerformance.filter(record => record.status !== 'placeholder').length || 0;
+  const verifiedKeyPersonnelCount = selectedProfileRecord?.keyPersonnel.filter(person => person.status !== 'placeholder').length || 0;
+  const draftPastPerformanceCount = selectedProfileRecord?.pastPerformance.filter(record => record.status === 'placeholder').length || 0;
+  const draftKeyPersonnelCount = selectedProfileRecord?.keyPersonnel.filter(person => person.status === 'placeholder').length || 0;
+
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <div className="text-red-800">
-          <strong>Error:</strong> {error}
-        </div>
       </div>
     );
   }
@@ -105,19 +141,126 @@ const RFPDashboard: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">RFP Dashboard</h1>
           <p className="text-gray-600">Manage your RFP responses and track performance</p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex flex-wrap justify-end gap-3">
+          <Link
+            to="/rfp/company-profiles"
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
+          >
+            Company Profiles
+          </Link>
           <Link
             to="/rfp/templates"
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
           >
-            Manage Templates
+            Proposal Templates
           </Link>
           <Link
             to="/rfp/generate"
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
+            className="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-900 transition-colors"
           >
             Generate RFP
           </Link>
+        </div>
+      </div>
+
+      {error ? (
+        <div className="flex items-start justify-between gap-4 rounded-md border border-red-200 bg-red-50 p-4 text-red-800">
+          <div><strong>Error:</strong> {error}</div>
+          <button type="button" onClick={() => setError(null)} className="font-medium underline">Dismiss</button>
+        </div>
+      ) : null}
+
+      {/* Automatic application generation */}
+      <div className="rounded-lg border border-blue-200 bg-white p-6 shadow">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Generate Proposal Application</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Select a SAM.gov opportunity, company profile, and proposal template. The generated application is saved as a review-required draft.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+          <div className="lg:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-gray-700">Contract opportunity</label>
+            <select
+              value={selectedContract}
+              onChange={event => setSelectedContract(event.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select an opportunity…</option>
+              {opportunities.map(contract => (
+                <option key={contract.noticeId} value={contract.noticeId}>
+                  {contract.title || contract.noticeId} — {contract.agency || 'Agency not listed'}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Company profile</label>
+            <select
+              value={selectedProfile}
+              onChange={event => setSelectedProfile(event.target.value ? Number(event.target.value) : '')}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">
+                {profiles.length === 0 ? 'No company profiles — create one' : 'Select a company profile…'}
+              </option>
+              {profiles.map(profile => <option key={profile.id} value={profile.id}>{profile.companyName}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Proposal template</label>
+            <select
+              value={selectedTemplate}
+              onChange={event => setSelectedTemplate(event.target.value ? Number(event.target.value) : '')}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select a proposal template…</option>
+              {templates.map(template => (
+                <option key={template.id} value={template.id}>
+                  {template.name} — {template.agency || 'General'} — {template.sections.length} sections
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {profiles.length === 0 ? (
+          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            Company facts are required so the application does not invent qualifications.{' '}
+            <Link to="/rfp/company-profiles" className="font-medium underline">Create a company profile</Link>.
+          </div>
+        ) : null}
+        {selectedTemplateRecord ? (
+          <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+            <strong>Selected template:</strong> {selectedTemplateRecord.name} · {selectedTemplateRecord.sections.length} sections ·{' '}
+            {selectedTemplateMaxWords > 0
+              ? `${selectedTemplateMaxWords.toLocaleString()} configured maximum words`
+              : 'no section word limits configured'}.{' '}
+            <Link to="/rfp/templates" className="font-medium underline">Edit template</Link>
+          </div>
+        ) : null}
+        {selectedContractRecord && (!selectedContractRecord.resourceLinks || selectedContractRecord.resourceLinks.length === 0) ? (
+          <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <strong>Solicitation evidence warning:</strong> this SAM.gov record has no downloadable attachments. The draft can use only the opportunity metadata and company profile, so unsupported requirements will remain REVIEW REQUIRED.
+          </div>
+        ) : null}
+        {selectedProfileRecord && (verifiedPastPerformanceCount === 0 || verifiedKeyPersonnelCount === 0) ? (
+          <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <strong>Company evidence verification needed:</strong>{' '}
+            {verifiedPastPerformanceCount === 0 ? 'no verified past-performance records' : ''}
+            {verifiedPastPerformanceCount === 0 && verifiedKeyPersonnelCount === 0 ? ' and ' : ''}
+            {verifiedKeyPersonnelCount === 0 ? 'no verified assigned key personnel' : ''} are saved in this profile. The profile currently contains {draftPastPerformanceCount} draft project shell(s) and {draftKeyPersonnelCount} unassigned staffing role(s); these are excluded from factual AI claims until marked Verified.
+            {' '}<Link to="/rfp/company-profiles" className="font-medium underline">Complete company profile</Link>
+          </div>
+        ) : null}
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <p className="text-xs text-gray-500">AI-generated content must be reviewed and approved before submission.</p>
+          <button
+            onClick={handleGenerateApplication}
+            disabled={generating || !selectedContract || !selectedProfile || !selectedTemplate}
+            className="inline-flex items-center rounded-md bg-green-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {generating ? <><LoadingSpinner size="sm" className="mr-2" />Generating application…</> : 'Generate Application Draft'}
+          </button>
         </div>
       </div>
 

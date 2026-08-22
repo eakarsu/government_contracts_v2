@@ -238,7 +238,7 @@ router.get('/debug/vector/:query', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const startTime = Date.now();
-    const { query, limit = 10, include_analysis = false } = req.body;
+    const { query, limit = 10, offset = 0, include_analysis = false } = req.body;
 
     if (!query) {
       return res.status(400).json({ error: 'Query parameter is required' });
@@ -249,6 +249,7 @@ router.post('/', async (req, res) => {
     // Use vector search exclusively
     const searchResults = await semanticSearchService.semanticSearch(query, {
       limit,
+      offset,
       threshold: 0.01, // Much lower threshold to see all results
       filters: {},
       userId: req.user?.id
@@ -265,8 +266,8 @@ router.post('/', async (req, res) => {
       pagination: {
         total: searchResults.totalResults || 0,
         limit: limit,
-        offset: 0,
-        hasMore: false
+        offset: searchResults.offset || 0,
+        hasMore: Boolean(searchResults.hasMore)
       },
       response_time: responseTime,
       search_method: 'vector_semantic'

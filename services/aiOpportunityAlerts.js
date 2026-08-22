@@ -42,21 +42,7 @@ class AIOpportunityAlerts {
   }
 
   async getUserPreferences(userId, userContext) {
-    // Try to get from database first (if table exists)
-    let preferences = null;
-    try {
-      preferences = await prisma.userPreference.findUnique({
-        where: { userId }
-      }).catch(() => null);
-    } catch (error) {
-      // Table doesn't exist, use context-based preferences
-      console.warn('UserPreference table not found, using context-based preferences');
-    }
-
-    // Fall back to context-based preferences
-    if (!preferences) {
-      preferences = this.inferPreferencesFromContext(userContext);
-    }
+    const preferences = this.userPreferences.get(String(userId)) || this.inferPreferencesFromContext(userContext);
 
     return {
       ...preferences,
@@ -68,6 +54,11 @@ class AIOpportunityAlerts {
         minContractValue: userContext.minContractValue || 0
       }
     };
+  }
+
+  setUserPreferences(userId, preferences) {
+    this.userPreferences.set(String(userId), { ...preferences });
+    return this.userPreferences.get(String(userId));
   }
 
   async findMatchingOpportunities(preferences) {

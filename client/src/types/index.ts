@@ -206,10 +206,11 @@ export interface QueueStatus {
   failed: number;
   total: number;
   is_processing: boolean;
-  recent_documents?: {
+  recent_completed?: {
     filename: string;
     completed_at: string;
     contract_notice_id: string;
+    has_result?: boolean;
   }[];
 }
 
@@ -434,6 +435,7 @@ export interface EvaluationCriteria {
   costWeight: number;
   pastPerformanceWeight: number;
   factors: EvaluationFactor[];
+  evidenceInstructions?: string;
 }
 
 export interface EvaluationFactor {
@@ -460,20 +462,46 @@ export interface CompanyProfile {
     securityClearances: string[];
     methodologies: string[];
   };
+  businessDetails: {
+    legalBusinessName: string;
+    ueiNumber: string;
+    website: string;
+    headquartersAddress: string;
+    primaryContact: {
+      name: string;
+      title: string;
+      email: string;
+      phone: string;
+    };
+    geographicCoverage: string;
+    contractVehicles: string[];
+    socioeconomicDesignations: string[];
+    insuranceCoverage: string;
+    laborCategories: string[];
+    pricingApproach: string;
+  };
   pastPerformance: PastPerformanceRecord[];
   keyPersonnel: KeyPersonnel[];
+  additionalSections: CompanyProfileSection[];
   createdAt: string;
   updatedAt: string;
 }
 
+export interface CompanyProfileSection {
+  id: string;
+  title: string;
+  content: string;
+}
+
 export interface PastPerformanceRecord {
   id: string;
+  status?: 'verified' | 'placeholder';
   contractName: string;
   client: string;
   agency: string;
   contractValue: number;
   duration: string;
-  performanceRating: 'exceptional' | 'very_good' | 'satisfactory' | 'marginal' | 'unsatisfactory';
+  performanceRating: 'exceptional' | 'very_good' | 'satisfactory' | 'marginal' | 'unsatisfactory' | 'not_applicable';
   relevanceScore: number;
   description: string;
   keyAccomplishments: string[];
@@ -487,6 +515,7 @@ export interface PastPerformanceRecord {
 
 export interface KeyPersonnel {
   id: string;
+  status?: 'verified' | 'placeholder';
   name: string;
   role: string;
   clearanceLevel?: string;
@@ -508,21 +537,39 @@ export interface RFPResponse {
     sections: RFPResponseSection[];
     metadata: {
       generatedAt: string;
+      promptVersion?: string;
       lastModified?: string;
       wordCount?: number;
       pageCount?: number;
+      sourceDocumentCount?: number;
+      templateName?: string;
+      companyName?: string;
+      templateTargetWordCount?: number;
+      profileEvidence?: {
+        pastPerformanceCount: number;
+        keyPersonnelCount: number;
+      };
       customInstructions?: string;
       focusAreas?: string[];
     };
   };
   sections?: RFPResponseSection[]; // Legacy field for backward compatibility
   complianceStatus: ComplianceStatus;
-  predictedScore: PredictedScore | number;
+  predictedScore: PredictedScore | number | null;
   metadata?: {
     generatedAt: string;
-    lastModified: string;
-    wordCount: number;
-    pageCount: number;
+    promptVersion?: string;
+    lastModified?: string;
+    wordCount?: number;
+    pageCount?: number;
+    sourceDocumentCount?: number;
+    templateName?: string;
+    companyName?: string;
+    templateTargetWordCount?: number;
+    profileEvidence?: {
+      pastPerformanceCount: number;
+      keyPersonnelCount: number;
+    };
     submissionDeadline?: string;
   };
   collaborators?: string[];
@@ -537,7 +584,7 @@ export interface RFPResponseSection {
   title: string;
   content: string;
   wordCount: number;
-  status: 'generated' | 'reviewed' | 'approved';
+  status: 'generated' | 'reviewed' | 'approved' | 'error';
   compliance: SectionCompliance;
   lastModified: string;
   modifiedBy: string;
@@ -546,6 +593,7 @@ export interface RFPResponseSection {
 export interface ComplianceStatus {
   overall: boolean;
   score: number;
+  reviewRequired?: boolean;
   checks: {
     wordLimits: ComplianceCheck;
     requiredSections: ComplianceCheck;
@@ -647,7 +695,7 @@ export interface RFPGenerationResponse {
   generationTime: number;
   sectionsGenerated: number;
   complianceScore: number;
-  predictedScore: number;
+  predictedScore: number | null;
   message: string;
 }
 
@@ -705,8 +753,10 @@ export interface CompanyProfileForm {
   companyName: string;
   basicInfo: CompanyProfile['basicInfo'];
   capabilities: CompanyProfile['capabilities'];
+  businessDetails: CompanyProfile['businessDetails'];
   pastPerformance: Omit<PastPerformanceRecord, 'id'>[];
   keyPersonnel: Omit<KeyPersonnel, 'id'>[];
+  additionalSections: CompanyProfileSection[];
 }
 
 export interface RFPSectionEditForm {

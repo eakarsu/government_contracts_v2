@@ -26,8 +26,15 @@ const CompanyProfiles: React.FC = () => {
       securityClearances: [],
       methodologies: []
     },
+    businessDetails: {
+      legalBusinessName: '', ueiNumber: '', website: '', headquartersAddress: '',
+      primaryContact: { name: '', title: '', email: '', phone: '' },
+      geographicCoverage: '', contractVehicles: [], socioeconomicDesignations: [],
+      insuranceCoverage: '', laborCategories: [], pricingApproach: ''
+    },
     pastPerformance: [],
-    keyPersonnel: []
+    keyPersonnel: [],
+    additionalSections: []
   });
 
   useEffect(() => {
@@ -87,8 +94,27 @@ const CompanyProfiles: React.FC = () => {
         securityClearances: profile.capabilities?.securityClearances || [],
         methodologies: profile.capabilities?.methodologies || []
       },
+      businessDetails: {
+        legalBusinessName: profile.businessDetails?.legalBusinessName || '',
+        ueiNumber: profile.businessDetails?.ueiNumber || '',
+        website: profile.businessDetails?.website || '',
+        headquartersAddress: profile.businessDetails?.headquartersAddress || '',
+        primaryContact: {
+          name: profile.businessDetails?.primaryContact?.name || '',
+          title: profile.businessDetails?.primaryContact?.title || '',
+          email: profile.businessDetails?.primaryContact?.email || '',
+          phone: profile.businessDetails?.primaryContact?.phone || ''
+        },
+        geographicCoverage: profile.businessDetails?.geographicCoverage || '',
+        contractVehicles: profile.businessDetails?.contractVehicles || [],
+        socioeconomicDesignations: profile.businessDetails?.socioeconomicDesignations || [],
+        insuranceCoverage: profile.businessDetails?.insuranceCoverage || '',
+        laborCategories: profile.businessDetails?.laborCategories || [],
+        pricingApproach: profile.businessDetails?.pricingApproach || ''
+      },
       pastPerformance: profile.pastPerformance || [],
-      keyPersonnel: profile.keyPersonnel || []
+      keyPersonnel: profile.keyPersonnel || [],
+      additionalSections: profile.additionalSections || []
     });
   };
 
@@ -136,8 +162,15 @@ const CompanyProfiles: React.FC = () => {
         securityClearances: [],
         methodologies: []
       },
+      businessDetails: {
+        legalBusinessName: '', ueiNumber: '', website: '', headquartersAddress: '',
+        primaryContact: { name: '', title: '', email: '', phone: '' },
+        geographicCoverage: '', contractVehicles: [], socioeconomicDesignations: [],
+        insuranceCoverage: '', laborCategories: [], pricingApproach: ''
+      },
       pastPerformance: [],
-      keyPersonnel: []
+      keyPersonnel: [],
+      additionalSections: []
     });
   };
 
@@ -213,6 +246,64 @@ const CompanyProfiles: React.FC = () => {
     }
   };
 
+  const addPastPerformance = () => setFormData(prev => ({
+    ...prev,
+    pastPerformance: [...prev.pastPerformance, {
+      status: 'placeholder',
+      contractName: '', client: '', agency: '', contractValue: 0, duration: '',
+      performanceRating: 'satisfactory', relevanceScore: 0, description: '',
+      keyAccomplishments: [], contactInfo: { name: '', title: '', phone: '', email: '' }
+    }]
+  }));
+
+  const updatePastPerformance = (index: number, updates: Record<string, unknown>) => setFormData(prev => ({
+    ...prev,
+    pastPerformance: prev.pastPerformance.map((record, itemIndex) => itemIndex === index ? { ...record, ...updates } : record)
+  }));
+
+  const addKeyPerson = () => setFormData(prev => ({
+    ...prev,
+    keyPersonnel: [...prev.keyPersonnel, {
+      status: 'placeholder',
+      name: '', role: '', clearanceLevel: '', experienceYears: 0,
+      education: [], certifications: [], relevantProjects: [], resume: ''
+    }]
+  }));
+
+  const updateKeyPerson = (index: number, updates: Record<string, unknown>) => setFormData(prev => ({
+    ...prev,
+    keyPersonnel: prev.keyPersonnel.map((person, itemIndex) => itemIndex === index ? { ...person, ...updates } : person)
+  }));
+
+  const addCompanySection = (title = '') => setFormData(prev => ({
+    ...prev,
+    additionalSections: [...prev.additionalSections, {
+      id: `company_section_${Date.now()}_${prev.additionalSections.length}`,
+      title,
+      content: ''
+    }]
+  }));
+
+  const addStandardCompanySections = () => {
+    const standardTitles = [
+      'Company Overview',
+      'Services and Solutions',
+      'Differentiators',
+      'Delivery Approach',
+      'Technology Capabilities',
+      'Quality Approach',
+      'Security and Compliance',
+      'Proposal Notes'
+    ];
+    setFormData(prev => {
+      const existing = new Set(prev.additionalSections.map(section => section.title.toLowerCase()));
+      const additions = standardTitles
+        .filter(title => !existing.has(title.toLowerCase()))
+        .map((title, index) => ({ id: `standard_${Date.now()}_${index}`, title, content: '' }));
+      return { ...prev, additionalSections: [...prev.additionalSections, ...additions] };
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -256,6 +347,12 @@ const CompanyProfiles: React.FC = () => {
                     </h3>
                     <div className="mt-2 grid grid-cols-2 gap-4 text-sm text-gray-600">
                       <div>
+                        <span className="font-medium">Legal Name:</span> {profile.businessDetails?.legalBusinessName || 'Review required'}
+                      </div>
+                      <div>
+                        <span className="font-medium">UEI:</span> {profile.businessDetails?.ueiNumber || 'Review required'}
+                      </div>
+                      <div>
                         <span className="font-medium">DUNS:</span> {profile.basicInfo?.dunsNumber || 'Not provided'}
                       </div>
                       <div>
@@ -281,6 +378,27 @@ const CompanyProfiles: React.FC = () => {
                         )) || <span className="text-gray-400 text-sm">None specified</span>}
                       </div>
                     </div>
+                    <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-gray-600 md:grid-cols-2">
+                      <div>
+                        <span className="font-medium">Past Performance:</span>{' '}
+                        {profile.pastPerformance?.filter(record => record.status !== 'placeholder').length || 0} verified ·{' '}
+                        {profile.pastPerformance?.filter(record => record.status === 'placeholder').length || 0} draft
+                      </div>
+                      <div>
+                        <span className="font-medium">Key Personnel:</span>{' '}
+                        {profile.keyPersonnel?.filter(person => person.status !== 'placeholder').length || 0} verified ·{' '}
+                        {profile.keyPersonnel?.filter(person => person.status === 'placeholder').length || 0} unassigned role(s)
+                      </div>
+                    </div>
+                    {profile.keyPersonnel && profile.keyPersonnel.length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {profile.keyPersonnel.map((person, index) => (
+                          <span key={person.id || index} className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                            {person.name || 'Unnamed person'}{person.role ? ` — ${person.role}` : ' — role required'}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="ml-4 flex space-x-2">
                     <button 
@@ -392,6 +510,28 @@ const CompanyProfiles: React.FC = () => {
                       <option value="Women-Owned Small Business">Women-Owned Small Business</option>
                     </select>
                   </div>
+                </div>
+              </div>
+
+              {/* NAICS Codes */}
+              <div className="border-t border-gray-200 pt-6">
+                <h4 className="text-md font-medium text-gray-900 mb-1">Business and Proposal Details</h4>
+                <p className="mb-4 text-sm text-gray-500">Administrative and commercial information used across proposal sections.</p>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <input value={formData.businessDetails.legalBusinessName} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, legalBusinessName: e.target.value } }))} className="rounded-md border border-gray-300 px-3 py-2" placeholder="Legal business name" />
+                  <input value={formData.businessDetails.ueiNumber} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, ueiNumber: e.target.value } }))} className="rounded-md border border-gray-300 px-3 py-2" placeholder="Unique Entity ID (UEI)" />
+                  <input value={formData.businessDetails.website} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, website: e.target.value } }))} className="rounded-md border border-gray-300 px-3 py-2" placeholder="Company website" />
+                  <input value={formData.businessDetails.geographicCoverage} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, geographicCoverage: e.target.value } }))} className="rounded-md border border-gray-300 px-3 py-2" placeholder="Geographic coverage" />
+                  <textarea value={formData.businessDetails.headquartersAddress} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, headquartersAddress: e.target.value } }))} rows={2} className="rounded-md border border-gray-300 px-3 py-2 md:col-span-2" placeholder="Headquarters or business address" />
+                  <input value={formData.businessDetails.primaryContact.name} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, primaryContact: { ...prev.businessDetails.primaryContact, name: e.target.value } } }))} className="rounded-md border border-gray-300 px-3 py-2" placeholder="Primary contact name" />
+                  <input value={formData.businessDetails.primaryContact.title} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, primaryContact: { ...prev.businessDetails.primaryContact, title: e.target.value } } }))} className="rounded-md border border-gray-300 px-3 py-2" placeholder="Primary contact title" />
+                  <input type="email" value={formData.businessDetails.primaryContact.email} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, primaryContact: { ...prev.businessDetails.primaryContact, email: e.target.value } } }))} className="rounded-md border border-gray-300 px-3 py-2" placeholder="Primary contact email" />
+                  <input value={formData.businessDetails.primaryContact.phone} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, primaryContact: { ...prev.businessDetails.primaryContact, phone: e.target.value } } }))} className="rounded-md border border-gray-300 px-3 py-2" placeholder="Primary contact phone" />
+                  <textarea value={formData.businessDetails.contractVehicles.join('\n')} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, contractVehicles: e.target.value.split('\n') } }))} rows={3} className="rounded-md border border-gray-300 px-3 py-2" placeholder="Contract vehicles — one per line" />
+                  <textarea value={formData.businessDetails.socioeconomicDesignations.join('\n')} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, socioeconomicDesignations: e.target.value.split('\n') } }))} rows={3} className="rounded-md border border-gray-300 px-3 py-2" placeholder="Socioeconomic designations — one per line" />
+                  <textarea value={formData.businessDetails.laborCategories.join('\n')} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, laborCategories: e.target.value.split('\n') } }))} rows={3} className="rounded-md border border-gray-300 px-3 py-2" placeholder="Labor categories — one per line" />
+                  <textarea value={formData.businessDetails.insuranceCoverage} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, insuranceCoverage: e.target.value } }))} rows={3} className="rounded-md border border-gray-300 px-3 py-2" placeholder="Insurance and bonding coverage" />
+                  <textarea value={formData.businessDetails.pricingApproach} onChange={e => setFormData(prev => ({ ...prev, businessDetails: { ...prev.businessDetails, pricingApproach: e.target.value } }))} rows={3} className="rounded-md border border-gray-300 px-3 py-2 md:col-span-2" placeholder="Pricing approach, approved rates, and cost assumptions" />
                 </div>
               </div>
 
@@ -544,6 +684,94 @@ const CompanyProfiles: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Proposal Evidence */}
+              <div className="border-t border-gray-200 pt-6">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-md font-medium text-gray-900">Company Profile Sections</h4>
+                    <p className="text-sm text-gray-500">Reusable narrative supplied to proposal generation.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button type="button" onClick={addStandardCompanySections} className="text-sm font-medium text-green-700 hover:text-green-900">+ Add standard sections</button>
+                    <button type="button" onClick={() => addCompanySection()} className="text-sm font-medium text-blue-600 hover:text-blue-800">+ Add custom section</button>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {formData.additionalSections.map((section, index) => (
+                    <div key={section.id || index} className="rounded-md border border-gray-200 bg-gray-50 p-3">
+                      <div className="flex gap-2">
+                        <input
+                          value={section.title}
+                          onChange={e => setFormData(prev => ({ ...prev, additionalSections: prev.additionalSections.map((item, itemIndex) => itemIndex === index ? { ...item, title: e.target.value } : item) }))}
+                          className="flex-1 rounded border border-gray-300 px-3 py-2 font-medium"
+                          placeholder="Section title"
+                        />
+                        <button type="button" onClick={() => setFormData(prev => ({ ...prev, additionalSections: prev.additionalSections.filter((_, itemIndex) => itemIndex !== index) }))} className="text-sm text-red-600 hover:text-red-800">Remove</button>
+                      </div>
+                      <textarea
+                        value={section.content}
+                        onChange={e => setFormData(prev => ({ ...prev, additionalSections: prev.additionalSections.map((item, itemIndex) => itemIndex === index ? { ...item, content: e.target.value } : item) }))}
+                        rows={3}
+                        className="mt-2 w-full rounded border border-gray-300 px-3 py-2"
+                        placeholder="Write verified or clearly identified proposed company information for this section."
+                      />
+                    </div>
+                  ))}
+                  {formData.additionalSections.length === 0 ? <p className="rounded-md bg-gray-50 p-3 text-sm text-gray-600">No narrative sections yet. Add the standard company-profile structure or a custom section.</p> : null}
+                </div>
+              </div>
+
+              {/* Proposal Evidence */}
+              <div className="border-t border-gray-200 pt-6">
+                <h4 className="text-md font-medium text-gray-900">Proposal Evidence</h4>
+                <p className="mb-4 text-sm text-gray-500">These verified records populate Past Performance and Key Personnel proposal sections.</p>
+
+                <div className="rounded-md border border-gray-200 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h5 className="font-medium text-gray-800">Past Performance</h5>
+                    <button type="button" onClick={addPastPerformance} className="text-sm font-medium text-blue-600 hover:text-blue-800">+ Add record</button>
+                  </div>
+                  <div className="space-y-3">
+                    {formData.pastPerformance.map((record, index) => (
+                      <div key={index} className="grid grid-cols-1 gap-2 rounded bg-gray-50 p-3 md:grid-cols-2">
+                        <input value={record.contractName} onChange={e => updatePastPerformance(index, { contractName: e.target.value })} className="rounded border border-gray-300 px-3 py-2" placeholder="Contract or project name" />
+                        <input value={record.client} onChange={e => updatePastPerformance(index, { client: e.target.value })} className="rounded border border-gray-300 px-3 py-2" placeholder="Client or agency" />
+                        <select value={record.status || 'verified'} onChange={e => updatePastPerformance(index, { status: e.target.value })} className="rounded border border-gray-300 px-3 py-2">
+                          <option value="placeholder">Draft placeholder — excluded from AI claims</option>
+                          <option value="verified">Verified evidence — available to AI</option>
+                        </select>
+                        <textarea value={record.description} onChange={e => updatePastPerformance(index, { description: e.target.value })} rows={2} className="rounded border border-gray-300 px-3 py-2 md:col-span-2" placeholder="Verified scope, results, value, period, and relevance" />
+                        <button type="button" onClick={() => setFormData(prev => ({ ...prev, pastPerformance: prev.pastPerformance.filter((_, itemIndex) => itemIndex !== index) }))} className="justify-self-start text-sm text-red-600 hover:text-red-800">Remove</button>
+                      </div>
+                    ))}
+                    {formData.pastPerformance.length === 0 ? <p className="text-sm text-amber-700">No past-performance records saved.</p> : null}
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-md border border-gray-200 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h5 className="font-medium text-gray-800">Key Personnel</h5>
+                    <button type="button" onClick={addKeyPerson} className="text-sm font-medium text-blue-600 hover:text-blue-800">+ Add person</button>
+                  </div>
+                  <div className="space-y-3">
+                    {formData.keyPersonnel.map((person, index) => (
+                      <div key={index} className="grid grid-cols-1 gap-2 rounded bg-gray-50 p-3 md:grid-cols-2">
+                        <input value={person.name} onChange={e => updateKeyPerson(index, { name: e.target.value })} className="rounded border border-gray-300 px-3 py-2" placeholder="Full name" />
+                        <input value={person.role} onChange={e => updateKeyPerson(index, { role: e.target.value })} className="rounded border border-gray-300 px-3 py-2" placeholder="Proposed role" />
+                        <select value={person.status || 'verified'} onChange={e => updateKeyPerson(index, { status: e.target.value })} className="rounded border border-gray-300 px-3 py-2">
+                          <option value="placeholder">Unassigned draft role — excluded from AI claims</option>
+                          <option value="verified">Verified assigned person — available to AI</option>
+                        </select>
+                        <textarea value={person.resume || ''} onChange={e => updateKeyPerson(index, { resume: e.target.value })} rows={2} className="rounded border border-gray-300 px-3 py-2 md:col-span-2" placeholder="Verified experience, qualifications, certifications, and relevant projects" />
+                        <button type="button" onClick={() => setFormData(prev => ({ ...prev, keyPersonnel: prev.keyPersonnel.filter((_, itemIndex) => itemIndex !== index) }))} className="justify-self-start text-sm text-red-600 hover:text-red-800">Remove</button>
+                      </div>
+                    ))}
+                    {formData.keyPersonnel.length === 0 ? <p className="text-sm text-amber-700">No key personnel saved.</p> : null}
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             {error && (

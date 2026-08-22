@@ -24,6 +24,22 @@ test('accepts complete production OIDC configuration and rejects wildcard CORS',
   expect(() => validateForStartup(loadConfig({ ...environment, CORS_ORIGINS: '*' }))).toThrow(/Wildcard/);
 });
 
+test('uses environment configuration as the OpenRouter chat model source', () => {
+  const configuration = loadConfig({
+    OPENROUTER_BASE_URL: 'https://openrouter.example/api/v1/',
+    OPENROUTER_MODEL: 'anthropic/claude-haiku-4.5',
+    RFP_MAX_TOKENS: '32000',
+  });
+  expect(configuration.openRouterBaseUrl).toBe('https://openrouter.example/api/v1/');
+  expect(configuration.openRouterModel).toBe('anthropic/claude-haiku-4.5');
+  expect(configuration.rfpMaxTokens).toBe(32000);
+
+  const root = path.resolve(__dirname, '..');
+  const chatServices = ['services/aiService.js', 'services/nlpService.js', 'services/summaryService.js'];
+  const source = chatServices.map(file => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
+  expect(source).not.toMatch(/model\s*:\s*['"](?:anthropic|openai)\//);
+});
+
 test('destructive reset requires an exact local, non-production confirmation', () => {
   const allowed = {
     ALLOW_DESTRUCTIVE_RESET: 'DELETE_LOCAL_GOVERNANCE_DATA',
@@ -67,9 +83,13 @@ test('repository security controls remain fail closed', () => {
 
 test('fabricated legacy product routes remain disabled', () => {
   const root = path.resolve(__dirname, '..');
-  for (const file of ['routes/aiRfp.js', 'routes/bidPrediction.js', 'routes/recommendations.js', 'routes/rfp.js']) {
+  for (const file of ['routes/aiRfp.js', 'routes/bidPrediction.js', 'routes/recommendations.js']) {
     expect(fs.readFileSync(path.join(root, file), 'utf8')).toMatch(/status\(410\)/);
   }
+  const rfpRoute = fs.readFileSync(path.join(root, 'routes/rfp.js'), 'utf8');
+  expect(rfpRoute).toMatch(/prisma\.rfpResponse/);
+  expect(rfpRoute).toMatch(/reviewRequired:\s*true/);
+  expect(rfpRoute).not.toMatch(/sampleContracts|Placeholder content/);
   const documentSearch = fs.readFileSync(path.join(root, 'routes/documentSearch.js'), 'utf8');
   expect(documentSearch.indexOf('SIMULATED_INGESTION_DISABLED')).toBeGreaterThan(-1);
   expect(documentSearch.indexOf('SIMULATED_INGESTION_DISABLED')).toBeLessThan(

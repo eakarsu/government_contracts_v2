@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const vectorService = require('../services/vectorService');
+const vectorService = require('../services/vectorServiceInstance');
 const fs = require('fs-extra');
 const path = require('path');
 const { assertDestructiveResetAllowed } = require('./destructiveGuard');

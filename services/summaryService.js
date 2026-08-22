@@ -2,6 +2,7 @@ const pdfParse = require('pdf-parse');
 const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
+const config = require('../config/env');
 
 // OCR dependencies
 const { createWorker, createScheduler } = require('tesseract.js');
@@ -284,9 +285,44 @@ function splitContentByTokens(content, maxTokens = 100000) {
   return chunks;
 }
 
+function parseFirstJsonValue(rawContent) {
+  const content = String(rawContent || '')
+    .replace(/^\s*```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/i, '')
+    .trim();
+  const start = content.search(/[\[{]/);
+  if (start < 0) throw new Error('No JSON object or array found in the model response');
+
+  const stack = [];
+  let inString = false;
+  let escaped = false;
+  for (let index = start; index < content.length; index += 1) {
+    const character = content[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') {
+      inString = true;
+      continue;
+    }
+    if (character === '{' || character === '[') stack.push(character);
+    if (character === '}' || character === ']') {
+      const opening = stack.pop();
+      if ((opening === '{' && character !== '}') || (opening === '[' && character !== ']')) {
+        throw new Error('Mismatched JSON delimiters in the model response');
+      }
+      if (stack.length === 0) return JSON.parse(content.slice(start, index + 1));
+    }
+  }
+  throw new Error('Incomplete JSON value in the model response');
+}
+
 // Optimized summarization function - sends all content in one request using middle-out transform
-async function summarizeContent(content, apiKey, isMultiPart = false, partInfo = '') {
-  const url = 'https://openrouter.ai/api/v1/chat/completions';
+async function summarizeContent(content, apiKey, isMultiPart = false, partInfo = '', requestOptions = {}) {
+  const url = `${config.openRouterBaseUrl.replace(/\/$/, '')}/chat/completions`;
   
   // Check content size but don't chunk - middle-out transform handles up to 280K tokens
   const contentTokens = estimateTokens(content);
@@ -321,18 +357,18 @@ Structure the response as a JSON object with descriptive field names. Provide de
     console.log(`🔄 [DEBUG] Sending ${promptTokens.toLocaleString()} tokens to OpenRouter API with middle-out transform...`);
     
     const response = await axios.post(url, {
-      model: 'openai/gpt-4.1',
+      model: config.openRouterModel,
       messages: [
         {
           role: 'system',
-          content: 'Expert government contract attachment analyst. Return ONLY valid JSON. Follow schema exactly. 10-page depth (~6000 words total).'
+          content: requestOptions.systemPrompt || 'Expert government contract attachment analyst. Return ONLY valid JSON. Follow schema exactly. 10-page depth (~6000 words total).'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      max_tokens: 32000,
+      max_tokens: requestOptions.maxTokens || 32000,
       temperature: 0.2,
       transforms: ["middle-out"],
       response_format: { type: "json_object" }
@@ -375,7 +411,7 @@ Structure the response as a JSON object with descriptive field names. Provide de
       
       // Try to parse as JSON
       try {
-        const parsedJSON = JSON.parse(cleanedResult);
+        const parsedJSON = parseFirstJsonValue(cleanedResult);
         return {
           success: true,
           result: parsedJSON
@@ -425,7 +461,7 @@ Structure the response as a JSON object with descriptive field names. Provide de
     console.log(`📝 Cleaned result preview: ${cleanedResult.substring(0, 200)}`);
 
     try {
-      const parsedJSON = JSON.parse(cleanedResult);
+      const parsedJSON = parseFirstJsonValue(cleanedResult);
       return {
         success: true,
         result: parsedJSON
@@ -522,6 +558,7 @@ module.exports = {
   // Utility functions
   estimateTokens,
   splitContentByTokens,
+  parseFirstJsonValue,
   
   // OCR functions
   processWithOCR,

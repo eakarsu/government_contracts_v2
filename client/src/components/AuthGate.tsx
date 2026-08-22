@@ -1,13 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { LockKeyhole, Scale, ShieldCheck, Sparkles } from 'lucide-react';
 
+interface AuthContextValue {
+  signOut: () => Promise<void>;
+  signingOut: boolean;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function useAuth(): AuthContextValue {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthGate');
+  return context;
+}
+
 const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const queryClient = useQueryClient();
   const [authenticated, setAuthenticated] = useState(false);
   const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
@@ -48,8 +64,35 @@ const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     finally { setSubmitting(false); }
   }
 
+  async function signOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    try {
+      if (token) {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+    } finally {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('searchHistory');
+      localStorage.removeItem('lastContractId');
+      localStorage.removeItem('lifecycleAiMatterId');
+      localStorage.removeItem('deleted_rfp_ids');
+      sessionStorage.clear();
+      queryClient.clear();
+      setEmail('');
+      setPassword('');
+      setAuthenticated(false);
+      setSigningOut(false);
+    }
+  }
+
   if (checking) return <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white"><div className="loading-spinner border-white" /></div>;
-  if (authenticated) return <>{children}</>;
+  if (authenticated) return <AuthContext.Provider value={{ signOut, signingOut }}>{children}</AuthContext.Provider>;
   return <main className="min-h-screen bg-slate-950 px-4 py-10 text-white">
     <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-2xl lg:grid-cols-[1.15fr_.85fr]">
       <section className="relative hidden overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950 to-blue-900 p-12 lg:block">

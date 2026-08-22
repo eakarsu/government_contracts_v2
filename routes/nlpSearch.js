@@ -47,7 +47,7 @@ router.post('/natural', async (req, res) => {
     // Step 2: Execute vector database search
     let vectorResults = [];
     try {
-      const vectorService = require('../server').vectorService;
+      const vectorService = require('../services/vectorServiceInstance');
       if (vectorService && vectorService.isConnected) {
         const searchResult = await vectorService.searchContracts(
           parsedQuery.parsedCriteria.keywords.join(' '), 
@@ -55,7 +55,7 @@ router.post('/natural', async (req, res) => {
         );
         
         // Map vector results to contract format
-        vectorResults = searchResult.map(result => ({
+        vectorResults = searchResult.results.map(result => ({
           id: result.id,
           noticeId: result.id,
           title: result.title,

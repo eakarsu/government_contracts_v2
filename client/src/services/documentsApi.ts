@@ -12,7 +12,7 @@ export class DocumentsApiService {
   // Document processing
   async processDocuments(contractId?: string, limit: number = 50): Promise<ApiResponse> {
     try {
-      const response = await api.post<ApiResponse>('/documents/process', { contract_id: contractId, limit }, {
+      const response = await api.post<ApiResponse>('/documents/processing', { contract_id: contractId, limit }, {
         timeout: 3600000 // 1 hour timeout
       });
       return response.data;

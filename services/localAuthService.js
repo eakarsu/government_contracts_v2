@@ -28,4 +28,9 @@ async function verifySession(token) {
   return { sub: String(session.user.id), email: session.user.email, roles: session.roles };
 }
 
-module.exports = { login, verifySession };
+async function logout(token) {
+  if (!token) return;
+  await prisma.localAuthSession.deleteMany({ where: { tokenHash: hashToken(token) } });
+}
+
+module.exports = { login, logout, verifySession };

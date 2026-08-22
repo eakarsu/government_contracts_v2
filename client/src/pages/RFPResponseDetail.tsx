@@ -183,28 +183,53 @@ const RFPResponseDetail: React.FC = () => {
         </div>
       )}
 
+      {rfpResponse.metadata?.templateName ? (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-5">
+          <h3 className="font-medium text-blue-950">Draft inputs</h3>
+          <div className="mt-2 grid grid-cols-1 gap-2 text-sm text-blue-900 md:grid-cols-2">
+            <p><strong>Template:</strong> {rfpResponse.metadata.templateName}</p>
+            <p><strong>Company:</strong> {rfpResponse.metadata.companyName || 'Not recorded'}</p>
+            <p><strong>Configured target:</strong> {(rfpResponse.metadata.templateTargetWordCount || 0).toLocaleString()} words when evidence supports it</p>
+            <p><strong>Processed solicitation documents:</strong> {rfpResponse.metadata.sourceDocumentCount || 0}</p>
+            <p><strong>Past-performance records:</strong> {rfpResponse.metadata.profileEvidence?.pastPerformanceCount || 0}</p>
+            <p><strong>Key-personnel records:</strong> {rfpResponse.metadata.profileEvidence?.keyPersonnelCount || 0}</p>
+          </div>
+          {(rfpResponse.metadata.sourceDocumentCount || 0) === 0 ? (
+            <p className="mt-3 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              No processed solicitation content was available. Increasing the token limit cannot fill missing facts; REVIEW REQUIRED placeholders are expected until authoritative requirements are supplied.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* Compliance Status */}
       {rfpResponse.complianceStatus && (
         <div className="bg-white p-6 rounded-lg shadow border">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Compliance Status</h3>
           <div className="flex items-center space-x-4">
             <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-              rfpResponse.complianceStatus.overall 
+              rfpResponse.complianceStatus.reviewRequired
+                ? 'bg-amber-100 text-amber-800'
+                : rfpResponse.complianceStatus.overall
                 ? 'bg-green-100 text-green-800' 
                 : 'bg-red-100 text-red-800'
             }`}>
-              {rfpResponse.complianceStatus.overall ? '✅ Compliant' : '❌ Non-Compliant'}
+              {rfpResponse.complianceStatus.reviewRequired
+                ? '⚠️ Human Review Required'
+                : rfpResponse.complianceStatus.overall ? '✅ Compliant' : '❌ Non-Compliant'}
             </div>
-            <span className="text-sm text-gray-500">
-              Score: {Math.round(rfpResponse.complianceStatus.score)}%
-            </span>
+            {!rfpResponse.complianceStatus.reviewRequired ? (
+              <span className="text-sm text-gray-500">
+                Score: {Math.round(rfpResponse.complianceStatus.score)}%
+              </span>
+            ) : null}
           </div>
           {rfpResponse.complianceStatus.issues && rfpResponse.complianceStatus.issues.length > 0 && (
             <div className="mt-4">
               <h4 className="text-sm font-medium text-gray-900 mb-2">Issues:</h4>
               <ul className="space-y-1">
                 {rfpResponse.complianceStatus.issues.map((issue, index) => (
-                  <li key={index} className="text-sm text-red-600">
+                  <li key={index} className="text-sm text-amber-700">
                     • {issue.message || 'Compliance issue'}
                   </li>
                 ))}
@@ -216,9 +241,6 @@ const RFPResponseDetail: React.FC = () => {
 
       {/* Download Options */}
       <div id="download-section" className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">📄 Download RFP Response</h2>
-        </div>
         <div className="p-6">
           <DownloadButtons 
             rfpResponseId={rfpResponse.id} 
@@ -243,7 +265,7 @@ const RFPResponseDetail: React.FC = () => {
                     section.status === 'approved' ? 'bg-green-100 text-green-800' :
                     section.status === 'reviewed' ? 'bg-yellow-100 text-yellow-800' :
                     section.status === 'generated' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
+                    'bg-red-100 text-red-800'
                   }`}>
                     {section.status}
                   </span>
@@ -259,8 +281,10 @@ const RFPResponseDetail: React.FC = () => {
                   <div className="mt-3 p-3 bg-gray-50 rounded-md">
                     <div className="text-sm">
                       <span className="font-medium">Compliance: </span>
-                      <span className={section.compliance.wordLimit?.compliant ? 'text-green-600' : 'text-red-600'}>
-                        {section.compliance.wordLimit?.compliant ? 'Within limits' : 'Exceeds limits'}
+                      <span className={section.status === 'error' ? 'text-red-600' : section.compliance.wordLimit?.compliant ? 'text-green-600' : 'text-red-600'}>
+                        {section.status === 'error'
+                          ? 'Generation failed'
+                          : section.compliance.wordLimit?.compliant ? 'Within limits' : 'Exceeds word limit'}
                       </span>
                       {section.compliance.wordLimit?.maximum && (
                         <span className="text-gray-500 ml-2">

@@ -20,6 +20,13 @@ test('persists, replaces, and ranks local vector records deterministically', asy
     const results = await index.queryItems([1, 0], 2);
     expect(results.map(result => result.item.metadata.id)).toEqual(['first', 'second']);
     expect(results[0].score).toBeGreaterThan(results[1].score);
+
+    const document = await fs.readJson(index.file);
+    document.items.unshift({ ...document.items[0], metadata: { id: 'first', title: 'Stale duplicate' } });
+    await fs.writeJson(index.file, document);
+    const deduplicated = await index.listItems();
+    expect(deduplicated).toHaveLength(2);
+    expect(deduplicated.find(item => item.metadata.id === 'first').metadata.title).toBe('Updated');
   } finally {
     await fs.remove(directory);
   }

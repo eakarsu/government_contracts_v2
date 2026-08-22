@@ -4,7 +4,8 @@ const config = require('../config/env');
 class NLPService {
   constructor() {
     this.apiKey = config.openRouterApiKey;
-    this.baseURL = 'https://openrouter.ai/api/v1';
+    this.baseURL = config.openRouterBaseUrl.replace(/\/$/, '');
+    this.model = config.openRouterModel;
   }
 
   async extractEntities(text) {
@@ -29,7 +30,7 @@ class NLPService {
 
       console.log('🔍 Sending to OpenRouter for entity extraction:', text);
       const response = await axios.post(`${this.baseURL}/chat/completions`, {
-        model: "anthropic/claude-sonnet-4",
+        model: this.model,
         messages: [
           {
             role: "system",
@@ -87,7 +88,7 @@ Return valid JSON with:
 
       console.log('🔍 Sending to OpenRouter for intent classification:', query);
       const response = await axios.post(`${this.baseURL}/chat/completions`, {
-        model: "anthropic/claude-sonnet-4",
+        model: this.model,
         messages: [
           {
             role: "system",
@@ -137,7 +138,7 @@ Return valid JSON:
   async expandTerms(terms) {
     try {
       const response = await axios.post(`${this.baseURL}/chat/completions`, {
-        model: "anthropic/claude-sonnet-4",
+        model: this.model,
         messages: [{
           role: "user",
           content: `Expand these contract search terms with synonyms and related concepts:

@@ -1,6 +1,6 @@
 const express = require('express');
 const { prisma } = require('../config/database');
-const vectorService = require('../services/vectorService');
+const vectorService = require('../services/vectorServiceInstance');
 const { summarizeContent } = require('../services/summarizationService');
 const config = require('../config/env');
 const axios = require('axios');
@@ -468,9 +468,7 @@ async function processTestDocumentsSequentially(documents, jobId) {
         
         const result = await summarizeContent(
           filePathToProcess,
-          doc.filename || 'test_document',
-          '',
-          'openai/gpt-4.1'
+          doc.filename || 'test_document'
         );
 
         if (result) {

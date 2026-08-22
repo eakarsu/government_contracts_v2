@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { RFPTemplate, RFPTemplateForm, RFPSection, EvaluationCriteria } from '../types';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
+
+const STANDARD_TEMPLATE_NAME = 'Standard Government Proposal Application';
 
 const RFPTemplates: React.FC = () => {
   const [templates, setTemplates] = useState<RFPTemplate[]>([]);
@@ -9,6 +12,8 @@ const RFPTemplates: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<RFPTemplate | null>(null);
+  const [updating, setUpdating] = useState(false);
   const [formData, setFormData] = useState<RFPTemplateForm>({
     name: '',
     agency: '',
@@ -18,6 +23,7 @@ const RFPTemplates: React.FC = () => {
       technicalWeight: 60,
       costWeight: 30,
       pastPerformanceWeight: 10,
+      evidenceInstructions: '',
       factors: []
     }
   });
@@ -41,15 +47,7 @@ const RFPTemplates: React.FC = () => {
   };
 
   const handleCreateTemplate = async () => {
-    if (!formData.name.trim()) {
-      setError('Template name is required');
-      return;
-    }
-
-    if (formData.sections.length === 0) {
-      setError('At least one section is required');
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       setCreating(true);
@@ -67,6 +65,76 @@ const RFPTemplates: React.FC = () => {
     }
   };
 
+  const validateForm = () => {
+    if (!formData.name.trim()) {
+      setError('Template name is required');
+      return false;
+    }
+    if (formData.sections.length === 0) {
+      setError('At least one section is required');
+      return false;
+    }
+    if (formData.sections.some(section => !section.title.trim())) {
+      setError('Every template section must have a title');
+      return false;
+    }
+    const totalWeight = formData.evaluationCriteria.technicalWeight
+      + formData.evaluationCriteria.costWeight
+      + formData.evaluationCriteria.pastPerformanceWeight;
+    if (totalWeight !== 100) {
+      setError('Evaluation criteria weights must total 100%');
+      return false;
+    }
+    return true;
+  };
+
+  const handleEditTemplate = (template: RFPTemplate) => {
+    setError(null);
+    setShowCreateForm(false);
+    setEditingTemplate(template);
+    setFormData({
+      name: template.name,
+      agency: template.agency || '',
+      description: template.description || '',
+      sections: template.sections.map(({ id: _id, ...section }) => ({
+        ...section,
+        mappings: [...(section.mappings || [])]
+      })),
+      evaluationCriteria: {
+        ...template.evaluationCriteria,
+        evidenceInstructions: template.evaluationCriteria?.evidenceInstructions || '',
+        factors: [...(template.evaluationCriteria?.factors || [])]
+      }
+    });
+  };
+
+  const handleUpdateTemplate = async () => {
+    if (!editingTemplate || !validateForm()) return;
+    try {
+      setUpdating(true);
+      setError(null);
+      const response = await apiService.updateRFPTemplate(editingTemplate.id, formData);
+      if (response.success) {
+        setTemplates(current => current.map(template => (
+          template.id === editingTemplate.id ? response.template : template
+        )));
+        setEditingTemplate(null);
+        resetForm();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to update template');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const closeForm = () => {
+    setShowCreateForm(false);
+    setEditingTemplate(null);
+    resetForm();
+    setError(null);
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -77,6 +145,7 @@ const RFPTemplates: React.FC = () => {
         technicalWeight: 60,
         costWeight: 30,
         pastPerformanceWeight: 10,
+        evidenceInstructions: '',
         factors: []
       }
     });
@@ -87,6 +156,8 @@ const RFPTemplates: React.FC = () => {
       title: '',
       description: '',
       required: true,
+      maxWords: 600,
+      format: 'narrative',
       mappings: []
     };
     setFormData(prev => ({
@@ -96,6 +167,7 @@ const RFPTemplates: React.FC = () => {
   };
 
   const addPredefinedSections = () => {
+    const wordLimits = [700, 1800, 1200, 1000, 900, 800, 900, 800, 800, 1000];
     const predefinedSections: Omit<RFPSection, 'id'>[] = [
       {
         title: 'Executive Summary',
@@ -157,7 +229,11 @@ const RFPTemplates: React.FC = () => {
         required: false,
         mappings: ['security', 'compliance', 'regulations']
       }
-    ];
+    ].map((section, index) => ({
+      ...section,
+      maxWords: wordLimits[index],
+      format: 'narrative' as const
+    }));
 
     setFormData(prev => ({
       ...prev,
@@ -193,12 +269,25 @@ const RFPTemplates: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">RFP Templates</h1>
           <p className="text-gray-600">Manage templates for different agencies and RFP types</p>
         </div>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-        >
-          Create Template
-        </button>
+        <div className="flex gap-3">
+          <Link
+            to="/rfp/company-profiles"
+            className="border border-green-600 text-green-700 px-4 py-2 rounded-md hover:bg-green-50"
+          >
+            Company Profiles
+          </Link>
+          <button
+            onClick={() => {
+              setEditingTemplate(null);
+              resetForm();
+              setError(null);
+              setShowCreateForm(true);
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            Create Template
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -243,7 +332,10 @@ const RFPTemplates: React.FC = () => {
                     </div>
                   </div>
                   <div className="ml-4 flex space-x-2">
-                    <button className="text-blue-600 hover:text-blue-800 text-sm">
+                    <button
+                      onClick={() => handleEditTemplate(template)}
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
                       Edit
                     </button>
                     <button className="text-red-600 hover:text-red-800 text-sm">
@@ -273,11 +365,13 @@ const RFPTemplates: React.FC = () => {
         )}
       </div>
 
-      {/* Create Form Modal */}
-      {showCreateForm && (
+      {/* Create/Edit Form Modal */}
+      {(showCreateForm || editingTemplate) && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Create RFP Template</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-6">
+              {editingTemplate ? `Edit RFP Template: ${editingTemplate.name}` : 'Create RFP Template'}
+            </h3>
             
             <div className="space-y-6">
               {/* Basic Information */}
@@ -292,9 +386,13 @@ const RFPTemplates: React.FC = () => {
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={editingTemplate?.name === STANDARD_TEMPLATE_NAME}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
                       placeholder="Enter template name"
                     />
+                    {editingTemplate?.name === STANDARD_TEMPLATE_NAME ? (
+                      <p className="mt-1 text-xs text-gray-500">The built-in template name is fixed, but its configuration can be edited.</p>
+                    ) : null}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -398,6 +496,25 @@ const RFPTemplates: React.FC = () => {
                     <span className="text-red-600 ml-2">⚠️ Should total 100%</span>
                   )}
                 </div>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Evidence Instructions
+                  </label>
+                  <textarea
+                    value={formData.evaluationCriteria.evidenceInstructions || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      evaluationCriteria: {
+                        ...prev.evaluationCriteria,
+                        evidenceInstructions: e.target.value
+                      }
+                    }))}
+                    rows={3}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Describe which solicitation sources and company evidence must support this template."
+                  />
+                  <p className="mt-1 text-xs text-gray-500">These instructions guide every proposal generated with this template.</p>
+                </div>
               </div>
 
               {/* Sections */}
@@ -477,8 +594,56 @@ const RFPTemplates: React.FC = () => {
                             placeholder="Describe what should be covered in this section"
                           />
                         </div>
-                        
-                        
+
+                        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Maximum Words
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={section.maxWords || ''}
+                              onChange={(e) => updateSection(index, 'maxWords', e.target.value ? Number(e.target.value) : undefined)}
+                              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Optional word limit"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Response Format
+                            </label>
+                            <select
+                              value={section.format || 'narrative'}
+                              onChange={(e) => updateSection(index, 'format', e.target.value)}
+                              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="narrative">Narrative</option>
+                              <option value="table">Table</option>
+                              <option value="spreadsheet">Spreadsheet</option>
+                              <option value="list">List</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Data Mappings
+                          </label>
+                          <input
+                            type="text"
+                            value={(section.mappings || []).join(', ')}
+                            onChange={(e) => updateSection(
+                              index,
+                              'mappings',
+                              e.target.value.split(',').map(value => value.trim()).filter(Boolean)
+                            )}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="technical_approach, requirements, methodology"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">Comma-separated fields used to guide proposal generation.</p>
+                        </div>
+
                         <div className="flex items-center">
                           <input
                             type="checkbox"
@@ -506,23 +671,21 @@ const RFPTemplates: React.FC = () => {
 
             <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
               <button
-                onClick={() => {
-                  setShowCreateForm(false);
-                  resetForm();
-                  setError(null);
-                }}
+                onClick={closeForm}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                disabled={creating}
+                disabled={creating || updating}
               >
                 Cancel
               </button>
               <button
-                onClick={handleCreateTemplate}
-                disabled={creating || !formData.name.trim() || formData.sections.length === 0}
+                onClick={editingTemplate ? handleUpdateTemplate : handleCreateTemplate}
+                disabled={creating || updating || !formData.name.trim() || formData.sections.length === 0}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                {creating && <LoadingSpinner size="sm" className="mr-2" />}
-                {creating ? 'Creating...' : 'Create Template'}
+                {(creating || updating) && <LoadingSpinner size="sm" className="mr-2" />}
+                {editingTemplate
+                  ? (updating ? 'Saving...' : 'Save Changes')
+                  : (creating ? 'Creating...' : 'Create Template')}
               </button>
             </div>
           </div>

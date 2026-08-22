@@ -1,12 +1,12 @@
 const { Pool } = require('pg');
 const AIService = require('./aiService');
-const VectorService = require('./vectorService');
+const sharedVectorService = require('./vectorServiceInstance');
 const logger = require('../utils/logger');
 
 class SemanticSearchService {
-  constructor() {
+  constructor(vectorService = sharedVectorService) {
     this.aiService = AIService;
-    this.vectorService = new VectorService();
+    this.vectorService = vectorService;
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL
     });
@@ -65,7 +65,8 @@ class SemanticSearchService {
         limit = 20,
         threshold = 0.7,
         filters = {},
-        userId = null
+        userId = null,
+        offset = 0
       } = options;
 
       logger.info(`Starting semantic search for: "${queryText}"`);
@@ -75,21 +76,22 @@ class SemanticSearchService {
         logger.info('Using vector service for semantic search');
         
         try {
-          const results = await this.vectorService.searchContracts(queryText, {
+          const searchPage = await this.vectorService.searchContracts(queryText, {
             limit,
+            offset,
             threshold: 0.01, // Much lower threshold to see all results
             filters
           });
 
-          logger.info(`Vector search returned ${results.length} results`);
+          logger.info(`Vector search returned ${searchPage.results.length} of ${searchPage.totalResults} results`);
 
           // If vector search returns results, use them
-          if (results.length > 0) {
+          if (searchPage.results.length > 0) {
             // Skip storing search query since search_queries table doesn't exist
             // Search history is handled by frontend localStorage
 
             return {
-              results: results.map(result => ({
+              results: searchPage.results.map(result => ({
                 id: result.id,
                 noticeId: result.notice_id || result.noticeId,
                 notice_id: result.notice_id || result.noticeId,
@@ -105,7 +107,9 @@ class SemanticSearchService {
                 keywordScore: 0,
                 naicsMatch: result.naicsCode ? 85 : 0
               })),
-              totalResults: results.length,
+              totalResults: searchPage.totalResults,
+              hasMore: searchPage.hasMore,
+              offset: searchPage.offset,
               query: queryText,
               searchType: 'semantic'
             };

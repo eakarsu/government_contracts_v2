@@ -55,9 +55,10 @@ class LocalVectorIndex {
         norm: magnitude(item.vector),
         vector: item.vector,
       };
-      const existing = document.items.findIndex(entry => entry.metadata?.id && entry.metadata.id === stored.metadata.id);
-      if (existing >= 0) document.items[existing] = stored;
-      else document.items.push(stored);
+      if (stored.metadata.id) {
+        document.items = document.items.filter(entry => entry.metadata?.id !== stored.metadata.id);
+      }
+      document.items.push(stored);
       await this.write(document);
       return stored;
     });
@@ -65,7 +66,13 @@ class LocalVectorIndex {
   }
 
   async listItems() {
-    return (await this.read()).items;
+    const items = (await this.read()).items;
+    const deduplicated = new Map();
+    items.forEach((item, index) => {
+      const key = item.metadata?.id ? `id:${item.metadata.id}` : `position:${index}`;
+      deduplicated.set(key, item);
+    });
+    return [...deduplicated.values()];
   }
 
   async queryItems(vector, limit = 10) {

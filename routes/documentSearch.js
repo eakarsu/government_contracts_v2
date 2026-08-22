@@ -1,7 +1,7 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const vectorService = require('../services/vectorService');
+const vectorService = require('../services/vectorServiceInstance');
 const { summarizeContent } = require('../services/summarizationService');
 const config = require('../config/env');
 const axios = require('axios');
@@ -294,7 +294,7 @@ router.post('/download', async (req, res) => {
             // Document not found in vector DB, download and process it
             console.log(`📥 [DEBUG] Downloading document from government: ${docUrl}`);
             try {
-              const result = await summarizeContent(docUrl, `doc_${contract.noticeId}`, '', 'openai/gpt-4.1');
+              const result = await summarizeContent(docUrl, `doc_${contract.noticeId}`);
               
               if (result) {
                 // Index the processed document in vector database
@@ -1552,9 +1552,7 @@ async function processTestDocumentsSequentially(documents, jobId) {
         
         const result = await summarizeContent(
           finalProcessingPath,
-          doc.filename || 'test_document',
-          '',
-          'openai/gpt-4.1'
+          doc.filename || 'test_document'
         );
         
         // Clean up temp conversion directory if it was created
@@ -3694,9 +3692,10 @@ router.post('/contracts/:contractId/analyze', async (req, res) => {
     console.log(`🔍 [DEBUG] Analyzing contract: ${contractId}`);
 
     // Find the contract in the database
-    const contract = await prisma.contract.findUnique({
+    const databaseContract = await prisma.contract.findUnique({
       where: { noticeId: contractId }
     });
+    const contract = databaseContract || await vectorService.getContractById(contractId);
 
     if (!contract) {
       return res.status(404).json({

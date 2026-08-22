@@ -1,6 +1,7 @@
 import React from 'react';
-import { Menu, Bell, Search, Settings } from 'lucide-react';
+import { Menu, Bell, LogOut, Search, Settings } from 'lucide-react';
 import { AppConfig } from '../../types';
+import { useAuth } from '../AuthGate';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -8,6 +9,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick, config }) => {
+  const { signOut, signingOut } = useAuth();
+
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="flex items-center justify-between px-6 py-4">
@@ -72,6 +75,17 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, config }) => {
               )}
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            disabled={signingOut}
+            className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Log out"
+          >
+            <LogOut className="h-5 w-5" />
+            <span className="hidden sm:inline">{signingOut ? 'Logging out…' : 'Log out'}</span>
+          </button>
         </div>
       </div>
     </header>

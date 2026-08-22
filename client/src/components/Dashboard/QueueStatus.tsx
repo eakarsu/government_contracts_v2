@@ -49,8 +49,13 @@ const QueueStatus: React.FC = () => {
 
   return (
     <div className="bg-white shadow rounded-lg p-6 h-fit">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-medium text-gray-900">Document Processing Status</h3>
+      <div className="flex justify-between items-start mb-6 gap-3">
+        <div>
+          <h3 className="text-lg font-medium text-gray-900">Document Processing Status</h3>
+          <p className="mt-1 text-xs text-gray-500">
+            Fetch queues document links; processing moves them to completed or failed.
+          </p>
+        </div>
         {queueStatus.is_processing && (
           <div className="flex items-center text-sm text-yellow-600">
             <LoadingSpinner size="sm" />
@@ -96,11 +101,11 @@ const QueueStatus: React.FC = () => {
         </div>
       )}
 
-      {queueStatus.recent_documents && queueStatus.recent_documents.length > 0 && (
+      {queueStatus.recent_completed && queueStatus.recent_completed.length > 0 && (
         <div>
           <h4 className="text-sm font-medium text-gray-700 mb-2">Recent Completions</h4>
           <div className="space-y-2">
-            {queueStatus.recent_documents.slice(0, 3).map((doc: { filename: string; completed_at: string }, index: number) => (
+            {queueStatus.recent_completed.slice(0, 3).map((doc: { filename: string; completed_at: string }, index: number) => (
               <div key={index} className="flex justify-between items-center text-xs">
                 <span className="text-gray-600 truncate">{doc.filename}</span>
                 <span className="text-gray-500">

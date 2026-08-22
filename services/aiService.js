@@ -3,8 +3,8 @@ const config = require('../config/env');
 class AIService {
   constructor() {
     this.apiKey = config.openRouterApiKey;
-    this.baseUrl = 'https://openrouter.ai/api/v1';
-    this.chatModel = 'anthropic/claude-3-haiku';
+    this.baseUrl = config.openRouterBaseUrl.replace(/\/$/, '');
+    this.chatModel = config.openRouterModel;
   }
 
   async analyzeDocument(text, documentType = 'rfp') {
@@ -345,7 +345,7 @@ Return structured data that can be parsed into factors, recommendations, and com
           'X-Title': 'Government Contracts Platform'
         },
         body: JSON.stringify({
-          model: options.model || this.chatModel,
+          model: this.chatModel,
           messages,
           max_tokens: options.maxTokens || 1000,
           temperature: options.temperature || 0.3

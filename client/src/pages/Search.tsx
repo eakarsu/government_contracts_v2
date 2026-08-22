@@ -71,21 +71,7 @@ const Search: React.FC = () => {
           console.log('Should show pagination controls');
         }
       } else {
-        // Fallback: if no pagination data, calculate based on results
-        console.log('No pagination data received, using fallback logic');
-        const total = data.results.length;
-        const limit = searchForm.limit;
-        // If we got exactly the limit, assume there might be more
-        const estimatedTotal = total >= limit ? total * 2 : total;
-        setTotalPages(Math.ceil(estimatedTotal / limit));
-      }
-      
-      // Special handling: If backend returns exactly the limit but we know there are more results
-      // (based on previous searches showing 293 results), force pagination
-      if (data.results.length === searchForm.limit && searchForm.limit < 293) {
-        console.log('Forcing pagination - got exactly limit results, likely more available');
-        const estimatedTotal = 293; // Use known total from logs
-        setTotalPages(Math.ceil(estimatedTotal / searchForm.limit));
+        setTotalPages(1);
       }
     },
   });
@@ -419,7 +405,7 @@ const Search: React.FC = () => {
           </div>
 
           {/* Pagination Controls */}
-          {searchResult && searchResult.results.length > 0 && (totalPages > 1 || (searchResult.results.length === searchForm.limit && searchForm.limit < 293)) && (
+          {searchResult && searchResult.results.length > 0 && totalPages > 1 && (
             <div className="bg-white shadow rounded-lg p-6">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700">

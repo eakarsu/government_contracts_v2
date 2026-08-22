@@ -1,5 +1,6 @@
 const { prisma } = require('../config/database');
-const vectorService = require('./vectorService');
+const config = require('../config/env');
+const vectorService = require('./vectorServiceInstance');
 const summaryService = require('./summaryService');
 
 /**
@@ -63,10 +64,14 @@ class RFPService {
       console.log(`🚀 [RFP] Generating RFP response for contract ${contractId}`);
 
       // Get required data
-      const [contract, template, companyProfile] = await Promise.all([
+      const [contract, template, companyProfile, sourceDocuments] = await Promise.all([
         prisma.contract.findUnique({ where: { noticeId: contractId } }),
         prisma.rfpTemplate.findUnique({ where: { id: templateId } }),
-        prisma.companyProfile.findUnique({ where: { id: companyProfileId } })
+        prisma.companyProfile.findUnique({ where: { id: companyProfileId } }),
+        prisma.documentProcessingQueue.findMany({
+          where: { contractNoticeId: contractId, status: 'completed', processedData: { not: null } },
+          orderBy: { completedAt: 'asc' }
+        })
       ]);
 
       if (!contract || !template || !companyProfile) {
@@ -81,18 +86,20 @@ class RFPService {
       };
       
       const companyData = JSON.parse(companyProfile.profileData || '{}');
+      companyData.companyName = companyData.companyName || companyProfile.companyName;
 
       // Generate sections
       const sections = await this.generateAllSections(
-        templateData.sections,
+        templateData,
         contract,
         companyData,
-        options
+        { ...options, sourceDocuments }
       );
 
       // Calculate compliance and scoring
       const compliance = this.calculateCompliance(sections, templateData);
-      const predictedScore = this.predictScore(sections, templateData, companyData);
+      const predictedScore = null;
+      const generationBatches = this.createSectionBatches(templateData.sections);
 
       return {
         sections,
@@ -100,6 +107,21 @@ class RFPService {
         predictedScore,
         metadata: {
           generatedAt: new Date().toISOString(),
+          promptVersion: 'evidence-routed-v4-batched',
+          sourceDocumentCount: sourceDocuments.length,
+          templateName: templateData.name,
+          companyName: companyData.companyName || companyProfile.companyName,
+          templateTargetWordCount: this.templateTargetWordCount(templateData.sections),
+          generationBatchCount: generationBatches.length,
+          generationTokenAllowance: generationBatches.reduce(
+            (total, batch) => total + this.sectionBatchTokenBudget(batch),
+            0
+          ),
+          perRequestTokenCeiling: config.rfpMaxTokens,
+          profileEvidence: {
+            pastPerformanceCount: Array.isArray(companyData.pastPerformance) ? companyData.pastPerformance.filter(item => item?.status !== 'placeholder').length : 0,
+            keyPersonnelCount: Array.isArray(companyData.keyPersonnel) ? companyData.keyPersonnel.filter(item => item?.status !== 'placeholder').length : 0
+          },
           wordCount: sections.reduce((total, section) => total + section.wordCount, 0),
           pageCount: Math.ceil(sections.reduce((total, section) => total + section.wordCount, 0) / 250)
         }
@@ -155,43 +177,6 @@ class RFPService {
       score: Math.round(overallScore),
       checks,
       issues
-    };
-  }
-
-  /**
-   * Predict RFP score
-   */
-  predictScore(sections, template, companyData) {
-    const evaluationCriteria = template.evaluationCriteria || {};
-    
-    // Calculate technical score
-    const technicalScore = this.calculateTechnicalScore(sections, evaluationCriteria);
-    
-    // Calculate past performance score
-    const pastPerformanceScore = this.calculatePastPerformanceScore(companyData);
-    
-    // Calculate overall score
-    const technicalWeight = evaluationCriteria.technicalWeight || 60;
-    const pastPerformanceWeight = evaluationCriteria.pastPerformanceWeight || 20;
-    const costWeight = evaluationCriteria.costWeight || 20;
-    
-    const overall = (
-      (technicalScore * technicalWeight / 100) +
-      (pastPerformanceScore * pastPerformanceWeight / 100) +
-      (85 * costWeight / 100) // Placeholder cost score
-    );
-
-    return {
-      overall: Math.round(overall),
-      technical: Math.round(technicalScore),
-      cost: 85, // Placeholder
-      pastPerformance: Math.round(pastPerformanceScore),
-      confidence: 75,
-      factors: {
-        strengths: this.identifyStrengths(sections, companyData),
-        weaknesses: this.identifyWeaknesses(sections, companyData),
-        recommendations: this.generateRecommendations(sections, companyData)
-      }
     };
   }
 
@@ -339,74 +324,307 @@ Extract and provide structured RFP analysis in JSON format:
     }
   }
 
-  async generateAllSections(templateSections, contract, companyData, options) {
+  async generateAllSections(template, contract, companyData, options = {}) {
+    const templateSections = Array.isArray(template?.sections) ? template.sections : [];
     try {
-      console.log(`🚀 [RFP] Making single API call to generate all ${templateSections.length} sections`);
-
-      // Build comprehensive prompt for the contract document
-      const contractContent = this.buildContractContent(contract, companyData, options.customInstructions);
-      console.log(`🚀 [RFP] Making single API call to generate all ${templateSections.length} sections.Sending prompt: ${contractContent}`);
-
-      // Make single call to get structured JSON response for ALL sections
-      const result = await summaryService.summarizeContent(
-        contractContent,
-        process.env.OPENROUTER_API_KEY
-      );
-
-      if (!result.success || !result.result) {
-        console.error(`❌ [RFP] Failed to generate content:`, result.error);
-        return this.generateFallbackSections(templateSections);
+      if (templateSections.length === 0) {
+        const templateError = new Error('The selected RFP template does not contain any sections');
+        templateError.statusCode = 422;
+        templateError.code = 'RFP_TEMPLATE_EMPTY';
+        throw templateError;
       }
 
-      // Extract all sections from the single API response
-      const sections = [];
-      for (const section of templateSections) {
-        try {
-          const content = this.extractSectionFromStructuredResponse(result.result, section);
-          const contentString = String(content);
-          const wordCount = contentString.split(' ').length;
+      const batches = this.createSectionBatches(templateSections);
+      console.log(
+        `🚀 [RFP] Generating ${templateSections.length} sections in ${batches.length} provider request batch(es); ` +
+        `configured per-request ceiling ${config.rfpMaxTokens.toLocaleString('en-US')} tokens`
+      );
 
-          sections.push({
-            id: section.id,
-            sectionId: section.id,
-            title: section.title,
-            content: contentString,
-            wordCount,
-            status: 'generated',
-            compliance: this.calculateSectionCompliance(contentString, section),
-            lastModified: new Date().toISOString(),
-            modifiedBy: 'AI Generator'
-          });
-        } catch (error) {
-          console.error(`Error extracting section ${section.title}:`, error);
-          sections.push(this.generateErrorSection(section));
+      const sections = [];
+      for (let index = 0; index < batches.length; index += 1) {
+        const batch = batches[index];
+        let result = await this.requestSectionBatch(
+          batch,
+          template,
+          contract,
+          companyData,
+          options,
+          index + 1,
+          batches.length
+        );
+
+        if (!result.success || !result.result) {
+          if (batch.length === 1) this.throwGenerationError(result, batch);
+
+          console.warn(
+            `⚠️ [RFP] Batch ${index + 1} failed; retrying its ${batch.length} sections individually`
+          );
+          for (const section of batch) {
+            result = await this.requestSectionBatch(
+              [section],
+              template,
+              contract,
+              companyData,
+              options,
+              index + 1,
+              batches.length,
+              true
+            );
+            if (!result.success || !result.result) this.throwGenerationError(result, [section]);
+            sections.push(this.createGeneratedSection(result.result, section));
+          }
+        } else {
+          for (const section of batch) {
+            sections.push(this.createGeneratedSection(result.result, section));
+          }
         }
       }
 
-      console.log(`✅ [RFP] Successfully generated ${sections.length} sections from single API call`);
+      console.log(`✅ [RFP] Successfully generated ${sections.length} sections across ${batches.length} batch(es)`);
       return sections;
 
     } catch (error) {
       console.error(`❌ [RFP] Error in generateAllSections:`, error);
-      return this.generateFallbackSections(templateSections);
+      throw error;
     }
   }
 
-  buildContractContent(contract, companyData, customInstructions) {
-    return `TASK: Analyze the government contract and generate a comprehensive RFP response, up to 10 pages, addressing each section below. For each section, follow the description and focus on the mapped contract/company data. Write in a professional, persuasive tone, ensuring compliance with government RFP best practices.
+  createSectionBatches(templateSections = [], maxTargetWords = 2800, maxSections = 4) {
+    const batches = [];
+    let currentBatch = [];
+    let currentTargetWords = 0;
 
-CONTRACT INFORMATION: 
-Title: ${contract.title}
-Agency: ${contract.agency}
-Description: ${contract.description}
+    for (const section of templateSections) {
+      const sectionTargetWords = this.templateSectionTarget(section).targetWords;
+      const wouldExceedWordTarget = currentBatch.length > 0 && currentTargetWords + sectionTargetWords > maxTargetWords;
+      const wouldExceedSectionCount = currentBatch.length >= maxSections;
+
+      if (wouldExceedWordTarget || wouldExceedSectionCount) {
+        batches.push(currentBatch);
+        currentBatch = [];
+        currentTargetWords = 0;
+      }
+
+      currentBatch.push(section);
+      currentTargetWords += sectionTargetWords;
+    }
+
+    if (currentBatch.length > 0) batches.push(currentBatch);
+    return batches;
+  }
+
+  sectionBatchTokenBudget(sections = []) {
+    const targetWords = this.templateTargetWordCount(sections);
+    const estimatedOutputTokens = Math.ceil(targetWords * 1.8) + 1500;
+    return Math.min(config.rfpMaxTokens, Math.max(6000, estimatedOutputTokens));
+  }
+
+  async requestSectionBatch(batch, template, contract, companyData, options, batchNumber, batchCount, isRetry = false) {
+    const batchTemplate = { ...template, sections: batch };
+    const contractContent = this.buildContractContent(
+      contract,
+      companyData,
+      options.customInstructions,
+      options.sourceDocuments || [],
+      batchTemplate,
+      options.focusAreas || []
+    );
+    const requiredKeys = batch.map(section => section.id);
+    const maximumResponseWords = batch.reduce((total, section) => {
+      const maxWords = Number(section.maxWords);
+      return total + (Number.isFinite(maxWords) && maxWords > 0 ? maxWords : 600);
+    }, 0);
+    const maxTokens = this.sectionBatchTokenBudget(batch);
+    const label = isRetry
+      ? `individual retry for ${batch[0].title}`
+      : `batch ${batchNumber} of ${batchCount}`;
+
+    console.log(
+      `🧩 [RFP] Requesting ${label}: ${requiredKeys.join(', ')} ` +
+      `(up to ${maxTokens.toLocaleString('en-US')} output tokens)`
+    );
+
+    return summaryService.summarizeContent(
+      contractContent,
+      config.openRouterApiKey,
+      true,
+      label,
+      {
+        maxTokens,
+        systemPrompt: `Draft only the requested government proposal sections using supplied facts. Return one valid JSON object with exactly these keys and string values: ${requiredKeys.join(', ')}. Follow each section's configured length and format, with a combined ceiling of ${maximumResponseWords.toLocaleString('en-US')} words. Never add text outside the JSON object and never invent company or solicitation facts.`
+      }
+    );
+  }
+
+  throwGenerationError(result, batch) {
+    const detail = typeof result?.error === 'string'
+      ? result.error
+      : JSON.stringify(result?.error || {});
+    const titles = batch.map(section => section.title).join(', ');
+    const generationError = new Error(`Proposal generation failed for ${titles}: ${detail}`);
+    generationError.statusCode = 502;
+    generationError.code = 'RFP_GENERATION_FAILED';
+    throw generationError;
+  }
+
+  createGeneratedSection(structuredResult, section) {
+    try {
+      const content = this.extractSectionFromStructuredResponse(structuredResult, section);
+      const contentString = this.normalizeSectionContent(content, section.title);
+      const wordCount = contentString.trim() ? contentString.trim().split(/\s+/).length : 0;
+
+      return {
+        id: section.id,
+        sectionId: section.id,
+        title: section.title,
+        content: contentString,
+        wordCount,
+        status: 'generated',
+        compliance: this.calculateSectionCompliance(contentString, section),
+        lastModified: new Date().toISOString(),
+        modifiedBy: 'AI Generator'
+      };
+    } catch (error) {
+      console.error(`Error extracting section ${section.title}:`, error);
+      return this.generateErrorSection(section);
+    }
+  }
+
+  sourceDocumentContent(sourceDocuments) {
+    const content = sourceDocuments.map((document, index) => {
+      let processed = document.processedData || '';
+      try {
+        const parsed = JSON.parse(processed);
+        if (typeof parsed === 'string') processed = parsed;
+        else {
+          processed = parsed.extractedText || parsed.text || parsed.content || parsed.summary || parsed.result || JSON.stringify(parsed);
+          if (typeof processed !== 'string') processed = JSON.stringify(processed);
+        }
+      } catch {
+        // Keep plain-text processed data as-is.
+      }
+      const label = document.filename || document.description || `Document ${index + 1}`;
+      return `--- ${label} ---\n${String(processed).slice(0, 30000)}`;
+    }).join('\n\n');
+    return content.slice(0, 90000);
+  }
+
+  normalizeSectionContent(content, sectionTitle) {
+    const escapedTitle = String(sectionTitle).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return String(content || '')
+      .trim()
+      .replace(new RegExp(`^#{1,6}\\s*${escapedTitle}\\s*\\n+`, 'i'), '')
+      .trim();
+  }
+
+  templateSectionTarget(section) {
+    const maxWords = Number(section.maxWords);
+    if (!Number.isFinite(maxWords) || maxWords <= 0) {
+      return { targetWords: 450, maxWords: 600 };
+    }
+    const targetRatio = section.required === false ? 0.55 : 0.7;
+    return {
+      targetWords: Math.min(maxWords, Math.max(150, Math.round(maxWords * targetRatio))),
+      maxWords
+    };
+  }
+
+  templateTargetWordCount(templateSections = []) {
+    return templateSections.reduce(
+      (total, section) => total + this.templateSectionTarget(section).targetWords,
+      0
+    );
+  }
+
+  buildTemplateInstructions(template = {}) {
+    const sections = Array.isArray(template.sections) ? template.sections : [];
+    return sections.map((section, index) => {
+      const { targetWords, maxWords } = this.templateSectionTarget(section);
+      const mappings = Array.isArray(section.mappings) && section.mappings.length > 0
+        ? section.mappings.join(', ')
+        : section.id;
+      return `${index + 1}. ${section.title}
+   - JSON key: ${section.id}
+   - Requirement: ${section.required === false ? 'Optional' : 'Required'}
+   - Instruction: ${section.description || 'Address all applicable solicitation requirements for this section.'}
+   - Format: ${section.format || 'narrative'}
+   - Evidence mappings: ${mappings}
+   - Length: target approximately ${targetWords} words when verified evidence supports it; never exceed ${maxWords} words. Do not pad missing evidence with generic or invented claims.`;
+    }).join('\n\n');
+  }
+
+  buildCompanyProfileContent(companyData = {}) {
+    const basicInfo = companyData.basicInfo || {};
+    const capabilities = companyData.capabilities || {};
+    const verifiedProfile = {
+      companyName: companyData.companyName || null,
+      basicInfo: {
+        dunsNumber: basicInfo.dunsNumber || null,
+        cageCode: basicInfo.cageCode || null,
+        certifications: Array.isArray(basicInfo.certifications) ? basicInfo.certifications : [],
+        sizeStandard: basicInfo.sizeStandard || null,
+        naicsCodes: Array.isArray(basicInfo.naicsCode) ? basicInfo.naicsCode : []
+      },
+      capabilities: {
+        coreCompetencies: Array.isArray(capabilities.coreCompetencies) ? capabilities.coreCompetencies : [],
+        technicalSkills: Array.isArray(capabilities.technicalSkills) ? capabilities.technicalSkills : [],
+        securityClearances: Array.isArray(capabilities.securityClearances) ? capabilities.securityClearances : [],
+        methodologies: Array.isArray(capabilities.methodologies) ? capabilities.methodologies : []
+      },
+      businessDetails: companyData.businessDetails || {},
+      pastPerformance: Array.isArray(companyData.pastPerformance) ? companyData.pastPerformance.filter(item => item?.status !== 'placeholder') : [],
+      keyPersonnel: Array.isArray(companyData.keyPersonnel) ? companyData.keyPersonnel.filter(item => item?.status !== 'placeholder') : [],
+      additionalSections: Array.isArray(companyData.additionalSections) ? companyData.additionalSections : []
+    };
+    return JSON.stringify(verifiedProfile, null, 2);
+  }
+
+  buildContractContent(contract, companyData, customInstructions, sourceDocuments = [], template = {}, focusAreas = []) {
+    const sourceContent = this.sourceDocumentContent(sourceDocuments);
+    const templateSections = Array.isArray(template.sections) ? template.sections : [];
+    const outputKeys = templateSections.map(section => section.id);
+    const evaluationCriteria = template.evaluationCriteria || {};
+    return `TASK: Analyze the supplied government opportunity, authoritative solicitation content, selected company profile, and selected proposal template. Generate a comprehensive, evidence-based proposal draft. Follow the selected template exactly. Write in a professional, persuasive tone, but do not claim capabilities that the profile does not support.
+
+SOURCE AUTHORITY AND ROUTING RULES:
+1. Solicitation documents are authoritative for scope, instructions, deliverables, clauses, evaluation factors, dates, submission rules, and pricing requirements.
+2. Contract metadata may identify the opportunity, but a URL or title is not evidence of detailed requirements.
+3. The Company Profile is authoritative only for company facts actually recorded there.
+4. Values beginning with REVIEW REQUIRED, values marked placeholder, blank values, and unassigned positions are missing evidence—not verified facts.
+5. Route legal name, UEI, CAGE, registrations, NAICS codes, size status, contact details, coverage, contract vehicles, insurance, and designations to corporate-qualification and administrative sections.
+6. Route core competencies, technical skills, services, technology capabilities, and differentiators to executive-summary and technical sections only when relevant to the solicitation.
+7. Route methodologies and delivery/quality narratives to management, schedule, quality, transition, and risk sections.
+8. Route labor categories and assigned verified personnel to staffing sections. Labor categories are roles, not named people.
+9. Route verified customer records and measurable outcomes to past performance. Never convert capability statements into past performance.
+10. Route approved rates and pricing data to the cost section. A pricing approach is not an approved price.
+11. Use the selected template section description, format, mappings, maximum words, and evidence instructions for every section.
+12. If company capabilities do not align with the opportunity, state the gap clearly rather than presenting an unrelated solution.
+
+SELECTED TEMPLATE:
+Name: ${template.name || 'Unnamed template'}
+Agency: ${template.agency || 'General'}
+Description: ${template.description || 'No template description provided'}
+Evaluation criteria: ${JSON.stringify(evaluationCriteria)}
+Evidence instructions: ${evaluationCriteria.evidenceInstructions || 'Use authoritative solicitation content and verified company-profile facts.'}
+Configured section target: approximately ${this.templateTargetWordCount(templateSections).toLocaleString('en-US')} words when evidence supports that length.
+
+CONTRACT INFORMATION:
+Title: ${contract.title || 'N/A'}
+Agency: ${contract.agency || 'N/A'}
+Description: ${contract.description || 'N/A'}
 NAICS Code: ${contract.naicsCode || 'N/A'}
 Classification: ${contract.classificationCode || 'N/A'}
 Posted Date: ${contract.postedDate || 'N/A'}
 
-COMPANY INFORMATION:
-Name: ${companyData.companyName || 'Norshin'}
-Core Competencies: ${companyData.capabilities?.coreCompetencies?.join(', ') || 'nodejs and Java, Technical capabilities'}
-Past Performance: ${companyData.pastPerformance?.map(p => p.contractName).join(', ') || 'Government contracts'}
+SELECTED COMPANY PROFILE (USER-PROVIDED DATA):
+${this.buildCompanyProfileContent(companyData)}
+
+An empty profile field or array means that evidence was not provided. Do not convert an empty field, REVIEW REQUIRED value, placeholder record, proposed role, or planning assumption into a positive claim.
+
+AUTHORITATIVE SOLICITATION DOCUMENT CONTENT:
+${sourceContent || '[No processed solicitation document content is available. Do not infer missing requirements from the title or URL; use REVIEW REQUIRED placeholders.]'}
+
+USER FOCUS AREAS: ${Array.isArray(focusAreas) && focusAreas.filter(Boolean).length > 0 ? focusAreas.filter(Boolean).join(', ') : 'None provided'}
 
 CUSTOM INSTRUCTIONS: ${customInstructions || 'Follow RFP best practices'}
 
@@ -414,56 +632,27 @@ CUSTOM INSTRUCTIONS: ${customInstructions || 'Follow RFP best practices'}
 
 ### RFP RESPONSE SECTIONS
 
-1. **Executive Summary**
-   - *Instruction*: Provide a high-level overview of your proposed solution, highlighting key benefits and differentiators.
-   - *Focus on*: [executive_summary, overview]
-
-2. **Technical Approach**
-   - *Instruction*: Detail your technical methodology, architecture, and implementation strategy. Explain how your approach meets or exceeds contract requirements.
-   - *Focus on*: [technical_approach, methodology, architecture]
-   - *Include diagrams or bullet points if relevant
-
-3. **Management Approach**
-   - *Instruction*: Describe your project management methodology, team structure, and communication plans. Address resource allocation, reporting, and stakeholder engagement.
-   - *Focus on*: [management_approach, project_management, team_structure]
-   - *Include an organization chart if possible
-
-4. **Past Performance**
-   - *Instruction*: Provide relevant examples of similar work, including outcomes and client references. Highlight successful delivery, client satisfaction, and relevance to this contract.
-   - *Focus on*: [past_performance, experience, references]
-
-5. **Key Personnel**
-   - *Instruction*: Identify key team members, their roles, qualifications, and relevant experience. Emphasize certifications, clearances, and expertise.
-   - *Focus on*: [key_personnel, team_members, staff_qualifications]
-
-6. **Cost Proposal**
-   - *Instruction*: Provide a detailed cost breakdown including labor, materials, and other direct costs. Explain pricing rationale and cost efficiency.
-   - *Focus on*: [cost_proposal, pricing, budget]
-
-7. **Schedule and Milestones**
-   - *Instruction*: Present a project timeline with key milestones and deliverable dates. Include a Gantt chart or timeline table if possible.
-   - *Focus on*: [schedule, timeline, milestones]
-
-8. **Risk Management**
-   - *Instruction*: Identify potential risks and your mitigation strategies. Address technical, schedule, and compliance risks.
-   - *Focus on*: [risk_management, risk_mitigation]
-
-9. **Quality Assurance**
-   - *Instruction*: Describe your quality control processes and standards. Explain how you ensure deliverable quality and continuous improvement.
-   - *Focus on*: [quality_assurance, quality_control]
-
-10. **Security and Compliance**
-    - *Instruction*: Detail security measures and compliance with relevant regulations (e.g., NIST, FISMA, CMMC). Address data protection, access controls, and audit readiness.
-    - *Focus on*: [security, compliance, regulations]
+${this.buildTemplateInstructions(template)}
 
 ---
 
 **Instructions for Each Section:**
 - Use contract and company data mapped to each section.
+- Do not invent certifications, clearances, personnel, customers, performance history, prices, or quantitative claims.
+- When verified data is missing, keep supported narrative and insert a focused [REVIEW REQUIRED: provide ...] placeholder only for the missing facts.
 - Be specific, concise, and persuasive.
 - Address all requirements stated in the section description.
 - Highlight strengths, innovation, and compliance.
 - Where appropriate, use tables, bullet points, or diagrams.
+- Treat configured maximum words as ceilings, and the target lengths as drafting goals only when enough verified evidence exists.
+- Never repeat the same generic disclaimer merely to increase document length.
+- Prefer concrete requirement-to-response tables, responsibility matrices, milestones, quality gates, risks, assumptions, and traceability when the configured section format supports them.
+- Use detailed company narrative sections as supporting context, but do not let marketing language override missing legal, personnel, performance, security, or pricing evidence.
+
+**Required output format:**
+Return one JSON object with exactly these top-level keys and string values:
+${outputKeys.join(', ')}.
+Do not include metadata, scoring, commentary, or Markdown fences outside the JSON object.
 
 **End of Prompt**
 `;
@@ -480,10 +669,11 @@ CUSTOM INSTRUCTIONS: ${customInstructions || 'Follow RFP best practices'}
       // Try multiple possible field names for this section
       const possibleFields = [
         sectionId,
+        ...(Array.isArray(section.mappings) ? section.mappings : []),
         sectionTitle,
         sectionTitle.replace(/_/g, ''),
         section.title.toLowerCase().replace(/\s+/g, '')
-      ];
+      ].filter((field, index, fields) => field && fields.indexOf(field) === index);
       
       let extractedContent = '';
       
@@ -621,22 +811,34 @@ CUSTOM INSTRUCTIONS: ${customInstructions || 'Follow RFP best practices'}
 
   calculateCompliance(sections, template) {
     const templateSections = template.sections || [];
-    
+    const failedSections = sections.filter(section => section.status === 'error');
     const wordLimitsCheck = this.checkWordLimits(sections, templateSections);
     const requiredSectionsCheck = this.checkRequiredSections(sections, templateSections);
-    
-    const overallScore = (wordLimitsCheck.score + requiredSectionsCheck.score) / 2;
-    
+
     return {
-      overall: overallScore >= 80,
-      score: Math.round(overallScore),
+      overall: false,
+      score: 0,
+      reviewRequired: true,
       checks: {
         wordLimits: wordLimitsCheck,
         requiredSections: requiredSectionsCheck,
-        formatCompliance: { passed: true, score: 90, details: 'Format compliant' },
-        requirementCoverage: { passed: true, score: 85, details: 'Requirements covered' }
+        formatCompliance: {
+          passed: failedSections.length === 0,
+          score: failedSections.length === 0 ? 100 : 0,
+          details: failedSections.length === 0 ? 'All draft sections were generated' : `${failedSections.length} sections failed generation`
+        },
+        requirementCoverage: {
+          passed: false,
+          score: 0,
+          details: 'Requirement coverage requires human verification against the solicitation documents'
+        }
       },
-      issues: []
+      issues: [{
+        type: 'info',
+        section: 'Entire proposal',
+        message: 'Human review is required before this draft can be considered compliant',
+        suggestion: 'Verify every section against the authoritative solicitation and attachments'
+      }]
     };
   }
 
@@ -681,7 +883,7 @@ CUSTOM INSTRUCTIONS: ${customInstructions || 'Follow RFP best practices'}
   }
 
   calculateSectionCompliance(content, section) {
-    const wordCount = content.split(' ').length;
+    const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
     
     return {
       wordLimit: {
@@ -691,13 +893,13 @@ CUSTOM INSTRUCTIONS: ${customInstructions || 'Follow RFP best practices'}
       },
       requirementCoverage: {
         covered: [],
-        missing: [],
-        percentage: 85
+        missing: ['Human verification required'],
+        percentage: 0
       },
       quality: {
-        score: 85,
-        strengths: ['Professional tone', 'Relevant content'],
-        improvements: ['Add specific examples']
+        score: 0,
+        strengths: [],
+        improvements: ['Review and approve this AI-generated section before use']
       }
     };
   }

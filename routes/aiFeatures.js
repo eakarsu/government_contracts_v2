@@ -233,10 +233,10 @@ router.post('/preferences', async (req, res) => {
       return res.status(400).json({ error: 'User ID is required' });
     }
 
-    // Return success but note that preferences are stored in memory/session
+    const storedPreferences = aiOpportunityAlerts.setUserPreferences(userId, preferences || {});
     res.json({
       success: true,
-      preferences: preferences,
+      preferences: storedPreferences,
       message: 'Preferences stored in session (database storage not available)',
       timestamp: new Date().toISOString()
     });
@@ -251,18 +251,11 @@ router.get('/preferences/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Return default preferences
+    const preferences = await aiOpportunityAlerts.getUserPreferences(userId, {});
     res.json({
       success: true,
-      preferences: {
-        preferredNaicsCodes: [],
-        preferredAgencies: [],
-        preferredStates: [],
-        certifications: [],
-        keywords: [],
-        minContractValue: 0
-      },
-      message: 'Using default preferences (database storage not available)',
+      preferences,
+      message: 'Using session preferences',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
