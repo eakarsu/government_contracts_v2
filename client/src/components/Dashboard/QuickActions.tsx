@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../../services/api';
 import LoadingSpinner from '../UI/LoadingSpinner';
-import { useNavigate } from 'react-router-dom';
 
 type PipelineStageId = 'fetch' | 'index' | 'download' | 'process';
 type PipelineStageStatus = 'pending' | 'running' | 'completed' | 'failed';
@@ -16,8 +15,6 @@ const INITIAL_PIPELINE_STAGES: Array<{ id: PipelineStageId; label: string; statu
 
 const QuickActions: React.FC = () => {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const [nlpQuery, setNlpQuery] = useState('');
   const [pipelineStages, setPipelineStages] = useState(INITIAL_PIPELINE_STAGES);
 
   const refreshDashboard = () => {
@@ -208,91 +205,6 @@ const QuickActions: React.FC = () => {
     },
   });
 
-  const resetQueueMutation = useMutation({
-    mutationFn: () => apiService.resetQueue(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
-      queryClient.invalidateQueries({ queryKey: ['api-status'] });
-    },
-    onError: (error: any) => {
-      console.error('Reset queue error:', error);
-    },
-  });
-
-  const stopQueueMutation = useMutation({
-    mutationFn: () => apiService.stopQueue(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
-    },
-    onError: (error: any) => {
-      console.error('Stop queue error:', error);
-    },
-  });
-
-  // Document search mutation
-  const searchDocumentsMutation = useMutation({
-    mutationFn: (query: string) => apiService.searchDocuments({
-      query,
-      limit: 10,
-      min_score: 0.3,
-      include_content: false
-    }),
-    onError: (error: any) => {
-      console.error('Document search error:', error);
-    },
-  });
-
-  // NLP Search mutations
-  const nlpSearchMutation = useMutation({
-    mutationFn: (query: string) => apiService.naturalLanguageSearch({
-      query,
-      includeSemantic: true,
-      userContext: {}
-    }),
-    onSuccess: () => {
-      navigate('/nlp-search');
-    },
-    onError: (error: any) => {
-      console.error('NLP search error:', error);
-    },
-  });
-
-  const getNLPSuggestionsMutation = useMutation({
-    mutationFn: () => apiService.getNLPSuggestions(),
-    onError: (error: any) => {
-      console.error('NLP suggestions error:', error);
-    },
-  });
-
-  // Get document stats mutation
-  const getDocumentStatsMutation = useMutation({
-    mutationFn: () => apiService.getDocumentStats(),
-    onError: (error: any) => {
-      console.error('Get document stats error:', error);
-    },
-  });
-
-  // Test bed mutations for cost-effective testing
-  const queueTestDocumentsMutation = useMutation({
-    mutationFn: () => apiService.queueTestDocuments({ test_limit: 10, clear_existing: true }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
-    },
-    onError: (error: any) => {
-      console.error('Queue test documents error:', error);
-    },
-  });
-
-  const processTestDocumentsMutation = useMutation({
-    mutationFn: () => apiService.processTestDocuments(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queueStatus'] });
-    },
-    onError: (error: any) => {
-      console.error('Process test documents error:', error);
-    },
-  });
-
   const manualActionPending = [
     fetchContractsMutation,
     indexContractsMutation,
@@ -373,145 +285,6 @@ const QuickActions: React.FC = () => {
           </div>
         </details>
 
-        {/* NLP Search Section */}
-        <div className="border-t pt-4 mt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">✨ NLP Search</h4>
-          
-          {/* Quick NLP Search Input */}
-          <div className="space-y-2 mb-3">
-            <input
-              type="text"
-              value={nlpQuery}
-              onChange={(e) => setNlpQuery(e.target.value)}
-              placeholder="Ask about contracts..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && nlpQuery.trim()) {
-                  nlpSearchMutation.mutate(nlpQuery);
-                }
-              }}
-            />
-            <button
-              onClick={() => nlpQuery.trim() && nlpSearchMutation.mutate(nlpQuery)}
-              disabled={nlpSearchMutation.isPending || !nlpQuery.trim()}
-              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
-            >
-              {nlpSearchMutation.isPending ? (
-                <LoadingSpinner size="sm" color="white" />
-              ) : (
-                '✨ NLP Search'
-              )}
-            </button>
-          </div>
-
-          {/* Quick NLP Examples */}
-          <div className="space-y-1">
-            {[
-              'IT contracts under $500K',
-              'Construction in California',
-              'Small business opportunities'
-            ].map((example) => (
-              <button
-                key={example}
-                onClick={() => nlpSearchMutation.mutate(example)}
-                disabled={nlpSearchMutation.isPending}
-                className="w-full text-left px-3 py-1.5 border border-gray-200 rounded-md text-xs text-gray-700 hover:bg-purple-50 hover:border-purple-300 transition-colors"
-              >
-                {example}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Document Search Section */}
-        <div className="border-t pt-4 mt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">🔍 Document Search</h4>
-          <div className="space-y-2">
-            <button
-              onClick={() => searchDocumentsMutation.mutate('software development')}
-              disabled={searchDocumentsMutation.isPending}
-              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
-            >
-              {searchDocumentsMutation.isPending ? (
-                <LoadingSpinner size="sm" color="white" />
-              ) : (
-                '🔍 Quick Search: Software'
-              )}
-            </button>
-
-            <button
-              onClick={() => getDocumentStatsMutation.mutate()}
-              disabled={getDocumentStatsMutation.isPending}
-              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
-            >
-              {getDocumentStatsMutation.isPending ? (
-                <LoadingSpinner size="sm" color="white" />
-              ) : (
-                '📊 Get Document Stats'
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Test Bed Section */}
-        <div className="border-t pt-4 mt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">🧪 Test Bed (Cost-Effective)</h4>
-          <div className="space-y-2">
-            <button
-              onClick={() => queueTestDocumentsMutation.mutate()}
-              disabled={queueTestDocumentsMutation.isPending}
-              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 transition-colors"
-            >
-              {queueTestDocumentsMutation.isPending ? (
-                <LoadingSpinner size="sm" color="white" />
-              ) : (
-                '🧪 Queue 10 Test Documents'
-              )}
-            </button>
-
-            <button
-              onClick={() => processTestDocumentsMutation.mutate()}
-              disabled={processTestDocumentsMutation.isPending}
-              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 transition-colors"
-            >
-              {processTestDocumentsMutation.isPending ? (
-                <LoadingSpinner size="sm" color="white" />
-              ) : (
-                '🧪 Process Test Documents'
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Queue Management Section */}
-        <div className="border-t pt-4 mt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Queue Management</h4>
-          <div className="space-y-2">
-            <button
-              onClick={() => stopQueueMutation.mutate()}
-              disabled={stopQueueMutation.isPending}
-              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50 transition-colors"
-            >
-              {stopQueueMutation.isPending ? (
-                <LoadingSpinner size="sm" color="white" />
-              ) : (
-                'Stop Processing'
-              )}
-            </button>
-
-            <button
-              onClick={() => resetQueueMutation.mutate()}
-              disabled={resetQueueMutation.isPending}
-              className="w-full flex items-center justify-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 transition-colors"
-            >
-              {resetQueueMutation.isPending ? (
-                <LoadingSpinner size="sm" color="white" />
-              ) : (
-                'Reset Queue System'
-              )}
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Success Messages */}
@@ -560,43 +333,6 @@ const QuickActions: React.FC = () => {
         </div>
       ) : null}
 
-      {/* Document Search Success Messages */}
-      {searchDocumentsMutation.isSuccess && searchDocumentsMutation.data ? (
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <div className="text-blue-800 text-sm">
-            🔍 Found {searchDocumentsMutation.data.results.total_results} documents in {searchDocumentsMutation.data.response_time}ms
-          </div>
-        </div>
-      ) : null}
-
-      {getDocumentStatsMutation.isSuccess && getDocumentStatsMutation.data ? (
-        <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-md">
-          <div className="text-purple-800 text-sm">
-            📊 Stats: {getDocumentStatsMutation.data.stats.documents.downloaded} downloaded, {getDocumentStatsMutation.data.stats.documents.indexed_in_vector_db} indexed
-          </div>
-        </div>
-      ) : null}
-
-      {/* Test Bed Success Messages */}
-      {queueTestDocumentsMutation.isSuccess ? (
-        <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
-          <div className="text-orange-800 text-sm">🧪 Test documents queued successfully! (Minimal cost impact)</div>
-        </div>
-      ) : null}
-
-      {processTestDocumentsMutation.isSuccess ? (
-        <div className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-md">
-          <div className="text-teal-800 text-sm">🧪 Test document processing started! (Cost-effective mode)</div>
-        </div>
-      ) : null}
-
-      {/* NLP Search Success Messages */}
-      {nlpSearchMutation.isSuccess ? (
-        <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-md">
-          <div className="text-purple-800 text-sm">✨ NLP search completed! Redirecting to results...</div>
-        </div>
-      ) : null}
-
       {/* Error Messages */}
       {fetchContractsMutation.error ? (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
@@ -639,76 +375,6 @@ const QuickActions: React.FC = () => {
         </div>
       ) : null}
 
-      {/* Document Search Error Messages */}
-      {searchDocumentsMutation.error ? (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <div className="text-red-800 text-sm">
-            🔍 Search error: {searchDocumentsMutation.error instanceof Error ? searchDocumentsMutation.error.message : 'Unknown error'}
-          </div>
-        </div>
-      ) : null}
-
-      {getDocumentStatsMutation.error ? (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <div className="text-red-800 text-sm">
-            📊 Stats error: {getDocumentStatsMutation.error instanceof Error ? getDocumentStatsMutation.error.message : 'Unknown error'}
-          </div>
-        </div>
-      ) : null}
-
-      {/* Test Bed Error Messages */}
-      {queueTestDocumentsMutation.error ? (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <div className="text-red-800 text-sm">
-            🧪 Error queueing test documents: {queueTestDocumentsMutation.error instanceof Error ? queueTestDocumentsMutation.error.message : 'Unknown error'}
-          </div>
-        </div>
-      ) : null}
-
-      {processTestDocumentsMutation.error ? (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <div className="text-red-800 text-sm">
-            🧪 Error processing test documents: {processTestDocumentsMutation.error instanceof Error ? processTestDocumentsMutation.error.message : 'Unknown error'}
-          </div>
-        </div>
-      ) : null}
-
-      {stopQueueMutation.isSuccess ? (
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <div className="text-yellow-800 text-sm">Queue processing stopped!</div>
-        </div>
-      ) : null}
-
-      {resetQueueMutation.isSuccess ? (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <div className="text-red-800 text-sm">Queue system reset successfully!</div>
-        </div>
-      ) : null}
-
-      {stopQueueMutation.error ? (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <div className="text-red-800 text-sm">
-            Error stopping queue: {stopQueueMutation.error instanceof Error ? stopQueueMutation.error.message : 'Unknown error'}
-          </div>
-        </div>
-      ) : null}
-
-      {resetQueueMutation.error ? (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <div className="text-red-800 text-sm">
-            Error resetting queue: {resetQueueMutation.error instanceof Error ? resetQueueMutation.error.message : 'Unknown error'}
-          </div>
-        </div>
-      ) : null}
-
-      {/* NLP Search Error Messages */}
-      {nlpSearchMutation.error ? (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <div className="text-red-800 text-sm">
-            ✨ NLP search error: {nlpSearchMutation.error instanceof Error ? nlpSearchMutation.error.message : 'Unknown error'}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 };
