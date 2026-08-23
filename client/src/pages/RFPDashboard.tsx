@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import SubmissionPackagePanel from '../components/RFP/SubmissionPackagePanel';
 import { Link } from 'react-router-dom';
 import {
@@ -21,7 +21,15 @@ import { apiService } from '../services/api';
 import { aiService, type UserContext } from '../services/aiService';
 import { contractsApi } from '../services/contractsApi';
 import type { CompanyProfile, Contract, RFPAmendment, RFPDashboardStats, RFPProductionWorkspace, RFPResponse, RFPResponseSection, RFPTemplate } from '../types';
-import { getNaicsVerificationNotice, hasExactNaicsMatch, resolveOpportunitySelection } from '../features/rfpDashboardPresentation';
+import {
+  getNaicsVerificationNotice,
+  getRfpGenerationSuccessNotice,
+  hasExactNaicsMatch,
+  isRfpWorkspaceCurrent,
+  resolveOpportunitySelection,
+  rfpGenerationPhaseReducer,
+} from '../features/rfpDashboardPresentation';
+import { runRfpGenerationFlow } from '../features/rfpGenerationFlow';
 import DownloadButtons from '../components/RFP/DownloadButtons';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 
@@ -65,6 +73,7 @@ function responseSections(response?: RFPResponse | null) {
 
 const RFPDashboard: React.FC = () => {
   const reviewRef = useRef<HTMLElement | null>(null);
+  const activeResponseIdRef = useRef<number | null>(null);
   const [stats, setStats] = useState<RFPDashboardStats | null>(null);
   const [responses, setResponses] = useState<RFPResponse[]>([]);
   const [opportunities, setOpportunities] = useState<Contract[]>([]);
@@ -79,6 +88,7 @@ const RFPDashboard: React.FC = () => {
   const [bidLoading, setBidLoading] = useState(false);
   const [activeResponse, setActiveResponse] = useState<RFPResponse | null>(null);
   const [workspace, setWorkspace] = useState<RFPProductionWorkspace | null>(null);
+  const [workspaceLoading, setWorkspaceLoading] = useState(false);
   const [amendments, setAmendments] = useState<RFPAmendment[]>([]);
   const [governanceBusy, setGovernanceBusy] = useState(false);
   const [governanceNotice, setGovernanceNotice] = useState<string | null>(null);
@@ -95,7 +105,8 @@ const RFPDashboard: React.FC = () => {
   const [savedSection, setSavedSection] = useState<string | null>(null);
   const [sectionErrors, setSectionErrors] = useState<Record<string, string>>({});
   const [statusSaving, setStatusSaving] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const [generationPhase, dispatchGeneration] = useReducer(rfpGenerationPhaseReducer, 'idle');
+  const [generationNotice, setGenerationNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,6 +138,10 @@ const RFPDashboard: React.FC = () => {
   useEffect(() => { loadDashboardData(); }, []);
 
   useEffect(() => {
+    setGenerationNotice(null);
+  }, [selectedContract, selectedProfile, selectedTemplate]);
+
+  useEffect(() => {
     if (!selectedContract) {
       setEvidence(null);
       return;
@@ -149,20 +164,37 @@ const RFPDashboard: React.FC = () => {
     setSectionErrors({});
   }, [selectedContract, responses]);
 
+  activeResponseIdRef.current = activeResponse?.id ?? null;
+
   const refreshGovernance = async (responseId = activeResponse?.id) => {
     if (!responseId) return;
     const result = await apiService.getRFPProductionWorkspace(responseId);
+    if (!isRfpWorkspaceCurrent(activeResponseIdRef.current, result.workspace.id)) return;
     setWorkspace(result.workspace);
     setAmendments(result.amendments || []);
   };
 
   useEffect(() => {
-    if (!activeResponse?.id) {
-      setWorkspace(null);
-      setAmendments([]);
-      return;
-    }
-    refreshGovernance(activeResponse.id).catch(loadError => setError(loadError.message || 'Proposal controls could not be loaded.'));
+    const responseId = activeResponse?.id;
+    let cancelled = false;
+    setWorkspace(null);
+    setAmendments([]);
+    setWorkspaceLoading(Boolean(responseId));
+    if (!responseId) return () => { cancelled = true; };
+
+    apiService.getRFPProductionWorkspace(responseId)
+      .then(result => {
+        if (cancelled || !isRfpWorkspaceCurrent(responseId, result.workspace.id)) return;
+        setWorkspace(result.workspace);
+        setAmendments(result.amendments || []);
+      })
+      .catch(loadError => {
+        if (!cancelled) setError(loadError.message || 'Proposal controls could not be loaded.');
+      })
+      .finally(() => {
+        if (!cancelled) setWorkspaceLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [activeResponse?.id]);
 
   const contract = opportunities.find(item => item.noticeId === selectedContract);
@@ -175,6 +207,11 @@ const RFPDashboard: React.FC = () => {
   const documentStats = evidence?.statistics;
   const sam = (evidence?.samData || contract?.samData || {}) as Record<string, any>;
   const resourceLinks = evidence?.resourceLinks || contract?.resourceLinks || [];
+  const generating = generationPhase === 'generating';
+  const loadingGeneratedDraft = generationPhase === 'loading_draft';
+  const generationBusy = generationPhase !== 'idle';
+  const workspaceReady = !workspaceLoading && isRfpWorkspaceCurrent(activeResponse?.id, workspace?.id);
+  const governanceControlsDisabled = governanceBusy || !workspaceReady;
   const exactNaicsMatch = hasExactNaicsMatch(profile?.basicInfo?.naicsCode, contract?.naicsCode);
   const naicsVerificationNotice = profile && contract
     ? getNaicsVerificationNotice(profile.basicInfo?.naicsCode, contract.naicsCode)
@@ -259,27 +296,33 @@ const RFPDashboard: React.FC = () => {
 
   const generateDraft = async () => {
     if (!selectedContract || !selectedProfile || !selectedTemplate) return setError('Select an opportunity, company profile, and proposal template.');
-    try {
-      setGenerating(true);
-      setError(null);
-      const generated = await apiService.generateRFPResponse({
+    setGenerationNotice(null);
+    setError(null);
+
+    await runRfpGenerationFlow({
+      generate: () => apiService.generateRFPResponse({
         contractId: selectedContract,
         templateId: Number(selectedTemplate),
         companyProfileId: Number(selectedProfile),
         customInstructions: 'Use the selected SAM.gov metadata, extracted solicitation evidence, company profile, bid decision context, and template. Never invent unsupported claims. Mark evidence gaps REVIEW REQUIRED.',
         focusAreas: [...(bidDecision?.prediction.factors || []), ...(bidDecision?.prediction.recommendations || [])],
-      });
-      const loaded = await apiService.getRFPResponse(generated.rfpResponseId);
-      setActiveResponse(loaded.response);
-      setResponses(current => [loaded.response, ...current.filter(item => item.id !== loaded.response.id)]);
-      setSectionDrafts(Object.fromEntries(responseSections(loaded.response).map(section => [section.sectionId || section.id, section.content])));
-      await refreshGovernance(loaded.response.id);
-      setTimeout(() => reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-    } catch (generationError: any) {
-      setError(generationError.message || 'Application generation failed.');
-    } finally {
-      setGenerating(false);
-    }
+      }),
+      loadDraft: responseId => apiService.getRFPResponse(responseId, { timeoutMs: 30000 }),
+      onPhase: dispatchGeneration,
+      onGenerated: result => setGenerationNotice(getRfpGenerationSuccessNotice(result)),
+      onDraftLoaded: loaded => {
+        setActiveResponse(loaded.response);
+        setResponses(current => [loaded.response, ...current.filter(item => item.id !== loaded.response.id)]);
+        setSectionDrafts(Object.fromEntries(responseSections(loaded.response).map(section => [section.sectionId || section.id, section.content])));
+        setTimeout(() => reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+      },
+      onGenerationError: generationError => {
+        setError((generationError as any)?.message || 'Application generation failed.');
+      },
+      onDraftLoadError: (_loadError, result) => {
+        setError(`Draft #${result.rfpResponseId} was generated and saved, but this page could not load the completed view. Refresh the dashboard to open it; do not generate another copy.`);
+      },
+    });
   };
 
   const saveSection = async (section: RFPResponseSection) => {
@@ -322,7 +365,10 @@ const RFPDashboard: React.FC = () => {
   };
 
   const runGovernanceAction = async (action: () => Promise<unknown>, successMessage: string) => {
-    if (!activeResponse) return;
+    if (!activeResponse || !isRfpWorkspaceCurrent(activeResponse.id, workspace?.id)) {
+      setError('Proposal controls are still loading for this draft. Wait for them to finish before making governed changes.');
+      return;
+    }
     try {
       setGovernanceBusy(true);
       setError(null);
@@ -365,7 +411,7 @@ const RFPDashboard: React.FC = () => {
       <header className="rounded-3xl bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 px-6 py-8 text-white shadow-xl sm:px-9">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-200"><Sparkles className="h-4 w-4" /> Unified proposal workspace</div><h1 className="text-3xl font-bold">RFP Capture-to-Submission Dashboard</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-200">Qualify a real SAM.gov opportunity, verify evidence, generate an application, review every section, and track submission in one governed workflow.</p></div>
-          <div className="flex flex-wrap gap-2"><Link to="/rfp/company-profiles" className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20">Create or edit profiles</Link><Link to="/rfp/templates" className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20">Create or edit templates</Link></div>
+          <div className="flex flex-wrap gap-2"><Link to="/rfp/company-profiles" aria-disabled={generationBusy} tabIndex={generationBusy ? -1 : undefined} onClick={event => { if (generationBusy) event.preventDefault(); }} className={`rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20 ${generationBusy ? 'pointer-events-none opacity-50' : ''}`}>Create or edit profiles</Link><Link to="/rfp/templates" aria-disabled={generationBusy} tabIndex={generationBusy ? -1 : undefined} onClick={event => { if (generationBusy) event.preventDefault(); }} className={`rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20 ${generationBusy ? 'pointer-events-none opacity-50' : ''}`}>Create or edit templates</Link></div>
         </div>
       </header>
 
@@ -377,7 +423,7 @@ const RFPDashboard: React.FC = () => {
 
       <section className={sectionClass}>
         <div className="mb-4 flex items-center gap-3"><Target className="h-5 w-5 text-blue-700" /><div><h2 className="font-semibold text-slate-950">1. Select opportunity</h2><p className="text-sm text-slate-500">Only records ingested from SAM.gov are listed.</p></div></div>
-        <select data-testid="rfp-opportunity" value={selectedContract} onChange={event => setSelectedContract(event.target.value)} className={selectClass}>
+        <select data-testid="rfp-opportunity" value={selectedContract} onChange={event => setSelectedContract(event.target.value)} disabled={generationBusy} className={selectClass}>
           <option value="">Select a SAM.gov opportunity…</option>
           {opportunities.map(item => <option key={item.noticeId} value={item.noticeId}>{item.title || item.noticeId} — {item.agency || 'Agency not listed'}</option>)}
         </select>
@@ -387,10 +433,10 @@ const RFPDashboard: React.FC = () => {
       <section className={sectionClass}>
         <div className="mb-4 flex items-center gap-3"><Building2 className="h-5 w-5 text-blue-700" /><div><h2 className="font-semibold text-slate-950">2. Select company profile and proposal template</h2><p className="text-sm text-slate-500">Profiles and templates remain independently creatable and editable.</p></div></div>
         <div className="grid gap-4 lg:grid-cols-2">
-          <div><div className="mb-1 flex items-center justify-between"><label className="text-sm font-medium text-slate-700">Company profile</label><Link to="/rfp/company-profiles" className="text-xs font-semibold text-blue-700 hover:underline">Create or edit</Link></div><select data-testid="rfp-profile" value={selectedProfile} onChange={event => { setSelectedProfile(event.target.value ? Number(event.target.value) : ''); setBidDecision(null); }} className={selectClass}><option value="">Select a company profile…</option>{profiles.map(item => <option key={item.id} value={item.id}>{item.companyName}</option>)}</select></div>
-          <div><div className="mb-1 flex items-center justify-between"><label className="text-sm font-medium text-slate-700">Proposal template</label><Link to="/rfp/templates" className="text-xs font-semibold text-blue-700 hover:underline">Create or edit</Link></div><select data-testid="rfp-template" value={selectedTemplate} onChange={event => setSelectedTemplate(event.target.value ? Number(event.target.value) : '')} className={selectClass}><option value="">Select a proposal template…</option>{templates.map(item => <option key={item.id} value={item.id}>{item.name} — {item.sections.length} sections</option>)}</select></div>
+          <div><div className="mb-1 flex items-center justify-between"><label className="text-sm font-medium text-slate-700">Company profile</label><Link to="/rfp/company-profiles" aria-disabled={generationBusy} tabIndex={generationBusy ? -1 : undefined} onClick={event => { if (generationBusy) event.preventDefault(); }} className={`text-xs font-semibold text-blue-700 hover:underline ${generationBusy ? 'pointer-events-none opacity-50' : ''}`}>Create or edit</Link></div><select data-testid="rfp-profile" value={selectedProfile} onChange={event => { setSelectedProfile(event.target.value ? Number(event.target.value) : ''); setBidDecision(null); }} disabled={generationBusy} className={selectClass}><option value="">Select a company profile…</option>{profiles.map(item => <option key={item.id} value={item.id}>{item.companyName}</option>)}</select></div>
+          <div><div className="mb-1 flex items-center justify-between"><label className="text-sm font-medium text-slate-700">Proposal template</label><Link to="/rfp/templates" aria-disabled={generationBusy} tabIndex={generationBusy ? -1 : undefined} onClick={event => { if (generationBusy) event.preventDefault(); }} className={`text-xs font-semibold text-blue-700 hover:underline ${generationBusy ? 'pointer-events-none opacity-50' : ''}`}>Create or edit</Link></div><select data-testid="rfp-template" value={selectedTemplate} onChange={event => setSelectedTemplate(event.target.value ? Number(event.target.value) : '')} disabled={generationBusy} className={selectClass}><option value="">Select a proposal template…</option>{templates.map(item => <option key={item.id} value={item.id}>{item.name} — {item.sections.length} sections</option>)}</select></div>
         </div>
-        {naicsVerificationNotice && <div data-testid="naics-verification-notice" className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"><div className="font-semibold text-slate-900">{naicsVerificationNotice.title}</div><p className="mt-1 leading-6">{naicsVerificationNotice.message}</p><Link to="/rfp/company-profiles" className="mt-2 inline-flex text-xs font-semibold text-blue-700 hover:underline">Review company NAICS codes</Link></div>}
+        {naicsVerificationNotice && <div data-testid="naics-verification-notice" className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"><div className="font-semibold text-slate-900">{naicsVerificationNotice.title}</div><p className="mt-1 leading-6">{naicsVerificationNotice.message}</p><Link to="/rfp/company-profiles" aria-disabled={generationBusy} tabIndex={generationBusy ? -1 : undefined} onClick={event => { if (generationBusy) event.preventDefault(); }} className={`mt-2 inline-flex text-xs font-semibold text-blue-700 hover:underline ${generationBusy ? 'pointer-events-none opacity-50' : ''}`}>Review company NAICS codes</Link></div>}
         {profile && template && <div className="mt-4 grid gap-3 sm:grid-cols-3"><div className="rounded-xl bg-slate-50 p-3 text-sm"><strong>{verifiedPastPerformance.length}</strong><span className="block text-slate-500">verified past performances</span></div><div className="rounded-xl bg-slate-50 p-3 text-sm"><strong>{verifiedPersonnel.length}</strong><span className="block text-slate-500">verified key personnel</span></div><div className="rounded-xl bg-slate-50 p-3 text-sm"><strong>{template.sections.length}</strong><span className="block text-slate-500">configured proposal sections</span></div></div>}
       </section>
 
@@ -412,30 +458,32 @@ const RFPDashboard: React.FC = () => {
           {queue.length > 0 && <div className="overflow-x-auto"><table className="min-w-full divide-y divide-slate-200 text-sm"><thead><tr className="text-left text-xs uppercase tracking-wide text-slate-500"><th className="px-3 py-2">Attachment</th><th className="px-3 py-2">Download</th><th className="px-3 py-2">OCR / extraction</th><th className="px-3 py-2">Indexed text</th></tr></thead><tbody className="divide-y divide-slate-100">{queue.map(item => <tr key={item.id}><td className="max-w-md truncate px-3 py-2 font-medium text-slate-800">{item.filename}</td><td className="px-3 py-2">{item.local_file_path ? 'Downloaded' : 'Awaiting download'}</td><td className="px-3 py-2 capitalize">{item.status}</td><td className="px-3 py-2">{item.has_processed_data ? 'Ready' : 'Not ready'}</td></tr>)}</tbody></table></div>}
           {evidenceWarnings.length > 0 && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4"><div className="mb-2 flex items-center gap-2 font-semibold text-amber-900"><AlertTriangle className="h-4 w-4" /> Missing-evidence warnings</div><ul className="list-disc space-y-1 pl-5 text-sm text-amber-900">{evidenceWarnings.map(item => <li key={item}>{item}</li>)}</ul></div>}
           {activeResponse && <div className="rounded-xl border border-slate-200 p-4">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold text-slate-900">Requirements compliance matrix</h3><p className="text-xs text-slate-500">{workspace?.requirements?.length || 0} extracted requirements · {requirementCoverage}% human-verified coverage</p></div><button type="button" disabled={governanceBusy} onClick={() => runGovernanceAction(() => apiService.syncRFPRequirements(activeResponse.id), 'Requirements synchronized from authoritative evidence.')} className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Synchronize requirements</button></div>
-            {!workspace?.requirements?.length ? <p className="text-sm text-slate-500">No explicit “shall,” “must,” or “required” statements were extracted. Synchronize again after SAM notice text or solicitation attachments become available.</p> : <div className="max-h-96 overflow-auto"><table className="min-w-full divide-y divide-slate-200 text-xs"><thead className="sticky top-0 bg-white"><tr className="text-left uppercase text-slate-500"><th className="px-2 py-2">Requirement / source</th><th className="px-2 py-2">Proposal section</th><th className="px-2 py-2">Coverage</th><th className="px-2 py-2">Review</th></tr></thead><tbody className="divide-y divide-slate-100">{workspace.requirements.map(requirement => <tr key={requirement.id}><td className="max-w-xl px-2 py-3"><p className="text-slate-800">{requirement.text}</p><p className="mt-1 text-slate-400">{requirement.sourceLocator}</p></td><td className="px-2 py-3"><select value={requirement.mappedSectionId || ''} onChange={event => runGovernanceAction(() => apiService.updateRFPRequirement(activeResponse.id, requirement.id, { mappedSectionId: event.target.value || null }), 'Requirement mapping saved.')} className="rounded border border-slate-300 p-1"><option value="">Unmapped</option>{template?.sections.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></td><td className="px-2 py-3"><select value={requirement.coverageStatus} onChange={event => runGovernanceAction(() => apiService.updateRFPRequirement(activeResponse.id, requirement.id, { coverageStatus: event.target.value as any }), 'Requirement coverage saved.')} className="rounded border border-slate-300 p-1">{['UNMAPPED', 'PARTIAL', 'COVERED', 'NOT_APPLICABLE'].map(value => <option key={value}>{value}</option>)}</select></td><td className="px-2 py-3"><select value={requirement.reviewStatus} onChange={event => runGovernanceAction(() => apiService.updateRFPRequirement(activeResponse.id, requirement.id, { reviewStatus: event.target.value as any }), 'Requirement review saved.')} className="rounded border border-slate-300 p-1">{['PENDING', 'VERIFIED', 'REJECTED'].map(value => <option key={value}>{value}</option>)}</select></td></tr>)}</tbody></table></div>}
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold text-slate-900">Requirements compliance matrix</h3><p className="text-xs text-slate-500">{workspace?.requirements?.length || 0} extracted requirements · {requirementCoverage}% human-verified coverage</p></div><button type="button" disabled={governanceControlsDisabled} onClick={() => runGovernanceAction(() => apiService.syncRFPRequirements(activeResponse.id), 'Requirements synchronized from authoritative evidence.')} className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Synchronize requirements</button></div>
+            {workspaceLoading ? <p role="status" className="flex items-center gap-2 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Loading requirements for draft #{activeResponse.id}…</p> : !workspace ? <p className="text-sm text-amber-700">Proposal controls are unavailable for this draft. Refresh the dashboard before changing requirements.</p> : !workspace.requirements.length ? <p className="text-sm text-slate-500">No explicit “shall,” “must,” or “required” statements were extracted. Synchronize again after SAM notice text or solicitation attachments become available.</p> : <div className="max-h-96 overflow-auto"><table className="min-w-full divide-y divide-slate-200 text-xs"><thead className="sticky top-0 bg-white"><tr className="text-left uppercase text-slate-500"><th className="px-2 py-2">Requirement / source</th><th className="px-2 py-2">Proposal section</th><th className="px-2 py-2">Coverage</th><th className="px-2 py-2">Review</th></tr></thead><tbody className="divide-y divide-slate-100">{workspace.requirements.map(requirement => <tr key={requirement.id}><td className="max-w-xl px-2 py-3"><p className="text-slate-800">{requirement.text}</p><p className="mt-1 text-slate-400">{requirement.sourceLocator}</p></td><td className="px-2 py-3"><select disabled={governanceControlsDisabled} value={requirement.mappedSectionId || ''} onChange={event => runGovernanceAction(() => apiService.updateRFPRequirement(activeResponse.id, requirement.id, { mappedSectionId: event.target.value || null }), 'Requirement mapping saved.')} className="rounded border border-slate-300 p-1"><option value="">Unmapped</option>{template?.sections.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></td><td className="px-2 py-3"><select disabled={governanceControlsDisabled} value={requirement.coverageStatus} onChange={event => runGovernanceAction(() => apiService.updateRFPRequirement(activeResponse.id, requirement.id, { coverageStatus: event.target.value as any }), 'Requirement coverage saved.')} className="rounded border border-slate-300 p-1">{['UNMAPPED', 'PARTIAL', 'COVERED', 'NOT_APPLICABLE'].map(value => <option key={value}>{value}</option>)}</select></td><td className="px-2 py-3"><select disabled={governanceControlsDisabled} value={requirement.reviewStatus} onChange={event => runGovernanceAction(() => apiService.updateRFPRequirement(activeResponse.id, requirement.id, { reviewStatus: event.target.value as any }), 'Requirement review saved.')} className="rounded border border-slate-300 p-1">{['PENDING', 'VERIFIED', 'REJECTED'].map(value => <option key={value}>{value}</option>)}</select></td></tr>)}</tbody></table></div>}
           </div>}
-          {amendments.length > 0 && <div className="rounded-xl border border-violet-200 bg-violet-50 p-4"><h3 className="font-semibold text-violet-950">Solicitation amendments detected</h3><div className="mt-2 space-y-2">{amendments.map(amendment => <div key={amendment.id} className="rounded-lg bg-white p-3 text-xs text-slate-700"><div className="flex items-center justify-between gap-2"><strong>{formatDate(amendment.detectedAt)}</strong>{!amendment.acknowledgedAt && <button type="button" onClick={() => runGovernanceAction(() => apiService.acknowledgeRFPAmendment(amendment.id), 'Amendment acknowledged.')} className="font-semibold text-violet-700">Acknowledge</button>}</div><p className="mt-1">Changed: {amendment.changes.map(change => change.field).join(', ')}</p><p>Affected sections: {amendment.affectedSections.join(', ') || 'Review all evidence'}</p></div>)}</div></div>}
+          {amendments.length > 0 && <div className="rounded-xl border border-violet-200 bg-violet-50 p-4"><h3 className="font-semibold text-violet-950">Solicitation amendments detected</h3><div className="mt-2 space-y-2">{amendments.map(amendment => <div key={amendment.id} className="rounded-lg bg-white p-3 text-xs text-slate-700"><div className="flex items-center justify-between gap-2"><strong>{formatDate(amendment.detectedAt)}</strong>{!amendment.acknowledgedAt && <button type="button" disabled={governanceControlsDisabled} onClick={() => runGovernanceAction(() => apiService.acknowledgeRFPAmendment(amendment.id), 'Amendment acknowledged.')} className="font-semibold text-violet-700 disabled:opacity-50">Acknowledge</button>}</div><p className="mt-1">Changed: {amendment.changes.map(change => change.field).join(', ')}</p><p>Affected sections: {amendment.affectedSections.join(', ') || 'Review all evidence'}</p></div>)}</div></div>}
         </div> : <p className="text-sm text-slate-500">Select an opportunity to inspect its evidence.</p>}
       </section>
 
       <section className={sectionClass}>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><Sparkles className="h-5 w-5 text-blue-700" /><div><h2 className="font-semibold text-slate-950">5. Generate application draft</h2><p className="text-sm text-slate-500">Uses the selected profile, editable template, SAM metadata, and every completed solicitation extraction.</p></div></div><button data-testid="rfp-generate" type="button" onClick={generateDraft} disabled={generating || !selectedContract || !selectedProfile || !selectedTemplate} className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">{generating ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</> : <><FileText className="h-4 w-4" /> Generate application draft</>}</button></div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><Sparkles className="h-5 w-5 text-blue-700" /><div><h2 className="font-semibold text-slate-950">5. Generate application draft</h2><p className="text-sm text-slate-500">Uses the selected profile, editable template, SAM metadata, and every completed solicitation extraction.</p></div></div><button data-testid="rfp-generate" type="button" onClick={generateDraft} aria-busy={generationBusy} disabled={generationBusy || !selectedContract || !selectedProfile || !selectedTemplate} className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">{generating ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</> : loadingGeneratedDraft ? <><CheckCircle2 className="h-4 w-4" /> Draft saved — opening view…</> : <><FileText className="h-4 w-4" /> Generate application draft</>}</button></div>
         {generating && <p role="status" aria-live="polite" className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">Generating the governed proposal batches. This normally takes several minutes; keep this page open while the existing request completes.</p>}
+        {generationNotice && <p role="status" aria-live="polite" className="mt-3 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /><span>{generationNotice}{loadingGeneratedDraft ? ' Loading the completed draft view now.' : ''}</span></p>}
         {!bidDecision && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">You can generate without a bid decision, but analyzing the pursuit first provides stronger capture focus.</p>}
       </section>
 
       <section ref={reviewRef} className={sectionClass}>
         <div className="mb-4 flex items-center gap-3"><FileText className="h-5 w-5 text-blue-700" /><div><h2 className="font-semibold text-slate-950">6. Review and edit sections</h2><p className="text-sm text-slate-500">Edit content, check word limits and requirement coverage, then save each section.</p></div></div>
         {!activeResponse ? <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">Generate a draft or select an opportunity with an existing response.</div> : <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 p-4"><div><h3 className="font-semibold text-slate-900">{activeResponse.title}</h3><p className="text-sm text-slate-500">Status: {activeResponse.status.replace('_', ' ')} · Updated {formatDate(activeResponse.updatedAt)}</p></div><Link to={`/rfp/responses/${activeResponse.id}/edit`} className="text-sm font-semibold text-blue-700 hover:underline">Open full-screen editor</Link></div>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 p-4"><div><h3 className="font-semibold text-slate-900">{activeResponse.title}</h3><p className="text-sm text-slate-500">Status: {activeResponse.status.replace('_', ' ')} · Updated {formatDate(activeResponse.updatedAt)}</p></div><Link to={`/rfp/responses/${activeResponse.id}/edit`} aria-disabled={generationBusy} tabIndex={generationBusy ? -1 : undefined} onClick={event => { if (generationBusy) event.preventDefault(); }} className={`text-sm font-semibold text-blue-700 hover:underline ${generationBusy ? 'pointer-events-none opacity-50' : ''}`}>Open full-screen editor</Link></div>
           {sections.map(section => { const key = section.sectionId || section.id; const content = sectionDrafts[key] ?? section.content; const dirty = content !== section.content; const words = content.trim() ? content.trim().split(/\s+/).length : 0; const max = section.compliance?.wordLimit?.maximum; const mappedRequirements = workspace?.requirements?.filter(item => item.mappedSectionId === key) || []; const coverage = mappedRequirements.length ? Math.round(mappedRequirements.filter(item => ['COVERED', 'NOT_APPLICABLE'].includes(item.coverageStatus) && item.reviewStatus === 'VERIFIED').length / mappedRequirements.length * 100) : section.compliance?.requirementCoverage?.percentage ?? 0; const warnings = [...(section.compliance?.requirementCoverage?.missing || []), ...(mappedRequirements.filter(item => item.reviewStatus !== 'VERIFIED').map(item => `Requirement ${item.requirementKey} still needs human verification.`)), ...(max && words > max ? [`Word limit exceeded by ${words - max} words.`] : [])]; return <article key={key} className={`rounded-xl border p-4 transition ${dirty ? 'border-blue-300 ring-2 ring-blue-50' : 'border-slate-200'}`}><div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><h3 className="font-semibold text-slate-900">{section.title}</h3><div className="flex flex-wrap gap-2 text-xs">{dirty && <span className="rounded-full bg-blue-100 px-2.5 py-1 font-semibold text-blue-800">Unsaved changes</span>}<span className={`rounded-full px-2.5 py-1 font-semibold ${max && words > max ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}`}>{words}{max ? ` / ${max}` : ''} words</span><span className={`rounded-full px-2.5 py-1 font-semibold ${coverage >= 80 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{coverage}% requirement coverage</span></div></div><textarea rows={10} value={content} onChange={event => { setSectionDrafts(current => ({ ...current, [key]: event.target.value })); setSavedSection(current => current === key ? null : current); setSectionErrors(current => ({ ...current, [key]: '' })); }} className={`${selectClass} resize-y font-mono leading-6`} />{warnings.length > 0 && <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"><strong>Compliance warnings:</strong> {warnings.join(' · ')}</div>}{sectionErrors[key] && <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-800">Save failed: {sectionErrors[key]}</div>}{savedSection === key && <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800"><CheckCircle2 className="h-4 w-4" /> Section saved. Word-limit compliance was recalculated.</div>}<div className="mt-3 flex items-center justify-between gap-3"><span className="text-xs text-slate-500">Last saved: {formatDate(section.lastModified)}</span><button type="button" onClick={() => saveSection(section)} disabled={!dirty || savingSection === key} className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{savingSection === key ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</> : savedSection === key ? <><CheckCircle2 className="h-4 w-4" /> Saved</> : dirty ? <><Save className="h-4 w-4" /> Save changes</> : 'No changes'}</button></div></article>; })}
         </div>}
       </section>
 
       <section className={sectionClass}>
         <div className="mb-4 flex items-center gap-3"><Send className="h-5 w-5 text-blue-700" /><div><h2 className="font-semibold text-slate-950">7. Save, download, and track submission</h2><p className="text-sm text-slate-500">Move the application through human review and record its submission status.</p></div></div>
-        {!activeResponse ? <p className="text-sm text-slate-500">A generated or existing response is required.</p> : <div className="space-y-5">
+        {!activeResponse ? <p className="text-sm text-slate-500">A generated or existing response is required.</p> : <fieldset disabled={governanceControlsDisabled} className="space-y-5 border-0 p-0 disabled:opacity-70">
+          {workspaceLoading && <div role="status" aria-live="polite" className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900"><Loader2 className="h-4 w-4 animate-spin" /> Loading the governance controls for draft #{activeResponse.id}…</div>}
           {governanceNotice && <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800"><CheckCircle2 className="h-4 w-4" />{governanceNotice}</div>}
           <div><h3 className="mb-2 text-sm font-semibold text-slate-900">Draft lifecycle</h3><div className="grid gap-2 sm:grid-cols-3">{(['draft', 'in_review', 'approved'] as const).map(status => <button key={status} type="button" onClick={() => updateStatus(status)} disabled={statusSaving || activeResponse.status === status || Boolean(workspace?.submission)} className={`rounded-xl border px-3 py-3 text-sm font-semibold capitalize ${activeResponse.status === status ? 'border-blue-600 bg-blue-50 text-blue-800' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300'}`}>{status.replace('_', ' ')}</button>)}</div><p className="mt-2 text-xs text-slate-500">Submitted status cannot be selected manually; it is set only after all approval gates and checklist items pass.</p></div>
           <div className="grid gap-3 sm:grid-cols-4"><div className="rounded-xl bg-slate-50 p-3 text-sm"><strong>{sections.length}</strong><span className="block text-slate-500">proposal sections</span></div><div className="rounded-xl bg-slate-50 p-3 text-sm"><strong>{requirementCoverage}%</strong><span className="block text-slate-500">verified requirement coverage</span></div><div className="rounded-xl bg-slate-50 p-3 text-sm"><strong>{typeof activeResponse.predictedScore === 'number' ? Math.round(activeResponse.predictedScore) : Math.round(activeResponse.predictedScore?.overall || 0)}</strong><span className="block text-slate-500">predicted proposal score</span></div><div className="rounded-xl bg-slate-50 p-3 text-sm"><strong className="capitalize">{workspace?.submission ? 'submitted' : activeResponse.status.replace('_', ' ')}</strong><span className="block text-slate-500">governed state</span></div></div>
@@ -459,12 +507,12 @@ const RFPDashboard: React.FC = () => {
 
           <DownloadButtons mode="rfp" rfpResponseId={activeResponse.id} title={activeResponse.title} />
           {(workspace?.auditEvents?.length || 0) > 0 && <details className="rounded-xl border border-slate-200 p-4"><summary className="cursor-pointer font-semibold text-slate-900">Immutable approval and activity history ({workspace!.auditEvents.length})</summary><div className="mt-3 max-h-64 space-y-2 overflow-auto">{workspace!.auditEvents.slice().reverse().map(event => <div key={event.id} className="rounded-lg bg-slate-50 p-2 text-xs"><strong>#{event.sequence} {event.action}</strong><span className="block text-slate-500">{event.actorId} · {formatDate(event.occurredAt)} · hash {event.hash.slice(0, 12)}…</span></div>)}</div></details>}
-        </div>}
+        </fieldset>}
       </section>
 
       <section className={sectionClass}>
-        <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><Users className="h-5 w-5 text-blue-700" /><h2 className="font-semibold text-slate-950">Recent proposal applications</h2></div><Link to="/rfp/responses" className="text-sm font-semibold text-blue-700 hover:underline">View all</Link></div>
-        <div className="divide-y divide-slate-100">{responses.slice(0, 5).map(item => <button key={item.id} type="button" onClick={() => setSelectedContract(item.contractId)} className="flex w-full items-center justify-between gap-3 py-3 text-left hover:bg-slate-50"><div><div className="font-medium text-slate-900">{item.title}</div><div className="text-xs text-slate-500">{item.contractId} · {formatDate(item.updatedAt)}</div></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold capitalize text-slate-700">{item.status.replace('_', ' ')}</span></button>)}{responses.length === 0 && <p className="py-6 text-center text-sm text-slate-500">No proposal applications yet.</p>}</div>
+        <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><Users className="h-5 w-5 text-blue-700" /><h2 className="font-semibold text-slate-950">Recent proposal applications</h2></div><Link to="/rfp/responses" aria-disabled={generationBusy} tabIndex={generationBusy ? -1 : undefined} onClick={event => { if (generationBusy) event.preventDefault(); }} className={`text-sm font-semibold text-blue-700 hover:underline ${generationBusy ? 'pointer-events-none opacity-50' : ''}`}>View all</Link></div>
+        <div className="divide-y divide-slate-100">{responses.slice(0, 5).map(item => <button key={item.id} type="button" disabled={generationBusy} onClick={() => setSelectedContract(item.contractId)} className="flex w-full items-center justify-between gap-3 py-3 text-left hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"><div><div className="font-medium text-slate-900">{item.title}</div><div className="text-xs text-slate-500">{item.contractId} · {formatDate(item.updatedAt)}</div></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold capitalize text-slate-700">{item.status.replace('_', ' ')}</span></button>)}{responses.length === 0 && <p className="py-6 text-center text-sm text-slate-500">No proposal applications yet.</p>}</div>
       </section>
 
       {stats && <div className="grid gap-3 sm:grid-cols-4"><div className="rounded-xl bg-white p-4 shadow-sm"><strong className="text-2xl">{stats.totalRFPs}</strong><span className="block text-sm text-slate-500">Total applications</span></div><div className="rounded-xl bg-white p-4 shadow-sm"><strong className="text-2xl">{stats.activeRFPs}</strong><span className="block text-sm text-slate-500">Active</span></div><div className="rounded-xl bg-white p-4 shadow-sm"><strong className="text-2xl">{stats.submittedRFPs}</strong><span className="block text-sm text-slate-500">Submitted</span></div><div className="rounded-xl bg-white p-4 shadow-sm"><strong className="text-2xl">{stats.winRate == null ? 'N/A' : `${stats.winRate}%`}</strong><span className="block text-sm text-slate-500">Actual win rate ({stats.outcomeAnalytics?.won || 0} won / {stats.outcomeAnalytics?.lost || 0} lost)</span></div></div>}

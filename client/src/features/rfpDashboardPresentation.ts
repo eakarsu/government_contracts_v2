@@ -1,4 +1,33 @@
-import type { Contract } from '../types';
+import type { Contract, RFPGenerationResponse } from '../types';
+
+export type RfpGenerationPhase = 'idle' | 'generating' | 'loading_draft';
+export type RfpGenerationEvent = 'START' | 'SERVER_SUCCEEDED' | 'RESET';
+
+export function rfpGenerationPhaseReducer(
+  phase: RfpGenerationPhase,
+  event: RfpGenerationEvent,
+): RfpGenerationPhase {
+  if (event === 'START') return 'generating';
+  if (event === 'SERVER_SUCCEEDED') return 'loading_draft';
+  if (event === 'RESET') return 'idle';
+  return phase;
+}
+
+export function getRfpGenerationSuccessNotice(
+  result: Pick<RFPGenerationResponse, 'message' | 'rfpResponseId' | 'sectionsGenerated'>,
+) {
+  const sectionLabel = `${result.sectionsGenerated} section${result.sectionsGenerated === 1 ? '' : 's'}`;
+  return `${result.message} Draft #${result.rfpResponseId} is saved with ${sectionLabel}.`;
+}
+
+export function isRfpWorkspaceCurrent(
+  activeResponseId: number | null | undefined,
+  workspaceResponseId: number | null | undefined,
+) {
+  return Number.isSafeInteger(activeResponseId)
+    && Number.isSafeInteger(workspaceResponseId)
+    && activeResponseId === workspaceResponseId;
+}
 
 export type NaicsVerificationNotice = {
   title: string;

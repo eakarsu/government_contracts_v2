@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { getNaicsVerificationNotice, hasExactNaicsMatch, normalizeSixDigitNaicsCode, resolveOpportunitySelection } from './rfpDashboardPresentation';
+import {
+  getNaicsVerificationNotice,
+  getRfpGenerationSuccessNotice,
+  hasExactNaicsMatch,
+  isRfpWorkspaceCurrent,
+  normalizeSixDigitNaicsCode,
+  resolveOpportunitySelection,
+  rfpGenerationPhaseReducer,
+} from './rfpDashboardPresentation';
 
 describe('RFP dashboard opportunity selection', () => {
   const opportunities = [
@@ -44,5 +52,35 @@ describe('RFP dashboard NAICS verification notice', () => {
     expect(notice?.message).toContain('do not include opportunity 237310');
     expect(notice?.message).toContain('add this code only if it is accurate');
     expect(notice?.message).toContain('Bid analysis remains available');
+  });
+});
+
+describe('RFP generation presentation state', () => {
+  it('stops reporting AI generation as soon as the server succeeds', () => {
+    const generating = rfpGenerationPhaseReducer('idle', 'START');
+    const loadingDraft = rfpGenerationPhaseReducer(generating, 'SERVER_SUCCEEDED');
+
+    expect(generating).toBe('generating');
+    expect(loadingDraft).toBe('loading_draft');
+    expect(loadingDraft).not.toBe('generating');
+    expect(rfpGenerationPhaseReducer(loadingDraft, 'RESET')).toBe('idle');
+  });
+
+  it('returns to idle when generation fails before a draft is available', () => {
+    expect(rfpGenerationPhaseReducer('generating', 'RESET')).toBe('idle');
+  });
+
+  it('builds a durable success notice from the server result', () => {
+    expect(getRfpGenerationSuccessNotice({
+      message: 'Proposal application draft generated. Human review is required before submission.',
+      rfpResponseId: 5,
+      sectionsGenerated: 17,
+    })).toBe('Proposal application draft generated. Human review is required before submission. Draft #5 is saved with 17 sections.');
+  });
+
+  it('allows governance controls only for the active draft workspace', () => {
+    expect(isRfpWorkspaceCurrent(5, 5)).toBe(true);
+    expect(isRfpWorkspaceCurrent(5, 4)).toBe(false);
+    expect(isRfpWorkspaceCurrent(5, null)).toBe(false);
   });
 });

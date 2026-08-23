@@ -587,10 +587,13 @@ class ApiService {
     }
   }
 
-  async getRFPResponse(responseId: number): Promise<{ success: boolean; response: RFPResponse }> {
+  async getRFPResponse(responseId: number, options: { timeoutMs?: number } = {}): Promise<{ success: boolean; response: RFPResponse }> {
     try {
       console.log(`🔍 [DEBUG] API Service getRFPResponse called with ID: ${responseId}`);
-      const response = await api.get<{ success: boolean; response: RFPResponse }>(`/rfp/responses/${responseId}`);
+      const response = await api.get<{ success: boolean; response: RFPResponse }>(
+        `/rfp/responses/${responseId}`,
+        options.timeoutMs ? { timeout: options.timeoutMs } : undefined,
+      );
       console.log('✅ [DEBUG] API Service getRFPResponse success:', response.data);
       return response.data;
     } catch (error: any) {
