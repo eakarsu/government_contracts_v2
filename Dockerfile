@@ -1,3 +1,13 @@
+FROM node:24-slim AS client-build
+
+WORKDIR /app/client
+
+COPY client/package*.json ./
+RUN npm ci
+
+COPY client/ ./
+RUN npm run build
+
 FROM node:24-slim
 
 # Set environment variables for non-interactive package installation
@@ -44,6 +54,10 @@ RUN PUPPETEER_SKIP_DOWNLOAD=true npm ci
 
 # Copy application code
 COPY . .
+
+# Always ship the frontend generated from the source in this release. The
+# repository may contain an older tracked bundle for non-container workflows.
+COPY --from=client-build /app/client/build ./client/build
 
 # Generate the database client, then remove development-only dependencies.
 RUN npx prisma generate && npm prune --omit=dev
