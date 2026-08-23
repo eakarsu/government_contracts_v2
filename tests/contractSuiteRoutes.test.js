@@ -4,7 +4,7 @@ const express = require('express');
 const request = require('supertest');
 const { userFromClaims } = require('../middleware/auth');
 const { createContractSuiteRouter } = require('../routes/contractSuite');
-const { catalogResponse, parseStructuredOutput, ContractSuiteError, ContractSuiteService } = require('../services/contractSuiteService');
+const { catalogResponse, editableWorkItemData, parseStructuredOutput, ContractSuiteError, ContractSuiteService } = require('../services/contractSuiteService');
 
 function appWithSuite() {
   const service = {
@@ -12,6 +12,8 @@ function appWithSuite() {
     list: jest.fn(async () => [{ id: 'work-1', domain: 'NEGOTIATION', capability: 'redline-review' }]),
     get: jest.fn(async id => ({ id, analyses: [] })),
     create: jest.fn(async (input, actor) => ({ id: 'work-2', ownerId: actor.id, ...input })),
+    update: jest.fn(async (id, input) => ({ id, ...input })),
+    delete: jest.fn(async id => ({ id })),
     transition: jest.fn(async (_id, input, actor) => ({ id: 'work-1', status: input.nextStatus, approvedBy: actor.id })),
     aiReview: jest.fn(async () => ({ id: 'analysis-1', advisoryOnly: true, status: 'PENDING_HUMAN_REVIEW' })),
   };
@@ -32,6 +34,34 @@ test('exposes deduplicated catalog, overview, and domain records', async () => {
   const records = await request(app).get('/contract-suite/work-items?domain=negotiation').set('x-test-role', 'contract_viewer').set('x-test-user', 'viewer-1').expect(200);
   expect(records.body.total).toBe(1);
   expect(service.list).toHaveBeenCalledWith(expect.objectContaining({ domain: 'negotiation' }));
+});
+
+test('supports editing and deleting unified suite rows for contract managers', async () => {
+  const { app, service } = appWithSuite();
+  await request(app).patch('/contract-suite/work-items/work-1').set('x-test-role', 'contract_manager').set('x-test-user', 'manager-1').send({ title: 'Updated item' }).expect(200);
+  await request(app).delete('/contract-suite/work-items/work-1').set('x-test-role', 'contract_manager').set('x-test-user', 'manager-1').expect(200);
+  expect(service.update).toHaveBeenCalledWith('work-1', { title: 'Updated item' }, expect.objectContaining({ id: 'manager-1' }));
+  expect(service.delete).toHaveBeenCalledWith('work-1', expect.objectContaining({ id: 'manager-1' }));
+});
+
+test('prevents read-only users from modifying unified suite rows', async () => {
+  const { app } = appWithSuite();
+  await request(app).patch('/contract-suite/work-items/work-1').set('x-test-role', 'contract_viewer').set('x-test-user', 'viewer-1').send({ title: 'No' }).expect(403);
+  await request(app).delete('/contract-suite/work-items/work-1').set('x-test-role', 'contract_viewer').set('x-test-user', 'viewer-1').expect(403);
+});
+
+test('normalizes unified suite edit fields and rejects invalid values', () => {
+  expect(editableWorkItemData({ title: ' Updated ', monetaryValue: '500000', probability: '0.72', counterparty: '' })).toEqual({ title: 'Updated', monetaryValue: 500000, probability: 0.72, counterparty: null });
+  expect(editableWorkItemData({ evidence: '{"source":"verified"}', riskLevel: 'high' })).toEqual({ evidence: { source: 'verified' }, riskLevel: 'HIGH' });
+  expect(() => editableWorkItemData({ probability: 2 })).toThrow(/between 0 and 1/);
+});
+
+test('service preserves immutable AI analysis evidence during deletion', async () => {
+  const remove = jest.fn(async ({ where }) => where);
+  const service = new ContractSuiteService({ contractCapabilityWorkItem: { delete: remove } });
+  service.get = jest.fn(async () => ({ id: 'work-1', matterId: 'matter-1', analyses: [{ id: 'analysis-1' }] }));
+  await expect(service.delete('work-1', { id: 'manager-1' })).rejects.toMatchObject({ code: 'IMMUTABLE_ANALYSIS_EXISTS', status: 409 });
+  expect(remove).not.toHaveBeenCalled();
 });
 
 test('enforces governed write and AI permissions', async () => {

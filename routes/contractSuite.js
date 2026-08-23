@@ -25,6 +25,8 @@ function createContractSuiteRouter(service) {
   }));
   router.get('/work-items/:id', requirePermission('lifecycle:read'), route(async (req, res) => res.json({ record: await service.get(req.params.id) })));
   router.post('/work-items', requirePermission('lifecycle:create'), route(async (req, res) => res.status(201).json({ record: await service.create(req.body, req.user) })));
+  router.patch('/work-items/:id', requirePermission('lifecycle:update'), route(async (req, res) => res.json({ record: await service.update(req.params.id, req.body, req.user) })));
+  router.delete('/work-items/:id', requirePermission('lifecycle:delete'), route(async (req, res) => res.json({ record: await service.delete(req.params.id, req.user) })));
   router.post('/work-items/:id/transition', requirePermission('lifecycle:submit'), route(async (req, res) => res.json({ record: await service.transition(req.params.id, req.body, req.user) })));
   router.post('/work-items/:id/ai-review', requirePermission('lifecycle:ai'), route(async (req, res) => res.status(201).json({ record: await service.aiReview(req.params.id, req.body, req.user) })));
   return router;

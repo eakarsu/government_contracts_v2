@@ -94,6 +94,36 @@ function optionalProbability(value) {
   if (!Number.isFinite(number) || number < 0 || number > 1) throw new ContractSuiteError('INVALID_PROBABILITY', 'probability must be between 0 and 1');
   return number;
 }
+function optionalNumber(value, field) {
+  if (value === undefined || value === null || value === '') return null;
+  const number = Number(value);
+  if (!Number.isFinite(number)) throw new ContractSuiteError('INVALID_NUMBER', `${field} must be a number`);
+  return number;
+}
+function optionalText(value) {
+  if (value === undefined || value === null || String(value).trim() === '') return null;
+  return String(value).trim();
+}
+function editableWorkItemData(input) {
+  const allowed = new Set(['title', 'summary', 'priority', 'riskLevel', 'ownerId', 'counterparty', 'monetaryValue', 'probability', 'dueDate', 'jurisdiction', 'chainId', 'league', 'evidence', 'recommendation']);
+  const supplied = Object.entries(input || {}).filter(([key]) => allowed.has(key));
+  if (!supplied.length) throw new ContractSuiteError('NO_CHANGES', 'No editable fields were supplied');
+  return supplied.reduce((data, [key, value]) => {
+    if (['title', 'summary', 'ownerId', 'recommendation'].includes(key)) data[key] = text(String(value ?? ''), key);
+    else if (['priority', 'riskLevel'].includes(key)) {
+      const rating = String(value || '').toUpperCase();
+      if (!['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(rating)) throw new ContractSuiteError('INVALID_RATING', `${key} must be LOW, MEDIUM, HIGH, or CRITICAL`);
+      data[key] = rating;
+    } else if (key === 'monetaryValue') data[key] = optionalNumber(value, key);
+    else if (key === 'probability') data[key] = optionalProbability(value);
+    else if (key === 'dueDate') data[key] = optionalDate(value, key);
+    else if (key === 'evidence') {
+      try { data[key] = typeof value === 'string' ? JSON.parse(value) : value; }
+      catch (_error) { throw new ContractSuiteError('INVALID_JSON', 'evidence must be valid JSON'); }
+    } else data[key] = optionalText(value);
+    return data;
+  }, {});
+}
 function parseStructuredOutput(raw) {
   const cleaned = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   let parsed;
@@ -229,6 +259,22 @@ class ContractSuiteService {
     return record;
   }
 
+  async update(id, input, actor) {
+    const record = await this.get(id);
+    const data = editableWorkItemData(input);
+    const updated = await this.prisma.contractCapabilityWorkItem.update({ where: { id }, data });
+    if (this.lifecycleAudit) await this.lifecycleAudit(record.matterId, 'CAPABILITY_WORK_ITEM_UPDATED', actor, { workItemId: id, fields: Object.keys(data) });
+    return updated;
+  }
+
+  async delete(id, actor) {
+    const record = await this.get(id);
+    if (record.analyses?.length) throw new ContractSuiteError('IMMUTABLE_ANALYSIS_EXISTS', 'Work item deletion is blocked because it contains immutable AI analysis evidence', 409);
+    if (this.lifecycleAudit) await this.lifecycleAudit(record.matterId, 'CAPABILITY_WORK_ITEM_DELETE_REQUESTED', actor, { workItemId: id });
+    await this.prisma.contractCapabilityWorkItem.delete({ where: { id } });
+    return { id };
+  }
+
   async transition(id, input, actor) {
     const record = await this.get(id);
     const nextStatus = text(input.nextStatus, 'nextStatus').toUpperCase();
@@ -269,4 +315,4 @@ class ContractSuiteService {
   }
 }
 
-module.exports = { ContractSuiteService, ContractSuiteError, DOMAINS, SOURCE_PROJECTS, TRANSITIONS, catalogResponse, parseStructuredOutput };
+module.exports = { ContractSuiteService, ContractSuiteError, DOMAINS, SOURCE_PROJECTS, TRANSITIONS, catalogResponse, editableWorkItemData, parseStructuredOutput };

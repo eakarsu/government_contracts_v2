@@ -42,6 +42,14 @@ export const contractSuiteApi = {
     const response = await api.post('/contract-suite/work-items', input);
     return response.data.record;
   },
+  async update(id: string, input: Record<string, any>): Promise<SuiteWorkItem> {
+    const response = await api.patch(`/contract-suite/work-items/${id}`, input);
+    return response.data.record;
+  },
+  async delete(id: string): Promise<{ id: string }> {
+    const response = await api.delete(`/contract-suite/work-items/${id}`);
+    return response.data.record;
+  },
   async transition(id: string, nextStatus: string, rationale: string): Promise<SuiteWorkItem> {
     const response = await api.post(`/contract-suite/work-items/${id}/transition`, { nextStatus, rationale });
     return response.data.record;

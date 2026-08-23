@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import {
-  Activity, AlertTriangle, ArrowRight, Bot, BriefcaseBusiness, Building2,
-  ChevronRight, FileSearch, Gavel, Plus, Search, ShieldCheck, Sparkles, Trophy, X,
+  Activity, AlertTriangle, Bot, BriefcaseBusiness, Building2,
+  ChevronRight, FileSearch, Gavel, Pencil, Plus, Save, Search, ShieldCheck, Sparkles, Trash2, Trophy, X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { contractSuiteApi, SuiteAiReviewInput, SuiteDomain, SuiteWorkItem } from '../services/contractSuiteApi';
@@ -109,16 +109,49 @@ function AnalysisReport({ analysis }: { analysis: Record<string, any> }) {
   </section>;
 }
 
+function workItemDraft(record: SuiteWorkItem) {
+  return {
+    title: record.title || '', summary: record.summary || '', ownerId: record.ownerId || '', counterparty: record.counterparty || '',
+    priority: record.priority || 'MEDIUM', riskLevel: record.riskLevel || 'MEDIUM', monetaryValue: record.monetaryValue ?? '', probability: record.probability ?? '',
+    dueDate: record.dueDate ? new Date(record.dueDate).toISOString().slice(0, 10) : '', jurisdiction: record.jurisdiction || '', chainId: record.chainId || '',
+    league: record.league || '', recommendation: record.recommendation || '', evidence: JSON.stringify(record.evidence || {}, null, 2),
+  };
+}
+
+function WorkItemEditForm({ value, onChange, onSubmit }: { value: Record<string, any>; onChange: (value: Record<string, any>) => void; onSubmit: () => void }) {
+  const set = (field: string, fieldValue: any) => onChange({ ...value, [field]: fieldValue });
+  return <form id="contract-suite-edit-form" className="grid gap-4 p-6 sm:grid-cols-2" onSubmit={event => { event.preventDefault(); onSubmit(); }}>
+    <label className="sm:col-span-2"><span className="label">Title</span><input className="input" required value={value.title} onChange={event => set('title', event.target.value)} /></label>
+    <label className="sm:col-span-2"><span className="label">Summary</span><textarea className="input min-h-24" required value={value.summary} onChange={event => set('summary', event.target.value)} /></label>
+    <label><span className="label">Owner</span><input className="input" required value={value.ownerId} onChange={event => set('ownerId', event.target.value)} /></label>
+    <label><span className="label">Counterparty</span><input className="input" value={value.counterparty} onChange={event => set('counterparty', event.target.value)} /></label>
+    <label><span className="label">Priority</span><select className="input" value={value.priority} onChange={event => set('priority', event.target.value)}>{['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map(option => <option key={option}>{option}</option>)}</select></label>
+    <label><span className="label">Risk level</span><select className="input" value={value.riskLevel} onChange={event => set('riskLevel', event.target.value)}>{['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map(option => <option key={option}>{option}</option>)}</select></label>
+    <label><span className="label">Monetary value</span><input className="input" type="number" step="any" value={value.monetaryValue} onChange={event => set('monetaryValue', event.target.value)} /></label>
+    <label><span className="label">Probability (0–1)</span><input className="input" type="number" min="0" max="1" step="0.01" value={value.probability} onChange={event => set('probability', event.target.value)} /></label>
+    <label><span className="label">Due date</span><input className="input" type="date" value={value.dueDate} onChange={event => set('dueDate', event.target.value)} /></label>
+    <label><span className="label">Jurisdiction</span><input className="input" value={value.jurisdiction} onChange={event => set('jurisdiction', event.target.value)} /></label>
+    <label><span className="label">Chain ID</span><input className="input" value={value.chainId} onChange={event => set('chainId', event.target.value)} /></label>
+    <label><span className="label">League</span><input className="input" value={value.league} onChange={event => set('league', event.target.value)} /></label>
+    <label className="sm:col-span-2"><span className="label">Recommendation</span><textarea className="input min-h-24" required value={value.recommendation} onChange={event => set('recommendation', event.target.value)} /></label>
+    <label className="sm:col-span-2"><span className="label">Evidence (JSON)</span><textarea className="input min-h-40 font-mono text-xs" required value={value.evidence} onChange={event => set('evidence', event.target.value)} /></label>
+  </form>;
+}
+
 function DetailPanel({ id, initialPresetId, onClose }: { id: string; initialPresetId?: string; onClose: () => void }) {
   const client = useQueryClient();
   const appliedPreset = useRef('');
   const [activePreset, setActivePreset] = useState('');
   const [reviewInput, setReviewInput] = useState<SuiteAiReviewInput>({ question: '', analysisType: '', objective: '', audience: '', riskTolerance: '', focusAreas: [], assumptions: '', evidenceRequirements: '', jurisdiction: '', deadline: '', financialThreshold: '', outputTone: '', requestedSections: [] });
   const [rationale, setRationale] = useState('Evidence and accountable ownership reviewed.');
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState<Record<string, any>>({});
   const detail = useQuery({ queryKey: ['contract-suite-item', id], queryFn: () => contractSuiteApi.workItem(id) });
   const refresh = async () => { await Promise.all([client.invalidateQueries({ queryKey: ['contract-suite-item', id] }), client.invalidateQueries({ queryKey: ['contract-suite-items'] }), client.invalidateQueries({ queryKey: ['contract-suite-overview'] })]); };
   const transition = useMutation({ mutationFn: (nextStatus: string) => contractSuiteApi.transition(id, nextStatus, rationale), onSuccess: async () => { toast.success('Workflow status updated'); await refresh(); }, onError: (error: any) => toast.error(error.response?.data?.error || error.message) });
   const review = useMutation({ mutationFn: () => contractSuiteApi.aiReview(id, reviewInput), onSuccess: async () => { toast.success('Professional advisory report recorded'); await refresh(); }, onError: (error: any) => toast.error(error.response?.data?.error || error.message) });
+  const update = useMutation({ mutationFn: () => contractSuiteApi.update(id, editForm), onSuccess: async () => { toast.success('Unified contract work item updated'); setEditing(false); await refresh(); }, onError: (error: any) => toast.error(error.response?.data?.error || error.message) });
+  const remove = useMutation({ mutationFn: () => contractSuiteApi.delete(id), onSuccess: async () => { toast.success('Unified contract work item deleted'); await Promise.all([client.invalidateQueries({ queryKey: ['contract-suite-items'] }), client.invalidateQueries({ queryKey: ['contract-suite-overview'] })]); onClose(); }, onError: (error: any) => toast.error(error.response?.data?.error || error.message) });
   const record = detail.data;
   const presets = record ? (AI_PRESETS[record.domain] || []) : [];
   const applyPreset = (preset: AiPreset) => {
@@ -134,11 +167,12 @@ function DetailPanel({ id, initialPresetId, onClose }: { id: string; initialPres
     appliedPreset.current = key;
     applyPreset(preset);
   }, [record?.id, initialPresetId]);
+  useEffect(() => { if (record && !editing) setEditForm(workItemDraft(record)); }, [record?.id, record?.updatedAt, editing]);
   const setReviewField = <K extends keyof SuiteAiReviewInput>(field: K, value: SuiteAiReviewInput[K]) => setReviewInput(current => ({ ...current, [field]: value }));
   const reviewComplete = Object.entries(reviewInput).every(([, value]) => Array.isArray(value) ? value.length > 0 : String(value).trim().length > 0);
-  return <div className="fixed inset-0 z-[70] flex justify-end bg-slate-950/55" onMouseDown={event => event.target === event.currentTarget && onClose()}><aside className="h-full w-full max-w-3xl overflow-y-auto bg-white shadow-2xl">
-    <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-5 py-4"><div><div className="text-xs font-semibold uppercase tracking-widest text-primary-700">Governed work item</div><h2 className="mt-1 text-xl font-bold">{record?.title || 'Loading…'}</h2></div><button className="rounded-lg p-2 hover:bg-gray-100" onClick={onClose} aria-label="Close details"><X className="h-5 w-5" /></button></div>
-    {detail.isLoading ? <div className="p-8">Loading evidence…</div> : record && <div className="space-y-7 p-5 sm:p-7">
+  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-4" onMouseDown={event => event.target === event.currentTarget && onClose()}><section className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="contract-suite-record-title">
+    <div className="flex items-center justify-between border-b bg-white px-5 py-4"><div><div className="text-xs font-semibold uppercase tracking-widest text-primary-700">Governed work item</div><h2 id="contract-suite-record-title" className="mt-1 text-xl font-bold">{editing ? `Edit ${record?.title || 'work item'}` : record?.title || 'Loading…'}</h2></div><button type="button" className="rounded-lg p-2 hover:bg-gray-100" onClick={onClose} aria-label="Close details"><X className="h-5 w-5" /></button></div>
+    <div className="overflow-y-auto">{detail.isLoading ? <div className="p-8">Loading evidence…</div> : record && (editing ? <WorkItemEditForm value={editForm} onChange={setEditForm} onSubmit={() => update.mutate()} /> : <div className="space-y-7 p-5 sm:p-7">
       <div className="flex flex-wrap gap-2"><Pill value={record.status} /><Pill value={record.riskLevel} /><span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">{titleCase(record.capability)}</span></div>
       <p className="leading-7 text-gray-700">{record.summary}</p>
       <section><h3 className="mb-3 font-semibold">Decision context</h3><EvidenceView value={{ matter: record.matter?.matterNumber, agency: record.matter?.agency, owner: record.ownerId, counterparty: record.counterparty, monetaryValue: record.monetaryValue, probability: record.probability, dueDate: record.dueDate, jurisdiction: record.jurisdiction, chainId: record.chainId, league: record.league, recommendation: record.recommendation, sourceProject: record.sourceProject }} /></section>
@@ -157,8 +191,9 @@ function DetailPanel({ id, initialPresetId, onClose }: { id: string; initialPres
         </div>
       </section>
       <div className="space-y-4">{(record.analyses || []).map((analysis: any) => <AnalysisReport key={analysis.id} analysis={analysis} />)}</div>
-    </div>}
-  </aside></div>;
+    </div>)}</div>
+    {record && <div className="flex flex-col-reverse justify-between gap-3 border-t bg-gray-50 px-6 py-4 sm:flex-row"><button type="button" className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40" disabled={remove.isPending || Boolean(record.analyses?.length)} title={record.analyses?.length ? 'Work items with immutable AI analysis evidence cannot be deleted' : 'Delete work item'} onClick={() => { if (window.confirm('Delete this unified contract work item? This action cannot be undone.')) remove.mutate(); }}><Trash2 className="h-4 w-4" />{remove.isPending ? 'Deleting…' : 'Delete'}</button><div className="flex justify-end gap-3"><button type="button" className="btn-secondary" onClick={() => { if (editing) { setEditForm(workItemDraft(record)); setEditing(false); } else onClose(); }}>Cancel</button>{editing ? <button type="submit" form="contract-suite-edit-form" className="btn-primary gap-2" disabled={update.isPending}><Save className="h-4 w-4" />{update.isPending ? 'Saving…' : 'Save changes'}</button> : <button type="button" className="btn-primary gap-2" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Edit</button>}</div></div>}
+  </section></div>;
 }
 
 function CreateModal({ domain, onClose }: { domain: SuiteDomain; onClose: () => void }) {
@@ -200,7 +235,7 @@ const ContractSuiteWorkspace: React.FC = () => {
   return <div className="space-y-6"><header className={`rounded-2xl bg-gradient-to-r ${colors[domain.key]} p-6 text-white shadow-lg`}><Link to="/contract-suite" className="text-sm font-medium text-white/80 hover:text-white">← Unified contract suite</Link><div className="mt-4 flex flex-col justify-between gap-5 lg:flex-row lg:items-end"><div><div className="flex items-center gap-3"><Icon className="h-7 w-7" /><h1 className="text-3xl font-bold">{domain.label}</h1></div><p className="mt-3 max-w-3xl leading-7 text-white/80">{domain.description}</p></div><button className="rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-gray-900 shadow hover:bg-gray-50" onClick={() => setShowCreate(true)}><Plus className="mr-2 inline h-4 w-4" />New work item</button></div></header>
     <section className="overflow-hidden rounded-2xl border border-indigo-200 bg-white shadow-sm"><div className="bg-gradient-to-r from-indigo-950 to-blue-900 p-5 text-white"><div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.18em] text-blue-200"><Sparkles className="h-4 w-4" />AI analysis actions</div><h2 className="mt-2 text-xl font-bold">Start a complete {domain.label.toLowerCase()} review</h2><p className="mt-1 text-sm leading-6 text-blue-100">Select a work item, then choose an analysis. Every required and optional field will be populated before you submit.</p></div><div className="p-5"><label className="block"><span className="label">Work item to analyze</span><select className="input" value={aiItemId} onChange={event => setAiItemId(event.target.value)}><option value="">Select a work item</option>{items.data?.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{(AI_PRESETS[domain.key] || []).map(preset => <button type="button" key={preset.id} disabled={!aiItemId} onClick={() => { setSelectedPreset(preset.id); setSelected(aiItemId); }} className="group rounded-xl border border-gray-200 p-4 text-left transition hover:border-indigo-300 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"><div className="flex items-center justify-between"><span className="font-semibold text-gray-950">{preset.label}</span><ChevronRight className="h-4 w-4 text-gray-400 transition group-hover:translate-x-1" /></div><p className="mt-2 text-sm leading-5 text-gray-500">{preset.description}</p></button>)}</div></div></section>
     <section className="rounded-xl border bg-white p-4"><div className="flex flex-wrap gap-2"><button className={`rounded-full px-3 py-2 text-sm font-semibold ${!capability ? 'bg-primary-700 text-white' : 'bg-gray-100 text-gray-700'}`} onClick={() => setCapability('')}>All ({overview.data?.domains?.[domain.key] || 0})</button>{domain.capabilities.map(item => <button key={item.key} className={`rounded-full px-3 py-2 text-sm font-semibold ${capability === item.key ? 'bg-primary-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`} onClick={() => setCapability(item.key)}>{item.label}</button>)}</div><div className="relative mt-4"><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><input className="input pl-9" placeholder={`Search ${domain.label.toLowerCase()}`} value={search} onChange={event => setSearch(event.target.value)} /></div></section>
-    <section className="overflow-hidden rounded-xl border bg-white"><div className="border-b px-5 py-4"><h2 className="font-semibold">Decision work queue</h2><p className="text-sm text-gray-500">{items.data?.length || 0} records · source: {domain.sourceProject}</p></div><div className="divide-y">{items.isLoading ? <div className="p-6">Loading work queue…</div> : items.data?.map(item => <button key={item.id} className="grid w-full gap-3 p-5 text-left transition hover:bg-gray-50 lg:grid-cols-[1fr_180px_140px_130px_28px] lg:items-center" onClick={() => setSelected(item.id)}><div><div className="font-semibold text-gray-950">{item.title}</div><p className="mt-1 line-clamp-2 text-sm text-gray-500">{item.summary}</p><div className="mt-2 text-xs text-gray-400">{item.matter?.matterNumber} · {capabilityLabel[item.capability] || titleCase(item.capability)}</div></div><div className="text-sm"><div className="text-xs uppercase text-gray-400">Owner</div><div className="mt-1 font-medium">{item.ownerId}</div></div><div><Pill value={item.riskLevel} /></div><div><Pill value={item.status} /></div><ArrowRight className="hidden h-4 w-4 text-gray-400 lg:block" /></button>)}{!items.isLoading && !items.data?.length && <div className="p-10 text-center text-gray-500">No work items match these filters.</div>}</div></section>
+    <section className="overflow-hidden rounded-xl border bg-white"><div className="border-b px-5 py-4"><h2 className="font-semibold">Decision work queue</h2><p className="text-sm text-gray-500">{items.data?.length || 0} records · source: {domain.sourceProject}</p></div>{items.isLoading ? <div className="p-6">Loading work queue…</div> : items.data?.length ? <div className="overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Work item</th><th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Owner</th><th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Risk</th><th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th></tr></thead><tbody className="divide-y divide-gray-100">{items.data.map(item => <tr key={item.id} tabIndex={0} aria-label={`Open ${item.title}`} className="cursor-pointer transition hover:bg-primary-50 focus:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500" onClick={() => setSelected(item.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(item.id); } }}><td className="max-w-2xl px-5 py-4"><div className="font-semibold text-gray-950">{item.title}</div><p className="mt-1 line-clamp-2 text-sm text-gray-500">{item.summary}</p><div className="mt-2 text-xs text-gray-400">{item.matter?.matterNumber} · {capabilityLabel[item.capability] || titleCase(item.capability)}</div></td><td className="whitespace-nowrap px-5 py-4 text-sm font-medium text-gray-800">{item.ownerId}</td><td className="whitespace-nowrap px-5 py-4"><Pill value={item.riskLevel} /></td><td className="whitespace-nowrap px-5 py-4"><Pill value={item.status} /></td></tr>)}</tbody></table></div> : <div className="p-10 text-center text-gray-500">No work items match these filters.</div>}</section>
     {selected && <DetailPanel id={selected} initialPresetId={selectedPreset} onClose={() => { setSelected(''); setSelectedPreset(''); }} />}{showCreate && <CreateModal domain={domain} onClose={() => setShowCreate(false)} />}
   </div>;
 };
