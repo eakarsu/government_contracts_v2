@@ -171,10 +171,14 @@ const DocumentDownload: React.FC = () => {
         {/* Download Options */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="document-download-limit"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Max Contracts
             </label>
             <input
+              id="document-download-limit"
               type="number"
               value={downloadOptions.limit}
               onChange={(e) => setDownloadOptions(prev => ({ 
@@ -188,10 +192,14 @@ const DocumentDownload: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="document-download-folder"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Download Folder
             </label>
             <input
+              id="document-download-folder"
               type="text"
               value={downloadOptions.download_folder}
               onChange={(e) => setDownloadOptions(prev => ({ 
@@ -204,10 +212,14 @@ const DocumentDownload: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="document-download-concurrency"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Concurrency
             </label>
             <input
+              id="document-download-concurrency"
               type="number"
               value={downloadOptions.concurrency}
               onChange={(e) => setDownloadOptions(prev => ({ 
@@ -221,10 +233,14 @@ const DocumentDownload: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="document-download-contract-id"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Contract ID (Optional)
             </label>
             <input
+              id="document-download-contract-id"
               type="text"
               value={downloadOptions.contract_id}
               onChange={(e) => setDownloadOptions(prev => ({ 

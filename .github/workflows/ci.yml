@@ -11,20 +11,20 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_DB: contract_db
+          POSTGRES_DB: contract_test
           POSTGRES_PASSWORD: ci-only-password
           POSTGRES_USER: contract_user
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U contract_user -d contract_db"
+          --health-cmd "pg_isready -U contract_user -d contract_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
       AUTH_MODE: local
       CORS_ORIGINS: http://localhost:3001
-      DATABASE_URL: postgresql://contract_user:ci-only-password@localhost:5432/contract_db
+      DATABASE_URL: postgresql://contract_user:ci-only-password@localhost:5432/contract_test
       JWT_SECRET: ci-only-secret-that-is-longer-than-thirty-two-characters
       NODE_ENV: test
       RUN_DATABASE_TESTS: '1'
