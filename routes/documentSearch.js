@@ -11,8 +11,10 @@ const documentAnalyzer = require('../utils/documentAnalyzer');
 const LibreOfficeService = require('../services/libreoffice.service');
 const libreOfficeService = new LibreOfficeService();
 const { hasPermission, requirePermission } = require('../middleware/auth');
+const { PipelineReliabilityService } = require('../services/pipelineReliabilityService');
 
 const router = express.Router();
+const pipelineReliability = new PipelineReliabilityService(prisma);
 
 // Simple ping endpoint to test connectivity
 router.get('/ping', (req, res) => {
@@ -942,7 +944,7 @@ router.get('/queue/status', async (req, res) => {
 
     // Get recent failed documents
     const recentFailed = await prisma.documentProcessingQueue.findMany({
-      where: { status: 'failed' },
+      where: { status: { in: ['failed', 'dead_letter'] } },
       orderBy: { failedAt: 'desc' },
       take: 5,
       select: {
@@ -977,7 +979,8 @@ router.get('/queue/status', async (req, res) => {
     // Calculate processing statistics
     const totalDocuments = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
     const completedCount = statusCounts.completed || 0;
-    const failedCount = statusCounts.failed || 0;
+    const deadLetterCount = statusCounts.dead_letter || 0;
+    const failedCount = (statusCounts.failed || 0) + deadLetterCount;
     const processingCount = statusCounts.processing || 0;
     const queuedCount = statusCounts.queued || 0;
 
@@ -1016,6 +1019,7 @@ router.get('/queue/status', async (req, res) => {
         processing: processingCount,
         completed: completedCount,
         failed: failedCount,
+        dead_letter: deadLetterCount,
         total: totalDocuments,
         
         // Processing state
@@ -1102,6 +1106,32 @@ router.post('/retry-failed', requirePermission('queue:admin'), async (_req, res)
   } catch (error) {
     console.error(`Failed attachment retry failed: ${error.message}`);
     return res.status(500).json({ success: false, error: 'Failed attachments could not be retried' });
+  }
+});
+
+router.get('/queue/reliability', requirePermission('queue:admin'), async (_req, res) => {
+  try {
+    return res.json({ success: true, reliability: await pipelineReliability.status() });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/queue/reliability/run', requirePermission('queue:admin'), async (_req, res) => {
+  try {
+    const maintenance = await pipelineReliability.maintain();
+    return res.json({ success: true, maintenance, reliability: await pipelineReliability.status() });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/queue/dead-letter/:id/requeue', requirePermission('queue:admin'), async (req, res) => {
+  try {
+    const item = await pipelineReliability.requeueDeadLetter(Number(req.params.id));
+    return res.json({ success: true, item });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({ success: false, error: error.message });
   }
 });
 
@@ -1785,7 +1815,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       // Quick status update
       await prisma.documentProcessingQueue.update({
         where: { id: doc.id },
-        data: { status: 'processing', startedAt: new Date() }
+        data: { status: 'processing', startedAt: new Date(), lastAttemptAt: new Date(), nextRetryAt: null }
       });
 
       // Use the exact file path from the queue entry
@@ -1797,8 +1827,44 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       if (filePath && await fs.pathExists(filePath)) {
         const crypto = require('crypto');
         const fileBuffer = await fs.readFile(filePath);
-        const fileHash = crypto.createHash('md5').update(fileBuffer).digest('hex');
+        const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+        const duplicate = await prisma.documentProcessingQueue.findFirst({
+          where: {
+            id: { not: doc.id },
+            sourceChecksum: fileHash,
+            status: 'completed',
+            processedData: { not: null },
+          },
+          orderBy: { completedAt: 'desc' },
+        });
+        await prisma.documentProcessingQueue.update({
+          where: { id: doc.id },
+          data: { sourceChecksum: fileHash },
+        });
         console.log(`📁 [DEBUG] File hash: ${fileHash.substring(0, 8)}... (size: ${fileBuffer.length} bytes)`);
+        if (duplicate) {
+          const duplicateContent = duplicate.processedData;
+          await Promise.all([
+            vectorService.indexDocument({
+              filename: doc.filename,
+              content: duplicateContent,
+              processedData: JSON.parse(duplicateContent),
+            }, doc.contractNoticeId),
+            prisma.documentProcessingQueue.update({
+              where: { id: doc.id },
+              data: {
+                status: 'completed',
+                processedData: duplicateContent,
+                contentChecksum: duplicate.contentChecksum,
+                completedAt: new Date(),
+                errorMessage: `Reused verified extraction from duplicate queue item ${duplicate.id}`,
+              },
+            }),
+          ]);
+          successCount++;
+          processedCount++;
+          return { success: true, filename: doc.filename, duplicateOf: duplicate.id };
+        }
       }
       
       // Verify the file exists at the specified path
@@ -1926,6 +1992,8 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
         }
         
         const result = summaryResult.result;
+        const serializedResult = JSON.stringify(result);
+        const contentChecksum = require('crypto').createHash('sha256').update(serializedResult).digest('hex');
         
         // Step 3: Start final operations in parallel
         await Promise.all([
@@ -1941,7 +2009,8 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
             where: { id: doc.id },
             data: {
               status: 'completed',
-              processedData: JSON.stringify(result),
+              processedData: serializedResult,
+              contentChecksum,
               completedAt: new Date()
             }
           })
@@ -1970,7 +2039,8 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           data: {
             status: 'failed',
             errorMessage: error.message,
-            failedAt: new Date()
+            failedAt: new Date(),
+            nextRetryAt: new Date(Date.now() + Math.min(60, 2 ** Math.max(0, doc.retryCount || 0)) * 60 * 1000)
           }
         });
       } catch (updateError) {
@@ -3072,7 +3142,8 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       data: {
         status: 'failed',
         errorMessage: String(message || 'Attachment download failed').slice(0, 2000),
-        failedAt: new Date()
+        failedAt: new Date(),
+        nextRetryAt: new Date(Date.now() + 60 * 1000)
       }
     }).catch(() => {});
   };
@@ -3202,7 +3273,8 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
                 savedExtractedFiles.push({
                   filename: finalFilename,
                   localFilePath: finalPath,
-                  originalFilename: extractedFile.fileName
+                  originalFilename: extractedFile.fileName,
+                  sourceChecksum: require('crypto').createHash('sha256').update(await fs.readFile(finalPath)).digest('hex')
                 });
                 console.log(`✅ [DEBUG] [${documentId}] Extracted and saved: ${finalFilename} (${extractedFile.documentType})`);
               } catch (moveError) {
@@ -3231,6 +3303,7 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
                     data: {
                       localFilePath: savedFile.localFilePath,
                       filename: savedFile.filename,
+                      sourceChecksum: savedFile.sourceChecksum,
                       errorMessage: null,
                       failedAt: null
                     }
@@ -3252,6 +3325,7 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
                         localFilePath: savedFile.localFilePath,
                         description: `Extracted from ZIP: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
                         filename: savedFile.filename,
+                        sourceChecksum: savedFile.sourceChecksum,
                         status: 'queued',
                         queuedAt: new Date(),
                         retryCount: 0,
@@ -3304,6 +3378,7 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
       
       // Save to download folder
       const filePath = path.join(downloadPath, properFilename);
+      const sourceChecksum = require('crypto').createHash('sha256').update(fileBuffer).digest('hex');
       
       try {
         await fs.writeFile(filePath, fileBuffer);
@@ -3341,6 +3416,7 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
                 localFilePath: filePath,
                 description: `Downloaded: ${contract.title || 'Untitled'} - ${contract.agency || 'Unknown Agency'}`,
                 filename: properFilename,
+                sourceChecksum,
                 status: 'queued',
                 queuedAt: new Date(),
                 retryCount: 0,
@@ -3353,7 +3429,7 @@ async function downloadDocumentsInParallel(contracts, downloadPath, concurrency,
             // Update the existing queue entry with the local file path
             await prisma.documentProcessingQueue.update({
               where: { id: existing.id },
-              data: { localFilePath: filePath, filename: properFilename, errorMessage: null, failedAt: null }
+              data: { localFilePath: filePath, filename: properFilename, sourceChecksum, errorMessage: null, failedAt: null }
             });
           }
         } catch (queueError) {
@@ -3699,8 +3775,12 @@ router.get('/contracts/:contractId', async (req, res) => {
       naicsCode: contract.naicsCode || 'N/A',
       classificationCode: contract.classificationCode || 'N/A',
       postedDate: contract.postedDate ? contract.postedDate.toISOString() : null,
+      responseDeadline: contract.responseDeadline ? contract.responseDeadline.toISOString() : null,
+      placeOfPerformance: contract.placeOfPerformance || null,
       setAsideCode: contract.setAsideCode || 'N/A',
       resourceLinks: contract.resourceLinks || [],
+      samData: contract.samData || null,
+      samRetrievedAt: contract.samRetrievedAt ? contract.samRetrievedAt.toISOString() : null,
       indexedAt: contract.indexedAt ? contract.indexedAt.toISOString() : null,
       createdAt: contract.createdAt.toISOString(),
       updatedAt: contract.updatedAt.toISOString(),
@@ -3749,7 +3829,8 @@ router.get('/contracts/:contractId', async (req, res) => {
         documents_in_vector_db: vectorDocuments.length,
         downloaded_files_count: downloadedFiles.length,
         completed_documents: relatedDocuments.filter(doc => doc.status === 'completed').length,
-        failed_documents: relatedDocuments.filter(doc => doc.status === 'failed').length,
+        failed_documents: relatedDocuments.filter(doc => ['failed', 'dead_letter'].includes(doc.status)).length,
+        dead_letter_documents: relatedDocuments.filter(doc => doc.status === 'dead_letter').length,
         processing_documents: relatedDocuments.filter(doc => doc.status === 'processing').length,
         queued_documents: relatedDocuments.filter(doc => doc.status === 'queued').length,
         download_completion_rate: contract.resourceLinks && Array.isArray(contract.resourceLinks) && contract.resourceLinks.length > 0 

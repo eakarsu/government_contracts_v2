@@ -26,6 +26,8 @@ class ContractSimilarityEngine {
           naicsCode: true,
           setAsideCode: true,
           postedDate: true,
+          responseDeadline: true,
+          placeOfPerformance: true,
           resourceLinks: true,
           indexedAt: true
         }

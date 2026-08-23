@@ -8,8 +8,12 @@ const router = express.Router();
 router.get('/config', (req, res) => {
   res.json({
     audience: config.oidcAudience || null,
+    authorizationEndpoint: config.oidcAuthorizationEndpoint || null,
+    clientId: config.oidcClientId || null,
     issuer: config.oidcIssuer || null,
     mode: config.authMode,
+    scopes: config.oidcScopes,
+    tokenEndpoint: config.oidcTokenEndpoint || null,
   });
 });
 

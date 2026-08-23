@@ -173,6 +173,19 @@ export interface UserContext {
     keywords?: string[];
     maxAgeDays?: number;
   };
+  opportunityContext?: {
+    noticeId?: string;
+    title?: string;
+    agency?: string;
+    naicsCodes?: string[];
+    classificationCode?: string;
+    setAside?: string;
+    location?: string;
+    postedDate?: string;
+    responseDeadline?: string;
+    estimatedValue?: number;
+    description?: string;
+  };
 }
 
 class AIService {

@@ -14,6 +14,8 @@ function appWithSuite() {
     create: jest.fn(async (input, actor) => ({ id: 'work-2', ownerId: actor.id, ...input })),
     update: jest.fn(async (id, input) => ({ id, ...input })),
     delete: jest.fn(async id => ({ id })),
+    archive: jest.fn(async id => ({ id, status: 'CLOSED' })),
+    restore: jest.fn(async id => ({ id, status: 'OPEN' })),
     transition: jest.fn(async (_id, input, actor) => ({ id: 'work-1', status: input.nextStatus, approvedBy: actor.id })),
     aiReview: jest.fn(async () => ({ id: 'analysis-1', advisoryOnly: true, status: 'PENDING_HUMAN_REVIEW' })),
   };
@@ -44,6 +46,14 @@ test('supports editing and deleting unified suite rows for contract managers', a
   expect(service.delete).toHaveBeenCalledWith('work-1', expect.objectContaining({ id: 'manager-1' }));
 });
 
+test('archives and restores unified suite rows without deleting evidence', async () => {
+  const { app, service } = appWithSuite();
+  await request(app).post('/contract-suite/work-items/work-1/archive').set('x-test-role', 'contract_manager').set('x-test-user', 'manager-1').expect(200);
+  await request(app).post('/contract-suite/work-items/work-1/restore').set('x-test-role', 'contract_manager').set('x-test-user', 'manager-1').expect(200);
+  expect(service.archive).toHaveBeenCalledWith('work-1', expect.objectContaining({ id: 'manager-1' }));
+  expect(service.restore).toHaveBeenCalledWith('work-1', expect.objectContaining({ id: 'manager-1' }));
+});
+
 test('prevents read-only users from modifying unified suite rows', async () => {
   const { app } = appWithSuite();
   await request(app).patch('/contract-suite/work-items/work-1').set('x-test-role', 'contract_viewer').set('x-test-user', 'viewer-1').send({ title: 'No' }).expect(403);
@@ -62,6 +72,26 @@ test('service preserves immutable AI analysis evidence during deletion', async (
   service.get = jest.fn(async () => ({ id: 'work-1', matterId: 'matter-1', analyses: [{ id: 'analysis-1' }] }));
   await expect(service.delete('work-1', { id: 'manager-1' })).rejects.toMatchObject({ code: 'IMMUTABLE_ANALYSIS_EXISTS', status: 409 });
   expect(remove).not.toHaveBeenCalled();
+});
+
+test('service archives analyzed work items and can restore them', async () => {
+  const update = jest.fn(async ({ data }) => ({ id: 'work-1', ...data }));
+  const lifecycleAudit = jest.fn();
+  const service = new ContractSuiteService({ contractCapabilityWorkItem: { update } }, { lifecycleAudit });
+  service.get = jest.fn(async () => ({ id: 'work-1', matterId: 'matter-1', status: 'IN_REVIEW', analyses: [{ id: 'analysis-1' }] }));
+  await expect(service.archive('work-1', { id: 'manager-1' })).resolves.toMatchObject({ status: 'CLOSED' });
+  service.get.mockResolvedValue({ id: 'work-1', matterId: 'matter-1', status: 'CLOSED', analyses: [{ id: 'analysis-1' }] });
+  await expect(service.restore('work-1', { id: 'manager-1' })).resolves.toMatchObject({ status: 'OPEN' });
+  expect(update).toHaveBeenLastCalledWith({ where: { id: 'work-1' }, data: { status: 'OPEN', approvedBy: null, approvedAt: null } });
+});
+
+test('active work queues hide archived rows unless explicitly requested', async () => {
+  const findMany = jest.fn(async () => []);
+  const service = new ContractSuiteService({ contractCapabilityWorkItem: { findMany } });
+  await service.list({ domain: 'acquisition' });
+  expect(findMany).toHaveBeenLastCalledWith(expect.objectContaining({ where: expect.objectContaining({ status: { not: 'CLOSED' } }) }));
+  await service.list({ domain: 'acquisition', includeArchived: 'true' });
+  expect(findMany).toHaveBeenLastCalledWith(expect.objectContaining({ where: { domain: 'ACQUISITION' } }));
 });
 
 test('enforces governed write and AI permissions', async () => {

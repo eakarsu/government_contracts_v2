@@ -1,9 +1,10 @@
 const rateLimit = require('express-rate-limit');
+const config = require('../config/env');
 
 // Basic rate limiter for API endpoints
 const rateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Increased to 1000 requests per 15 minutes for dashboard polling
+  windowMs: config.rateLimitWindowMs,
+  max: config.rateLimitMaxRequests,
   message: {
     error: 'Too many requests from this IP, please try again later.'
   },
@@ -25,7 +26,7 @@ const authRateLimiter = rateLimit({
 // AI endpoints rate limiter (more restrictive due to cost)
 const aiRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 10, // Limit each IP to 10 AI requests per minute
+  max: config.aiRateLimitMaxRequests,
   message: {
     error: 'Too many AI requests, please try again later.'
   },

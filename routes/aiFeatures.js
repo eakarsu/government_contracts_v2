@@ -6,8 +6,11 @@ const aiOpportunityAlerts = require('../services/aiOpportunityAlerts');
 const bidStrategyOptimizer = require('../services/bidStrategyOptimizer');
 const { captureAiService } = require('../services/captureAiService');
 const { PrismaClient } = require('@prisma/client');
+const { RfpProductionService } = require('../services/rfpProductionService');
+const { requirePermission } = require('../middleware/auth');
 
 const prisma = new PrismaClient();
+const rfpProductionService = new RfpProductionService(prisma);
 
 function respondAiError(res, error, fallbackMessage) {
   const status = Number.isInteger(error?.status) ? error.status : 500;
@@ -18,7 +21,7 @@ function respondAiError(res, error, fallbackMessage) {
 }
 
 // Win Probability Prediction Endpoint
-router.post('/win-probability', async (req, res) => {
+router.post('/win-probability', requirePermission('rfp:author'), async (req, res) => {
   try {
     const { contractId, userContext = {} } = req.body;
     
@@ -39,11 +42,31 @@ router.post('/win-probability', async (req, res) => {
       userContext
     );
     const ai = await captureAiService.analyze({ analysisType: 'WIN_PROBABILITY', contract, userContext, localEvidence: { prediction } });
+    const response = await prisma.rfpResponse.findFirst({
+      where: { contractId },
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true },
+    });
+    const scoringGovernance = await rfpProductionService.recordBidScore({
+      rfpResponseId: response?.id,
+      contractId,
+      prediction,
+      features: { userContext, predictor: 'heuristic-v1' },
+      user: req.user,
+    });
 
     res.json({
       success: true,
       contractId,
       prediction,
+      scoringGovernance: {
+        scoreId: scoringGovernance.id,
+        advisoryOnly: scoringGovernance.advisoryOnly,
+        model: scoringGovernance.model,
+        label: scoringGovernance.advisoryOnly
+          ? 'Advisory heuristic — not statistically validated'
+          : `Validated model ${scoringGovernance.model.name} v${scoringGovernance.model.version}`,
+      },
       aiAdvisory: ai.report,
       aiMetadata: ai.metadata,
       timestamp: new Date().toISOString()

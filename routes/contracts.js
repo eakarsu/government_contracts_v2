@@ -3,9 +3,11 @@ const axios = require('axios');
 const vectorService = require('../services/vectorServiceInstance');
 const config = require('../config/env');
 const { PrismaClient } = require('@prisma/client');
+const { RfpProductionService } = require('../services/rfpProductionService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
+const rfpProductionService = new RfpProductionService(prisma);
 
 // Debug middleware for contracts router
 router.use((req, res, next) => {
@@ -17,7 +19,7 @@ router.use((req, res, next) => {
 router.get('/', async (req, res) => {
   console.log('📋 [DEBUG] GET / route handler called');
   try {
-    const { page = 1, limit = 20, search, agency, naicsCode } = req.query;
+    const { page = 1, limit = 20, search, agency, naicsCode, samOnly } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     // Build where clause for filtering
@@ -37,6 +39,12 @@ router.get('/', async (req, res) => {
     
     if (naicsCode) {
       where.naicsCode = naicsCode;
+    }
+
+    // Opportunity selectors must not expose sparse fixtures or manually
+    // created records as though they were complete SAM.gov opportunities.
+    if (samOnly === 'true') {
+      where.samRetrievedAt = { not: null };
     }
 
     // AI endpoints use the Prisma Contract model. Returning that same source
@@ -143,6 +151,20 @@ function contractFromSAM(contractData) {
     if (!Number.isNaN(candidate.getTime())) postedDate = candidate;
   }
 
+  let responseDeadline = null;
+  const rawResponseDeadline = contractData.responseDeadLine || contractData.responseDeadline;
+  if (rawResponseDeadline) {
+    const candidate = new Date(rawResponseDeadline);
+    if (!Number.isNaN(candidate.getTime())) responseDeadline = candidate;
+  }
+
+  const placeOfPerformance = contractData.placeOfPerformance
+    && typeof contractData.placeOfPerformance === 'object'
+    && !Array.isArray(contractData.placeOfPerformance)
+    && Object.keys(contractData.placeOfPerformance).length
+      ? contractData.placeOfPerformance
+      : undefined;
+
   return {
     noticeId,
     title: optionalString(contractData.title),
@@ -151,6 +173,8 @@ function contractFromSAM(contractData) {
     naicsCode: optionalString(contractData.naicsCode),
     classificationCode: optionalString(contractData.classificationCode),
     postedDate,
+    responseDeadline,
+    placeOfPerformance,
     setAsideCode: optionalString(
       contractData.typeOfSetAsideCode || contractData.typeOfSetAside || contractData.setAsideCode
     ),
@@ -332,6 +356,12 @@ router.post('/fetch', async (req, res) => {
       }
 
       try {
+        const existingContract = await prisma.contract.findUnique({
+          where: { noticeId: contractDetails.noticeId }
+        });
+        if (existingContract) {
+          await rfpProductionService.detectAmendment(existingContract, contractDetails);
+        }
         await prisma.contract.upsert({
           where: { noticeId: contractDetails.noticeId },
           create: contractDetails,

@@ -197,22 +197,23 @@ class ContractSuiteService {
   }
 
   async overview() {
-    const [domainCounts, statusCounts, highRisk, dueSoon, pendingHumanReview, total] = await Promise.all([
-      this.prisma.contractCapabilityWorkItem.groupBy({ by: ['domain'], _count: { _all: true } }),
+    const [domainCounts, statusCounts, highRisk, dueSoon, pendingHumanReview, total, archived] = await Promise.all([
+      this.prisma.contractCapabilityWorkItem.groupBy({ by: ['domain'], where: { status: { not: 'CLOSED' } }, _count: { _all: true } }),
       this.prisma.contractCapabilityWorkItem.groupBy({ by: ['status'], _count: { _all: true } }),
       this.prisma.contractCapabilityWorkItem.count({ where: { riskLevel: { in: ['HIGH', 'CRITICAL'] }, status: { not: 'CLOSED' } } }),
       this.prisma.contractCapabilityWorkItem.count({ where: { dueDate: { gte: this.clock(), lte: new Date(this.clock().getTime() + 30 * 86400000) }, status: { not: 'CLOSED' } } }),
       this.prisma.contractCapabilityAnalysis.count({ where: { status: 'PENDING_HUMAN_REVIEW' } }),
-      this.prisma.contractCapabilityWorkItem.count(),
+      this.prisma.contractCapabilityWorkItem.count({ where: { status: { not: 'CLOSED' } } }),
+      this.prisma.contractCapabilityWorkItem.count({ where: { status: 'CLOSED' } }),
     ]);
     return {
-      total, highRisk, dueSoon, pendingHumanReview,
+      total, archived, highRisk, dueSoon, pendingHumanReview,
       domains: Object.fromEntries(DOMAINS.map(domain => [domain.key, domainCounts.find(item => item.domain === domain.key)?._count._all || 0])),
       statuses: Object.fromEntries(statusCounts.map(item => [item.status, item._count._all])),
     };
   }
 
-  async list({ domain: domainValue, capability, status, search, limit = 200 } = {}) {
+  async list({ domain: domainValue, capability, status, search, includeArchived, limit = 200 } = {}) {
     const where = {};
     if (domainValue) where.domain = this.domain(domainValue).key;
     if (capability) {
@@ -221,6 +222,7 @@ class ContractSuiteService {
       where.capability = capability;
     }
     if (status) where.status = String(status).toUpperCase();
+    else if (String(includeArchived).toLowerCase() !== 'true') where.status = { not: 'CLOSED' };
     const records = await this.prisma.contractCapabilityWorkItem.findMany({
       where, orderBy: [{ riskLevel: 'desc' }, { dueDate: 'asc' }, { updatedAt: 'desc' }], take: Math.min(Math.max(Number(limit) || 200, 1), 200),
       include: { matter: { select: { matterNumber: true, title: true, agency: true, stage: true } }, _count: { select: { analyses: true } } },
@@ -273,6 +275,22 @@ class ContractSuiteService {
     if (this.lifecycleAudit) await this.lifecycleAudit(record.matterId, 'CAPABILITY_WORK_ITEM_DELETE_REQUESTED', actor, { workItemId: id });
     await this.prisma.contractCapabilityWorkItem.delete({ where: { id } });
     return { id };
+  }
+
+  async archive(id, actor) {
+    const record = await this.get(id);
+    if (record.status === 'CLOSED') throw new ContractSuiteError('ALREADY_ARCHIVED', 'Work item is already archived', 409);
+    const updated = await this.prisma.contractCapabilityWorkItem.update({ where: { id }, data: { status: 'CLOSED' } });
+    if (this.lifecycleAudit) await this.lifecycleAudit(record.matterId, 'CAPABILITY_WORK_ITEM_ARCHIVED', actor, { workItemId: id, previousStatus: record.status });
+    return updated;
+  }
+
+  async restore(id, actor) {
+    const record = await this.get(id);
+    if (record.status !== 'CLOSED') throw new ContractSuiteError('NOT_ARCHIVED', 'Only archived work items can be restored', 409);
+    const updated = await this.prisma.contractCapabilityWorkItem.update({ where: { id }, data: { status: 'OPEN', approvedBy: null, approvedAt: null } });
+    if (this.lifecycleAudit) await this.lifecycleAudit(record.matterId, 'CAPABILITY_WORK_ITEM_RESTORED', actor, { workItemId: id });
+    return updated;
   }
 
   async transition(id, input, actor) {

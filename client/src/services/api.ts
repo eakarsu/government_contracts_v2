@@ -32,6 +32,13 @@ import type {
   PredictedScore,
   RFPVersion,
   RFPDashboardStats,
+  RFPProductionWorkspace,
+  RFPRequirement,
+  RFPApproval,
+  RFPChecklistItem,
+  RFPSubmission,
+  RFPOutcome,
+  RFPAmendment,
 } from '../types';
 
 // Create axios instance with default config
@@ -594,8 +601,8 @@ class ApiService {
     return response.data;
   }
 
-  async updateRFPSection(rfpResponseId: number, sectionId: string, updates: RFPSectionEditForm): Promise<{ success: boolean; section: RFPResponseSection }> {
-    const response = await api.put<{ success: boolean; section: RFPResponseSection }>(`/rfp/responses/${rfpResponseId}/sections/${sectionId}`, updates);
+  async updateRFPSection(rfpResponseId: number, sectionId: string, updates: RFPSectionEditForm): Promise<{ success: boolean; section: RFPResponseSection; compliance?: ComplianceStatus }> {
+    const response = await api.put<{ success: boolean; section: RFPResponseSection; compliance?: ComplianceStatus }>(`/rfp/responses/${rfpResponseId}/sections/${sectionId}`, updates);
     return response.data;
   }
 
@@ -621,8 +628,8 @@ class ApiService {
     return response.data;
   }
 
-  async addRFPCollaborator(responseId: number, email: string, role: 'viewer' | 'editor' | 'reviewer'): Promise<{ success: boolean; message: string }> {
-    const response = await api.post<{ success: boolean; message: string }>(`/rfp/responses/${responseId}/collaborators`, { email, role });
+  async addRFPCollaborator(responseId: number, email: string, role: 'viewer' | 'author' | 'reviewer' | 'approver'): Promise<{ success: boolean; collaborator: any }> {
+    const response = await api.post<{ success: boolean; collaborator: any }>(`/rfp/responses/${responseId}/collaborators`, { email, role });
     return response.data;
   }
 
@@ -647,33 +654,79 @@ class ApiService {
     return response.data;
   }
 
+  async compareRFPVersions(responseId: number, left: number, right: number): Promise<{ success: boolean; comparison: any }> {
+    const response = await api.get(`/rfp/responses/${responseId}/versions/compare?left=${left}&right=${right}`);
+    return response.data;
+  }
+
+  async getRFPProductionWorkspace(responseId: number): Promise<{ success: boolean; workspace: RFPProductionWorkspace; amendments: RFPAmendment[] }> {
+    const response = await api.get(`/rfp/responses/${responseId}/workspace`);
+    return response.data;
+  }
+
+  async syncRFPRequirements(responseId: number): Promise<{ success: boolean; requirements: RFPRequirement[] }> {
+    const response = await api.post(`/rfp/responses/${responseId}/requirements/sync`);
+    return response.data;
+  }
+
+  async updateRFPRequirement(responseId: number, requirementId: string, updates: Partial<RFPRequirement>): Promise<{ success: boolean; requirement: RFPRequirement }> {
+    const response = await api.put(`/rfp/responses/${responseId}/requirements/${requirementId}`, updates);
+    return response.data;
+  }
+
+  async assignRFPApproval(responseId: number, gate: RFPApproval['gate'], reviewerEmail: string): Promise<{ success: boolean; approval: RFPApproval }> {
+    const response = await api.post(`/rfp/responses/${responseId}/approvals`, { gate, reviewerEmail });
+    return response.data;
+  }
+
+  async decideRFPApproval(responseId: number, approvalId: string, decision: 'APPROVED' | 'REJECTED', rationale: string): Promise<{ success: boolean; approval: RFPApproval }> {
+    const response = await api.post(`/rfp/responses/${responseId}/approvals/${approvalId}/decision`, { decision, rationale });
+    return response.data;
+  }
+
+  async updateRFPChecklist(responseId: number, itemId: string, completed: boolean, evidenceUrl?: string): Promise<{ success: boolean; item: RFPChecklistItem }> {
+    const response = await api.put(`/rfp/responses/${responseId}/checklist/${itemId}`, { completed, evidenceUrl });
+    return response.data;
+  }
+
+  async recordRFPSubmission(responseId: number, input: { destination: string; submissionMethod: string; trackingNumber?: string }): Promise<{ success: boolean; submission: RFPSubmission }> {
+    const response = await api.post(`/rfp/responses/${responseId}/submission`, input);
+    return response.data;
+  }
+
+  async recordRFPOutcome(responseId: number, input: { outcome: RFPOutcome['outcome']; awardValue?: number; competitor?: string; debrief?: string; lessonsLearned?: string[] }): Promise<{ success: boolean; outcome: RFPOutcome }> {
+    const response = await api.put(`/rfp/responses/${responseId}/outcome`, input);
+    return response.data;
+  }
+
+  async acknowledgeRFPAmendment(amendmentId: string): Promise<{ success: boolean; amendment: RFPAmendment }> {
+    const response = await api.post(`/rfp/amendments/${amendmentId}/acknowledge`);
+    return response.data;
+  }
+
+  async addRFPComment(responseId: number, body: string, sectionId?: string): Promise<{ success: boolean; comment: any }> {
+    const response = await api.post(`/rfp/responses/${responseId}/comments`, { body, sectionId });
+    return response.data;
+  }
+
+  async resolveRFPComment(responseId: number, commentId: string): Promise<{ success: boolean; comment: any }> {
+    const response = await api.post(`/rfp/responses/${responseId}/comments/${commentId}/resolve`);
+    return response.data;
+  }
+
   // RFP Dashboard & Analytics
   async getRFPDashboardStats(): Promise<{ success: boolean; stats: RFPDashboardStats }> {
     const response = await api.get<{ success: boolean; stats: RFPDashboardStats }>('/rfp/dashboard/stats');
     return response.data;
   }
 
-  async getRFPAnalytics(dateRange?: { start: string; end: string }): Promise<{ success: boolean; analytics: any }> {
-    try {
-      const params = dateRange ? `?start=${dateRange.start}&end=${dateRange.end}` : '';
-      const response = await api.get<{ success: boolean; analytics: any }>(`/rfp/analytics${params}`);
-      return response.data;
-    } catch (error: any) {
-      // Handle 404 for missing analytics endpoint
-      if (error.response?.status === 404) {
-        console.warn('RFP Analytics endpoint not implemented yet');
-        return {
-          success: false,
-          analytics: {
-            message: 'Analytics endpoint not yet implemented',
-            totalRFPs: 0,
-            winRate: 0,
-            averageScore: 0
-          }
-        };
-      }
-      throw error;
-    }
+  async getRFPOutcomeAnalytics(): Promise<{ success: boolean; analytics: import('../types').RFPOutcomeAnalytics }> {
+    const response = await api.get('/rfp/analytics/outcomes');
+    return response.data;
+  }
+
+  async getRFPAnalytics(_dateRange?: { start: string; end: string }): Promise<{ success: boolean; analytics: import('../types').RFPOutcomeAnalytics }> {
+    return this.getRFPOutcomeAnalytics();
   }
 
   // NLP Search API Methods

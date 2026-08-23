@@ -84,6 +84,8 @@ class VectorService {
           agency: contract.agency,
           naicsCode: contract.naicsCode,
           postedDate: contract.postedDate?.toISOString(),
+          responseDeadline: contract.responseDeadline?.toISOString(),
+          placeOfPerformance: contract.placeOfPerformance,
           setAsideCode: contract.setAsideCode,
           text: text
         }
@@ -311,6 +313,8 @@ class VectorService {
           agency: contract.metadata.agency,
           naicsCode: contract.metadata.naicsCode,
           postedDate: contract.metadata.postedDate,
+          responseDeadline: contract.metadata.responseDeadline,
+          placeOfPerformance: contract.metadata.placeOfPerformance,
           setAsideCode: contract.metadata.setAsideCode,
           resourceLinks: []
         };

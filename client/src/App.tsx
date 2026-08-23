@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 
@@ -17,15 +17,12 @@ const Documents = lazy(() => import('./pages/Documents'));
 const ApiDocs = lazy(() => import('./pages/ApiDocs'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const RFPDashboard = lazy(() => import('./pages/RFPDashboard'));
-const RFPGenerator = lazy(() => import('./pages/RFPGenerator'));
 const RFPTemplates = lazy(() => import('./pages/RFPTemplates'));
 const CompanyProfiles = lazy(() => import('./pages/CompanyProfiles'));
 const RFPAnalytics = lazy(() => import('./pages/RFPAnalytics'));
 const RFPResponses = lazy(() => import('./pages/RFPResponses'));
 const RFPResponseDetail = lazy(() => import('./pages/RFPResponseDetail'));
 const RFPResponseEdit = lazy(() => import('./pages/RFPResponseEdit'));
-const ProposalDrafter = lazy(() => import('./components/Proposals/ProposalDrafter'));
-const BidProbabilityAnalyzer = lazy(() => import('./components/Bidding/BidProbabilityAnalyzer'));
 const AIAnalysisResults = lazy(() => import('./pages/AIAnalysisResults'));
 const AIQuickActionsPage = lazy(() => import('./pages/AIQuickActionsPage'));
 const LifecycleWorkspace = lazy(() => import('./pages/LifecycleWorkspace'));
@@ -68,7 +65,7 @@ function App() {
               {/* RFP System Routes */}
               <Route path="/rfp" element={<RFPDashboard />} />
               <Route path="/rfp/dashboard" element={<RFPDashboard />} />
-              <Route path="/rfp/generate" element={<RFPGenerator />} />
+              <Route path="/rfp/generate" element={<Navigate to="/rfp" replace />} />
               <Route path="/rfp/templates" element={<RFPTemplates />} />
               <Route path="/rfp/company-profiles" element={<CompanyProfiles />} />
               <Route path="/rfp/analytics" element={<RFPAnalytics />} />
@@ -78,8 +75,8 @@ function App() {
               
               {/* AI Enhancement Routes */}
               <Route path="/ai/quick-actions" element={<AIQuickActionsPage />} />
-              <Route path="/ai/proposal-drafter" element={<ProposalDrafter />} />
-              <Route path="/ai/bid-analyzer" element={<BidProbabilityAnalyzer />} />
+              <Route path="/ai/proposal-drafter" element={<Navigate to="/rfp" replace />} />
+              <Route path="/ai/bid-analyzer" element={<Navigate to="/rfp" replace />} />
               <Route path="/ai/analysis-results/:contractId" element={<AIAnalysisResults />} />
               <Route path="/ai/win-probability/:contractId" element={<AIAnalysisResults type="probability" />} />
               <Route path="/ai/similar-contracts/:contractId" element={<AIAnalysisResults type="similarity" />} />

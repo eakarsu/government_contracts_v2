@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Brain, Building2, CheckCircle2, ChevronDown, Loader2, Play, Sparkles } from 'lucide-react';
+import { ArrowLeft, Brain, Building2, CheckCircle2, ChevronDown, Loader2, Play, RotateCcw, Sparkles } from 'lucide-react';
 import { aiService } from '../services/aiService';
 import { contractsApi } from '../services/contractsApi';
 import type { Contract } from '../types';
@@ -9,6 +9,7 @@ import {
   AI_REQUEST_PRESETS,
   AiQuickActionType,
   AiRequestForm,
+  applyOpportunityContext,
   contextStorageKey,
   hasCompleteAiRequest,
   resultStorageKey,
@@ -26,7 +27,7 @@ const AIQuickActionsPage: React.FC = () => {
 
   const contractsQuery = useQuery({
     queryKey: ['ai-quick-action-contracts'],
-    queryFn: () => contractsApi.getContracts(1, 100),
+    queryFn: () => contractsApi.getContracts(1, 100, { samOnly: true }),
   });
   const contracts = contractsQuery.data?.data ?? [];
 
@@ -41,6 +42,11 @@ const AIQuickActionsPage: React.FC = () => {
     () => contracts.find(contract => contract.noticeId === contractId),
     [contracts, contractId],
   );
+
+  useEffect(() => {
+    if (!selectedContract) return;
+    setRequest(current => applyOpportunityContext(current, activePreset.values, selectedContract));
+  }, [selectedContract?.noticeId]);
 
   const analysisMutation = useMutation({
     mutationFn: async ({ type, id }: { type: AiQuickActionType; id: string }) => {
@@ -62,8 +68,12 @@ const AIQuickActionsPage: React.FC = () => {
 
   const choosePreset = (preset: typeof AI_REQUEST_PRESETS[number]) => {
     setActivePreset(preset);
-    setRequest({ ...preset.values });
+    setRequest(applyOpportunityContext({ ...preset.values }, preset.values, selectedContract));
     sessionStorage.setItem('aiQuickActionPreset', preset.id);
+  };
+
+  const resetContext = () => {
+    setRequest(applyOpportunityContext({ ...activePreset.values }, activePreset.values, selectedContract));
   };
 
   const runAnalysis = () => {
@@ -77,15 +87,28 @@ const AIQuickActionsPage: React.FC = () => {
   const update = <K extends keyof AiRequestForm>(key: K, value: AiRequestForm[K]) =>
     setRequest(current => ({ ...current, [key]: value }));
 
-  const textFields: Array<{ key: keyof AiRequestForm; label: string; placeholder: string }> = [
+  const companyFields: Array<{ key: keyof AiRequestForm; label: string; placeholder: string }> = [
     { key: 'certifications', label: 'Certifications', placeholder: '8(a), HUBZone, WOSB' },
     { key: 'experienceInNaics', label: 'Experienced NAICS codes', placeholder: '541511, 541512' },
     { key: 'agencyRelationships', label: 'Agency relationships', placeholder: 'DoD, GSA, DHS' },
     { key: 'pastWins', label: 'Relevant past wins', placeholder: 'Program names or outcomes' },
+  ];
+  const captureFields: Array<{ key: keyof AiRequestForm; label: string; placeholder: string }> = [
     { key: 'preferredNaicsCodes', label: 'Preferred NAICS codes', placeholder: '541511, 541519' },
     { key: 'preferredAgencies', label: 'Preferred agencies', placeholder: 'DoD, GSA' },
     { key: 'preferredStates', label: 'Preferred states', placeholder: 'VA, MD, DC' },
     { key: 'keywords', label: 'Capture keywords', placeholder: 'cloud, cybersecurity, analytics' },
+  ];
+  const opportunityFields: Array<{ key: keyof AiRequestForm; label: string; placeholder: string }> = [
+    { key: 'opportunityNoticeId', label: 'Notice ID', placeholder: 'SAM.gov notice ID' },
+    { key: 'opportunityTitle', label: 'Opportunity title', placeholder: 'Opportunity title' },
+    { key: 'opportunityAgency', label: 'Agency', placeholder: 'Not provided by SAM.gov' },
+    { key: 'opportunityNaicsCodes', label: 'NAICS codes', placeholder: 'Not provided by SAM.gov' },
+    { key: 'opportunityClassification', label: 'Classification code', placeholder: 'Not provided by SAM.gov' },
+    { key: 'opportunitySetAside', label: 'Set-aside', placeholder: 'Not provided by SAM.gov' },
+    { key: 'opportunityLocation', label: 'Place of performance', placeholder: 'Not provided by SAM.gov' },
+    { key: 'opportunityPostedDate', label: 'Posted date', placeholder: 'Not provided by SAM.gov' },
+    { key: 'opportunityResponseDeadline', label: 'Response deadline', placeholder: 'Not provided by SAM.gov' },
   ];
 
   const ready = Boolean(contractId) && hasCompleteAiRequest(request);
@@ -117,23 +140,33 @@ const AIQuickActionsPage: React.FC = () => {
       </section>
 
       <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="mb-4"><h2 className="font-semibold text-slate-950">2. Fill a complete AI request</h2><p className="text-sm text-slate-500">Each preset fills every supported field. You can edit any value before running it.</p></div>
+        <div className="mb-4"><h2 className="font-semibold text-slate-950">2. Select AI analysis context</h2><p className="text-sm text-slate-500">Choose the analysis you want to run. The selected context and opportunity automatically populate Step 3, and you can edit any value before running it.</p></div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {AI_REQUEST_PRESETS.map(preset => <button key={preset.id} type="button" onClick={() => choosePreset(preset)} className={`rounded-2xl border p-4 text-left transition ${activePreset.id === preset.id ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-100' : 'border-slate-200 hover:border-purple-300 hover:bg-slate-50'}`}>
-            <div className="flex items-center justify-between gap-2"><span className="font-semibold text-slate-950">{preset.name}</span>{activePreset.id === preset.id && <CheckCircle2 className="h-5 w-5 text-purple-600" />}</div><p className="mt-2 text-sm leading-5 text-slate-600">{preset.description}</p><span className="mt-3 inline-block text-xs font-semibold uppercase tracking-wide text-purple-700">Fills all fields</span>
+            <div className="flex items-center justify-between gap-2"><span className="font-semibold text-slate-950">{preset.name}</span>{activePreset.id === preset.id && <CheckCircle2 className="h-5 w-5 text-purple-600" />}</div><p className="mt-2 text-sm leading-5 text-slate-600">{preset.description}</p><span className="mt-3 inline-block text-xs font-semibold uppercase tracking-wide text-purple-700">AI context · fills Step 3</span>
           </button>)}
         </div>
       </section>
 
       <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="mb-5"><h2 className="font-semibold text-slate-950">3. Review company and capture context</h2><p className="text-sm text-slate-500">Comma-separated entries are sent as structured lists, not as raw text.</p></div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-medium text-slate-700">Annual revenue ($)<input type="number" min="1" value={request.annualRevenue} onChange={e => update('annualRevenue', Number(e.target.value))} className={`${fieldClass} mt-1.5`} /></label>
-          <label className="text-sm font-medium text-slate-700">Minimum contract value ($)<input type="number" min="0" value={request.minContractValue} onChange={e => update('minContractValue', Number(e.target.value))} className={`${fieldClass} mt-1.5`} /></label>
-          {textFields.map(field => <label key={field.key} className="text-sm font-medium text-slate-700">{field.label}<input value={String(request[field.key])} onChange={e => update(field.key, e.target.value as never)} placeholder={field.placeholder} className={`${fieldClass} mt-1.5`} /></label>)}
-          <label className="text-sm font-medium text-slate-700">Maximum opportunity age (days)<input type="number" min="1" value={request.maxAgeDays} onChange={e => update('maxAgeDays', Number(e.target.value))} className={`${fieldClass} mt-1.5`} /></label>
-          <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"><input type="checkbox" checked={request.hasBonding} onChange={e => update('hasBonding', e.target.checked)} className="h-5 w-5 rounded border-slate-300 text-purple-600" /> Bonding capacity confirmed</label>
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div><div className="flex items-center gap-2"><h2 className="font-semibold text-slate-950">3. Review and edit company and opportunity context</h2><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Editable</span></div><p className="mt-1 text-sm text-slate-500">Change any field before running the analysis. Opportunity preferences update whenever Step 1 or Step 2 changes.</p></div>
+          <button type="button" onClick={resetContext} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-purple-300 hover:text-purple-700">
+            <RotateCcw className="h-4 w-4" /> Reset from context
+          </button>
         </div>
+        {selectedContract && <div className="mb-5 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-900"><strong>Context synchronized:</strong> {activePreset.name} is using {selectedContract.title || selectedContract.noticeId}. The opportunity fields below were replaced with this opportunity's SAM.gov data.</div>}
+        <div className="mb-4 text-xs font-semibold uppercase tracking-widest text-purple-700">Selected opportunity context</div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {opportunityFields.map(field => <label key={field.key} className="text-sm font-medium text-slate-700">{field.label}<input value={String(request[field.key])} onChange={e => update(field.key, e.target.value as never)} placeholder={field.placeholder} className={`${fieldClass} mt-1.5`} /></label>)}
+          <label className="text-sm font-medium text-slate-700">Known or estimated value ($)<input type="number" min="0" value={request.opportunityValue} onChange={e => update('opportunityValue', Number(e.target.value))} className={`${fieldClass} mt-1.5`} /></label>
+          <label className="text-sm font-medium text-slate-700 sm:col-span-2">Opportunity description<textarea rows={5} value={request.opportunityDescription} onChange={e => update('opportunityDescription', e.target.value)} placeholder="SAM.gov opportunity description" className={`${fieldClass} mt-1.5 resize-y`} /></label>
+        </div>
+        <div className="mb-4 mt-7 text-xs font-semibold uppercase tracking-widest text-slate-500">Company evidence</div><div className="grid gap-4 sm:grid-cols-2">
+          <label className="text-sm font-medium text-slate-700">Annual revenue ($)<input type="number" min="1" value={request.annualRevenue} onChange={e => update('annualRevenue', Number(e.target.value))} className={`${fieldClass} mt-1.5`} /></label>
+          {companyFields.map(field => <label key={field.key} className="text-sm font-medium text-slate-700">{field.label}<input value={String(request[field.key])} onChange={e => update(field.key, e.target.value as never)} placeholder={field.placeholder} className={`${fieldClass} mt-1.5`} /></label>)}
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"><input type="checkbox" checked={request.hasBonding} onChange={e => update('hasBonding', e.target.checked)} className="h-5 w-5 rounded border-slate-300 text-purple-600" /> Bonding capacity confirmed</label>
+        </div><div className="mb-4 mt-7 text-xs font-semibold uppercase tracking-widest text-purple-700">Opportunity-driven capture preferences</div><div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium text-slate-700">Minimum contract value ($)<input type="number" min="0" value={request.minContractValue} onChange={e => update('minContractValue', Number(e.target.value))} className={`${fieldClass} mt-1.5`} /></label>{captureFields.map(field => <label key={field.key} className="text-sm font-medium text-slate-700">{field.label}<input value={String(request[field.key])} onChange={e => update(field.key, e.target.value as never)} placeholder={field.placeholder} className={`${fieldClass} mt-1.5`} /></label>)}<label className="text-sm font-medium text-slate-700">Maximum opportunity age (days)<input type="number" min="1" value={request.maxAgeDays} onChange={e => update('maxAgeDays', Number(e.target.value))} className={`${fieldClass} mt-1.5`} /></label></div>
       </section>
 
       <section className="rounded-2xl border border-purple-200 bg-purple-50 p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-5 sm:p-6">

@@ -16,6 +16,8 @@
     "seed:contract-suite": "node scripts/seed-contract-suite.js",
     "seed:ai-opportunities": "node scripts/seed-ai-opportunities.js",
     "create-admin": "node scripts/provision-admin.js",
+    "backup:production": "bash scripts/backup-production.sh",
+    "test:e2e:rfp": "node scripts/e2e-rfp-journey.js",
     "prisma:studio": "prisma studio",
     "init-db": "chmod +x init-db.sh && ./init-db.sh",
     "client": "cd client && PORT=3001 npm start",

@@ -5,16 +5,20 @@ const { verifySession } = require('../services/localAuthService');
 
 const ROLE_PERMISSIONS = Object.freeze({
   admin: ['*'],
-  auditor: ['audit:export', 'audit:read', 'governance:read', 'lifecycle:export', 'lifecycle:read'],
-  compliance_analyst: ['evaluation:create', 'evaluation:submit', 'governance:read', 'lifecycle:ai', 'lifecycle:create', 'lifecycle:read', 'lifecycle:submit', 'lifecycle:update'],
-  compliance_approver: ['decision:approve', 'governance:read', 'lifecycle:approve', 'lifecycle:read'],
-  contract_manager: ['governance:read', 'lifecycle:ai', 'lifecycle:create', 'lifecycle:delete', 'lifecycle:export', 'lifecycle:read', 'lifecycle:submit', 'lifecycle:update'],
-  contract_viewer: ['governance:read', 'lifecycle:read'],
-  document_operator: ['legacy:write', 'queue:write', 'lifecycle:create', 'lifecycle:read', 'lifecycle:update'],
-  legal_reviewer: ['governance:read', 'lifecycle:ai', 'lifecycle:approve', 'lifecycle:read', 'lifecycle:update'],
+  auditor: ['audit:export', 'audit:read', 'governance:read', 'lifecycle:export', 'lifecycle:read', 'operations:read', 'rfp:read'],
+  compliance_analyst: ['evaluation:create', 'evaluation:submit', 'governance:read', 'lifecycle:ai', 'lifecycle:create', 'lifecycle:read', 'lifecycle:submit', 'lifecycle:update', 'rfp:read', 'rfp:review'],
+  compliance_approver: ['decision:approve', 'governance:read', 'lifecycle:approve', 'lifecycle:read', 'rfp:approve', 'rfp:read'],
+  contract_manager: ['governance:read', 'lifecycle:ai', 'lifecycle:create', 'lifecycle:delete', 'lifecycle:export', 'lifecycle:read', 'lifecycle:submit', 'lifecycle:update', 'rfp:author', 'rfp:outcome', 'rfp:read', 'rfp:submit'],
+  contract_viewer: ['governance:read', 'lifecycle:read', 'rfp:read'],
+  document_operator: ['legacy:write', 'queue:admin', 'queue:write', 'lifecycle:create', 'lifecycle:read', 'lifecycle:update'],
+  legal_reviewer: ['governance:read', 'lifecycle:ai', 'lifecycle:approve', 'lifecycle:read', 'lifecycle:update', 'rfp:read', 'rfp:review'],
   policy_admin: ['governance:read', 'policy:create', 'lifecycle:read'],
-  records_officer: ['audit:export', 'governance:read', 'legal_hold:manage', 'lifecycle:export', 'lifecycle:read'],
+  records_officer: ['audit:export', 'governance:read', 'legal_hold:manage', 'lifecycle:export', 'lifecycle:read', 'operations:read'],
   regulatory_ingestor: ['governance:read', 'source:ingest'],
+  proposal_author: ['rfp:author', 'rfp:read'],
+  proposal_reviewer: ['rfp:read', 'rfp:review'],
+  proposal_approver: ['rfp:approve', 'rfp:read', 'rfp:submit'],
+  capture_manager: ['rfp:author', 'rfp:model:validate', 'rfp:outcome', 'rfp:read', 'rfp:submit'],
 });
 
 function bearerToken(request) {

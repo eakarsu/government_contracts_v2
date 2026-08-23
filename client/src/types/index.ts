@@ -16,6 +16,8 @@ export interface Contract {
   naicsCode?: string;
   classificationCode?: string;
   postedDate?: string;
+  responseDeadline?: string;
+  placeOfPerformance?: Record<string, unknown>;
   setAsideCode?: string;
   resourceLinks?: string[];
   samData?: Record<string, unknown>;
@@ -734,7 +736,8 @@ export interface RFPDashboardStats {
   totalRFPs: number;
   activeRFPs: number;
   submittedRFPs: number;
-  winRate: number;
+  winRate: number | null;
+  outcomeAnalytics?: RFPOutcomeAnalytics;
   averageScore: number;
   recentActivity: {
     rfpId: number;
@@ -742,6 +745,132 @@ export interface RFPDashboardStats {
     status: string;
     lastModified: string;
   }[];
+}
+
+export interface RFPRequirement {
+  id: string;
+  requirementKey: string;
+  text: string;
+  sourceType: 'SAM_METADATA' | 'SOLICITATION_ATTACHMENT';
+  sourceLocator: string;
+  evidenceRefs: Array<Record<string, unknown>>;
+  mappedSectionId?: string | null;
+  coverageStatus: 'UNMAPPED' | 'PARTIAL' | 'COVERED' | 'NOT_APPLICABLE';
+  reviewStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+}
+
+export interface RFPCollaborator {
+  id: string;
+  email: string;
+  role: 'viewer' | 'author' | 'reviewer' | 'approver';
+  assignedBy: string;
+  createdAt: string;
+}
+
+export interface RFPApproval {
+  id: string;
+  gate: 'CONTENT' | 'COMPLIANCE' | 'EXECUTIVE' | 'SUBMISSION';
+  cycle: number;
+  reviewerEmail: string;
+  decision: 'PENDING' | 'APPROVED' | 'REJECTED';
+  rationale?: string | null;
+  decidedBy?: string | null;
+  decidedAt?: string | null;
+}
+
+export interface RFPChecklistItem {
+  id: string;
+  itemKey: string;
+  label: string;
+  required: boolean;
+  completed: boolean;
+  evidenceUrl?: string | null;
+  completedBy?: string | null;
+  completedAt?: string | null;
+}
+
+export interface RFPSubmission {
+  id: string;
+  destination: string;
+  submissionMethod: string;
+  trackingNumber?: string | null;
+  submittedBy: string;
+  submittedAt: string;
+  status: string;
+}
+
+export interface RFPOutcome {
+  id: string;
+  outcome: 'WON' | 'LOST' | 'WITHDRAWN' | 'NO_BID';
+  awardValue?: number | null;
+  competitor?: string | null;
+  debrief?: string | null;
+  lessonsLearned?: string[];
+}
+
+export interface RFPAmendment {
+  id: string;
+  changes: Array<{ field: string; previous: unknown; current: unknown }>;
+  affectedSections: string[];
+  detectedAt: string;
+  acknowledgedAt?: string | null;
+  acknowledgedBy?: string | null;
+}
+
+export interface RFPAuditEvent {
+  id: string;
+  sequence: number;
+  action: string;
+  actorId: string;
+  occurredAt: string;
+  hash: string;
+}
+
+export interface RFPComment {
+  id: string;
+  sectionId?: string | null;
+  body: string;
+  authorId: string;
+  resolved: boolean;
+  resolvedBy?: string | null;
+  resolvedAt?: string | null;
+  createdAt: string;
+}
+
+export interface RFPBidScore {
+  id: string;
+  probability: number;
+  confidence: number;
+  advisoryOnly: boolean;
+  model?: { name: string; version: number; status: string } | null;
+  createdAt: string;
+}
+
+export interface RFPProductionWorkspace {
+  id: number;
+  contractId: string;
+  title: string;
+  status: RFPResponse['status'];
+  requirements: RFPRequirement[];
+  collaborators: RFPCollaborator[];
+  approvals: RFPApproval[];
+  checklistItems: RFPChecklistItem[];
+  submission?: RFPSubmission | null;
+  outcome?: RFPOutcome | null;
+  versions: RFPVersion[];
+  bidScores: RFPBidScore[];
+  auditEvents: RFPAuditEvent[];
+  comments: RFPComment[];
+}
+
+export interface RFPOutcomeAnalytics {
+  outcomes: Record<string, number>;
+  won: number;
+  lost: number;
+  withdrawn: number;
+  noBid: number;
+  winRate: number | null;
+  awardedValue: number;
 }
 
 // Form Types for RFP System

@@ -1,4 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
+const { assertIsolatedTestDatabase } = require('./testDatabaseGuard');
+assertIsolatedTestDatabase();
 const { ComplianceDecisionService } = require('../services/complianceDecisionService');
 const PrismaGovernanceRepository = require('../services/prismaGovernanceRepository');
 

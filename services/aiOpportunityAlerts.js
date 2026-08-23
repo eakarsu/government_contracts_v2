@@ -52,6 +52,8 @@ class AIOpportunityAlerts {
         naicsCode: true,
         setAsideCode: true,
         postedDate: true,
+        responseDeadline: true,
+        placeOfPerformance: true,
         resourceLinks: true,
         samData: true,
       },
@@ -128,7 +130,7 @@ class AIOpportunityAlerts {
 
     return {
       ...contract,
-      responseDeadline: samData.responseDeadLine || samData.responseDeadline || null,
+      responseDeadline: contract.responseDeadline || samData.responseDeadLine || samData.responseDeadline || null,
       awardAmount: award.amount || award.value || null,
       awardedTo: award.awardee?.name || award.awardeeName || null,
     };

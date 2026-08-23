@@ -1,6 +1,8 @@
 'use strict';
 
 const { PrismaClient } = require('@prisma/client');
+const { assertIsolatedTestDatabase } = require('./testDatabaseGuard');
+assertIsolatedTestDatabase();
 
 const run = process.env.RUN_DATABASE_TESTS === '1' ? describe : describe.skip;
 

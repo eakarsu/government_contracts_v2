@@ -23,6 +23,7 @@ export class ContractsApiService {
     search?: string;
     agency?: string;
     naicsCode?: string;
+    samOnly?: boolean;
   }): Promise<{ 
     success: boolean;
     data: Contract[];
@@ -41,6 +42,7 @@ export class ContractsApiService {
     if (filters?.search) params.append('search', filters.search);
     if (filters?.agency) params.append('agency', filters.agency);
     if (filters?.naicsCode) params.append('naicsCode', filters.naicsCode);
+    if (filters?.samOnly) params.append('samOnly', 'true');
     
     const response = await api.get<{ 
       success: boolean;
@@ -62,6 +64,11 @@ export class ContractsApiService {
 
   async getContract(noticeId: string): Promise<Contract> {
     const response = await api.get<Contract>(`/contracts/${noticeId}`);
+    return response.data;
+  }
+
+  async getContractEvidence(noticeId: string): Promise<Contract> {
+    const response = await api.get<Contract>(`/documents/contracts/${noticeId}`);
     return response.data;
   }
 

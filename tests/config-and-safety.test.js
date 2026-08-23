@@ -17,11 +17,13 @@ test('accepts complete production OIDC configuration and rejects wildcard CORS',
     DATABASE_URL: 'postgresql://db.example.gov/contracts',
     NODE_ENV: 'production',
     OIDC_AUDIENCE: 'contracts-api',
+    OIDC_CLIENT_ID: 'contracts-spa',
     OIDC_ISSUER: 'https://identity.example.gov/',
     OIDC_JWKS_URI: 'https://identity.example.gov/.well-known/jwks.json',
   };
   expect(validateForStartup(loadConfig(environment)).authMode).toBe('oidc');
   expect(() => validateForStartup(loadConfig({ ...environment, CORS_ORIGINS: '*' }))).toThrow(/Wildcard/);
+  expect(() => validateForStartup(loadConfig({ ...environment, DATABASE_URL: 'postgresql://db.example.gov/contracts_test' }))).toThrow(/must not target/);
 });
 
 test('uses environment configuration as the OpenRouter chat model source', () => {
@@ -97,4 +99,16 @@ test('fabricated legacy product routes remain disabled', () => {
   expect(documentSearch.indexOf('SIMULATED_INGESTION_DISABLED')).toBeLessThan(
     documentSearch.indexOf('disabledSampleFetchContracts')
   );
+});
+
+test('RFP production controls are enforced by permissions and immutable database records', () => {
+  const root = path.resolve(__dirname, '..');
+  const auth = fs.readFileSync(path.join(root, 'middleware/auth.js'), 'utf8');
+  const migration = fs.readFileSync(path.join(root, 'prisma/migrations/20260823100000_rfp_production_governance/migration.sql'), 'utf8');
+  expect(auth).toMatch(/proposal_author/);
+  expect(auth).toMatch(/proposal_reviewer/);
+  expect(auth).toMatch(/proposal_approver/);
+  expect(migration).toMatch(/rfp_audit_event_no_update/);
+  expect(migration).toMatch(/rfp_approval_immutable/);
+  expect(migration).toMatch(/rfp_submission_checklist_item/);
 });

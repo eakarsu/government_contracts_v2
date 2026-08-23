@@ -4,8 +4,32 @@ const PDFDocument = require('pdfkit');
 const { prisma } = require('../config/database');
 const config = require('../config/env');
 const rfpService = require('../services/rfpService');
+const { requirePermission } = require('../middleware/auth');
+const { RfpProductionService } = require('../services/rfpProductionService');
 
 const router = express.Router();
+const productionService = new RfpProductionService(prisma);
+
+function rfpPermission(req) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return 'rfp:read';
+  if (/\/approvals\/[^/]+\/decision$/.test(req.path)) return 'rfp:approve';
+  if (/\/checklist\/[^/]+$/.test(req.path) || /\/requirements\/[^/]+$/.test(req.path)) return 'rfp:review';
+  if (/\/comments\/[^/]+\/resolve$/.test(req.path)) return 'rfp:review';
+  if (/\/submission$/.test(req.path)) return 'rfp:submit';
+  if (/\/outcome$/.test(req.path)) return 'rfp:outcome';
+  if (/\/bid-models\/validate$/.test(req.path)) return 'rfp:model:validate';
+  return 'rfp:author';
+}
+
+router.use((req, res, next) => requirePermission(rfpPermission(req))(req, res, next));
+
+function productionError(res, error, fallback) {
+  return res.status(error.statusCode || (error.code === 'P2025' ? 404 : 500)).json({
+    success: false,
+    error: error.message || fallback,
+    details: error.details,
+  });
+}
 
 const STANDARD_TEMPLATE_NAME = 'Standard Government Proposal Application';
 const STANDARD_SECTIONS = [
@@ -215,7 +239,7 @@ async function ensureStandardTemplate() {
   });
 }
 
-async function generateAndSaveApplication({ contractId, templateId, companyProfileId, customInstructions, focusAreas }) {
+async function generateAndSaveApplication({ contractId, templateId, companyProfileId, customInstructions, focusAreas, user }) {
   const contract = await prisma.contract.findUnique({ where: { noticeId: contractId } });
   if (!contract) {
     const error = new Error('Selected contract opportunity was not found');
@@ -223,15 +247,16 @@ async function generateAndSaveApplication({ contractId, templateId, companyProfi
     throw error;
   }
 
-  const [queuedAttachments, processingAttachments, failedAttachments, emptyCompletedAttachments] = await Promise.all([
+  const [queuedAttachments, processingAttachments, failedAttachments, deadLetterAttachments, emptyCompletedAttachments] = await Promise.all([
     prisma.documentProcessingQueue.count({ where: { contractNoticeId: contractId, status: 'queued' } }),
     prisma.documentProcessingQueue.count({ where: { contractNoticeId: contractId, status: 'processing' } }),
     prisma.documentProcessingQueue.count({ where: { contractNoticeId: contractId, status: 'failed' } }),
+    prisma.documentProcessingQueue.count({ where: { contractNoticeId: contractId, status: 'dead_letter' } }),
     prisma.documentProcessingQueue.count({
       where: { contractNoticeId: contractId, status: 'completed', processedData: null }
     })
   ]);
-  if (queuedAttachments || processingAttachments || failedAttachments || emptyCompletedAttachments) {
+  if (queuedAttachments || processingAttachments || failedAttachments || deadLetterAttachments || emptyCompletedAttachments) {
     const error = new Error(
       'Solicitation evidence is incomplete. Download and successfully process every attachment before generating the RFP draft.'
     );
@@ -241,6 +266,7 @@ async function generateAndSaveApplication({ contractId, templateId, companyProfi
       queued: queuedAttachments,
       processing: processingAttachments,
       failed: failedAttachments,
+      dead_letter: deadLetterAttachments,
       completed_without_content: emptyCompletedAttachments
     };
     throw error;
@@ -291,7 +317,7 @@ async function generateAndSaveApplication({ contractId, templateId, companyProfi
     }
   };
 
-  return prisma.rfpResponse.create({
+  const response = await prisma.rfpResponse.create({
     data: {
       contractId: contract.noticeId,
       templateId: template.id,
@@ -303,16 +329,21 @@ async function generateAndSaveApplication({ contractId, templateId, companyProfi
       predictedScore: Number(generated.predictedScore?.overall) || null
     }
   });
+  await productionService.ensureControls(response.id, user);
+  await productionService.createVersion(response.id, 'Initial AI-generated draft', user);
+  await productionService.syncRequirements(response.id, user);
+  return response;
 }
 
 router.get('/dashboard/stats', async (_req, res) => {
   try {
-    const [totalRFPs, activeRFPs, submittedRFPs, score, recent] = await Promise.all([
+    const [totalRFPs, activeRFPs, submittedRFPs, score, recent, outcomeAnalytics] = await Promise.all([
       prisma.rfpResponse.count(),
       prisma.rfpResponse.count({ where: { status: { in: ['draft', 'in_review', 'approved'] } } }),
       prisma.rfpResponse.count({ where: { status: 'submitted' } }),
       prisma.rfpResponse.aggregate({ _avg: { predictedScore: true } }),
-      prisma.rfpResponse.findMany({ orderBy: { updatedAt: 'desc' }, take: 5 })
+      prisma.rfpResponse.findMany({ orderBy: { updatedAt: 'desc' }, take: 5 }),
+      productionService.analytics(),
     ]);
     return res.json({
       success: true,
@@ -320,7 +351,8 @@ router.get('/dashboard/stats', async (_req, res) => {
         totalRFPs,
         activeRFPs,
         submittedRFPs,
-        winRate: 0,
+        winRate: outcomeAnalytics.winRate,
+        outcomeAnalytics,
         averageScore: Math.round(score._avg.predictedScore || 0),
         recentActivity: recent.map(item => ({
           rfpId: item.id,
@@ -497,7 +529,8 @@ router.post('/generate', async (req, res) => {
       templateId,
       companyProfileId,
       customInstructions: req.body.customInstructions,
-      focusAreas: req.body.focusAreas
+      focusAreas: req.body.focusAreas,
+      user: req.user,
     });
     const serialized = serializeResponse(response);
     return res.status(201).json({
@@ -570,9 +603,9 @@ router.get('/responses/:id/download/:format', async (req, res) => {
 
 router.put('/responses/:id', async (req, res) => {
   try {
-    const allowedStatuses = ['draft', 'in_review', 'approved', 'submitted'];
+    const allowedStatuses = ['draft', 'in_review', 'approved'];
     if (req.body.status !== undefined && !allowedStatuses.includes(req.body.status)) {
-      return res.status(400).json({ success: false, error: 'Invalid RFP response status' });
+      return res.status(400).json({ success: false, error: 'Invalid status. Submitted status is set only by the governed submission workflow.' });
     }
     const response = await prisma.rfpResponse.update({
       where: { id: positiveInteger(req.params.id, -1) },
@@ -582,6 +615,9 @@ router.put('/responses/:id', async (req, res) => {
         ...(req.body.responseData !== undefined ? { responseData: JSON.stringify(req.body.responseData) } : {})
       }
     });
+    if (req.body.title !== undefined || req.body.responseData !== undefined) {
+      await productionService.createVersion(response.id, 'Proposal content updated', req.user);
+    }
     return res.json({ success: true, response: serializeResponse(response) });
   } catch (error) {
     return res.status(error.code === 'P2025' ? 404 : 500).json({ success: false, error: 'RFP response could not be updated' });
@@ -592,26 +628,231 @@ router.put('/responses/:id/sections/:sectionId', async (req, res) => {
   try {
     const current = await prisma.rfpResponse.findUnique({ where: { id: positiveInteger(req.params.id, -1) } });
     if (!current) return res.status(404).json({ success: false, error: 'RFP response not found' });
+    const templateRecord = await prisma.rfpTemplate.findUnique({ where: { id: current.templateId } });
+    const template = templateRecord ? serializeTemplate(templateRecord) : { sections: [] };
     const responseData = parseJson(current.responseData, { sections: [], metadata: {} });
     const index = (responseData.sections || []).findIndex(section => section.sectionId === req.params.sectionId || section.id === req.params.sectionId);
     if (index < 0) return res.status(404).json({ success: false, error: 'RFP section not found' });
     const content = req.body.content !== undefined ? String(req.body.content) : responseData.sections[index].content;
+    const templateSection = template.sections.find(section => section.id === req.params.sectionId) || responseData.sections[index];
     const section = {
       ...responseData.sections[index],
       content,
       wordCount: content.trim() ? content.trim().split(/\s+/).length : 0,
       status: 'reviewed',
+      compliance: rfpService.calculateSectionCompliance(content, templateSection),
       lastModified: new Date().toISOString(),
       modifiedBy: String(req.user?.email || req.user?.id || 'Authenticated user')
     };
     responseData.sections[index] = section;
+    const complianceStatus = rfpService.calculateCompliance(responseData.sections, template);
     await prisma.rfpResponse.update({
       where: { id: current.id },
-      data: { responseData: JSON.stringify(responseData) }
+      data: {
+        responseData: JSON.stringify(responseData),
+        complianceStatus: JSON.stringify(complianceStatus)
+      }
     });
-    return res.json({ success: true, section });
+    await productionService.createVersion(current.id, `Section saved: ${section.title}`, req.user);
+    return res.json({ success: true, section, compliance: complianceStatus });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/responses/:id/workspace', async (req, res) => {
+  try {
+    const id = positiveInteger(req.params.id, -1);
+    const workspace = await productionService.workspace(id);
+    const amendments = await prisma.rfpAmendment.findMany({
+      where: { contractId: workspace.contractId },
+      orderBy: { detectedAt: 'desc' },
+    });
+    return res.json({ success: true, workspace, amendments });
+  } catch (error) {
+    return productionError(res, error, 'Failed to load proposal workspace');
+  }
+});
+
+router.post('/responses/:id/requirements/sync', async (req, res) => {
+  try {
+    const requirements = await productionService.syncRequirements(positiveInteger(req.params.id, -1), req.user);
+    return res.json({ success: true, requirements });
+  } catch (error) {
+    return productionError(res, error, 'Failed to synchronize requirements');
+  }
+});
+
+router.put('/responses/:id/requirements/:requirementId', async (req, res) => {
+  try {
+    const requirement = await productionService.updateRequirement(
+      positiveInteger(req.params.id, -1), req.params.requirementId, req.body, req.user
+    );
+    return res.json({ success: true, requirement });
+  } catch (error) {
+    return productionError(res, error, 'Failed to update requirement');
+  }
+});
+
+router.get('/responses/:id/versions', async (req, res) => {
+  const versions = await prisma.rfpVersion.findMany({
+    where: { rfpResponseId: positiveInteger(req.params.id, -1) },
+    orderBy: { versionNumber: 'desc' },
+  });
+  return res.json({ success: true, versions });
+});
+
+router.post('/responses/:id/versions', async (req, res) => {
+  try {
+    const version = await productionService.createVersion(positiveInteger(req.params.id, -1), req.body.comment, req.user);
+    return res.status(201).json({ success: true, version });
+  } catch (error) {
+    return productionError(res, error, 'Failed to create version');
+  }
+});
+
+router.get('/responses/:id/versions/compare', async (req, res) => {
+  try {
+    const comparison = await productionService.compareVersions(
+      positiveInteger(req.params.id, -1), String(req.query.left || ''), String(req.query.right || '')
+    );
+    return res.json({ success: true, comparison });
+  } catch (error) {
+    return productionError(res, error, 'Failed to compare versions');
+  }
+});
+
+router.post('/responses/:id/versions/:versionId/restore', async (req, res) => {
+  try {
+    const response = await productionService.restoreVersion(
+      positiveInteger(req.params.id, -1), req.params.versionId, req.user
+    );
+    return res.json({ success: true, response: serializeResponse(response) });
+  } catch (error) {
+    return productionError(res, error, 'Failed to restore version');
+  }
+});
+
+router.post('/responses/:id/collaborators', async (req, res) => {
+  try {
+    const collaborator = await productionService.assignCollaborator(
+      positiveInteger(req.params.id, -1), req.body, req.user
+    );
+    return res.status(201).json({ success: true, collaborator });
+  } catch (error) {
+    return productionError(res, error, 'Failed to assign collaborator');
+  }
+});
+
+router.delete('/responses/:id/collaborators/:email', async (req, res) => {
+  try {
+    await productionService.removeCollaborator(
+      positiveInteger(req.params.id, -1), decodeURIComponent(req.params.email), req.user
+    );
+    return res.json({ success: true });
+  } catch (error) {
+    return productionError(res, error, 'Failed to remove collaborator');
+  }
+});
+
+router.post('/responses/:id/comments', async (req, res) => {
+  try {
+    const comment = await productionService.addComment(positiveInteger(req.params.id, -1), req.body, req.user);
+    return res.status(201).json({ success: true, comment });
+  } catch (error) {
+    return productionError(res, error, 'Failed to add comment');
+  }
+});
+
+router.post('/responses/:id/comments/:commentId/resolve', async (req, res) => {
+  try {
+    const comment = await productionService.resolveComment(
+      positiveInteger(req.params.id, -1), req.params.commentId, req.user
+    );
+    return res.json({ success: true, comment });
+  } catch (error) {
+    return productionError(res, error, 'Failed to resolve comment');
+  }
+});
+
+router.post('/responses/:id/approvals', async (req, res) => {
+  try {
+    const approval = await productionService.assignApproval(positiveInteger(req.params.id, -1), req.body, req.user);
+    return res.status(201).json({ success: true, approval });
+  } catch (error) {
+    return productionError(res, error, 'Failed to assign approval');
+  }
+});
+
+router.post('/responses/:id/approvals/:approvalId/decision', async (req, res) => {
+  try {
+    const approval = await productionService.decideApproval(
+      positiveInteger(req.params.id, -1), req.params.approvalId, req.body, req.user
+    );
+    return res.json({ success: true, approval });
+  } catch (error) {
+    return productionError(res, error, 'Failed to record approval decision');
+  }
+});
+
+router.put('/responses/:id/checklist/:itemId', async (req, res) => {
+  try {
+    const item = await productionService.updateChecklist(
+      positiveInteger(req.params.id, -1), req.params.itemId, req.body, req.user
+    );
+    return res.json({ success: true, item });
+  } catch (error) {
+    return productionError(res, error, 'Failed to update submission checklist');
+  }
+});
+
+router.post('/responses/:id/submission', async (req, res) => {
+  try {
+    const submission = await productionService.recordSubmission(
+      positiveInteger(req.params.id, -1), req.body, req.user
+    );
+    return res.status(201).json({ success: true, submission });
+  } catch (error) {
+    return productionError(res, error, 'Failed to record submission');
+  }
+});
+
+router.put('/responses/:id/outcome', async (req, res) => {
+  try {
+    const outcome = await productionService.recordOutcome(positiveInteger(req.params.id, -1), req.body, req.user);
+    return res.json({ success: true, outcome });
+  } catch (error) {
+    return productionError(res, error, 'Failed to record outcome');
+  }
+});
+
+router.get('/analytics/outcomes', async (_req, res) => {
+  return res.json({ success: true, analytics: await productionService.analytics() });
+});
+
+router.get('/bid-models', async (_req, res) => {
+  const models = await prisma.rfpBidScoringModel.findMany({ orderBy: { createdAt: 'desc' } });
+  return res.json({ success: true, models });
+});
+
+router.post('/bid-models/validate', async (req, res) => {
+  try {
+    const model = await productionService.validateScoringModel(req.user);
+    return res.status(201).json({ success: true, model });
+  } catch (error) {
+    return productionError(res, error, 'Failed to evaluate scoring model');
+  }
+});
+
+router.post('/amendments/:id/acknowledge', async (req, res) => {
+  try {
+    const amendment = await prisma.rfpAmendment.update({
+      where: { id: req.params.id },
+      data: { acknowledgedBy: String(req.user?.email || req.user?.id), acknowledgedAt: new Date() },
+    });
+    return res.json({ success: true, amendment });
+  } catch (error) {
+    return productionError(res, error, 'Failed to acknowledge amendment');
   }
 });
 

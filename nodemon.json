@@ -6,7 +6,8 @@
     "middleware",
     "routes",
     "services",
-    "utils"
+    "utils",
+    "prisma/schema.prisma"
   ],
   "ignore": [
     "node_modules/**",
@@ -23,6 +24,7 @@
     "*.log",
     "*.pid"
   ],
-  "ext": "js,json",
+  "ext": "js,json,prisma",
+  "exec": "./node_modules/.bin/prisma generate && node",
   "delay": 1000
 }

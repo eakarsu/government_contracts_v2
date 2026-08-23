@@ -11,9 +11,6 @@ import {
   X,
   Database,
   Zap,
-  ClipboardList,
-  Target,
-  Wand2,
   Sparkles,
   Brain,
   FolderKanban,
@@ -28,7 +25,10 @@ import {
   Building2,
   ShieldAlert,
   Trophy,
-  BriefcaseBusiness
+  BriefcaseBusiness,
+  LayoutDashboard,
+  FileStack,
+  Library,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -41,16 +41,21 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Search', href: '/search', icon: Search },
   { name: 'NLP Search', href: '/nlp-search', icon: Sparkles },
-  { name: 'RFP System', href: '/rfp', icon: ClipboardList },
   { name: 'Jobs', href: '/jobs', icon: BarChart3 },
   { name: 'Documents', href: '/documents', icon: Upload },
   { name: 'API Docs', href: '/api-docs', icon: Database },
 ];
 
+const rfpNavigation = [
+  { name: 'RFP Workspace', href: '/rfp', icon: LayoutDashboard },
+  { name: 'Company Profiles', href: '/rfp/company-profiles', icon: Building2 },
+  { name: 'Proposal Templates', href: '/rfp/templates', icon: Library },
+  { name: 'Applications', href: '/rfp/responses', icon: FileStack },
+  { name: 'Outcome Analytics', href: '/rfp/analytics', icon: BarChart3 },
+];
+
 const aiEnhancements = [
   { name: 'AI Quick Actions', href: '/ai/quick-actions', icon: Brain },
-  { name: 'Proposal Drafter', href: '/ai/proposal-drafter', icon: Wand2 },
-  { name: 'Bid Analyzer', href: '/ai/bid-analyzer', icon: Target },
 ];
 
 const lifecycleNavigation = [
@@ -123,10 +128,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Opportunity Intelligence</h3>
           <ul className="space-y-2">
             {navigation.map((item) => {
-              const isActive = location.pathname === item.href || (item.href === '/rfp' && location.pathname.startsWith('/rfp'));
+              const isActive = location.pathname === item.href;
               return <NavigationLink key={item.name} item={item} active={isActive} onClose={onClose} />;
             })}
           </ul>
+
+          <div className="mt-8">
+            <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">RFP System</h3>
+            <ul className="mt-2 space-y-1">
+              {rfpNavigation.map(item => {
+                const isResponsePage = item.href === '/rfp/responses' && location.pathname.startsWith('/rfp/responses');
+                const isActive = item.href === '/rfp' ? location.pathname === '/rfp' || location.pathname === '/rfp/dashboard' : location.pathname === item.href || isResponsePage;
+                return <NavigationLink key={item.name} item={item} active={isActive} onClose={onClose} />;
+              })}
+            </ul>
+          </div>
 
           <div className="mt-8">
             <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Contract Lifecycle</h3>

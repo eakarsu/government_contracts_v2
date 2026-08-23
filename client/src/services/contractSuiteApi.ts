@@ -30,7 +30,7 @@ export const contractSuiteApi = {
     const response = await api.get('/contract-suite/overview');
     return response.data;
   },
-  async workItems(params: { domain?: string; capability?: string; search?: string }): Promise<SuiteWorkItem[]> {
+  async workItems(params: { domain?: string; capability?: string; search?: string; includeArchived?: boolean }): Promise<SuiteWorkItem[]> {
     const response = await api.get('/contract-suite/work-items', { params });
     return response.data.records;
   },
@@ -48,6 +48,14 @@ export const contractSuiteApi = {
   },
   async delete(id: string): Promise<{ id: string }> {
     const response = await api.delete(`/contract-suite/work-items/${id}`);
+    return response.data.record;
+  },
+  async archive(id: string): Promise<SuiteWorkItem> {
+    const response = await api.post(`/contract-suite/work-items/${id}/archive`);
+    return response.data.record;
+  },
+  async restore(id: string): Promise<SuiteWorkItem> {
+    const response = await api.post(`/contract-suite/work-items/${id}/restore`);
     return response.data.record;
   },
   async transition(id: string, nextStatus: string, rationale: string): Promise<SuiteWorkItem> {

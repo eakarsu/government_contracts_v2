@@ -16,6 +16,8 @@ model Contract {
   naicsCode             String?                @map("naics_code")
   classificationCode    String?                @map("classification_code")
   postedDate            DateTime?              @map("posted_date")
+  responseDeadline      DateTime?              @map("response_deadline")
+  placeOfPerformance    Json?                  @map("place_of_performance")
   setAsideCode          String?                @map("set_aside_code")
   resourceLinks         Json?                  @map("resource_links")
   samData               Json?                  @map("sam_data")
@@ -26,7 +28,9 @@ model Contract {
   rfpResponses          RfpResponse[]
   complianceEvaluations ComplianceEvaluation[]
   lifecycleMatters      ContractMatter[]
+  rfpAmendments         RfpAmendment[]
 
+  @@index([responseDeadline])
   @@map("contract")
 }
 
@@ -134,8 +138,15 @@ model DocumentProcessingQueue {
   startedAt        DateTime? @map("started_at")
   completedAt      DateTime? @map("completed_at")
   failedAt         DateTime? @map("failed_at")
+  sourceChecksum   String?   @map("source_checksum")
+  contentChecksum  String?   @map("content_checksum")
+  lastAttemptAt    DateTime? @map("last_attempt_at")
+  nextRetryAt      DateTime? @map("next_retry_at")
+  deadLetteredAt   DateTime? @map("dead_lettered_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
+  @@index([status, nextRetryAt])
+  @@index([sourceChecksum])
   @@map("document_processing_queue")
 }
 
@@ -165,21 +176,30 @@ model CompanyProfile {
 }
 
 model RfpResponse {
-  id               Int             @id @default(autoincrement())
-  contractId       String          @map("contract_id")
-  templateId       Int?            @map("template_id")
-  companyProfileId Int?            @map("company_profile_id")
+  id               Int                          @id @default(autoincrement())
+  contractId       String                       @map("contract_id")
+  templateId       Int?                         @map("template_id")
+  companyProfileId Int?                         @map("company_profile_id")
   title            String
-  status           String          @default("draft")
-  responseData     String          @map("response_data")
-  complianceStatus String          @map("compliance_status")
-  predictedScore   Float?          @map("predicted_score")
-  createdAt        DateTime        @default(now()) @map("created_at")
-  updatedAt        DateTime        @updatedAt @map("updated_at")
-  companyProfile   CompanyProfile? @relation(fields: [companyProfileId], references: [id])
-  contract         Contract?       @relation(fields: [contractId], references: [noticeId])
-  template         RfpTemplate?    @relation(fields: [templateId], references: [id])
+  status           String                       @default("draft")
+  responseData     String                       @map("response_data")
+  complianceStatus String                       @map("compliance_status")
+  predictedScore   Float?                       @map("predicted_score")
+  createdAt        DateTime                     @default(now()) @map("created_at")
+  updatedAt        DateTime                     @updatedAt @map("updated_at")
+  companyProfile   CompanyProfile?              @relation(fields: [companyProfileId], references: [id])
+  contract         Contract?                    @relation(fields: [contractId], references: [noticeId])
+  template         RfpTemplate?                 @relation(fields: [templateId], references: [id])
   versions         RfpVersion[]
+  requirements     RfpRequirement[]
+  collaborators    RfpCollaborator[]
+  approvals        RfpApproval[]
+  checklistItems   RfpSubmissionChecklistItem[]
+  submission       RfpSubmission?
+  outcome          RfpOutcome?
+  bidScores        RfpBidScore[]
+  auditEvents      RfpAuditEvent[]
+  comments         RfpComment[]
 
   @@map("rfp_responses")
 }
@@ -189,12 +209,208 @@ model RfpVersion {
   rfpResponseId Int         @map("rfp_response_id")
   versionNumber Int         @map("version_number")
   changes       String
+  snapshot      String?
   comment       String?
   createdBy     String      @map("created_by")
   createdAt     DateTime    @default(now()) @map("created_at")
   rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
 
   @@map("rfp_versions")
+}
+
+model RfpRequirement {
+  id              String      @id @default(uuid())
+  rfpResponseId   Int         @map("rfp_response_id")
+  rfpResponse     RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
+  requirementKey  String      @map("requirement_key")
+  text            String
+  sourceType      String      @map("source_type")
+  sourceLocator   String      @map("source_locator")
+  evidenceRefs    Json        @map("evidence_refs")
+  mappedSectionId String?     @map("mapped_section_id")
+  coverageStatus  String      @default("UNMAPPED") @map("coverage_status")
+  reviewStatus    String      @default("PENDING") @map("review_status")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  @@unique([rfpResponseId, requirementKey])
+  @@index([rfpResponseId, coverageStatus])
+  @@map("rfp_requirement")
+}
+
+model RfpCollaborator {
+  id            String      @id @default(uuid())
+  rfpResponseId Int         @map("rfp_response_id")
+  rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
+  email         String
+  role          String
+  assignedBy    String      @map("assigned_by")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@unique([rfpResponseId, email])
+  @@index([email, role])
+  @@map("rfp_collaborator")
+}
+
+model RfpApproval {
+  id            String      @id @default(uuid())
+  rfpResponseId Int         @map("rfp_response_id")
+  rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
+  gate          String
+  cycle         Int         @default(1)
+  reviewerEmail String      @map("reviewer_email")
+  decision      String      @default("PENDING")
+  rationale     String?
+  assignedBy    String      @map("assigned_by")
+  decidedBy     String?     @map("decided_by")
+  decidedAt     DateTime?   @map("decided_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@unique([rfpResponseId, gate, cycle])
+  @@index([reviewerEmail, decision])
+  @@map("rfp_approval")
+}
+
+model RfpSubmissionChecklistItem {
+  id            String      @id @default(uuid())
+  rfpResponseId Int         @map("rfp_response_id")
+  rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
+  itemKey       String      @map("item_key")
+  label         String
+  required      Boolean     @default(true)
+  completed     Boolean     @default(false)
+  evidenceUrl   String?     @map("evidence_url")
+  completedBy   String?     @map("completed_by")
+  completedAt   DateTime?   @map("completed_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@unique([rfpResponseId, itemKey])
+  @@map("rfp_submission_checklist_item")
+}
+
+model RfpSubmission {
+  id               String      @id @default(uuid())
+  rfpResponseId    Int         @unique @map("rfp_response_id")
+  rfpResponse      RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
+  destination      String
+  submissionMethod String      @map("submission_method")
+  trackingNumber   String?     @map("tracking_number")
+  receipt          Json?
+  status           String      @default("RECORDED")
+  submittedBy      String      @map("submitted_by")
+  submittedAt      DateTime    @map("submitted_at")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  @@map("rfp_submission")
+}
+
+model RfpOutcome {
+  id             String      @id @default(uuid())
+  rfpResponseId  Int         @unique @map("rfp_response_id")
+  rfpResponse    RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
+  outcome        String
+  awardValue     Float?      @map("award_value")
+  competitor     String?
+  debrief        String?
+  lessonsLearned Json?       @map("lessons_learned")
+  recordedBy     String      @map("recorded_by")
+  recordedAt     DateTime    @default(now()) @map("recorded_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  @@index([outcome, recordedAt])
+  @@map("rfp_outcome")
+}
+
+model RfpBidScoringModel {
+  id                 String        @id @default(uuid())
+  name               String
+  version            Int
+  status             String        @default("CANDIDATE")
+  trainingSampleSize Int           @map("training_sample_size")
+  metrics            Json
+  featureSchema      Json          @map("feature_schema")
+  validatedBy        String?       @map("validated_by")
+  validatedAt        DateTime?     @map("validated_at")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  scores             RfpBidScore[]
+
+  @@unique([name, version])
+  @@index([status, createdAt])
+  @@map("rfp_bid_scoring_model")
+}
+
+model RfpBidScore {
+  id            String              @id @default(uuid())
+  rfpResponseId Int?                @map("rfp_response_id")
+  rfpResponse   RfpResponse?        @relation(fields: [rfpResponseId], references: [id], onDelete: SetNull)
+  contractId    String              @map("contract_id")
+  modelId       String?             @map("model_id")
+  model         RfpBidScoringModel? @relation(fields: [modelId], references: [id], onDelete: SetNull)
+  probability   Float
+  confidence    Float
+  advisoryOnly  Boolean             @default(true) @map("advisory_only")
+  features      Json
+  factors       Json
+  createdBy     String              @map("created_by")
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  @@index([contractId, createdAt])
+  @@index([modelId, createdAt])
+  @@map("rfp_bid_score")
+}
+
+model RfpAmendment {
+  id               String    @id @default(uuid())
+  contractId       String    @map("contract_id")
+  contract         Contract  @relation(fields: [contractId], references: [noticeId], onDelete: Cascade)
+  fingerprint      String
+  previousSnapshot Json      @map("previous_snapshot")
+  currentSnapshot  Json      @map("current_snapshot")
+  changes          Json
+  affectedSections Json      @map("affected_sections")
+  detectedAt       DateTime  @default(now()) @map("detected_at")
+  acknowledgedBy   String?   @map("acknowledged_by")
+  acknowledgedAt   DateTime? @map("acknowledged_at")
+
+  @@unique([contractId, fingerprint])
+  @@index([contractId, detectedAt])
+  @@map("rfp_amendment")
+}
+
+model RfpAuditEvent {
+  id            String      @id @default(uuid())
+  rfpResponseId Int         @map("rfp_response_id")
+  rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
+  sequence      Int
+  action        String
+  actorId       String      @map("actor_id")
+  occurredAt    DateTime    @map("occurred_at")
+  payload       Json
+  previousHash  String      @map("previous_hash")
+  hash          String      @unique
+
+  @@unique([rfpResponseId, sequence])
+  @@index([rfpResponseId, occurredAt])
+  @@map("rfp_audit_event")
+}
+
+model RfpComment {
+  id            String      @id @default(uuid())
+  rfpResponseId Int         @map("rfp_response_id")
+  rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
+  sectionId     String?     @map("section_id")
+  body          String
+  authorId      String      @map("author_id")
+  resolved      Boolean     @default(false)
+  resolvedBy    String?     @map("resolved_by")
+  resolvedAt    DateTime?   @map("resolved_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@index([rfpResponseId, resolved, createdAt])
+  @@map("rfp_comment")
 }
 
 model GovernancePolicy {

@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs-extra');
 const multer = require('multer');
+const helmet = require('helmet');
 
 // Import configuration and services
 const config = require('./config/env');
@@ -41,13 +42,17 @@ const governanceRoutes = require('./routes/governance');
 const runtimeAiRoutes = require('./routes/runtimeAi');
 const lifecycleRoutes = require('./routes/lifecycle');
 const contractSuiteRoutes = require('./routes/contractSuite');
+const operationsRoutes = require('./routes/operations');
+const { PipelineReliabilityService } = require('./services/pipelineReliabilityService');
 
 // Import middleware
-const { rateLimiter, statusRateLimiter } = require('./middleware/rateLimiter');
+const { rateLimiter, statusRateLimiter, aiRateLimiter } = require('./middleware/rateLimiter');
 const { errorHandler } = require('./middleware/errorHandler');
 const { authMiddleware, requirePermission } = require('./middleware/auth');
 
 const app = express();
+const pipelineReliabilityService = new PipelineReliabilityService(prisma);
+let pipelineMaintenanceTimer;
 const clientBuildPath = path.join(__dirname, 'client', 'build');
 
 // Configure Express to trust proxy headers (needed for rate limiting)
@@ -76,6 +81,7 @@ app.use(
     },
   })
 );
+app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(rateLimiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -127,13 +133,21 @@ app.use('/api/status', statusRateLimiter);
 app.use('/api/config', statusRateLimiter);
 app.use('/api/health', statusRateLimiter);
 app.use('/api/documents/queue/status', statusRateLimiter);
+app.use('/api/ai', aiRateLimiter);
+app.use('/api/rfp/generate', aiRateLimiter);
 
 // OIDC discovery and disabled legacy-login responses are public. Every other
 // API route is authenticated except GET /api/health.
 app.use('/api/auth', authRoutes);
 app.use('/api', authMiddleware);
 app.use('/api', (req, res, next) => {
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || req.path.startsWith('/governance') || req.path.startsWith('/lifecycle')) return next();
+  if (
+    ['GET', 'HEAD', 'OPTIONS'].includes(req.method)
+    || req.path.startsWith('/governance')
+    || req.path.startsWith('/lifecycle')
+    || req.path.startsWith('/rfp')
+    || req.path === '/ai/win-probability'
+  ) return next();
   return requirePermission('legacy:write')(req, res, next);
 });
 
@@ -160,6 +174,7 @@ app.use('/api/governance', governanceRoutes);
 app.use('/api/runtime-ai', runtimeAiRoutes);
 app.use('/api/lifecycle', lifecycleRoutes);
 app.use('/api/contract-suite', contractSuiteRoutes);
+app.use('/api/operations', operationsRoutes);
 
 // Debug: Log when routers are loaded
 console.log('📋 [DEBUG] Contracts router mounted at /api/contracts');
@@ -387,6 +402,7 @@ async function startServer() {
     config.validateForStartup(config);
     // Test database connection
     await testConnection();
+    await pipelineReliabilityService.maintain();
     
     // Initialize vector database (non-blocking)
     await vectorService.initialize();
@@ -407,6 +423,12 @@ async function startServer() {
         console.log('   No external dependencies required!');
       }
     });
+    pipelineMaintenanceTimer = setInterval(() => {
+      pipelineReliabilityService.maintain().catch(error => {
+        console.error(`Pipeline maintenance failed: ${error.message}`);
+      });
+    }, config.pipelineMaintenanceIntervalMs);
+    pipelineMaintenanceTimer.unref();
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
@@ -416,6 +438,7 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('Shutting down gracefully...');
+  if (pipelineMaintenanceTimer) clearInterval(pipelineMaintenanceTimer);
   await disconnect();
   await prisma.$disconnect();
   process.exit(0);
