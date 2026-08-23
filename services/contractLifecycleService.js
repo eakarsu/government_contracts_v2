@@ -22,6 +22,24 @@ const RESOURCE_CATALOG = Object.freeze({
   integrations: { client: 'contractIntegrationOutbox', label: 'Integration Outbox', description: 'Idempotent provider actions with receipts, retries, and failure evidence.', matterScoped: true, search: ['provider', 'operation', 'status', 'lastErrorCode'], orderBy: { createdAt: 'desc' } },
 });
 
+const RESOURCE_MUTATIONS = Object.freeze({
+  matters: ['matterNumber', 'title', 'agency', 'contractType', 'jurisdiction', 'ownerId', 'status', 'retentionUntil'],
+  parties: ['name', 'partyType', 'contractRole', 'uei', 'cageCode', 'riskRating', 'sanctionsStatus'],
+  clauses: ['clauseKey', 'title', 'category', 'text', 'citation', 'riskLevel', 'status', 'fallbackText', 'aiConfidence', 'reviewedBy'],
+  obligations: ['reference', 'description', 'ownerId', 'dueDate', 'recurrence', 'status', 'evidenceUrl', 'escalationLevel'],
+  milestones: ['reference', 'name', 'dueDate', 'status', 'ownerId', 'evidenceUrl'],
+  amendments: ['amendmentNumber', 'title', 'description', 'effectiveDate', 'priceDelta', 'impactSummary', 'riskLevel', 'status'],
+  renewals: ['optionPeriod', 'noticeDeadline', 'exerciseDeadline', 'estimatedValue', 'status', 'recommendation', 'ownerId'],
+  templates: ['templateKey', 'version', 'name', 'agency', 'contractType', 'content', 'playbookRules', 'status', 'approvedBy', 'effectiveFrom'],
+});
+
+const DATE_FIELDS = new Set(['retentionUntil', 'dueDate', 'effectiveDate', 'noticeDeadline', 'exerciseDeadline', 'effectiveFrom']);
+const OPTIONAL_DATE_FIELDS = new Set(['dueDate', 'effectiveFrom']);
+const NUMBER_FIELDS = new Set(['aiConfidence', 'escalationLevel', 'priceDelta', 'estimatedValue', 'version']);
+const OPTIONAL_NUMBER_FIELDS = new Set(['aiConfidence']);
+const OPTIONAL_TEXT_FIELDS = new Set(['uei', 'cageCode', 'fallbackText', 'reviewedBy', 'recurrence', 'evidenceUrl', 'agency', 'approvedBy']);
+const JSON_FIELDS = new Set(['playbookRules']);
+
 class LifecycleError extends Error {
   constructor(code, message, status = 400) {
     super(message);
@@ -68,7 +86,44 @@ function assertTransition(current, next) {
 }
 
 function catalogResponse() {
-  return Object.entries(RESOURCE_CATALOG).map(([key, resource]) => ({ key, label: resource.label, description: resource.description, appendOnly: Boolean(resource.appendOnly) }));
+  return Object.entries(RESOURCE_CATALOG).map(([key, resource]) => ({
+    key,
+    label: resource.label,
+    description: resource.description,
+    appendOnly: Boolean(resource.appendOnly),
+    editableFields: RESOURCE_MUTATIONS[key] || [],
+    canEdit: Boolean(RESOURCE_MUTATIONS[key]),
+    canDelete: Boolean(RESOURCE_MUTATIONS[key]),
+  }));
+}
+
+function editableData(name, input) {
+  const fields = RESOURCE_MUTATIONS[name];
+  if (!fields) throw new LifecycleError('RECORD_IMMUTABLE', 'This governed lifecycle record is read-only', 405);
+  const supplied = Object.entries(input || {}).filter(([key]) => fields.includes(key));
+  if (!supplied.length) throw new LifecycleError('NO_CHANGES', 'No editable fields were supplied');
+  return supplied.reduce((data, [key, raw]) => {
+    if (DATE_FIELDS.has(key)) {
+      data[key] = safeDate(raw, key, OPTIONAL_DATE_FIELDS.has(key));
+    } else if (NUMBER_FIELDS.has(key)) {
+      if ((raw === '' || raw === null || raw === undefined) && OPTIONAL_NUMBER_FIELDS.has(key)) data[key] = null;
+      else {
+        const number = Number(raw);
+        if (!Number.isFinite(number)) throw new LifecycleError('INVALID_NUMBER', `${key} must be a number`);
+        data[key] = number;
+      }
+    } else if (JSON_FIELDS.has(key)) {
+      try { data[key] = typeof raw === 'string' ? JSON.parse(raw) : raw; }
+      catch (_error) { throw new LifecycleError('INVALID_JSON', `${key} must be valid JSON`); }
+    } else if (/risk(Level|Rating)$/.test(key)) {
+      data[key] = assertRisk(raw, key);
+    } else if (OPTIONAL_TEXT_FIELDS.has(key)) {
+      data[key] = raw === null || raw === undefined || String(raw).trim() === '' ? null : String(raw).trim();
+    } else {
+      data[key] = requiredText(String(raw ?? ''), key);
+    }
+    return data;
+  }, {});
 }
 
 class ContractLifecycleService {
@@ -175,6 +230,38 @@ class ContractLifecycleService {
     return record;
   }
 
+  async updateRecord(name, id, input, actor) {
+    const resource = this.resource(name);
+    const record = await this.prisma[resource.client].findUnique({ where: { id } });
+    if (!record) throw new LifecycleError('RECORD_NOT_FOUND', 'Lifecycle record not found', 404);
+    const data = editableData(name, input);
+    const updated = await this.prisma[resource.client].update({ where: { id }, data });
+    const aggregateId = name === 'matters' ? id : (record.matterId || id);
+    await this.audit(aggregateId, `${name.toUpperCase().replace(/-/g, '_')}_UPDATED`, actor, { recordId: id, fields: Object.keys(data) });
+    return updated;
+  }
+
+  async deleteRecord(name, id, actor) {
+    const resource = this.resource(name);
+    if (!RESOURCE_MUTATIONS[name]) throw new LifecycleError('RECORD_IMMUTABLE', 'This governed lifecycle record cannot be deleted', 405);
+    const record = await this.prisma[resource.client].findUnique({ where: { id } });
+    if (!record) throw new LifecycleError('RECORD_NOT_FOUND', 'Lifecycle record not found', 404);
+    if (name === 'matters' && record.legalHold) throw new LifecycleError('LEGAL_HOLD', 'A matter under legal hold cannot be deleted', 409);
+    if (name === 'matters') {
+      const immutableCount = await Promise.all([
+        this.prisma.contractDocumentVersion.count({ where: { matterId: id } }),
+        this.prisma.contractApproval.count({ where: { matterId: id } }),
+        this.prisma.contractRiskAssessment.count({ where: { matterId: id } }),
+        this.prisma.contractAiReview.count({ where: { matterId: id } }),
+      ]).then(counts => counts.reduce((total, count) => total + count, 0));
+      if (immutableCount) throw new LifecycleError('IMMUTABLE_EVIDENCE_EXISTS', 'Matter deletion is blocked because it contains immutable evidence', 409);
+    }
+    const aggregateId = name === 'matters' ? id : (record.matterId || id);
+    await this.audit(aggregateId, `${name.toUpperCase().replace(/-/g, '_')}_DELETE_REQUESTED`, actor, { recordId: id });
+    await this.prisma[resource.client].delete({ where: { id } });
+    return { id };
+  }
+
   async aiReview(matterId, input, actor) {
     const matter = await this.prisma.contractMatter.findUnique({ where: { id: matterId }, include: { clauses: true, obligations: true, amendments: true, renewals: true, riskAssessments: true } });
     if (!matter) throw new LifecycleError('MATTER_NOT_FOUND', 'Contract matter not found', 404);
@@ -224,4 +311,4 @@ class ContractLifecycleService {
   }
 }
 
-module.exports = { ContractLifecycleService, LifecycleError, LIFECYCLE_STAGES, RESOURCE_CATALOG, assertTransition, catalogResponse, digest };
+module.exports = { ContractLifecycleService, LifecycleError, LIFECYCLE_STAGES, RESOURCE_CATALOG, RESOURCE_MUTATIONS, assertTransition, catalogResponse, digest, editableData };

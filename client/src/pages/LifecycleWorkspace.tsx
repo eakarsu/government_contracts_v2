@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, Bot, CalendarClock, CheckCircle2, ChevronRight, FileCheck2, FileText, Filter, FolderKanban, Link2, Plus, RotateCcw, Search, ShieldCheck, Sparkles, Users, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Bot, CalendarClock, CheckCircle2, ChevronRight, FileCheck2, FileText, Filter, FolderKanban, Link2, Pencil, Plus, RotateCcw, Save, Search, ShieldCheck, Sparkles, Trash2, Users, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { lifecycleApi, LifecycleRecord } from '../services/lifecycleApi';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
@@ -49,6 +49,20 @@ function valueView(field: string, value: any) {
   }
   const text = formatLifecycleValue(field, value);
   return <span title={text}>{text.length > 72 ? `${text.slice(0, 69)}…` : text}</span>;
+}
+
+function editableValue(field: string, value: any) {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') return JSON.stringify(value, null, 2);
+  if (/date|deadline|Until|From$/i.test(field)) {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 16);
+  }
+  return String(value);
+}
+
+function recordDraft(record: LifecycleRecord, fields: string[]) {
+  return fields.reduce<Record<string, any>>((draft, field) => ({ ...draft, [field]: editableValue(field, record[field]) }), {});
 }
 
 const NewMatterModal: React.FC<{ onClose: () => void; onCreate: (value: any) => void; pending: boolean }> = ({ onClose, onCreate, pending }) => {
@@ -137,6 +151,8 @@ const LifecycleWorkspace: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<LifecycleRecord | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<Record<string, any>>({});
   const [showNewMatter, setShowNewMatter] = useState(false);
   const [showApproval, setShowApproval] = useState(false);
   const [transitionRationale, setTransitionRationale] = useState('');
@@ -149,6 +165,46 @@ const LifecycleWorkspace: React.FC = () => {
   const transition = useMutation({ mutationFn: ({ id, nextStage, rationale }: any) => lifecycleApi.transitionMatter(id, nextStage, rationale), onSuccess: record => { toast.success(`Matter advanced to ${titleCase(record.stage)}`); setSelected(record); setTransitionRationale(''); queryClient.invalidateQueries({ queryKey: ['lifecycle-overview'] }); queryClient.invalidateQueries({ queryKey: ['lifecycle-records'] }); } });
   const resourceMeta = catalog.data?.find(item => item.key === currentResource);
   const fields = useMemo(() => preferredFields[currentResource] || [], [currentResource]);
+  const editableFields = resourceMeta?.editableFields || [];
+  const updateRecord = useMutation({
+    mutationFn: ({ id, value }: { id: string; value: Record<string, any> }) => lifecycleApi.updateRecord(currentResource, id, value),
+    onSuccess: record => {
+      toast.success('Lifecycle record updated');
+      setSelected(record);
+      setDraft(recordDraft(record, editableFields));
+      setEditing(false);
+      queryClient.invalidateQueries({ queryKey: ['lifecycle-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['lifecycle-records'] });
+    },
+    onError: (error: any) => toast.error(error.response?.data?.error || error.message || 'Unable to update record'),
+  });
+  const deleteRecord = useMutation({
+    mutationFn: (id: string) => lifecycleApi.deleteRecord(currentResource, id),
+    onSuccess: () => {
+      toast.success('Lifecycle record deleted');
+      setSelected(null);
+      setEditing(false);
+      queryClient.invalidateQueries({ queryKey: ['lifecycle-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['lifecycle-records'] });
+    },
+    onError: (error: any) => toast.error(error.response?.data?.error || error.message || 'Unable to delete record'),
+  });
+  const openRecord = (record: LifecycleRecord) => {
+    setSelected(record);
+    setDraft(recordDraft(record, editableFields));
+    setEditing(false);
+    setTransitionRationale('');
+  };
+  const closeRecord = () => {
+    setSelected(null);
+    setEditing(false);
+    setTransitionRationale('');
+  };
+  useEffect(() => {
+    setSelected(null);
+    setEditing(false);
+    setTransitionRationale('');
+  }, [currentResource]);
 
   if (catalog.isLoading || overview.isLoading) return <div className="flex h-64 items-center justify-center"><LoadingSpinner size="lg" /></div>;
 
@@ -168,9 +224,14 @@ const LifecycleWorkspace: React.FC = () => {
   return <div className="space-y-6">
     <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end"><div><Link to="/lifecycle" className="text-sm font-medium text-primary-700">← Lifecycle command center</Link><h1 className="mt-2 text-3xl font-bold">{resourceMeta?.label || titleCase(currentResource)}</h1><p className="mt-2 text-gray-600">{resourceMeta?.description}</p></div><div className="flex flex-wrap gap-2"><div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" /><input className="input w-64 pl-9" placeholder="Search records" value={search} onChange={e => setSearch(e.target.value)} /></div><button className="btn-secondary px-3" title="Filters"><Filter className="h-4 w-4" /></button>{currentResource === 'matters' && <button className="btn-primary gap-2" onClick={() => setShowNewMatter(true)}><Plus className="h-4 w-4" /> Add</button>}{currentResource === 'approvals' && <button className="btn-primary gap-2" onClick={() => setShowApproval(true)}><ShieldCheck className="h-4 w-4" /> Record approval</button>}</div></div>
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm"><div className="flex items-center justify-between border-b px-5 py-4"><div className="font-semibold">{records.data?.length || 0} governed records</div>{resourceMeta?.appendOnly && <span className="badge-info">Append-only evidence</span>}</div>
-      {records.isLoading ? <div className="flex h-56 items-center justify-center"><LoadingSpinner /></div> : <div className="overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr>{fields.map(field => <th key={field} className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{titleCase(field)}</th>)}<th className="px-4 py-3"><span className="sr-only">Details</span></th></tr></thead><tbody className="divide-y divide-gray-100">{records.data?.map(row => <tr key={row.id} className="hover:bg-gray-50">{fields.map(field => <td key={field} className="max-w-xs whitespace-nowrap px-4 py-3 text-sm text-gray-700">{valueView(field, row[field])}</td>)}<td className="px-4 py-3 text-right"><button className="text-sm font-semibold text-primary-700" onClick={() => setSelected(row)}>Review</button></td></tr>)}</tbody></table></div>}
+      {records.isLoading ? <div className="flex h-56 items-center justify-center"><LoadingSpinner /></div> : <div className="overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr>{fields.map(field => <th key={field} className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">{titleCase(field)}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{records.data?.map(row => <tr key={row.id} tabIndex={0} aria-label={`Open ${resourceMeta?.label || 'lifecycle'} record`} className="cursor-pointer transition hover:bg-primary-50 focus:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500" onClick={() => openRecord(row)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openRecord(row); } }}>{fields.map(field => <td key={field} className="max-w-xs whitespace-nowrap px-4 py-3 text-sm text-gray-700">{valueView(field, row[field])}</td>)}</tr>)}</tbody></table></div>}
     </div>
-    {selected && <div className="fixed inset-0 z-[70] flex justify-end bg-gray-950/40" onClick={() => setSelected(null)}><aside className="h-full w-full max-w-xl overflow-y-auto bg-white shadow-2xl" onClick={event => event.stopPropagation()}><div className="sticky top-0 flex items-center justify-between border-b bg-white px-6 py-5"><div><div className="text-xs font-semibold uppercase tracking-widest text-primary-600">Governed record</div><h2 className="mt-1 text-xl font-bold">{resourceMeta?.label}</h2></div><button className="rounded-lg p-2 hover:bg-gray-100" onClick={() => setSelected(null)}><X className="h-5 w-5" /></button></div><dl className="grid gap-5 p-6 sm:grid-cols-2">{Object.entries(selected).filter(([key]) => !['id', 'matterId'].includes(key)).map(([key, value]) => <div key={key} className={typeof value === 'string' && value.length > 100 ? 'sm:col-span-2' : ''}><dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{titleCase(key)}</dt><dd className="mt-1 break-words text-sm leading-6 text-gray-800">{valueView(key, value)}</dd></div>)}</dl>{currentResource === 'matters' && stages.indexOf(selected.stage) < stages.length - 1 && <div className="border-t bg-gray-50 p-6"><div className="text-sm font-semibold">Advance lifecycle stage</div><p className="mt-1 text-xs text-gray-500">Next controlled stage: {titleCase(stages[stages.indexOf(selected.stage) + 1])}</p><textarea className="input mt-3 min-h-24" placeholder="Explain the evidence and review supporting this transition." value={transitionRationale} onChange={event => setTransitionRationale(event.target.value)} /><button type="button" disabled={transition.isPending || transitionRationale.trim().length < 20} onClick={() => transition.mutate({ id: selected.id, nextStage: stages[stages.indexOf(selected.stage) + 1], rationale: transitionRationale })} className="btn-primary mt-3 gap-2">{transition.isPending ? 'Advancing…' : 'Advance stage'}<ArrowRight className="h-4 w-4" /></button></div>}</aside></div>}
+    {selected && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-950/60 p-4" onClick={closeRecord} role="presentation"><section className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="lifecycle-record-title"><div className="flex items-center justify-between border-b px-6 py-5"><div><div className="text-xs font-semibold uppercase tracking-widest text-primary-600">Governed record</div><h2 id="lifecycle-record-title" className="mt-1 text-xl font-bold">{editing ? `Edit ${resourceMeta?.label || 'record'}` : resourceMeta?.label}</h2></div><button type="button" aria-label="Close" className="rounded-lg p-2 hover:bg-gray-100" onClick={closeRecord}><X className="h-5 w-5" /></button></div>
+      <div className="overflow-y-auto">{editing ? <form id="lifecycle-edit-form" className="grid gap-5 p-6 sm:grid-cols-2" onSubmit={event => { event.preventDefault(); updateRecord.mutate({ id: selected.id, value: draft }); }}>{editableFields.map(field => { const value = draft[field] ?? ''; const isLong = /description|summary|text|content|recommendation|rules/i.test(field) || String(value).length > 120; const isNumber = /^(version|aiConfidence|escalationLevel|priceDelta|estimatedValue)$/.test(field); const isDate = /date|deadline|Until|From$/i.test(field); const isJson = field === 'playbookRules'; const optional = /^(uei|cageCode|fallbackText|reviewedBy|recurrence|evidenceUrl|agency|approvedBy|aiConfidence|dueDate|effectiveFrom)$/.test(field); return <label key={field} className={isLong || isJson ? 'block sm:col-span-2' : 'block'}><span className="label">{titleCase(field)}</span>{isLong || isJson ? <textarea className="input min-h-28" required={!optional} value={value} onChange={event => setDraft(current => ({ ...current, [field]: event.target.value }))} /> : <input className="input" required={!optional} type={isNumber ? 'number' : isDate ? 'datetime-local' : 'text'} step={field === 'aiConfidence' ? '0.01' : isNumber ? 'any' : undefined} value={value} onChange={event => setDraft(current => ({ ...current, [field]: event.target.value }))} />}</label>; })}</form> : <dl className="grid gap-5 p-6 sm:grid-cols-2">{Object.entries(selected).filter(([key]) => !['id', 'matterId'].includes(key)).map(([key, value]) => <div key={key} className={typeof value === 'string' && value.length > 100 ? 'sm:col-span-2' : ''}><dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{titleCase(key)}</dt><dd className="mt-1 break-words text-sm leading-6 text-gray-800">{valueView(key, value)}</dd></div>)}</dl>}
+      {!editing && currentResource === 'matters' && stages.indexOf(selected.stage) < stages.length - 1 && <div className="border-t bg-gray-50 p-6"><div className="text-sm font-semibold">Advance lifecycle stage</div><p className="mt-1 text-xs text-gray-500">Next controlled stage: {titleCase(stages[stages.indexOf(selected.stage) + 1])}</p><textarea className="input mt-3 min-h-24" placeholder="Explain the evidence and review supporting this transition." value={transitionRationale} onChange={event => setTransitionRationale(event.target.value)} /><button type="button" disabled={transition.isPending || transitionRationale.trim().length < 20} onClick={() => transition.mutate({ id: selected.id, nextStage: stages[stages.indexOf(selected.stage) + 1], rationale: transitionRationale })} className="btn-primary mt-3 gap-2">{transition.isPending ? 'Advancing…' : 'Advance stage'}<ArrowRight className="h-4 w-4" /></button></div>}
+      {!resourceMeta?.canEdit && <div className="border-t border-amber-200 bg-amber-50 px-6 py-4 text-sm text-amber-800">This record is governed evidence and is read-only.</div>}</div>
+      <div className="flex flex-col-reverse justify-between gap-3 border-t bg-gray-50 px-6 py-4 sm:flex-row"><button type="button" className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40" disabled={!resourceMeta?.canDelete || deleteRecord.isPending} title={resourceMeta?.canDelete ? 'Delete record' : 'Governed evidence cannot be deleted'} onClick={() => { if (window.confirm('Delete this lifecycle record? This action cannot be undone.')) deleteRecord.mutate(selected.id); }}><Trash2 className="h-4 w-4" />{deleteRecord.isPending ? 'Deleting…' : 'Delete'}</button><div className="flex justify-end gap-3"><button type="button" className="btn-secondary" onClick={() => { if (editing) { setDraft(recordDraft(selected, editableFields)); setEditing(false); } else closeRecord(); }}>Cancel</button>{editing ? <button type="submit" form="lifecycle-edit-form" className="btn-primary gap-2" disabled={updateRecord.isPending}><Save className="h-4 w-4" />{updateRecord.isPending ? 'Saving…' : 'Save changes'}</button> : <button type="button" className="btn-primary gap-2" disabled={!resourceMeta?.canEdit} title={resourceMeta?.canEdit ? 'Edit record' : 'Governed evidence cannot be edited'} onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Edit</button>}</div></div>
+    </section></div>}
     {showNewMatter && <NewMatterModal pending={createMatter.isPending} onClose={() => setShowNewMatter(false)} onCreate={value => createMatter.mutate(value)} />}
     {showApproval && <ApprovalModal matters={matters.data || []} pending={createApproval.isPending} onClose={() => setShowApproval(false)} onCreate={(matterId, value) => createApproval.mutate({ matterId, value })} />}
   </div>;

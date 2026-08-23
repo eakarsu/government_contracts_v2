@@ -8,7 +8,7 @@ const ROLE_PERMISSIONS = Object.freeze({
   auditor: ['audit:export', 'audit:read', 'governance:read', 'lifecycle:export', 'lifecycle:read'],
   compliance_analyst: ['evaluation:create', 'evaluation:submit', 'governance:read', 'lifecycle:ai', 'lifecycle:create', 'lifecycle:read', 'lifecycle:submit', 'lifecycle:update'],
   compliance_approver: ['decision:approve', 'governance:read', 'lifecycle:approve', 'lifecycle:read'],
-  contract_manager: ['governance:read', 'lifecycle:ai', 'lifecycle:create', 'lifecycle:export', 'lifecycle:read', 'lifecycle:submit', 'lifecycle:update'],
+  contract_manager: ['governance:read', 'lifecycle:ai', 'lifecycle:create', 'lifecycle:delete', 'lifecycle:export', 'lifecycle:read', 'lifecycle:submit', 'lifecycle:update'],
   contract_viewer: ['governance:read', 'lifecycle:read'],
   document_operator: ['legacy:write', 'queue:write', 'lifecycle:create', 'lifecycle:read', 'lifecycle:update'],
   legal_reviewer: ['governance:read', 'lifecycle:ai', 'lifecycle:approve', 'lifecycle:read', 'lifecycle:update'],

@@ -31,6 +31,8 @@ function createLifecycleRouter(service) {
   router.post('/matters/:id/transition', requirePermission('lifecycle:submit'), route(async (req, res) => res.json({ record: await service.transitionMatter(req.params.id, req.body, req.user) })));
   router.post('/matters/:id/approvals', requirePermission('lifecycle:approve'), route(async (req, res) => res.status(201).json({ record: await service.createApproval(req.params.id, req.body, req.user) })));
   router.post('/matters/:id/ai-review', requirePermission('lifecycle:ai'), route(async (req, res) => res.status(201).json({ record: await service.aiReview(req.params.id, req.body, req.user) })));
+  router.patch('/:resource/:id', requirePermission('lifecycle:update'), route(async (req, res) => res.json({ record: await service.updateRecord(req.params.resource, req.params.id, req.body, req.user) })));
+  router.delete('/:resource/:id', requirePermission('lifecycle:delete'), route(async (req, res) => res.json({ record: await service.deleteRecord(req.params.resource, req.params.id, req.user) })));
   router.post('/:resource', requirePermission('lifecycle:create'), route(async (req, res) => res.status(201).json({ record: await service.createRecord(req.params.resource, req.body, req.user) })));
   return router;
 }

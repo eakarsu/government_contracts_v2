@@ -12,6 +12,8 @@ function appWithLifecycle() {
     createApproval: jest.fn(async (_id, input, actor) => ({ id: 'approval-1', actorId: actor.id, ...input })),
     aiReview: jest.fn(async () => ({ id: 'review-1', advisoryOnly: true })),
     createRecord: jest.fn(async (_resource, input) => ({ id: 'record-1', ...input })),
+    updateRecord: jest.fn(async (_resource, id, input) => ({ id, ...input })),
+    deleteRecord: jest.fn(async (_resource, id) => ({ id })),
     auditExport: jest.fn(async () => ({ manifestHash: 'a'.repeat(64) })),
   };
   const app = express();
@@ -28,6 +30,20 @@ test('exposes lifecycle catalog, overview, and records to governed readers', asy
   await request(app).get('/lifecycle/overview').set('x-test-role', 'auditor').set('x-test-user', 'auditor-1').expect(200);
   const response = await request(app).get('/lifecycle/matters').set('x-test-role', 'contract_viewer').set('x-test-user', 'viewer-1').expect(200);
   expect(response.body.total).toBe(1);
+});
+
+test('supports governed row editing and deletion for contract managers', async () => {
+  const { app, service } = appWithLifecycle();
+  await request(app).patch('/lifecycle/parties/party-1').set('x-test-role', 'contract_manager').set('x-test-user', 'manager-1').send({ name: 'Updated party' }).expect(200);
+  await request(app).delete('/lifecycle/parties/party-1').set('x-test-role', 'contract_manager').set('x-test-user', 'manager-1').expect(200);
+  expect(service.updateRecord).toHaveBeenCalledWith('parties', 'party-1', { name: 'Updated party' }, expect.objectContaining({ id: 'manager-1' }));
+  expect(service.deleteRecord).toHaveBeenCalledWith('parties', 'party-1', expect.objectContaining({ id: 'manager-1' }));
+});
+
+test('prevents read-only users from editing or deleting lifecycle rows', async () => {
+  const { app } = appWithLifecycle();
+  await request(app).patch('/lifecycle/parties/party-1').set('x-test-role', 'contract_viewer').set('x-test-user', 'viewer-1').send({ name: 'No' }).expect(403);
+  await request(app).delete('/lifecycle/parties/party-1').set('x-test-role', 'contract_viewer').set('x-test-user', 'viewer-1').expect(403);
 });
 
 test('enforces create, approval, AI, and export permissions', async () => {

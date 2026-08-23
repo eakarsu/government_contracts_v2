@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { LIFECYCLE_STAGES, RESOURCE_CATALOG, assertTransition, catalogResponse, digest } = require('../services/contractLifecycleService');
+const { LIFECYCLE_STAGES, RESOURCE_CATALOG, assertTransition, catalogResponse, digest, editableData } = require('../services/contractLifecycleService');
 
 test('defines the complete governed contract lifecycle catalog', () => {
   expect(LIFECYCLE_STAGES).toEqual(['INTAKE', 'DILIGENCE', 'NEGOTIATION', 'APPROVAL', 'EXECUTION', 'PERFORMANCE', 'RENEWAL', 'CLOSEOUT']);
@@ -21,6 +21,13 @@ test('allows only adjacent lifecycle stage transitions', () => {
 test('creates deterministic evidence digests', () => {
   expect(digest({ b: 2, a: 1 })).toBe(digest({ a: 1, b: 2 }));
   expect(digest({ evidence: 'contract' })).toMatch(/^[a-f0-9]{64}$/);
+});
+
+test('normalizes editable lifecycle fields and protects append-only records', () => {
+  expect(editableData('parties', { name: ' Updated party ', riskRating: 'HIGH', cageCode: '' })).toEqual({ name: 'Updated party', riskRating: 'HIGH', cageCode: null });
+  expect(editableData('obligations', { escalationLevel: '3', dueDate: '' })).toEqual({ escalationLevel: 3, dueDate: null });
+  expect(editableData('templates', { playbookRules: '{"approval":"legal"}', version: '2' })).toEqual({ playbookRules: { approval: 'legal' }, version: 2 });
+  expect(() => editableData('approvals', { decision: 'REJECTED' })).toThrow(/read-only/i);
 });
 
 test('lifecycle migration is additive and protects evidence tables', () => {

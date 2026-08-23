@@ -1,7 +1,7 @@
 import api from './api';
 
 export type LifecycleRecord = Record<string, any> & { id: string };
-export type LifecycleResource = { key: string; label: string; description: string; appendOnly: boolean };
+export type LifecycleResource = { key: string; label: string; description: string; appendOnly: boolean; editableFields: string[]; canEdit: boolean; canDelete: boolean };
 
 export const lifecycleApi = {
   async catalog(): Promise<LifecycleResource[]> {
@@ -19,6 +19,14 @@ export const lifecycleApi = {
   },
   async createMatter(input: Record<string, any>): Promise<LifecycleRecord> {
     const response = await api.post('/lifecycle/matters', input);
+    return response.data.record;
+  },
+  async updateRecord(resource: string, id: string, input: Record<string, any>): Promise<LifecycleRecord> {
+    const response = await api.patch(`/lifecycle/${resource}/${id}`, input);
+    return response.data.record;
+  },
+  async deleteRecord(resource: string, id: string): Promise<{ id: string }> {
+    const response = await api.delete(`/lifecycle/${resource}/${id}`);
     return response.data.record;
   },
   async transitionMatter(id: string, nextStage: string, rationale: string): Promise<LifecycleRecord> {
