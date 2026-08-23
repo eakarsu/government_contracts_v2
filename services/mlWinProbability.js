@@ -68,6 +68,7 @@ class WinProbabilityPredictor {
   }
 
   extractFeatures(contract) {
+    const naicsCode = this.normalizeNaicsCode(contract.naicsCode);
     const features = {
       // Agency features
       agencySize: this.getAgencySize(contract.agency),
@@ -75,7 +76,8 @@ class WinProbabilityPredictor {
       
       // Contract features
       contractSize: this.categorizeContractSize(contract.awardAmount),
-      naicsCategory: this.getNaicsCategory(contract.naicsCode),
+      naicsCode,
+      naicsCategory: this.getNaicsCategory(naicsCode),
       setAsideType: contract.setAsideCode || 'NONE',
       
       // Temporal features
@@ -89,7 +91,17 @@ class WinProbabilityPredictor {
       
       // Complexity indicators
       hasAttachments: contract.resourceLinks && contract.resourceLinks.length > 0 ? 1 : 0,
-      isRenewal: this.isRenewalOpportunity(contract.title, contract.description)
+      isRenewal: this.isRenewalOpportunity(contract.title, contract.description),
+
+      // Defaults keep the heuristic executable, but must not be counted as evidence.
+      evidenceAvailability: {
+        agencySize: Boolean(String(contract.agency || '').trim()),
+        contractSize: this.hasPositiveAmount(contract.awardAmount),
+        setAsideType: Boolean(String(contract.setAsideCode || '').trim()),
+        postingDuration: this.hasValidDate(contract.postedDate) && this.hasValidDate(contract.responseDeadline),
+        keywordCount: Boolean(String(contract.title || contract.description || '').trim()),
+        hasAttachments: Array.isArray(contract.resourceLinks)
+      }
     };
 
     return features;
@@ -100,7 +112,6 @@ class WinProbabilityPredictor {
     const weights = {
       agencySize: 0.15,
       contractSize: 0.20,
-      naicsCategory: 0.10,
       setAsideType: 0.25,
       postingDuration: -0.10,
       keywordCount: 0.05,
@@ -120,6 +131,8 @@ class WinProbabilityPredictor {
     }
 
     const features = this.extractFeatures(newContract);
+    const profile = userContext.companyProfile || {};
+    const naicsEvidence = this.evaluateNaicsEvidence(profile, features.naicsCode);
     
     // Calculate probability using the model
     let probability = this.model.baseline;
@@ -133,18 +146,18 @@ class WinProbabilityPredictor {
     });
 
     // Apply user context adjustments
-    if (userContext.companyProfile) {
-      probability = this.adjustForUserProfile(probability, features, userContext.companyProfile);
-    }
+    probability = this.adjustForUserProfile(probability, features, profile, naicsEvidence);
 
     // Ensure probability is between 0 and 1
     probability = Math.max(0, Math.min(1, probability));
+    probability = this.applyNaicsEvidenceGuardrail(probability, naicsEvidence);
 
     return {
       probability: Math.round(probability * 100),
-      confidence: this.calculateConfidence(features),
-      factors: this.identifyKeyFactors(features, userContext),
-      recommendations: this.generateRecommendations(features, probability, userContext)
+      confidence: this.calculateConfidence(features, userContext, naicsEvidence),
+      factors: this.identifyKeyFactors(features, userContext, naicsEvidence),
+      recommendations: this.generateRecommendations(features, probability, userContext, naicsEvidence),
+      naicsEvidence
     };
   }
 
@@ -169,12 +182,19 @@ class WinProbabilityPredictor {
     }
   }
 
-  adjustForUserProfile(probability, features, profile) {
+  adjustForUserProfile(probability, features, profile, naicsEvidence = this.evaluateNaicsEvidence(profile, features.naicsCode)) {
     let adjusted = probability;
     
-    // Adjust based on company experience
-    if (profile.experienceInNaics && profile.experienceInNaics.includes(features.naicsCategory)) {
-      adjusted += 0.15;
+    // Only an exact six-digit code receives the full adjustment. A shared NAICS
+    // industry prefix is related context, not proof of registration or eligibility.
+    if (naicsEvidence.status === 'exact') {
+      adjusted += 0.12;
+    } else if (naicsEvidence.status === 'related') {
+      adjusted += naicsEvidence.sharedPrefixLength === 5 ? 0.04 : 0.02;
+    } else if (naicsEvidence.status === 'mismatch') {
+      adjusted -= 0.12;
+    } else if (naicsEvidence.status === 'unverified') {
+      adjusted -= 0.08;
     }
     
     // Adjust based on past performance with agency
@@ -190,8 +210,19 @@ class WinProbabilityPredictor {
     return adjusted;
   }
 
-  identifyKeyFactors(features, userContext) {
-    const factors = [];
+  applyNaicsEvidenceGuardrail(probability, naicsEvidence) {
+    const ceilings = {
+      related: 0.79,
+      mismatch: 0.59,
+      unverified: 0.69,
+      unavailable: 0.69
+    };
+    const ceiling = ceilings[naicsEvidence.status];
+    return ceiling === undefined ? probability : Math.min(probability, ceiling);
+  }
+
+  identifyKeyFactors(features, userContext, naicsEvidence = this.evaluateNaicsEvidence(userContext.companyProfile || {}, features.naicsCode)) {
+    const factors = [naicsEvidence.rationale];
     
     if (features.setAsideType && features.setAsideType !== 'NONE') {
       factors.push(`Set-aside designation: ${features.setAsideType}`);
@@ -212,8 +243,16 @@ class WinProbabilityPredictor {
     return factors;
   }
 
-  generateRecommendations(features, probability, userContext) {
+  generateRecommendations(features, probability, userContext, naicsEvidence = this.evaluateNaicsEvidence(userContext.companyProfile || {}, features.naicsCode)) {
     const recommendations = [];
+
+    if (naicsEvidence.status === 'unverified') {
+      recommendations.push('Verify and save the company\'s current six-digit NAICS codes before relying on this score');
+    } else if (naicsEvidence.status === 'mismatch') {
+      recommendations.push(`Confirm the company is qualified to pursue NAICS ${naicsEvidence.contractCode}; no saved company code matches it`);
+    } else if (naicsEvidence.status === 'related') {
+      recommendations.push(`Validate exact NAICS ${naicsEvidence.contractCode}; the saved code ${naicsEvidence.relatedProfileCode} is related but is not an exact match`);
+    }
     
     if (probability < 40) {
       recommendations.push('Consider partnering with experienced contractors');
@@ -233,14 +272,143 @@ class WinProbabilityPredictor {
     return recommendations;
   }
 
-  calculateConfidence(features) {
-    // Confidence reflects coverage of the fields actually used by this model.
+  calculateConfidence(features, userContext = {}, naicsEvidence = this.evaluateNaicsEvidence(userContext.companyProfile || {}, features.naicsCode)) {
+    // Confidence reflects supplied evidence, not defaults inserted by the heuristic.
     const weightedFeatures = Object.keys(this.model?.weights || this.getDefaultModel().weights);
-    const populatedFeatures = weightedFeatures.filter(key => {
-      const value = features[key];
-      return value !== undefined && value !== null && value !== '';
-    }).length;
-    return Math.min(100, Math.round((populatedFeatures / weightedFeatures.length) * 100));
+    const contractEvidenceCount = weightedFeatures.filter(key => features.evidenceAvailability?.[key]).length;
+    const contractCoverage = weightedFeatures.length
+      ? contractEvidenceCount / weightedFeatures.length
+      : 0;
+
+    const profile = userContext.companyProfile || {};
+    const profileEvidence = [
+      naicsEvidence.profileCodes.length > 0,
+      Array.isArray(profile.certifications) && profile.certifications.length > 0,
+      Array.isArray(profile.agencyRelationships) && profile.agencyRelationships.length > 0,
+      Array.isArray(profile.pastWins) && profile.pastWins.length > 0,
+      Number(profile.annualRevenue) > 0,
+      typeof profile.hasBonding === 'boolean'
+    ];
+    const profileCoverage = profileEvidence.filter(Boolean).length / profileEvidence.length;
+    let confidence = Math.round(((contractCoverage * 0.65) + (profileCoverage * 0.35)) * 100);
+
+    const ceilings = {
+      exact: 95,
+      related: 80,
+      mismatch: 70,
+      unverified: 55,
+      unavailable: 55
+    };
+    confidence = Math.min(confidence, ceilings[naicsEvidence.status] ?? 80);
+    return Math.max(0, confidence);
+  }
+
+  normalizeNaicsCode(value) {
+    if (value === undefined || value === null) return null;
+    const text = String(value).trim();
+    const compact = text.replace(/[\s-]+/g, '');
+    if (/^\d{6}$/.test(compact)) return compact;
+
+    const match = /(?:^|\D)(\d{6})(?!\d)/.exec(text);
+    return match ? match[1] : null;
+  }
+
+  extractNaicsCodes(value) {
+    if (Array.isArray(value)) return value.flatMap(item => this.extractNaicsCodes(item));
+    if (value === undefined || value === null) return [];
+
+    const text = String(value).trim();
+    const exact = this.normalizeNaicsCode(text);
+    if (exact && /^[\d\s-]+$/.test(text)) return [exact];
+
+    const codes = [];
+    const pattern = /(?:^|\D)(\d{6})(?!\d)/g;
+    let match;
+    while ((match = pattern.exec(text)) !== null) codes.push(match[1]);
+    return codes;
+  }
+
+  normalizeProfileNaicsCodes(profile = {}) {
+    const candidates = [
+      profile.experienceInNaics,
+      profile.naicsCodes,
+      profile.naics_codes,
+      profile.basicInfo?.naicsCode,
+      profile.basicInfo?.naicsCodes
+    ];
+    return [...new Set(candidates.flatMap(value => this.extractNaicsCodes(value)))];
+  }
+
+  evaluateNaicsEvidence(profile = {}, contractNaics) {
+    const contractCode = this.normalizeNaicsCode(contractNaics);
+    const profileCodes = this.normalizeProfileNaicsCodes(profile);
+
+    if (!contractCode) {
+      return {
+        status: 'unavailable',
+        exactMatch: false,
+        contractCode: null,
+        profileCodes,
+        relatedProfileCode: null,
+        sharedPrefixLength: 0,
+        score: 0,
+        rationale: 'NAICS evidence unavailable: the opportunity does not provide a valid six-digit NAICS code.'
+      };
+    }
+
+    if (profileCodes.length === 0) {
+      return {
+        status: 'unverified',
+        exactMatch: false,
+        contractCode,
+        profileCodes,
+        relatedProfileCode: null,
+        sharedPrefixLength: 0,
+        score: 0,
+        rationale: `NAICS verification pending: no valid six-digit company NAICS code is saved for opportunity ${contractCode}.`
+      };
+    }
+
+    if (profileCodes.includes(contractCode)) {
+      return {
+        status: 'exact',
+        exactMatch: true,
+        contractCode,
+        profileCodes,
+        relatedProfileCode: contractCode,
+        sharedPrefixLength: 6,
+        score: 1,
+        rationale: `Exact NAICS match: the company profile includes opportunity code ${contractCode}.`
+      };
+    }
+
+    const fiveDigitRelated = profileCodes.find(code => code.slice(0, 5) === contractCode.slice(0, 5));
+    const fourDigitRelated = profileCodes.find(code => code.slice(0, 4) === contractCode.slice(0, 4));
+    const relatedProfileCode = fiveDigitRelated || fourDigitRelated;
+    if (relatedProfileCode) {
+      const sharedPrefixLength = fiveDigitRelated ? 5 : 4;
+      return {
+        status: 'related',
+        exactMatch: false,
+        contractCode,
+        profileCodes,
+        relatedProfileCode,
+        sharedPrefixLength,
+        score: sharedPrefixLength === 5 ? 0.4 : 0.2,
+        rationale: `Related NAICS only: saved code ${relatedProfileCode} shares the ${sharedPrefixLength}-digit industry prefix with ${contractCode}; this is not an exact eligibility match.`
+      };
+    }
+
+    return {
+      status: 'mismatch',
+      exactMatch: false,
+      contractCode,
+      profileCodes,
+      relatedProfileCode: null,
+      sharedPrefixLength: 0,
+      score: 0,
+      rationale: `NAICS mismatch: no saved six-digit company code matches opportunity ${contractCode}.`
+    };
   }
 
   // Helper methods
@@ -272,6 +440,17 @@ class WinProbabilityPredictor {
     if (numAmount < 1000000) return 3;
     if (numAmount < 5000000) return 4;
     return 5;
+  }
+
+  hasPositiveAmount(amount) {
+    if (amount === undefined || amount === null || amount === '') return false;
+    const parsed = Number.parseFloat(String(amount).replace(/[^0-9.]/g, ''));
+    return Number.isFinite(parsed) && parsed > 0;
+  }
+
+  hasValidDate(value) {
+    if (!value) return false;
+    return Number.isFinite(new Date(value).getTime());
   }
 
   getNaicsCategory(naicsCode) {
@@ -317,7 +496,6 @@ class WinProbabilityPredictor {
       weights: {
         agencySize: 0.15,
         contractSize: 0.20,
-        naicsCategory: 0.10,
         setAsideType: 0.25,
         postingDuration: -0.10,
         keywordCount: 0.05,

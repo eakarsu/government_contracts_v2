@@ -21,6 +21,7 @@ import { apiService } from '../services/api';
 import { aiService, type UserContext } from '../services/aiService';
 import { contractsApi } from '../services/contractsApi';
 import type { CompanyProfile, Contract, RFPAmendment, RFPDashboardStats, RFPProductionWorkspace, RFPResponse, RFPResponseSection, RFPTemplate } from '../types';
+import { getNaicsVerificationNotice, hasExactNaicsMatch, resolveOpportunitySelection } from '../features/rfpDashboardPresentation';
 import DownloadButtons from '../components/RFP/DownloadButtons';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 
@@ -113,7 +114,7 @@ const RFPDashboard: React.FC = () => {
       setOpportunities(contractsResponse.data || []);
       setProfiles(profilesResponse.profiles || []);
       setTemplates(templatesResponse.templates || []);
-      setSelectedContract(current => current || contractsResponse.data?.[0]?.noticeId || '');
+      setSelectedContract(current => resolveOpportunitySelection(current, contractsResponse.data || []));
       setSelectedProfile(current => current && profilesResponse.profiles.some(item => item.id === Number(current)) ? current : '');
       setSelectedTemplate(current => current && templatesResponse.templates.some(item => item.id === Number(current)) ? current : '');
     } catch (loadError: any) {
@@ -174,6 +175,10 @@ const RFPDashboard: React.FC = () => {
   const documentStats = evidence?.statistics;
   const sam = (evidence?.samData || contract?.samData || {}) as Record<string, any>;
   const resourceLinks = evidence?.resourceLinks || contract?.resourceLinks || [];
+  const exactNaicsMatch = hasExactNaicsMatch(profile?.basicInfo?.naicsCode, contract?.naicsCode);
+  const naicsVerificationNotice = profile && contract
+    ? getNaicsVerificationNotice(profile.basicInfo?.naicsCode, contract.naicsCode)
+    : null;
 
   const profileContext = useMemo<UserContext>(() => ({
     companyProfile: profile ? {
@@ -207,19 +212,18 @@ const RFPDashboard: React.FC = () => {
   const advantages = useMemo(() => {
     if (!profile || !contract) return [];
     const items: string[] = [];
-    if (profile.basicInfo?.naicsCode?.includes(contract.naicsCode || '')) items.push(`Company experience includes NAICS ${contract.naicsCode}.`);
+    if (exactNaicsMatch) items.push(`Company experience includes NAICS ${contract.naicsCode}.`);
     const agencyWins = verifiedPastPerformance.filter(item => contract.agency?.toLowerCase().includes(item.agency?.toLowerCase()));
     if (agencyWins.length) items.push(`${agencyWins.length} verified past-performance record(s) align with the issuing agency.`);
     if (verifiedPastPerformance.length) items.push(`${verifiedPastPerformance.length} verified past-performance record(s) are available for proposal evidence.`);
     if (verifiedPersonnel.length) items.push(`${verifiedPersonnel.length} verified key person(s) can support staffing claims.`);
     if (profile.basicInfo?.certifications?.length) items.push(`${profile.basicInfo.certifications.length} company certification(s) are documented.`);
     return items;
-  }, [contract, profile, verifiedPastPerformance, verifiedPersonnel]);
+  }, [contract, exactNaicsMatch, profile, verifiedPastPerformance, verifiedPersonnel]);
 
   const weaknesses = useMemo(() => {
     if (!profile || !contract) return [];
     const items: string[] = [];
-    if (!profile.basicInfo?.naicsCode?.includes(contract.naicsCode || '')) items.push(`No exact company NAICS match is saved for ${contract.naicsCode || 'this opportunity'}.`);
     if (!verifiedPastPerformance.length) items.push('No verified past-performance record is available.');
     if (!verifiedPersonnel.length) items.push('No verified key personnel are assigned.');
     if (!documentStats?.completed_documents) items.push('No solicitation attachment has completed extraction and indexing.');
@@ -386,6 +390,7 @@ const RFPDashboard: React.FC = () => {
           <div><div className="mb-1 flex items-center justify-between"><label className="text-sm font-medium text-slate-700">Company profile</label><Link to="/rfp/company-profiles" className="text-xs font-semibold text-blue-700 hover:underline">Create or edit</Link></div><select data-testid="rfp-profile" value={selectedProfile} onChange={event => { setSelectedProfile(event.target.value ? Number(event.target.value) : ''); setBidDecision(null); }} className={selectClass}><option value="">Select a company profile…</option>{profiles.map(item => <option key={item.id} value={item.id}>{item.companyName}</option>)}</select></div>
           <div><div className="mb-1 flex items-center justify-between"><label className="text-sm font-medium text-slate-700">Proposal template</label><Link to="/rfp/templates" className="text-xs font-semibold text-blue-700 hover:underline">Create or edit</Link></div><select data-testid="rfp-template" value={selectedTemplate} onChange={event => setSelectedTemplate(event.target.value ? Number(event.target.value) : '')} className={selectClass}><option value="">Select a proposal template…</option>{templates.map(item => <option key={item.id} value={item.id}>{item.name} — {item.sections.length} sections</option>)}</select></div>
         </div>
+        {naicsVerificationNotice && <div data-testid="naics-verification-notice" className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"><div className="font-semibold text-slate-900">{naicsVerificationNotice.title}</div><p className="mt-1 leading-6">{naicsVerificationNotice.message}</p><Link to="/rfp/company-profiles" className="mt-2 inline-flex text-xs font-semibold text-blue-700 hover:underline">Review company NAICS codes</Link></div>}
         {profile && template && <div className="mt-4 grid gap-3 sm:grid-cols-3"><div className="rounded-xl bg-slate-50 p-3 text-sm"><strong>{verifiedPastPerformance.length}</strong><span className="block text-slate-500">verified past performances</span></div><div className="rounded-xl bg-slate-50 p-3 text-sm"><strong>{verifiedPersonnel.length}</strong><span className="block text-slate-500">verified key personnel</span></div><div className="rounded-xl bg-slate-50 p-3 text-sm"><strong>{template.sections.length}</strong><span className="block text-slate-500">configured proposal sections</span></div></div>}
       </section>
 
