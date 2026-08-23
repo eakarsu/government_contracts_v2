@@ -2,12 +2,15 @@ const express = require('express');
 const axios = require('axios');
 const vectorService = require('../services/vectorServiceInstance');
 const config = require('../config/env');
-const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../config/database');
 const { RfpProductionService } = require('../services/rfpProductionService');
+const { DurableTaskQueue } = require('../services/durableTaskQueue');
+const { NotificationService } = require('../services/notificationService');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 const rfpProductionService = new RfpProductionService(prisma);
+const durableTasks = new DurableTaskQueue(prisma);
+const notifications = new NotificationService({ prisma });
 
 // Debug middleware for contracts router
 router.use((req, res, next) => {
@@ -347,6 +350,7 @@ router.post('/fetch', async (req, res) => {
     let documentsQueued = 0;
     let documentsSkipped = 0;
     let documentQueueErrors = 0;
+    const storedContracts = [];
 
     for (const contractData of contractsData) {
       const contractDetails = contractFromSAM(contractData);
@@ -367,6 +371,7 @@ router.post('/fetch', async (req, res) => {
           create: contractDetails,
           update: { ...contractDetails, indexedAt: null }
         });
+        storedContracts.push(contractDetails);
         processedCount++;
 
         const queueResult = await queueContractDocuments(contractDetails);
@@ -390,6 +395,10 @@ router.post('/fetch', async (req, res) => {
     });
 
     const queueStatus = await getDocumentQueueCounts();
+    if (processedCount > 0) {
+      await notifications.emitToTenant({ tenantId: req.tenantId || config.defaultTenantId, eventType: 'NEW_OPPORTUNITY', subject: `${processedCount} SAM.gov opportunities imported`, payload: { count: processedCount, postedFrom: formatDateForSAM(startDate), postedTo: formatDateForSAM(endDate), message: 'New and refreshed opportunity records are available for review.' } });
+      await notifications.matchSavedSearches(req.tenantId || config.defaultTenantId, storedContracts);
+    }
 
     return res.json({
       success: true,
@@ -457,6 +466,16 @@ router.post('/index', async (req, res) => {
     job = await prisma.indexingJob.create({
       data: { jobType: 'contracts_indexing', status: 'running' }
     });
+
+    if (config.pipelineExecutionMode === 'durable') {
+      const task = await durableTasks.enqueue('CONTRACT_VECTOR_INDEXING', {
+        contractIds: contracts.map(contract => contract.id), jobId: job.id,
+      }, {
+        createdBy: req.user?.email || req.user?.id || 'system',
+        idempotencyKey: `contract-index:${job.id}`,
+      });
+      return res.status(202).json({ success: true, job_id: job.id, durable_task_id: task.id, queued_count: contracts.length, processing_method: 'durable_worker' });
+    }
 
     let indexedCount = 0;
     let errorsCount = 0;

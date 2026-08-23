@@ -1,4 +1,5 @@
 const { logger } = require('../utils/logger');
+const { captureException } = require('../services/monitoring');
 
 const errorHandler = (err, req, res, next) => {
   logger.error('Unhandled error:', {
@@ -9,6 +10,7 @@ const errorHandler = (err, req, res, next) => {
     ip: req.ip,
     userAgent: req.get('User-Agent')
   });
+  captureException(err, { url: req.url, method: req.method, tenantId: req.tenantId, userId: req.user?.id });
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {

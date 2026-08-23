@@ -1,9 +1,9 @@
 const nlpService = require('./nlpService');
-const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../config/database');
 
 class SemanticEnhancer {
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
     
     // Technical term mappings
     this.termMappings = {

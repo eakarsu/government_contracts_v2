@@ -1,10 +1,20 @@
 'use strict';
 
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../config/database');
 const { requirePermission } = require('../middleware/auth');
 const { ContractLifecycleService } = require('../services/contractLifecycleService');
 const { ContractSuiteService, ContractSuiteError, catalogResponse } = require('../services/contractSuiteService');
+const config = require('../config/env');
+
+function visibleCatalog() {
+  const catalog = catalogResponse();
+  const disabled = new Set([
+    ...(!config.featureSportsContracts ? ['SPORTS'] : []),
+    ...(!config.featureSmartContractAssurance ? ['SMART_CONTRACT'] : []),
+  ]);
+  return { ...catalog, domains: catalog.domains.filter(domain => !disabled.has(domain.key)), sources: catalog.sources.filter(source => !((disabled.has('SPORTS') && source.project === 'AISportsAgentContractAnalyzer') || (disabled.has('SMART_CONTRACT') && source.project === 'AISmartContractAuditor'))) };
+}
 
 function createContractSuiteRouter(service) {
   const router = express.Router();
@@ -17,7 +27,7 @@ function createContractSuiteRouter(service) {
     }
   };
 
-  router.get('/catalog', requirePermission('lifecycle:read'), (_req, res) => res.json(catalogResponse()));
+  router.get('/catalog', requirePermission('lifecycle:read'), (_req, res) => res.json(visibleCatalog()));
   router.get('/overview', requirePermission('lifecycle:read'), route(async (_req, res) => res.json(await service.overview())));
   router.get('/work-items', requirePermission('lifecycle:read'), route(async (req, res) => {
     const records = await service.list(req.query);
@@ -34,7 +44,6 @@ function createContractSuiteRouter(service) {
   return router;
 }
 
-const prisma = new PrismaClient();
 const lifecycle = new ContractLifecycleService(prisma);
 module.exports = createContractSuiteRouter(new ContractSuiteService(prisma, { lifecycleAudit: lifecycle.audit.bind(lifecycle) }));
 module.exports.createContractSuiteRouter = createContractSuiteRouter;

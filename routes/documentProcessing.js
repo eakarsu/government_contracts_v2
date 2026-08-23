@@ -8,9 +8,13 @@ const fs = require('fs-extra');
 const path = require('path');
 const documentAnalyzer = require('../utils/documentAnalyzer');
 const LibreOfficeService = require('../services/libreoffice.service');
+const { DurableTaskQueue } = require('../services/durableTaskQueue');
+const { DocumentStorageService } = require('../services/documentStorageService');
 const libreOfficeService = new LibreOfficeService();
 
 const router = express.Router();
+const durableTasks = new DurableTaskQueue(prisma);
+const documentStorage = new DocumentStorageService({ prisma });
 
 // Process documents using queue system workflow
 router.post('/', async (req, res) => {
@@ -334,17 +338,29 @@ router.post('/', async (req, res) => {
     // budget exhaustion while still allowing useful parallelism.
     const processingConcurrency = Math.max(1, Math.min(3, Number(concurrency) || 2));
 
-    // Respond immediately and start background processing
+    const task = config.pipelineExecutionMode === 'durable'
+      ? await durableTasks.enqueue('DOCUMENT_EXTRACTION_INDEXING', {
+          documentIds: queuedDocs.map(document => document.id),
+          concurrency: processingConcurrency,
+          jobId: job.id,
+        }, {
+          createdBy: req.user?.email || req.user?.id || 'system',
+          idempotencyKey: `document-extraction:${job.id}`,
+        })
+      : null;
+
+    // Respond immediately; production workers lease the durable task.
     res.json({
       success: true,
       message: `Started processing all ${queuedDocs.length} downloaded documents with ${processingConcurrency} workers`,
       job_id: job.id,
       documents_count: queuedDocs.length,
       concurrency: processingConcurrency,
-      processing_method: 'bounded_parallel_processing'
+      processing_method: task ? 'durable_worker' : 'bounded_parallel_processing',
+      durable_task_id: task?.id || null,
     });
 
-    processDocumentsInParallel(queuedDocs, processingConcurrency, job.id);
+    if (!task) processDocumentsInParallel(queuedDocs, processingConcurrency, job.id);
 
   } catch (error) {
     console.error('❌ [DEBUG] Document processing failed:', error);
@@ -677,14 +693,23 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           console.log(`✅ [DEBUG] Found file: ${matchingFile} at ${filePath}`);
         } else {
           console.error(`❌ [DEBUG] No matching file found for ${doc.filename}`);
+          filePath = null;
         }
       } else {
         console.log(`✅ [DEBUG] File verified at: ${filePath}`);
       }
       
       if (!filePath) {
-        throw new Error('No file found');
+        const restorePath = path.join(process.cwd(), 'downloaded_documents', path.basename(doc.filename || `document-${doc.id}`));
+        filePath = await documentStorage.materializeForQueue(doc.id, restorePath);
+        if (!filePath) throw new Error('No file found');
       }
+
+      await documentStorage.secureFile(filePath, {
+        queueDocumentId: doc.id,
+        originalFilename: doc.filename,
+        createdBy: 'pipeline-worker',
+      });
       
       // PARALLEL PIPELINE: Start all operations simultaneously
       let processingTimeout;
@@ -795,6 +820,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       }
       
       successCount++;
+      await documentStorage.releaseLocalCache(filePath);
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
       console.log(`✅ ${++processedCount}/${documents.length} (${duration}s): ${doc.filename}`);
       
@@ -875,3 +901,4 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
 
 console.log('🔄 [DEBUG] Document processing router module loaded successfully');
 module.exports = router;
+module.exports.processDocumentsInParallel = processDocumentsInParallel;

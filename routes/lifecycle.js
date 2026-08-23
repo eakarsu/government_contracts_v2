@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../config/database');
 const { requirePermission } = require('../middleware/auth');
 const { ContractLifecycleService, LifecycleError, catalogResponse } = require('../services/contractLifecycleService');
 
@@ -37,6 +37,5 @@ function createLifecycleRouter(service) {
   return router;
 }
 
-const prisma = new PrismaClient();
 module.exports = createLifecycleRouter(new ContractLifecycleService(prisma));
 module.exports.createLifecycleRouter = createLifecycleRouter;

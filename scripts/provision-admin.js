@@ -13,6 +13,17 @@ async function main() {
     create: { email, firstName, lastName: last.join(' ') || null, password: await bcrypt.hash(password, 12) },
     update: { firstName, lastName: last.join(' ') || null, password: await bcrypt.hash(password, 12), isActive: true },
   });
+  const tenantId = String(process.env.DEFAULT_TENANT_ID || 'default');
+  await prisma.tenant.upsert({
+    where: { id: tenantId },
+    create: { id: tenantId, slug: tenantId, name: process.env.DEFAULT_TENANT_NAME || 'Default workspace' },
+    update: {},
+  });
+  await prisma.tenantMembership.upsert({
+    where: { tenantId_subject: { tenantId, subject: String(user.id) } },
+    create: { tenantId, subject: String(user.id), email, roles: ['admin'] },
+    update: { email, roles: ['admin'], status: 'ACTIVE' },
+  });
   console.log(JSON.stringify({ event: 'runtime_admin_provisioned', userId: user.id }));
 }
 

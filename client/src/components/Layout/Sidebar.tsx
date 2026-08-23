@@ -29,12 +29,15 @@ import {
   LayoutDashboard,
   FileStack,
   Library,
+  BellRing,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import type { AppConfig } from '../../types';
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  config?: AppConfig;
 }
 
 const navigation = [
@@ -44,6 +47,7 @@ const navigation = [
   { name: 'Jobs', href: '/jobs', icon: BarChart3 },
   { name: 'Documents', href: '/documents', icon: Upload },
   { name: 'API Docs', href: '/api-docs', icon: Database },
+  { name: 'Operations & Alerts', href: '/operations', icon: BellRing },
 ];
 
 const rfpNavigation = [
@@ -89,8 +93,13 @@ function NavigationLink({ item, active, onClose }: { item: { name: string; href:
   </li>;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, config }) => {
   const location = useLocation();
+  const visibleSuiteNavigation = suiteNavigation.filter(item => {
+    if (item.href.endsWith('/sports')) return config?.features?.sportsContracts === true;
+    if (item.href.endsWith('/smart-contract')) return config?.features?.smartContractAssurance === true;
+    return true;
+  });
 
   return (
     <>
@@ -158,7 +167,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           <div className="mt-8">
             <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Unified Contract Suite</h3>
             <ul className="mt-2 space-y-1">
-              {suiteNavigation.map(item => {
+              {visibleSuiteNavigation.map(item => {
                 const isActive = item.href === '/contract-suite' ? location.pathname === item.href : location.pathname === item.href;
                 return <NavigationLink key={item.name} item={item} active={isActive} onClose={onClose} />;
               })}

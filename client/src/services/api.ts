@@ -689,6 +689,11 @@ class ApiService {
     return response.data;
   }
 
+  async validateRFPSubmissionPackage(responseId: number): Promise<{ success: boolean; validation: { valid: boolean; enforcement: string; findings: Array<{ code: string; severity: string; message: string }>; artifacts: any[] } }> {
+    const response = await api.post(`/rfp/responses/${responseId}/submission-package/validate`);
+    return response.data;
+  }
+
   async recordRFPSubmission(responseId: number, input: { destination: string; submissionMethod: string; trackingNumber?: string }): Promise<{ success: boolean; submission: RFPSubmission }> {
     const response = await api.post(`/rfp/responses/${responseId}/submission`, input);
     return response.data;

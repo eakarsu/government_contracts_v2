@@ -244,6 +244,11 @@ export interface AppConfig {
     samGovApi: boolean;
     openRouterApi: boolean;
     vectorDatabase: boolean;
+    sportsContracts?: boolean;
+    smartContractAssurance?: boolean;
+    durablePipeline?: boolean;
+    protectedDocumentStorage?: boolean;
+    malwareScanning?: boolean;
   };
   version: string;
 }

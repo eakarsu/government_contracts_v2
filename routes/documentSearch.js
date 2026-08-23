@@ -1,6 +1,5 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../config/database');
 const vectorService = require('../services/vectorServiceInstance');
 const { summarizeContent } = require('../services/summarizationService');
 const config = require('../config/env');
@@ -12,9 +11,14 @@ const LibreOfficeService = require('../services/libreoffice.service');
 const libreOfficeService = new LibreOfficeService();
 const { hasPermission, requirePermission } = require('../middleware/auth');
 const { PipelineReliabilityService } = require('../services/pipelineReliabilityService');
+const { DurableTaskQueue } = require('../services/durableTaskQueue');
+const { DocumentStorageService } = require('../services/documentStorageService');
+const { assertDestructiveResetAllowed } = require('../scripts/destructiveGuard');
 
 const router = express.Router();
 const pipelineReliability = new PipelineReliabilityService(prisma);
+const durableTasks = new DurableTaskQueue(prisma);
+const documentStorage = new DocumentStorageService({ prisma });
 
 // Simple ping endpoint to test connectivity
 router.get('/ping', (req, res) => {
@@ -1190,6 +1194,17 @@ router.post('/queue/process-test', async (req, res) => {
 
     console.log(`✅ [DEBUG] Created TEST processing job: ${job.id}`);
 
+    const task = config.pipelineExecutionMode === 'durable'
+      ? await durableTasks.enqueue('DOCUMENT_EXTRACTION_INDEXING', {
+          documentIds: queuedDocsToProcess.map(document => document.id),
+          concurrency: finalConcurrency,
+          jobId: job.id,
+        }, {
+          createdBy: req.user?.email || req.user?.id || 'system',
+          idempotencyKey: `document-extraction:${job.id}`,
+        })
+      : null;
+
     // Respond immediately with job info
     res.json({
       success: true,
@@ -1422,7 +1437,8 @@ router.post('/queue/process', async (req, res) => {
       job_id: job.id,
       documents_count: queuedDocsToProcess.length,
       concurrency: finalConcurrency,
-      processing_method: 'test_mode_limited_processing',
+      processing_method: task ? 'durable_worker' : 'test_mode_limited_processing',
+      durable_task_id: task?.id || null,
       test_limit: test_limit,
       note: 'Processing limited to downloaded documents only for testing',
       file_types_selected: queuedDocsToProcess.map(doc => ({
@@ -1431,8 +1447,7 @@ router.post('/queue/process', async (req, res) => {
       }))
     });
 
-    // Process documents in parallel (don't await - run in background)
-    processDocumentsInParallel(queuedDocsToProcess, finalConcurrency, job.id);
+    if (!task) processDocumentsInParallel(queuedDocsToProcess, finalConcurrency, job.id);
 
   } catch (error) {
     console.error('❌ [DEBUG] Error starting document processing:', error);
@@ -1825,6 +1840,11 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       
       // Add file hash to detect duplicates
       if (filePath && await fs.pathExists(filePath)) {
+        await documentStorage.secureFile(filePath, {
+          queueDocumentId: doc.id,
+          originalFilename: doc.filename,
+          createdBy: 'pipeline-worker',
+        });
         const crypto = require('crypto');
         const fileBuffer = await fs.readFile(filePath);
         const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
@@ -1863,6 +1883,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           ]);
           successCount++;
           processedCount++;
+          await documentStorage.releaseLocalCache(filePath);
           return { success: true, filename: doc.filename, duplicateOf: duplicate.id };
         }
       }
@@ -1891,14 +1912,23 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
           console.log(`✅ [DEBUG] Found file: ${matchingFile} at ${filePath}`);
         } else {
           console.error(`❌ [DEBUG] No matching file found for ${doc.filename}`);
+          filePath = null;
         }
       } else {
         console.log(`✅ [DEBUG] File verified at: ${filePath}`);
       }
       
       if (!filePath) {
-        throw new Error('No file found');
+        const restorePath = path.join(process.cwd(), 'downloaded_documents', path.basename(doc.filename || `document-${doc.id}`));
+        filePath = await documentStorage.materializeForQueue(doc.id, restorePath);
+        if (!filePath) throw new Error('No file found');
       }
+
+      await documentStorage.secureFile(filePath, {
+        queueDocumentId: doc.id,
+        originalFilename: doc.filename,
+        createdBy: 'pipeline-worker',
+      });
       
       // PARALLEL PIPELINE: Start all operations simultaneously
       const timeoutPromise = new Promise((_, reject) => {
@@ -2022,6 +2052,7 @@ async function processDocumentsInParallel(documents, concurrency, jobId) {
       await Promise.race([processingPromise, timeoutPromise]);
       
       successCount++;
+      await documentStorage.releaseLocalCache(filePath);
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
       console.log(`✅ ${++processedCount}/${documents.length} (${duration}s): ${doc.filename}`);
       
@@ -2460,6 +2491,7 @@ router.post('/queue/clear', requirePermission('queue:admin'), async (req, res) =
 
 // Reset all documents to processing state at once
 router.post('/queue/reset-to-processing', requirePermission('queue:admin'), async (req, res) => {
+  try { assertDestructiveResetAllowed(); } catch (error) { return res.status(403).json({ error: error.message }); }
   try {
     console.log('🔄 [DEBUG] Resetting ALL documents to processing state...');
     
@@ -2550,6 +2582,7 @@ router.post('/queue/reset-to-processing', requirePermission('queue:admin'), asyn
 
 // Reset entire queue system (documents + jobs)
 router.post('/queue/reset', requirePermission('queue:admin'), async (req, res) => {
+  try { assertDestructiveResetAllowed(); } catch (error) { return res.status(403).json({ error: error.message }); }
   try {
     console.log('🔄 [DEBUG] ========================================');
     console.log('🔄 [DEBUG] QUEUE RESET ENDPOINT CALLED!');
@@ -4068,3 +4101,4 @@ function getNaicsInsights(naicsCode) {
 
 console.log('📄 [DEBUG] Document search and analytics router module loaded successfully');
 module.exports = router;
+module.exports.processDocumentsInParallel = processDocumentsInParallel;

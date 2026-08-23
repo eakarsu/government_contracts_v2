@@ -19,6 +19,12 @@ function csv(value, fallback = []) {
   return value.split(',').map(item => item.trim()).filter(Boolean);
 }
 
+function enumValue(value, fallback, allowed, name) {
+  const selected = value || fallback;
+  if (!allowed.includes(selected)) throw new Error(`${name} must be one of: ${allowed.join(', ')}`);
+  return selected;
+}
+
 function loadConfig(environment = process.env) {
   const nodeEnv = environment.NODE_ENV || 'development';
   const port = positiveInteger(environment.PORT, 5013, 'PORT');
@@ -31,8 +37,12 @@ function loadConfig(environment = process.env) {
     databaseSsl: booleanValue(environment.DATABASE_SSL, nodeEnv === 'production'),
     databaseSslCa: environment.DATABASE_SSL_CA,
     databaseUrl: environment.DATABASE_URL,
+    defaultTenantId: environment.DEFAULT_TENANT_ID || 'default',
     documentsDir: environment.DOCUMENTS_DIR || './documents',
     jwtSecret: environment.JWT_SECRET,
+    enableTestEndpoints: booleanValue(environment.ENABLE_TEST_ENDPOINTS, nodeEnv !== 'production'),
+    featureSportsContracts: booleanValue(environment.FEATURE_SPORTS_CONTRACTS, nodeEnv !== 'production'),
+    featureSmartContractAssurance: booleanValue(environment.FEATURE_SMART_CONTRACT_ASSURANCE, nodeEnv !== 'production'),
     maxFileSize: positiveInteger(environment.MAX_FILE_SIZE, 50 * 1024 * 1024, 'MAX_FILE_SIZE'),
     nodeEnv,
     norshinApiKey: environment.NORSHIN_API_KEY,
@@ -42,8 +52,30 @@ function loadConfig(environment = process.env) {
     oidcClientId: environment.OIDC_CLIENT_ID,
     oidcIssuer: environment.OIDC_ISSUER,
     oidcJwksUri: environment.OIDC_JWKS_URI,
+    oidcTenantClaim: environment.OIDC_TENANT_CLAIM || 'tenant_id',
     oidcScopes: environment.OIDC_SCOPES || 'openid profile email',
     oidcTokenEndpoint: environment.OIDC_TOKEN_ENDPOINT || (environment.OIDC_ISSUER ? `${environment.OIDC_ISSUER.replace(/\/$/, '')}/oauth/token` : undefined),
+    pipelineExecutionMode: enumValue(environment.PIPELINE_EXECUTION_MODE, nodeEnv === 'production' ? 'durable' : 'inline', ['inline', 'durable'], 'PIPELINE_EXECUTION_MODE'),
+    workerLeaseMs: positiveInteger(environment.WORKER_LEASE_MS, 15 * 60 * 1000, 'WORKER_LEASE_MS'),
+    workerPollMs: positiveInteger(environment.WORKER_POLL_MS, 2000, 'WORKER_POLL_MS'),
+    workerConcurrency: positiveInteger(environment.WORKER_CONCURRENCY, 1, 'WORKER_CONCURRENCY'),
+    malwareScanMode: enumValue(environment.MALWARE_SCAN_MODE, nodeEnv === 'production' ? 'required' : 'disabled', ['disabled', 'audit', 'required'], 'MALWARE_SCAN_MODE'),
+    malwareScannerCommand: environment.MALWARE_SCANNER_COMMAND || 'clamscan',
+    storageProvider: enumValue(environment.DOCUMENT_STORAGE_PROVIDER, 'filesystem', ['filesystem', 's3'], 'DOCUMENT_STORAGE_PROVIDER'),
+    s3Endpoint: environment.S3_ENDPOINT,
+    s3Region: environment.S3_REGION || 'us-east-1',
+    s3Bucket: environment.S3_BUCKET,
+    s3AccessKeyId: environment.S3_ACCESS_KEY_ID,
+    s3SecretAccessKey: environment.S3_SECRET_ACCESS_KEY,
+    s3KmsKeyId: environment.S3_KMS_KEY_ID,
+    s3RetentionDays: positiveInteger(environment.S3_RETENTION_DAYS, 90, 'S3_RETENTION_DAYS'),
+    s3ForcePathStyle: booleanValue(environment.S3_FORCE_PATH_STYLE, true),
+    dataEncryptionKey: environment.DATA_ENCRYPTION_KEY,
+    smtpUrl: environment.SMTP_URL,
+    notificationFrom: environment.NOTIFICATION_FROM,
+    monitoringToken: environment.MONITORING_TOKEN,
+    sentryDsn: environment.SENTRY_DSN,
+    sentryTracesSampleRate: Number(environment.SENTRY_TRACES_SAMPLE_RATE || 0),
     openRouterApiKey: environment.OPENROUTER_API_KEY,
     openRouterBaseUrl: environment.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
     openRouterModel: environment.OPENROUTER_MODEL,
@@ -52,6 +84,8 @@ function loadConfig(environment = process.env) {
     rateLimitWindowMs: positiveInteger(environment.RATE_LIMIT_WINDOW_MS, 900000, 'RATE_LIMIT_WINDOW_MS'),
     aiRateLimitMaxRequests: positiveInteger(environment.AI_RATE_LIMIT_MAX_REQUESTS, 10, 'AI_RATE_LIMIT_MAX_REQUESTS'),
     statusRateLimitMaxRequests: positiveInteger(environment.STATUS_RATE_LIMIT_MAX_REQUESTS, 300, 'STATUS_RATE_LIMIT_MAX_REQUESTS'),
+    submissionPackageEnforcement: enumValue(environment.SUBMISSION_PACKAGE_ENFORCEMENT, nodeEnv === 'production' ? 'required' : 'advisory', ['advisory', 'required'], 'SUBMISSION_PACKAGE_ENFORCEMENT'),
+    tenantEnforcement: enumValue(environment.TENANT_ENFORCEMENT, nodeEnv === 'production' ? 'required' : 'compatibility', ['compatibility', 'required'], 'TENANT_ENFORCEMENT'),
     pipelineMaintenanceIntervalMs: positiveInteger(environment.PIPELINE_MAINTENANCE_INTERVAL_MS, 60000, 'PIPELINE_MAINTENANCE_INTERVAL_MS'),
     rfpMaxTokens: positiveInteger(environment.RFP_MAX_TOKENS, 64000, 'RFP_MAX_TOKENS'),
     rfpRequestTimeoutMs: positiveInteger(environment.RFP_REQUEST_TIMEOUT_MS, 600000, 'RFP_REQUEST_TIMEOUT_MS'),
@@ -85,6 +119,34 @@ function validateForStartup(configuration) {
   }
   if (configuration.nodeEnv === 'production' && configuration.corsOrigins.length === 0) {
     failures.push('CORS_ORIGINS must contain at least one explicit production origin');
+  }
+  if (configuration.nodeEnv === 'production' && configuration.enableTestEndpoints) {
+    failures.push('ENABLE_TEST_ENDPOINTS=true is forbidden in production');
+  }
+  if (configuration.nodeEnv === 'production' && configuration.pipelineExecutionMode !== 'durable') {
+    failures.push('PIPELINE_EXECUTION_MODE=durable is required in production');
+  }
+  if (configuration.nodeEnv === 'production' && configuration.malwareScanMode !== 'required') {
+    failures.push('MALWARE_SCAN_MODE=required is required in production');
+  }
+  if (configuration.nodeEnv === 'production' && configuration.storageProvider !== 's3') {
+    failures.push('DOCUMENT_STORAGE_PROVIDER=s3 is required in production');
+  }
+  if (configuration.storageProvider === 's3') {
+    for (const [name, value] of [
+      ['S3_ENDPOINT', configuration.s3Endpoint],
+      ['S3_BUCKET', configuration.s3Bucket],
+      ['S3_ACCESS_KEY_ID', configuration.s3AccessKeyId],
+      ['S3_SECRET_ACCESS_KEY', configuration.s3SecretAccessKey],
+    ]) {
+      if (!value) failures.push(`${name} is required for S3-compatible document storage`);
+    }
+  }
+  if (configuration.nodeEnv === 'production' && (!configuration.dataEncryptionKey || configuration.dataEncryptionKey.length < 32)) {
+    failures.push('DATA_ENCRYPTION_KEY must contain at least 32 characters in production');
+  }
+  if (configuration.nodeEnv === 'production' && (!configuration.monitoringToken || configuration.monitoringToken.length < 24)) {
+    failures.push('MONITORING_TOKEN must contain at least 24 characters in production');
   }
   if (configuration.nodeEnv === 'production' && configuration.databaseUrl) {
     try {

@@ -54,3 +54,52 @@ jobs:
         working-directory: client
       - run: npm run build
         working-directory: client
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: contract_e2e
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_USER: contract_user
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U contract_user -d contract_e2e"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      AUTH_MODE: local
+      CORS_ORIGINS: http://127.0.0.1:30860
+      DATABASE_URL: postgresql://contract_user:ci-only-password@localhost:5432/contract_e2e
+      E2E_BASE_URL: http://127.0.0.1:30860
+      E2E_EMAIL: e2e@example.test
+      E2E_PASSWORD: e2e-secure-password
+      JWT_SECRET: ci-only-secret-that-is-longer-than-thirty-two-characters
+      NODE_ENV: test
+      PORT: 30860
+      PROVISION_ADMIN_EMAIL: e2e@example.test
+      PROVISION_ADMIN_NAME: E2E Administrator
+      PROVISION_ADMIN_PASSWORD: e2e-secure-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci
+        working-directory: client
+      - run: npx playwright install --with-deps chromium
+      - run: npx prisma generate && npx prisma migrate deploy
+      - run: BOOTSTRAP_ACKNOWLEDGEMENT=create-initial-admin npm run create-admin
+      - run: npm run build
+        working-directory: client
+      - run: npm start > /tmp/govcontract-server.log 2>&1 &
+      - run: timeout 90 bash -c 'until curl --fail --silent http://127.0.0.1:30860/api/health >/dev/null; do sleep 2; done'
+      - run: npm run test:e2e
+      - if: failure()
+        run: cat /tmp/govcontract-server.log

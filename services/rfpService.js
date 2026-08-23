@@ -64,14 +64,15 @@ class RFPService {
       console.log(`🚀 [RFP] Generating RFP response for contract ${contractId}`);
 
       // Get required data
-      const [contract, template, companyProfile, sourceDocuments] = await Promise.all([
+      const [contract, template, companyProfile, sourceDocuments, verifiedEnrichments] = await Promise.all([
         prisma.contract.findUnique({ where: { noticeId: contractId } }),
         prisma.rfpTemplate.findUnique({ where: { id: templateId } }),
         prisma.companyProfile.findUnique({ where: { id: companyProfileId } }),
         prisma.documentProcessingQueue.findMany({
           where: { contractNoticeId: contractId, status: 'completed', processedData: { not: null } },
           orderBy: { completedAt: 'asc' }
-        })
+        }),
+        prisma.companyEnrichment.findMany({ where: { companyProfileId, status: 'VERIFIED' }, orderBy: { retrievedAt: 'desc' }, take: 20 })
       ]);
 
       if (!contract || !template || !companyProfile) {
@@ -87,6 +88,16 @@ class RFPService {
       
       const companyData = JSON.parse(companyProfile.profileData || '{}');
       companyData.companyName = companyData.companyName || companyProfile.companyName;
+      companyData.governmentEvidence = verifiedEnrichments.map(record => ({
+        source: record.source,
+        externalId: record.externalId,
+        evidenceUrl: record.evidenceUrl,
+        retrievedAt: record.retrievedAt,
+        contentHash: record.contentHash,
+        evidence: record.source === 'USASPENDING_FPDS'
+          ? { results: (record.payload?.results || []).slice(0, 25), pageMetadata: record.payload?.page_metadata || null }
+          : { entityData: Array.isArray(record.payload?.entityData) ? record.payload.entityData.slice(0, 3) : (record.payload?.entityRegistration || record.payload) },
+      }));
 
       // Generate sections
       const sections = await this.generateAllSections(
@@ -120,7 +131,8 @@ class RFPService {
           perRequestTokenCeiling: config.rfpMaxTokens,
           profileEvidence: {
             pastPerformanceCount: Array.isArray(companyData.pastPerformance) ? companyData.pastPerformance.filter(item => item?.status !== 'placeholder').length : 0,
-            keyPersonnelCount: Array.isArray(companyData.keyPersonnel) ? companyData.keyPersonnel.filter(item => item?.status !== 'placeholder').length : 0
+            keyPersonnelCount: Array.isArray(companyData.keyPersonnel) ? companyData.keyPersonnel.filter(item => item?.status !== 'placeholder').length : 0,
+            verifiedGovernmentSourceCount: verifiedEnrichments.length,
           },
           wordCount: sections.reduce((total, section) => total + section.wordCount, 0),
           pageCount: Math.ceil(sections.reduce((total, section) => total + section.wordCount, 0) / 250)
@@ -581,7 +593,8 @@ Extract and provide structured RFP analysis in JSON format:
       businessDetails: companyData.businessDetails || {},
       pastPerformance: Array.isArray(companyData.pastPerformance) ? companyData.pastPerformance.filter(item => item?.status !== 'placeholder') : [],
       keyPersonnel: Array.isArray(companyData.keyPersonnel) ? companyData.keyPersonnel.filter(item => item?.status !== 'placeholder') : [],
-      additionalSections: Array.isArray(companyData.additionalSections) ? companyData.additionalSections : []
+      additionalSections: Array.isArray(companyData.additionalSections) ? companyData.additionalSections : [],
+      governmentEvidence: Array.isArray(companyData.governmentEvidence) ? companyData.governmentEvidence : []
     };
     return JSON.stringify(verifiedProfile, null, 2);
   }

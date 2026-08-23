@@ -28,6 +28,7 @@ const AIQuickActionsPage = lazy(() => import('./pages/AIQuickActionsPage'));
 const LifecycleWorkspace = lazy(() => import('./pages/LifecycleWorkspace'));
 const GovernanceWorkspace = lazy(() => import('./pages/GovernanceWorkspace'));
 const ContractSuiteWorkspace = lazy(() => import('./pages/ContractSuiteWorkspace'));
+const ProductionOperations = lazy(() => import('./pages/ProductionOperations'));
 
 // Create a client
 const queryClient = new QueryClient({
@@ -56,6 +57,7 @@ function App() {
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/documents" element={<Documents />} />
               <Route path="/api-docs" element={<ApiDocs />} />
+              <Route path="/operations" element={<ProductionOperations />} />
               <Route path="/lifecycle" element={<LifecycleWorkspace />} />
               <Route path="/lifecycle/:resource" element={<LifecycleWorkspace />} />
               <Route path="/governance" element={<GovernanceWorkspace />} />

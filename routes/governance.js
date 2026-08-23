@@ -1,5 +1,5 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../config/database');
 const { requirePermission } = require('../middleware/auth');
 const { ComplianceDecisionService, GovernanceError } = require('../services/complianceDecisionService');
 const PrismaGovernanceRepository = require('../services/prismaGovernanceRepository');
@@ -92,7 +92,6 @@ function createGovernanceRouter(service) {
   return router;
 }
 
-const prisma = new PrismaClient();
 const service = new ComplianceDecisionService(new PrismaGovernanceRepository(prisma));
 module.exports = createGovernanceRouter(service);
 module.exports.createGovernanceRouter = createGovernanceRouter;

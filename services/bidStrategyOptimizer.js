@@ -1,9 +1,8 @@
-const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../config/database');
 const winProbabilityPredictor = require('./mlWinProbability');
 const contractSimilarity = require('./contractSimilarity');
 
 // Use shared Prisma client instance
-const prisma = new PrismaClient();
 
 class BidStrategyOptimizer {
   constructor() {

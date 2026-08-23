@@ -20,6 +20,13 @@ test('accepts complete production OIDC configuration and rejects wildcard CORS',
     OIDC_CLIENT_ID: 'contracts-spa',
     OIDC_ISSUER: 'https://identity.example.gov/',
     OIDC_JWKS_URI: 'https://identity.example.gov/.well-known/jwks.json',
+    DOCUMENT_STORAGE_PROVIDER: 's3',
+    S3_ENDPOINT: 'https://objects.example.gov',
+    S3_BUCKET: 'contracts-prod',
+    S3_ACCESS_KEY_ID: 'non-secret-test-id',
+    S3_SECRET_ACCESS_KEY: 'non-secret-test-value',
+    DATA_ENCRYPTION_KEY: 'test-only-encryption-key-that-is-at-least-32-characters',
+    MONITORING_TOKEN: 'test-only-monitoring-token-long-enough',
   };
   expect(validateForStartup(loadConfig(environment)).authMode).toBe('oidc');
   expect(() => validateForStartup(loadConfig({ ...environment, CORS_ORIGINS: '*' }))).toThrow(/Wildcard/);

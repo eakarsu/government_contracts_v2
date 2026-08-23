@@ -2,6 +2,7 @@ const { Pool } = require('pg');
 const AIService = require('./aiService');
 const sharedVectorService = require('./vectorServiceInstance');
 const logger = require('../utils/logger');
+const { prisma } = require('../config/database');
 
 class SemanticSearchService {
   constructor(vectorService = sharedVectorService) {
@@ -240,9 +241,6 @@ class SemanticSearchService {
       logger.info(`Performing keyword search for: "${queryText}"`);
       
       // Use Prisma for database queries instead of raw SQL
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
-      
       try {
         // Build search conditions using keywords from query
         const keywords = queryText.toLowerCase().split(/\s+/).filter(k => k.length > 2);

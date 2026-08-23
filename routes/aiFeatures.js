@@ -5,11 +5,10 @@ const contractSimilarity = require('../services/contractSimilarity');
 const aiOpportunityAlerts = require('../services/aiOpportunityAlerts');
 const bidStrategyOptimizer = require('../services/bidStrategyOptimizer');
 const { captureAiService } = require('../services/captureAiService');
-const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../config/database');
 const { RfpProductionService } = require('../services/rfpProductionService');
 const { requirePermission } = require('../middleware/auth');
 
-const prisma = new PrismaClient();
 const rfpProductionService = new RfpProductionService(prisma);
 
 function respondAiError(res, error, fallbackMessage) {

@@ -7,6 +7,54 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Tenant {
+  id          String             @id
+  slug        String             @unique
+  name        String
+  status      String             @default("ACTIVE")
+  settings    Json               @default("{}")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  memberships TenantMembership[]
+
+  @@index([status, createdAt])
+  @@map("tenant")
+}
+
+model TenantMembership {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  subject   String
+  email     String
+  roles     String[] @default(["contract_viewer"])
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, subject])
+  @@unique([tenantId, email])
+  @@index([subject, status])
+  @@map("tenant_membership")
+}
+
+model SecretRotationRecord {
+  id                 String    @id @default(uuid())
+  tenantId           String    @default("default") @map("tenant_id")
+  secretName         String    @map("secret_name")
+  provider           String
+  versionFingerprint String    @map("version_fingerprint")
+  status             String    @default("ACTIVE")
+  rotatedBy          String    @map("rotated_by")
+  rotatedAt          DateTime  @default(now()) @map("rotated_at")
+  expiresAt          DateTime? @map("expires_at")
+  revokedAt          DateTime? @map("revoked_at")
+  notes              String?
+
+  @@index([tenantId, secretName, rotatedAt])
+  @@map("secret_rotation_record")
+}
+
 model Contract {
   id                    Int                    @id @default(autoincrement())
   noticeId              String                 @unique @map("notice_id")
@@ -51,12 +99,14 @@ model IndexingJob {
 
 model SearchQuery {
   id           Int      @id @default(autoincrement())
+  tenantId     String   @default("default") @map("tenant_id")
   queryText    String   @map("query_text")
   resultsCount Int      @map("results_count")
   responseTime Float    @map("response_time")
   userIp       String?  @map("user_ip")
   createdAt    DateTime @default(now()) @map("created_at")
 
+  @@index([tenantId, createdAt])
   @@map("search_query")
 }
 
@@ -77,40 +127,46 @@ model User {
 model LocalAuthSession {
   tokenHash  String   @id @map("token_hash")
   userId     Int      @map("user_id")
+  tenantId   String   @default("default") @map("tenant_id")
   roles      String[] @default(["admin"])
   expiresAt  DateTime @map("expires_at")
   createdAt  DateTime @default(now()) @map("created_at")
   lastSeenAt DateTime @default(now()) @map("last_seen_at")
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([expiresAt])
+  @@index([tenantId, expiresAt])
   @@map("local_auth_session")
 }
 
 model Company {
   id          Int      @id @default(autoincrement())
+  tenantId    String   @default("default") @map("tenant_id")
   name        String
   description String?
   website     String?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  @@index([tenantId, name])
   @@map("company")
 }
 
 model ContractApplication {
   id               Int      @id @default(autoincrement())
+  tenantId         String   @default("default") @map("tenant_id")
   contractNoticeId String   @map("contract_notice_id")
   companyId        Int      @map("company_id")
   status           String   @default("pending")
   submittedAt      DateTime @default(now()) @map("submitted_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
+  @@index([tenantId, status])
   @@map("contract_application")
 }
 
 model AITemplate {
   id          Int      @id @default(autoincrement())
+  tenantId    String   @default("default") @map("tenant_id")
   name        String
   description String?
   template    String
@@ -119,6 +175,7 @@ model AITemplate {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  @@index([tenantId, isActive])
   @@map("ai_template")
 }
 
@@ -152,6 +209,7 @@ model DocumentProcessingQueue {
 
 model RfpTemplate {
   id                 Int           @id @default(autoincrement())
+  tenantId           String        @default("default") @map("tenant_id")
   name               String
   agency             String?
   description        String?
@@ -161,22 +219,26 @@ model RfpTemplate {
   updatedAt          DateTime      @updatedAt @map("updated_at")
   rfpResponses       RfpResponse[]
 
+  @@index([tenantId, updatedAt])
   @@map("rfp_templates")
 }
 
 model CompanyProfile {
   id           Int           @id @default(autoincrement())
+  tenantId     String        @default("default") @map("tenant_id")
   companyName  String        @map("company_name")
   profileData  String        @map("profile_data")
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
   rfpResponses RfpResponse[]
 
+  @@index([tenantId, updatedAt])
   @@map("company_profiles")
 }
 
 model RfpResponse {
   id               Int                          @id @default(autoincrement())
+  tenantId         String                       @default("default") @map("tenant_id")
   contractId       String                       @map("contract_id")
   templateId       Int?                         @map("template_id")
   companyProfileId Int?                         @map("company_profile_id")
@@ -201,11 +263,13 @@ model RfpResponse {
   auditEvents      RfpAuditEvent[]
   comments         RfpComment[]
 
+  @@index([tenantId, status, updatedAt])
   @@map("rfp_responses")
 }
 
 model RfpVersion {
   id            Int         @id @default(autoincrement())
+  tenantId      String      @default("default") @map("tenant_id")
   rfpResponseId Int         @map("rfp_response_id")
   versionNumber Int         @map("version_number")
   changes       String
@@ -215,11 +279,13 @@ model RfpVersion {
   createdAt     DateTime    @default(now()) @map("created_at")
   rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId, rfpResponseId, createdAt])
   @@map("rfp_versions")
 }
 
 model RfpRequirement {
   id              String      @id @default(uuid())
+  tenantId        String      @default("default") @map("tenant_id")
   rfpResponseId   Int         @map("rfp_response_id")
   rfpResponse     RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
   requirementKey  String      @map("requirement_key")
@@ -234,12 +300,13 @@ model RfpRequirement {
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
   @@unique([rfpResponseId, requirementKey])
-  @@index([rfpResponseId, coverageStatus])
+  @@index([tenantId, rfpResponseId, coverageStatus])
   @@map("rfp_requirement")
 }
 
 model RfpCollaborator {
   id            String      @id @default(uuid())
+  tenantId      String      @default("default") @map("tenant_id")
   rfpResponseId Int         @map("rfp_response_id")
   rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
   email         String
@@ -249,12 +316,13 @@ model RfpCollaborator {
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
   @@unique([rfpResponseId, email])
-  @@index([email, role])
+  @@index([tenantId, email, role])
   @@map("rfp_collaborator")
 }
 
 model RfpApproval {
   id            String      @id @default(uuid())
+  tenantId      String      @default("default") @map("tenant_id")
   rfpResponseId Int         @map("rfp_response_id")
   rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
   gate          String
@@ -269,12 +337,13 @@ model RfpApproval {
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
   @@unique([rfpResponseId, gate, cycle])
-  @@index([reviewerEmail, decision])
+  @@index([tenantId, reviewerEmail, decision])
   @@map("rfp_approval")
 }
 
 model RfpSubmissionChecklistItem {
   id            String      @id @default(uuid())
+  tenantId      String      @default("default") @map("tenant_id")
   rfpResponseId Int         @map("rfp_response_id")
   rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
   itemKey       String      @map("item_key")
@@ -288,11 +357,13 @@ model RfpSubmissionChecklistItem {
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
   @@unique([rfpResponseId, itemKey])
+  @@index([tenantId, rfpResponseId, completed])
   @@map("rfp_submission_checklist_item")
 }
 
 model RfpSubmission {
   id               String      @id @default(uuid())
+  tenantId         String      @default("default") @map("tenant_id")
   rfpResponseId    Int         @unique @map("rfp_response_id")
   rfpResponse      RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
   destination      String
@@ -304,11 +375,13 @@ model RfpSubmission {
   submittedAt      DateTime    @map("submitted_at")
   createdAt        DateTime    @default(now()) @map("created_at")
 
+  @@index([tenantId, submittedAt])
   @@map("rfp_submission")
 }
 
 model RfpOutcome {
   id             String      @id @default(uuid())
+  tenantId       String      @default("default") @map("tenant_id")
   rfpResponseId  Int         @unique @map("rfp_response_id")
   rfpResponse    RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
   outcome        String
@@ -320,12 +393,13 @@ model RfpOutcome {
   recordedAt     DateTime    @default(now()) @map("recorded_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
-  @@index([outcome, recordedAt])
+  @@index([tenantId, outcome, recordedAt])
   @@map("rfp_outcome")
 }
 
 model RfpBidScoringModel {
   id                 String        @id @default(uuid())
+  tenantId           String        @default("default") @map("tenant_id")
   name               String
   version            Int
   status             String        @default("CANDIDATE")
@@ -337,13 +411,14 @@ model RfpBidScoringModel {
   createdAt          DateTime      @default(now()) @map("created_at")
   scores             RfpBidScore[]
 
-  @@unique([name, version])
-  @@index([status, createdAt])
+  @@unique([tenantId, name, version])
+  @@index([tenantId, status, createdAt])
   @@map("rfp_bid_scoring_model")
 }
 
 model RfpBidScore {
   id            String              @id @default(uuid())
+  tenantId      String              @default("default") @map("tenant_id")
   rfpResponseId Int?                @map("rfp_response_id")
   rfpResponse   RfpResponse?        @relation(fields: [rfpResponseId], references: [id], onDelete: SetNull)
   contractId    String              @map("contract_id")
@@ -357,13 +432,14 @@ model RfpBidScore {
   createdBy     String              @map("created_by")
   createdAt     DateTime            @default(now()) @map("created_at")
 
-  @@index([contractId, createdAt])
-  @@index([modelId, createdAt])
+  @@index([tenantId, contractId, createdAt])
+  @@index([tenantId, modelId, createdAt])
   @@map("rfp_bid_score")
 }
 
 model RfpAmendment {
   id               String    @id @default(uuid())
+  tenantId         String    @default("default") @map("tenant_id")
   contractId       String    @map("contract_id")
   contract         Contract  @relation(fields: [contractId], references: [noticeId], onDelete: Cascade)
   fingerprint      String
@@ -375,13 +451,14 @@ model RfpAmendment {
   acknowledgedBy   String?   @map("acknowledged_by")
   acknowledgedAt   DateTime? @map("acknowledged_at")
 
-  @@unique([contractId, fingerprint])
-  @@index([contractId, detectedAt])
+  @@unique([tenantId, contractId, fingerprint])
+  @@index([tenantId, contractId, detectedAt])
   @@map("rfp_amendment")
 }
 
 model RfpAuditEvent {
   id            String      @id @default(uuid())
+  tenantId      String      @default("default") @map("tenant_id")
   rfpResponseId Int         @map("rfp_response_id")
   rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
   sequence      Int
@@ -393,12 +470,13 @@ model RfpAuditEvent {
   hash          String      @unique
 
   @@unique([rfpResponseId, sequence])
-  @@index([rfpResponseId, occurredAt])
+  @@index([tenantId, rfpResponseId, occurredAt])
   @@map("rfp_audit_event")
 }
 
 model RfpComment {
   id            String      @id @default(uuid())
+  tenantId      String      @default("default") @map("tenant_id")
   rfpResponseId Int         @map("rfp_response_id")
   rfpResponse   RfpResponse @relation(fields: [rfpResponseId], references: [id], onDelete: Cascade)
   sectionId     String?     @map("section_id")
@@ -409,12 +487,13 @@ model RfpComment {
   resolvedAt    DateTime?   @map("resolved_at")
   createdAt     DateTime    @default(now()) @map("created_at")
 
-  @@index([rfpResponseId, resolved, createdAt])
+  @@index([tenantId, rfpResponseId, resolved, createdAt])
   @@map("rfp_comment")
 }
 
 model GovernancePolicy {
   id            String                 @id @default(uuid())
+  tenantId      String                 @default("default") @map("tenant_id")
   policyKey     String                 @map("policy_key")
   version       Int
   title         String
@@ -426,13 +505,14 @@ model GovernancePolicy {
   createdAt     DateTime               @default(now()) @map("created_at")
   evaluations   ComplianceEvaluation[]
 
-  @@unique([policyKey, version])
-  @@index([jurisdiction, effectiveFrom])
+  @@unique([tenantId, policyKey, version])
+  @@index([tenantId, jurisdiction, effectiveFrom])
   @@map("governance_policy")
 }
 
 model RegulatorySource {
   id                 String                 @id @default(uuid())
+  tenantId           String                 @default("default") @map("tenant_id")
   sourceKey          String                 @map("source_key")
   version            Int
   title              String
@@ -450,14 +530,15 @@ model RegulatorySource {
   supersededBy       RegulatorySource[]     @relation("SourceVersions")
   evaluations        ComplianceEvaluation[]
 
-  @@unique([sourceKey, version])
-  @@index([jurisdiction, effectiveFrom])
-  @@index([contentHash])
+  @@unique([tenantId, sourceKey, version])
+  @@index([tenantId, jurisdiction, effectiveFrom])
+  @@index([tenantId, contentHash])
   @@map("regulatory_source")
 }
 
 model ComplianceEvaluation {
   id                String           @id @default(uuid())
+  tenantId          String           @default("default") @map("tenant_id")
   contractId        String           @map("contract_id")
   contract          Contract         @relation(fields: [contractId], references: [noticeId])
   scenario          String
@@ -492,14 +573,15 @@ model ComplianceEvaluation {
   createdAt         DateTime         @default(now()) @map("created_at")
   updatedAt         DateTime         @updatedAt @map("updated_at")
 
-  @@index([contractId, scenario])
-  @@index([status, ownerId])
-  @@index([retentionUntil, legalHold])
+  @@index([tenantId, contractId, scenario])
+  @@index([tenantId, status, ownerId])
+  @@index([tenantId, retentionUntil, legalHold])
   @@map("compliance_evaluation")
 }
 
 model GovernanceAuditEvent {
   id            String   @id @default(uuid())
+  tenantId      String   @default("default") @map("tenant_id")
   aggregateType String   @map("aggregate_type")
   aggregateId   String   @map("aggregate_id")
   sequence      Int
@@ -510,16 +592,17 @@ model GovernanceAuditEvent {
   previousHash  String   @map("previous_hash")
   hash          String   @unique
 
-  @@unique([aggregateId, sequence])
-  @@index([aggregateType, occurredAt])
+  @@unique([tenantId, aggregateId, sequence])
+  @@index([tenantId, aggregateType, occurredAt])
   @@map("governance_audit_event")
 }
 
 model ContractMatter {
   id                String                       @id @default(uuid())
+  tenantId          String                       @default("default") @map("tenant_id")
   contractNoticeId  String?                      @map("contract_notice_id")
   contract          Contract?                    @relation(fields: [contractNoticeId], references: [noticeId], onDelete: SetNull)
-  matterNumber      String                       @unique @map("matter_number")
+  matterNumber      String                       @map("matter_number")
   title             String
   agency            String
   contractType      String                       @map("contract_type")
@@ -545,13 +628,15 @@ model ContractMatter {
   integrationOutbox ContractIntegrationOutbox[]
   capabilityItems   ContractCapabilityWorkItem[]
 
-  @@index([stage, status])
-  @@index([ownerId, updatedAt])
+  @@unique([tenantId, matterNumber])
+  @@index([tenantId, stage, status])
+  @@index([tenantId, ownerId, updatedAt])
   @@map("contract_matter")
 }
 
 model ContractParty {
   id              String         @id @default(uuid())
+  tenantId        String         @default("default") @map("tenant_id")
   matterId        String         @map("matter_id")
   matter          ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
   name            String
@@ -565,12 +650,13 @@ model ContractParty {
   updatedAt       DateTime       @updatedAt @map("updated_at")
 
   @@unique([matterId, name, contractRole])
-  @@index([matterId, partyType])
+  @@index([tenantId, matterId, partyType])
   @@map("contract_party")
 }
 
 model ContractDocumentVersion {
   id            String              @id @default(uuid())
+  tenantId      String              @default("default") @map("tenant_id")
   matterId      String              @map("matter_id")
   matter        ContractMatter      @relation(fields: [matterId], references: [id], onDelete: Cascade)
   documentType  String              @map("document_type")
@@ -586,12 +672,13 @@ model ContractDocumentVersion {
   amendments    ContractAmendment[]
 
   @@unique([matterId, title, version])
-  @@index([matterId, documentType])
+  @@index([tenantId, matterId, documentType])
   @@map("contract_document_version")
 }
 
 model ContractClause {
   id                String                   @id @default(uuid())
+  tenantId          String                   @default("default") @map("tenant_id")
   matterId          String                   @map("matter_id")
   matter            ContractMatter           @relation(fields: [matterId], references: [id], onDelete: Cascade)
   documentVersionId String?                  @map("document_version_id")
@@ -611,12 +698,13 @@ model ContractClause {
   obligations       ContractObligation[]
 
   @@unique([matterId, clauseKey])
-  @@index([matterId, riskLevel, status])
+  @@index([tenantId, matterId, riskLevel, status])
   @@map("contract_clause")
 }
 
 model ContractObligation {
   id              String          @id @default(uuid())
+  tenantId        String          @default("default") @map("tenant_id")
   matterId        String          @map("matter_id")
   matter          ContractMatter  @relation(fields: [matterId], references: [id], onDelete: Cascade)
   clauseId        String?         @map("clause_id")
@@ -633,12 +721,13 @@ model ContractObligation {
   updatedAt       DateTime        @updatedAt @map("updated_at")
 
   @@unique([matterId, reference])
-  @@index([status, dueDate])
+  @@index([tenantId, status, dueDate])
   @@map("contract_obligation")
 }
 
 model ContractMilestone {
   id          String         @id @default(uuid())
+  tenantId    String         @default("default") @map("tenant_id")
   matterId    String         @map("matter_id")
   matter      ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
   reference   String
@@ -651,12 +740,13 @@ model ContractMilestone {
   updatedAt   DateTime       @updatedAt @map("updated_at")
 
   @@unique([matterId, reference])
-  @@index([status, dueDate])
+  @@index([tenantId, status, dueDate])
   @@map("contract_milestone")
 }
 
 model ContractAmendment {
   id                String                   @id @default(uuid())
+  tenantId          String                   @default("default") @map("tenant_id")
   matterId          String                   @map("matter_id")
   matter            ContractMatter           @relation(fields: [matterId], references: [id], onDelete: Cascade)
   documentVersionId String?                  @map("document_version_id")
@@ -674,12 +764,13 @@ model ContractAmendment {
   updatedAt         DateTime                 @updatedAt @map("updated_at")
 
   @@unique([matterId, amendmentNumber])
-  @@index([status, effectiveDate])
+  @@index([tenantId, status, effectiveDate])
   @@map("contract_amendment")
 }
 
 model ContractApproval {
   id           String         @id @default(uuid())
+  tenantId     String         @default("default") @map("tenant_id")
   matterId     String         @map("matter_id")
   matter       ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
   resourceType String         @map("resource_type")
@@ -690,12 +781,13 @@ model ContractApproval {
   actorId      String         @map("actor_id")
   createdAt    DateTime       @default(now()) @map("created_at")
 
-  @@index([matterId, resourceType, resourceId])
+  @@index([tenantId, matterId, resourceType, resourceId])
   @@map("contract_approval")
 }
 
 model ContractRenewal {
   id               String         @id @default(uuid())
+  tenantId         String         @default("default") @map("tenant_id")
   matterId         String         @map("matter_id")
   matter           ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
   optionPeriod     String         @map("option_period")
@@ -709,12 +801,13 @@ model ContractRenewal {
   updatedAt        DateTime       @updatedAt @map("updated_at")
 
   @@unique([matterId, optionPeriod])
-  @@index([status, noticeDeadline])
+  @@index([tenantId, status, noticeDeadline])
   @@map("contract_renewal")
 }
 
 model ContractRiskAssessment {
   id                 String         @id @default(uuid())
+  tenantId           String         @default("default") @map("tenant_id")
   matterId           String         @map("matter_id")
   matter             ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
   assessmentKey      String         @map("assessment_key")
@@ -730,12 +823,13 @@ model ContractRiskAssessment {
   createdAt          DateTime       @default(now()) @map("created_at")
 
   @@unique([matterId, assessmentKey])
-  @@index([overallRating, createdAt])
+  @@index([tenantId, overallRating, createdAt])
   @@map("contract_risk_assessment")
 }
 
 model ContractTemplate {
   id            String    @id @default(uuid())
+  tenantId      String    @default("default") @map("tenant_id")
   templateKey   String    @map("template_key")
   version       Int
   name          String
@@ -748,13 +842,14 @@ model ContractTemplate {
   effectiveFrom DateTime? @map("effective_from")
   createdAt     DateTime  @default(now()) @map("created_at")
 
-  @@unique([templateKey, version])
-  @@index([status, contractType])
+  @@unique([tenantId, templateKey, version])
+  @@index([tenantId, status, contractType])
   @@map("contract_template")
 }
 
 model ContractAiReview {
   id           String         @id @default(uuid())
+  tenantId     String         @default("default") @map("tenant_id")
   matterId     String         @map("matter_id")
   matter       ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
   reviewType   String         @map("review_type")
@@ -768,12 +863,13 @@ model ContractAiReview {
   createdBy    String         @map("created_by")
   createdAt    DateTime       @default(now()) @map("created_at")
 
-  @@index([matterId, createdAt])
+  @@index([tenantId, matterId, createdAt])
   @@map("contract_ai_review")
 }
 
 model ContractIntegrationOutbox {
   id             String         @id @default(uuid())
+  tenantId       String         @default("default") @map("tenant_id")
   matterId       String         @map("matter_id")
   matter         ContractMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
   provider       String
@@ -788,12 +884,13 @@ model ContractIntegrationOutbox {
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
 
-  @@index([status, nextAttemptAt])
+  @@index([tenantId, status, nextAttemptAt])
   @@map("contract_integration_outbox")
 }
 
 model ContractLifecycleAuditEvent {
   id           String   @id @default(uuid())
+  tenantId     String   @default("default") @map("tenant_id")
   aggregateId  String   @map("aggregate_id")
   sequence     Int
   action       String
@@ -803,13 +900,14 @@ model ContractLifecycleAuditEvent {
   previousHash String   @map("previous_hash")
   hash         String   @unique
 
-  @@unique([aggregateId, sequence])
-  @@index([aggregateId, occurredAt])
+  @@unique([tenantId, aggregateId, sequence])
+  @@index([tenantId, aggregateId, occurredAt])
   @@map("contract_lifecycle_audit_event")
 }
 
 model ContractCapabilityWorkItem {
   id              String                       @id @default(uuid())
+  tenantId        String                       @default("default") @map("tenant_id")
   matterId        String                       @map("matter_id")
   matter          ContractMatter               @relation(fields: [matterId], references: [id], onDelete: Cascade)
   domain          String
@@ -837,15 +935,16 @@ model ContractCapabilityWorkItem {
   updatedAt       DateTime                     @updatedAt @map("updated_at")
   analyses        ContractCapabilityAnalysis[]
 
-  @@unique([sourceProject, sourceRecordKey])
-  @@index([domain, capability, status])
-  @@index([matterId, riskLevel])
-  @@index([ownerId, dueDate])
+  @@unique([tenantId, sourceProject, sourceRecordKey])
+  @@index([tenantId, domain, capability, status])
+  @@index([tenantId, matterId, riskLevel])
+  @@index([tenantId, ownerId, dueDate])
   @@map("contract_capability_work_item")
 }
 
 model ContractCapabilityAnalysis {
   id           String                     @id @default(uuid())
+  tenantId     String                     @default("default") @map("tenant_id")
   workItemId   String                     @map("work_item_id")
   workItem     ContractCapabilityWorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
   analysisType String                     @map("analysis_type")
@@ -858,6 +957,174 @@ model ContractCapabilityAnalysis {
   createdBy    String                     @map("created_by")
   createdAt    DateTime                   @default(now()) @map("created_at")
 
-  @@index([workItemId, createdAt])
+  @@index([tenantId, workItemId, createdAt])
   @@map("contract_capability_analysis")
+}
+
+model DurableTask {
+  id             String    @id @default(uuid())
+  tenantId       String    @default("default") @map("tenant_id")
+  taskType       String    @map("task_type")
+  payload        Json
+  status         String    @default("PENDING")
+  priority       Int       @default(100)
+  attempts       Int       @default(0)
+  maxAttempts    Int       @default(3) @map("max_attempts")
+  availableAt    DateTime  @default(now()) @map("available_at")
+  leasedBy       String?   @map("leased_by")
+  leaseExpiresAt DateTime? @map("lease_expires_at")
+  heartbeatAt    DateTime? @map("heartbeat_at")
+  idempotencyKey String?   @map("idempotency_key")
+  result         Json?
+  error          String?
+  createdBy      String    @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  startedAt      DateTime? @map("started_at")
+  completedAt    DateTime? @map("completed_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([status, availableAt, priority])
+  @@index([tenantId, status, createdAt])
+  @@map("durable_task")
+}
+
+model WorkerHeartbeat {
+  id           String   @id @default(uuid())
+  workerId     String   @unique @map("worker_id")
+  hostname     String
+  processId    Int      @map("process_id")
+  status       String   @default("RUNNING")
+  capabilities String[]
+  version      String
+  startedAt    DateTime @default(now()) @map("started_at")
+  lastSeenAt   DateTime @default(now()) @map("last_seen_at")
+
+  @@index([status, lastSeenAt])
+  @@map("worker_heartbeat")
+}
+
+model StoredDocument {
+  id               String    @id @default(uuid())
+  tenantId         String    @default("default") @map("tenant_id")
+  queueDocumentId  Int?      @map("queue_document_id")
+  storageProvider  String    @map("storage_provider")
+  bucket           String?
+  objectKey        String    @map("object_key")
+  storageVersionId String?   @map("storage_version_id")
+  originalFilename String    @map("original_filename")
+  contentType      String    @map("content_type")
+  byteSize         Int       @map("byte_size")
+  checksum         String
+  encryption       String    @default("PROVIDER_MANAGED")
+  malwareStatus    String    @default("PENDING") @map("malware_status")
+  malwareEngine    String?   @map("malware_engine")
+  malwareScannedAt DateTime? @map("malware_scanned_at")
+  retentionUntil   DateTime? @map("retention_until")
+  legalHold        Boolean   @default(false) @map("legal_hold")
+  createdBy        String    @map("created_by")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@unique([tenantId, objectKey, storageVersionId])
+  @@index([tenantId, malwareStatus, createdAt])
+  @@index([queueDocumentId])
+  @@map("stored_document")
+}
+
+model SavedSearch {
+  id        String    @id @default(uuid())
+  tenantId  String    @default("default") @map("tenant_id")
+  ownerId   String    @map("owner_id")
+  name      String
+  query     Json
+  cadence   String    @default("DAILY")
+  enabled   Boolean   @default(true)
+  lastRunAt DateTime? @map("last_run_at")
+  nextRunAt DateTime? @map("next_run_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@unique([tenantId, ownerId, name])
+  @@index([enabled, nextRunAt])
+  @@map("saved_search")
+}
+
+model NotificationSubscription {
+  id                   String   @id @default(uuid())
+  tenantId             String   @default("default") @map("tenant_id")
+  ownerId              String   @map("owner_id")
+  channel              String
+  eventTypes           String[] @map("event_types")
+  encryptedDestination String?  @map("encrypted_destination")
+  enabled              Boolean  @default(true)
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId, ownerId, enabled])
+  @@map("notification_subscription")
+}
+
+model NotificationEvent {
+  id             String    @id @default(uuid())
+  tenantId       String    @default("default") @map("tenant_id")
+  subscriptionId String?   @map("subscription_id")
+  eventType      String    @map("event_type")
+  ownerId        String    @map("owner_id")
+  subject        String
+  payload        Json
+  channel        String    @default("IN_APP")
+  status         String    @default("PENDING")
+  attempts       Int       @default(0)
+  scheduledAt    DateTime  @default(now()) @map("scheduled_at")
+  deliveredAt    DateTime? @map("delivered_at")
+  readAt         DateTime? @map("read_at")
+  error          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([tenantId, ownerId, status, createdAt])
+  @@index([status, scheduledAt])
+  @@map("notification_event")
+}
+
+model CompanyEnrichment {
+  id               String   @id @default(uuid())
+  tenantId         String   @default("default") @map("tenant_id")
+  companyProfileId Int      @map("company_profile_id")
+  source           String
+  externalId       String   @map("external_id")
+  evidenceUrl      String   @map("evidence_url")
+  retrievedAt      DateTime @map("retrieved_at")
+  contentHash      String   @map("content_hash")
+  payload          Json
+  status           String   @default("VERIFIED_SOURCE")
+  createdBy        String   @map("created_by")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@unique([tenantId, companyProfileId, source, externalId, contentHash])
+  @@index([tenantId, companyProfileId, source, retrievedAt])
+  @@map("company_enrichment")
+}
+
+model SubmissionPackageArtifact {
+  id                 String    @id @default(uuid())
+  tenantId           String    @default("default") @map("tenant_id")
+  rfpResponseId      Int       @map("rfp_response_id")
+  artifactType       String    @map("artifact_type")
+  displayName        String    @map("display_name")
+  fileName           String?   @map("file_name")
+  storedDocumentId   String?   @map("stored_document_id")
+  required           Boolean   @default(true)
+  signatureRequired  Boolean   @default(false) @map("signature_required")
+  signatureStatus    String    @default("NOT_REQUIRED") @map("signature_status")
+  validationStatus   String    @default("PENDING") @map("validation_status")
+  validationFindings Json      @default("[]") @map("validation_findings")
+  portalInstructions Json?     @map("portal_instructions")
+  completedBy        String?   @map("completed_by")
+  completedAt        DateTime? @map("completed_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@unique([tenantId, rfpResponseId, artifactType])
+  @@index([tenantId, rfpResponseId, validationStatus])
+  @@map("submission_package_artifact")
 }

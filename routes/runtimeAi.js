@@ -28,9 +28,9 @@ router.post('/contract-readiness', async (req, res, next) => {
     if (!output) return res.status(502).json({ error: 'OpenRouter returned an empty response' });
     const id = crypto.randomUUID();
     await query(
-      `INSERT INTO runtime_ai_results(id,user_id,feature,input,output,model,provider_response_id)
-       VALUES($1,$2,'contract-readiness',$3,$4,$5,$6)`,
-      [id, String(req.user.id), { prompt }, output, model, payload.id || null]
+      `INSERT INTO runtime_ai_results(id,tenant_id,user_id,feature,input,output,model,provider_response_id)
+       VALUES($1,$2,$3,'contract-readiness',$4,$5,$6,$7)`,
+      [id, req.tenantId, String(req.user.id), { prompt }, output, model, payload.id || null]
     );
     return res.json({ id, response: output, model, provider: 'openrouter', providerResponseId: payload.id || null });
   } catch (error) {

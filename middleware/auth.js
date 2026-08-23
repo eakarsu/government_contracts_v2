@@ -8,17 +8,18 @@ const ROLE_PERMISSIONS = Object.freeze({
   auditor: ['audit:export', 'audit:read', 'governance:read', 'lifecycle:export', 'lifecycle:read', 'operations:read', 'rfp:read'],
   compliance_analyst: ['evaluation:create', 'evaluation:submit', 'governance:read', 'lifecycle:ai', 'lifecycle:create', 'lifecycle:read', 'lifecycle:submit', 'lifecycle:update', 'rfp:read', 'rfp:review'],
   compliance_approver: ['decision:approve', 'governance:read', 'lifecycle:approve', 'lifecycle:read', 'rfp:approve', 'rfp:read'],
-  contract_manager: ['governance:read', 'lifecycle:ai', 'lifecycle:create', 'lifecycle:delete', 'lifecycle:export', 'lifecycle:read', 'lifecycle:submit', 'lifecycle:update', 'rfp:author', 'rfp:outcome', 'rfp:read', 'rfp:submit'],
+  contract_manager: ['enrichment:write', 'governance:read', 'lifecycle:ai', 'lifecycle:create', 'lifecycle:delete', 'lifecycle:export', 'lifecycle:read', 'lifecycle:submit', 'lifecycle:update', 'notification:manage', 'rfp:author', 'rfp:outcome', 'rfp:read', 'rfp:submit'],
   contract_viewer: ['governance:read', 'lifecycle:read', 'rfp:read'],
   document_operator: ['legacy:write', 'queue:admin', 'queue:write', 'lifecycle:create', 'lifecycle:read', 'lifecycle:update'],
   legal_reviewer: ['governance:read', 'lifecycle:ai', 'lifecycle:approve', 'lifecycle:read', 'lifecycle:update', 'rfp:read', 'rfp:review'],
   policy_admin: ['governance:read', 'policy:create', 'lifecycle:read'],
   records_officer: ['audit:export', 'governance:read', 'legal_hold:manage', 'lifecycle:export', 'lifecycle:read', 'operations:read'],
   regulatory_ingestor: ['governance:read', 'source:ingest'],
-  proposal_author: ['rfp:author', 'rfp:read'],
-  proposal_reviewer: ['rfp:read', 'rfp:review'],
-  proposal_approver: ['rfp:approve', 'rfp:read', 'rfp:submit'],
-  capture_manager: ['rfp:author', 'rfp:model:validate', 'rfp:outcome', 'rfp:read', 'rfp:submit'],
+  proposal_author: ['notification:manage', 'rfp:author', 'rfp:read'],
+  proposal_reviewer: ['notification:manage', 'rfp:read', 'rfp:review'],
+  proposal_approver: ['notification:manage', 'rfp:approve', 'rfp:read', 'rfp:submit'],
+  capture_manager: ['enrichment:write', 'notification:manage', 'rfp:author', 'rfp:model:validate', 'rfp:outcome', 'rfp:read', 'rfp:submit'],
+  tenant_admin: ['notification:manage', 'operations:read', 'rfp:read', 'secret:rotate', 'tenant:admin'],
 });
 
 function bearerToken(request) {
@@ -35,11 +36,23 @@ function rolesFromClaims(claims) {
   return [...new Set(candidates.filter(role => ROLE_PERMISSIONS[role]))];
 }
 
-function userFromClaims(claims) {
+function permissionsForRoles(roles) {
+  return [...new Set(roles.flatMap(role => ROLE_PERMISSIONS[role] || []))];
+}
+
+function tenantFromClaims(claims, configuration = config) {
+  return claims[configuration.oidcTenantClaim]
+    || claims.tenant_id
+    || claims.organization_id
+    || claims.org_id
+    || null;
+}
+
+function userFromClaims(claims, configuration = config) {
   if (!claims.sub) throw new Error('Token subject is required');
   const roles = rolesFromClaims(claims);
-  const permissions = [...new Set(roles.flatMap(role => ROLE_PERMISSIONS[role]))];
-  return { email: claims.email, id: claims.sub, permissions, roles };
+  const permissions = permissionsForRoles(roles);
+  return { email: claims.email, id: claims.sub, permissions, roles, tenantId: tenantFromClaims(claims, configuration) };
 }
 
 function createTokenVerifier(configuration = config) {
@@ -76,7 +89,7 @@ function createAuthMiddleware({ configuration = config, publicRoutes = [{ method
     const token = bearerToken(req);
     if (!token) return res.status(401).json({ error: 'Bearer token required' });
     try {
-      req.user = userFromClaims(await verify(token));
+      req.user = userFromClaims(await verify(token), configuration);
       return next();
     } catch (error) {
       return res.status(401).json({ error: 'Invalid or expired bearer token' });
@@ -113,8 +126,10 @@ module.exports = {
   createAuthMiddleware,
   createTokenVerifier,
   hasPermission,
+  permissionsForRoles,
   requirePermission,
   requireRole,
   rolesFromClaims,
+  tenantFromClaims,
   userFromClaims,
 };

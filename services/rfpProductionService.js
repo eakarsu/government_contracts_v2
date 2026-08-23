@@ -1,6 +1,10 @@
 'use strict';
 
 const crypto = require('crypto');
+const { currentTenantId } = require('./tenantContext');
+const config = require('../config/env');
+const { SubmissionPackageService } = require('./submissionPackageService');
+const { NotificationService } = require('./notificationService');
 
 const APPROVAL_GATES = ['CONTENT', 'COMPLIANCE', 'EXECUTIVE', 'SUBMISSION'];
 const CHECKLIST = [
@@ -95,7 +99,7 @@ function affectedSections(changes) {
 }
 
 class RfpProductionService {
-  constructor(prisma) { this.prisma = prisma; }
+  constructor(prisma) { this.prisma = prisma; this.notifications = new NotificationService({ prisma }); }
 
   async audit(rfpResponseId, action, user, payload = {}) {
     return this.prisma.$transaction(async tx => {
@@ -236,6 +240,7 @@ class RfpProductionService {
     if (!email || !['viewer', 'author', 'reviewer', 'approver'].includes(role)) throw Object.assign(new Error('Valid email and collaborator role are required'), { statusCode: 400 });
     const collaborator = await this.prisma.rfpCollaborator.upsert({ where: { rfpResponseId_email: { rfpResponseId, email } }, create: { rfpResponseId, email, role, assignedBy: actorId(user) }, update: { role, assignedBy: actorId(user) } });
     await this.audit(rfpResponseId, 'COLLABORATOR_ASSIGNED', user, { email, role });
+    await this.notifications.emit({ tenantId: currentTenantId() || config.defaultTenantId, ownerId: email, eventType: 'REVIEW_ASSIGNED', subject: `Proposal ${rfpResponseId}: ${role} assignment`, payload: { rfpResponseId, role, assignedBy: actorId(user), message: `You were assigned as ${role} for proposal ${rfpResponseId}.` } });
     return collaborator;
   }
 
@@ -295,6 +300,10 @@ class RfpProductionService {
   }
 
   async recordSubmission(rfpResponseId, input, user) {
+    const packageValidation = await new SubmissionPackageService(this.prisma, config).validate(rfpResponseId);
+    if (!packageValidation.valid && config.submissionPackageEnforcement === 'required') {
+      throw Object.assign(new Error('Submission blocked: final package validation failed'), { statusCode: 409, details: { packageFindings: packageValidation.findings } });
+    }
     const [response, approvals, checklist, requirements, unresolvedComments, latestVersion, latestAmendment] = await Promise.all([
       this.prisma.rfpResponse.findUnique({ where: { id: rfpResponseId } }),
       this.prisma.rfpApproval.findMany({ where: { rfpResponseId }, orderBy: [{ gate: 'asc' }, { cycle: 'desc' }] }),
@@ -320,7 +329,7 @@ class RfpProductionService {
       await tx.rfpResponse.update({ where: { id: rfpResponseId }, data: { status: 'submitted' } });
       return saved;
     });
-    await this.audit(rfpResponseId, 'SUBMISSION_RECORDED', user, { destination, submissionMethod, trackingNumber: submission.trackingNumber, submittedAt: submission.submittedAt });
+    await this.audit(rfpResponseId, 'SUBMISSION_RECORDED', user, { destination, submissionMethod, trackingNumber: submission.trackingNumber, submittedAt: submission.submittedAt, packageValidation: { valid: packageValidation.valid, findings: packageValidation.findings } });
     return submission;
   }
 
@@ -365,7 +374,11 @@ class RfpProductionService {
     const changes = amendmentChanges(previousSnapshot, currentSnapshot);
     if (!changes.length) return null;
     const fingerprint = digest(currentSnapshot);
-    return this.prisma.rfpAmendment.upsert({ where: { contractId_fingerprint: { contractId: existing.noticeId, fingerprint } }, create: { contractId: existing.noticeId, fingerprint, previousSnapshot, currentSnapshot, changes, affectedSections: affectedSections(changes) }, update: {} });
+    const tenantId = currentTenantId() || 'default';
+    const alreadyRecorded = await this.prisma.rfpAmendment.findFirst({ where: { tenantId, contractId: existing.noticeId, fingerprint } });
+    const amendment = await this.prisma.rfpAmendment.upsert({ where: { tenantId_contractId_fingerprint: { tenantId, contractId: existing.noticeId, fingerprint } }, create: { tenantId, contractId: existing.noticeId, fingerprint, previousSnapshot, currentSnapshot, changes, affectedSections: affectedSections(changes) }, update: {} });
+    if (!alreadyRecorded) await this.notifications.emitToTenant({ tenantId, eventType: 'AMENDMENT', subject: `SAM.gov amendment: ${incoming.title || existing.noticeId}`, payload: { noticeId: existing.noticeId, amendmentId: amendment.id, changes, affectedSections: amendment.affectedSections, message: 'An authoritative opportunity record changed. Review affected proposal sections.' } });
+    return amendment;
   }
 }
 

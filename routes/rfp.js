@@ -6,9 +6,11 @@ const config = require('../config/env');
 const rfpService = require('../services/rfpService');
 const { requirePermission } = require('../middleware/auth');
 const { RfpProductionService } = require('../services/rfpProductionService');
+const { SubmissionPackageService } = require('../services/submissionPackageService');
 
 const router = express.Router();
 const productionService = new RfpProductionService(prisma);
+const submissionPackages = new SubmissionPackageService(prisma, config);
 
 function rfpPermission(req) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return 'rfp:read';
@@ -803,6 +805,33 @@ router.put('/responses/:id/checklist/:itemId', async (req, res) => {
     return res.json({ success: true, item });
   } catch (error) {
     return productionError(res, error, 'Failed to update submission checklist');
+  }
+});
+
+router.get('/responses/:id/submission-package', async (req, res) => {
+  try {
+    const artifacts = await submissionPackages.initialize(positiveInteger(req.params.id, -1));
+    return res.json({ success: true, artifacts, humanControlledSubmission: true });
+  } catch (error) {
+    return productionError(res, error, 'Failed to load submission package');
+  }
+});
+
+router.put('/responses/:id/submission-package/:artifactType', async (req, res) => {
+  try {
+    const artifact = await submissionPackages.update(positiveInteger(req.params.id, -1), String(req.params.artifactType).toUpperCase(), req.body || {}, req.user);
+    return res.json({ success: true, artifact });
+  } catch (error) {
+    return productionError(res, error, 'Failed to update submission artifact');
+  }
+});
+
+router.post('/responses/:id/submission-package/validate', async (req, res) => {
+  try {
+    const validation = await submissionPackages.validate(positiveInteger(req.params.id, -1));
+    return res.status(validation.valid ? 200 : 409).json({ success: validation.valid, validation });
+  } catch (error) {
+    return productionError(res, error, 'Failed to validate submission package');
   }
 });
 

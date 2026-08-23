@@ -55,7 +55,7 @@ async function seed() {
       const sourceRecordKey = `${domain.slug}-${code}`;
       const riskLevel = risks[(index + domainIndex) % risks.length];
       const record = await prisma.contractCapabilityWorkItem.upsert({
-        where: { sourceProject_sourceRecordKey: { sourceProject: domain.sourceProject, sourceRecordKey } }, update: {},
+        where: { tenantId_sourceProject_sourceRecordKey: { tenantId: 'default', sourceProject: domain.sourceProject, sourceRecordKey } }, update: {},
         create: {
           matterId: matter.id, domain: domain.key, capability: capability[0], sourceProject: domain.sourceProject, sourceRecordKey,
           title: `${capability[1]} — ${matter.matterNumber}`, summary: `${capability[1]} workstream consolidated into the governed ${domain.label.toLowerCase()} workspace without duplicating lifecycle records.`,

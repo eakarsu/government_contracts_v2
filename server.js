@@ -7,14 +7,8 @@ const helmet = require('helmet');
 
 // Import configuration and services
 const config = require('./config/env');
-const { query, testConnection, disconnect } = require('./config/database');
+const { query, testConnection, disconnect, prisma } = require('./config/database');
 const vectorService = require('./services/vectorServiceInstance');
-
-// Import Prisma Client
-const { PrismaClient } = require('@prisma/client');
-
-// Initialize Prisma Client
-const prisma = new PrismaClient();
 
 // Debug: Log that we're importing routes
 console.log('📋 [DEBUG] Importing routes...');
@@ -43,15 +37,25 @@ const runtimeAiRoutes = require('./routes/runtimeAi');
 const lifecycleRoutes = require('./routes/lifecycle');
 const contractSuiteRoutes = require('./routes/contractSuite');
 const operationsRoutes = require('./routes/operations');
+const tenantAdminRoutes = require('./routes/tenantAdmin');
+const notificationRoutes = require('./routes/notifications');
+const enrichmentRoutes = require('./routes/enrichment');
+const storageRoutes = require('./routes/storage');
 const { PipelineReliabilityService } = require('./services/pipelineReliabilityService');
+const { DocumentStorageService } = require('./services/documentStorageService');
+const { scanFile } = require('./services/malwareScanner');
+const { captureException, metricsMiddleware, monitoringAuthorized, refreshDatabaseMetrics, register } = require('./services/monitoring');
 
 // Import middleware
 const { rateLimiter, authRateLimiter, statusRateLimiter, aiRateLimiter } = require('./middleware/rateLimiter');
 const { errorHandler } = require('./middleware/errorHandler');
 const { authMiddleware, requirePermission } = require('./middleware/auth');
+const { tenantMiddleware } = require('./middleware/tenant');
+const { createProductionSurfaceMiddleware } = require('./middleware/productionSurface');
 
 const app = express();
 const pipelineReliabilityService = new PipelineReliabilityService(prisma);
+const documentStorageService = new DocumentStorageService({ prisma });
 let pipelineMaintenanceTimer;
 const clientBuildPath = path.join(__dirname, 'client', 'build');
 
@@ -82,6 +86,14 @@ app.use(
   })
 );
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(metricsMiddleware);
+
+app.get('/metrics', async (req, res) => {
+  if (!monitoringAuthorized(req)) return res.status(404).send('Not found');
+  await refreshDatabaseMetrics(prisma);
+  res.setHeader('Content-Type', register.contentType);
+  return res.send(await register.metrics());
+});
 
 // Keep static application assets out of API rate-limit buckets. Dashboard
 // polling has a separate, short-window allowance, while login and generative
@@ -146,12 +158,19 @@ const upload = multer({
 // API route is authenticated except GET /api/health.
 app.use('/api/auth', authRoutes);
 app.use('/api', authMiddleware);
+app.use('/api', tenantMiddleware);
+app.use('/api', createProductionSurfaceMiddleware(config));
 app.use('/api', (req, res, next) => {
   if (
     ['GET', 'HEAD', 'OPTIONS'].includes(req.method)
     || req.path.startsWith('/governance')
     || req.path.startsWith('/lifecycle')
     || req.path.startsWith('/rfp')
+    || req.path.startsWith('/tenant-admin')
+    || req.path.startsWith('/notifications')
+    || req.path.startsWith('/enrichment')
+    || req.path.startsWith('/operations')
+    || req.path.startsWith('/storage')
     || req.path === '/ai/win-probability'
   ) return next();
   return requirePermission('legacy:write')(req, res, next);
@@ -181,6 +200,10 @@ app.use('/api/runtime-ai', runtimeAiRoutes);
 app.use('/api/lifecycle', lifecycleRoutes);
 app.use('/api/contract-suite', contractSuiteRoutes);
 app.use('/api/operations', operationsRoutes);
+app.use('/api/tenant-admin', tenantAdminRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/enrichment', enrichmentRoutes);
+app.use('/api/storage', storageRoutes);
 
 // Debug: Log when routers are loaded
 console.log('📋 [DEBUG] Contracts router mounted at /api/contracts');
@@ -290,7 +313,12 @@ app.get('/api/config', (req, res) => {
       norshinApi: !!config.norshinApiKey,
       samGovApi: !!config.samGovApiKey,
       openRouterApi: !!config.openRouterApiKey,
-      vectorDatabase: vectorService.isConnected
+      vectorDatabase: vectorService.isConnected,
+      sportsContracts: config.featureSportsContracts,
+      smartContractAssurance: config.featureSmartContractAssurance,
+      durablePipeline: config.pipelineExecutionMode === 'durable',
+      protectedDocumentStorage: config.storageProvider === 's3',
+      malwareScanning: config.malwareScanMode !== 'disabled',
     },
     version: require('./package.json').version || '1.0.0'
   });
@@ -314,6 +342,16 @@ app.post('/api/upload', upload.single('document'), async (req, res) => {
     }
 
     const { customPrompt, model } = req.body;
+    let storedDocument = null;
+    if (config.storageProvider === 's3') {
+      storedDocument = await documentStorageService.secureFile(req.file.path, {
+        originalFilename: req.file.originalname,
+        contentType: req.file.mimetype,
+        createdBy: req.user?.email || req.user?.id || 'upload',
+      });
+    } else {
+      await scanFile(req.file.path, config);
+    }
     
     console.log(`Processing: ${req.file.originalname}`);
     
@@ -331,6 +369,7 @@ app.post('/api/upload', upload.single('document'), async (req, res) => {
     res.json({
       success: true,
       filename: req.file.originalname,
+      stored_document_id: storedDocument?.id || null,
       result: result
     });
 
@@ -396,6 +435,7 @@ app.use((error, req, res, next) => {
   }
   
   console.error('Unhandled error:', error);
+  captureException(error, { url: req.url, method: req.method, tenantId: req.tenantId, userId: req.user?.id });
   res.status(500).json({ error: 'Internal server error' });
 });
 

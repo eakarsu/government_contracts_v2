@@ -1,9 +1,9 @@
 const nlpService = require('./nlpService');
-const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../config/database');
 
 class QueryParser {
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
     
     // NAICS code mappings for common terms
     this.naicsMappings = {

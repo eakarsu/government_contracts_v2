@@ -11,11 +11,13 @@ async function login(rawEmail, password) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !user.isActive || !(await bcrypt.compare(password, user.password))) return null;
   const token = crypto.randomBytes(32).toString('base64url');
-  const roles = ['admin'];
+  const membership = await prisma.tenantMembership.findFirst({ where: { email, status: 'ACTIVE' }, orderBy: { createdAt: 'asc' } });
+  const tenantId = membership?.tenantId || 'default';
+  const roles = membership?.roles?.length ? membership.roles : ['admin'];
   await prisma.localAuthSession.create({
-    data: { tokenHash: hashToken(token), userId: user.id, roles, expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000) },
+    data: { tokenHash: hashToken(token), userId: user.id, tenantId, roles, expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000) },
   });
-  return { token, user: { id: String(user.id), email: user.email, roles, role: roles[0] } };
+  return { token, user: { id: String(user.id), email: user.email, tenantId, roles, role: roles[0] } };
 }
 
 async function verifySession(token) {
@@ -25,7 +27,7 @@ async function verifySession(token) {
   });
   if (!session || session.expiresAt <= new Date() || !session.user.isActive) throw new Error('Invalid or expired session');
   await prisma.localAuthSession.update({ where: { tokenHash: session.tokenHash }, data: { lastSeenAt: new Date() } });
-  return { sub: String(session.user.id), email: session.user.email, roles: session.roles };
+  return { sub: String(session.user.id), email: session.user.email, roles: session.roles, tenant_id: session.tenantId };
 }
 
 async function logout(token) {

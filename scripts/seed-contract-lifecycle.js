@@ -20,7 +20,7 @@ async function seed() {
   for (let index = 1; index <= MINIMUM; index += 1) {
     const code = String(index).padStart(3, '0');
     const matter = await prisma.contractMatter.upsert({
-      where: { matterNumber: `GOV-CLM-2026-${code}` }, update: {},
+      where: { tenantId_matterNumber: { tenantId: 'default', matterNumber: `GOV-CLM-2026-${code}` } }, update: {},
       create: {
         matterNumber: `GOV-CLM-2026-${code}`,
         title: `${['Secure Cloud Modernization', 'Mission Analytics Support', 'Critical Infrastructure Operations', 'Federal Health Data Platform'][index % 4]} — Workstream ${code}`,
@@ -87,7 +87,7 @@ async function seed() {
   for (let index = 1; index <= MINIMUM; index += 1) {
     const code = String(index).padStart(3, '0');
     await prisma.contractTemplate.upsert({
-      where: { templateKey_version: { templateKey: `GOV-TEMPLATE-${code}`, version: 1 } }, update: {},
+      where: { tenantId_templateKey_version: { tenantId: 'default', templateKey: `GOV-TEMPLATE-${code}`, version: 1 } }, update: {},
       create: { templateKey: `GOV-TEMPLATE-${code}`, version: 1, name: `${['Services Task Order', 'Data Protection Addendum', 'Subcontractor Flow-down', 'Option Exercise Memorandum'][index % 4]} ${code}`, agency: agencies[(index - 1) % agencies.length], contractType: contractTypes[(index - 1) % contractTypes.length], content: 'Approved government-contract template. Populate agency, authority, statement of work, deliverables, clauses, funding, and signatures from verified source records.', playbookRules: [{ rule: 'CITATIONS_REQUIRED', severity: 'BLOCKING' }, { rule: 'HUMAN_APPROVAL_REQUIRED', severity: 'BLOCKING' }], status: index % 4 === 0 ? 'DRAFT' : 'APPROVED', approvedBy: index % 4 === 0 ? null : 'legal-reviewer-demo', effectiveFrom: date(index - 1, 1) },
     });
   }

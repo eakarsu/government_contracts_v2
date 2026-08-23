@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y \
     libreoffice \
     tesseract-ocr \
     tesseract-ocr-eng \
+    clamav \
+    openssl \
     imagemagick \
     poppler-utils \
     openjdk-17-jre-headless \

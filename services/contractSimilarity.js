@@ -1,8 +1,7 @@
-const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../config/database');
 const nlpService = require('./nlpService');
 
 // Use shared Prisma client instance
-const prisma = new PrismaClient();
 
 class ContractSimilarityEngine {
   constructor() {

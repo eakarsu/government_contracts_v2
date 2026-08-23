@@ -2,6 +2,7 @@ const fs = require('fs');
 const { Pool } = require('pg');
 const { PrismaClient } = require('@prisma/client');
 const config = require('./env');
+const { installTenantMiddleware } = require('../services/tenantContext');
 
 function databaseSsl(configuration = config) {
   if (!configuration.databaseSsl) return false;
@@ -21,7 +22,7 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 30000,
 });
-const prisma = new PrismaClient();
+const prisma = installTenantMiddleware(new PrismaClient());
 
 async function testConnection() {
   const client = await pool.connect();
