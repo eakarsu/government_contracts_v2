@@ -6,6 +6,7 @@ const { prisma } = require('../config/database');
 const { RfpProductionService } = require('../services/rfpProductionService');
 const { DurableTaskQueue } = require('../services/durableTaskQueue');
 const { NotificationService } = require('../services/notificationService');
+const { resolveSamNoticeDescription } = require('../services/samNoticeDescription');
 
 const router = express.Router();
 const rfpProductionService = new RfpProductionService(prisma);
@@ -142,6 +143,20 @@ function optionalString(value) {
   if (value === undefined || value === null) return null;
   const normalized = String(value).trim();
   return normalized || null;
+}
+
+async function mapWithConcurrency(items, concurrency, mapper) {
+  if (!items.length) return [];
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await mapper(items[index], index);
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 function contractFromSAM(contractData) {
@@ -352,17 +367,35 @@ router.post('/fetch', async (req, res) => {
     let documentQueueErrors = 0;
     const storedContracts = [];
 
-    for (const contractData of contractsData) {
-      const contractDetails = contractFromSAM(contractData);
-      if (!contractDetails) {
-        errorsCount++;
-        continue;
-      }
+    const preparedContracts = contractsData.map(contractFromSAM).filter(contract => {
+      if (contract) return true;
+      errorsCount++;
+      return false;
+    });
+    const existingContracts = preparedContracts.length
+      ? await prisma.contract.findMany({
+          where: { noticeId: { in: preparedContracts.map(contract => contract.noticeId) } }
+        })
+      : [];
+    const existingByNoticeId = new Map(existingContracts.map(contract => [contract.noticeId, contract]));
+    const descriptionResolutions = await mapWithConcurrency(preparedContracts, 8, contractDetails => (
+      resolveSamNoticeDescription(contractDetails.samData.description, {
+        apiKey: config.samGovApiKey,
+        fallbackDescription: existingByNoticeId.get(contractDetails.noticeId)?.description,
+      })
+    ));
+
+    for (const [index, contractDetails] of preparedContracts.entries()) {
+      const descriptionResolution = descriptionResolutions[index];
+      contractDetails.description = descriptionResolution.description;
 
       try {
-        const existingContract = await prisma.contract.findUnique({
-          where: { noticeId: contractDetails.noticeId }
-        });
+        const existingContract = existingByNoticeId.get(contractDetails.noticeId);
+        if (descriptionResolution.status === 'fetch_failed') {
+          console.warn(`SAM.gov description fetch failed for contract ${contractDetails.noticeId}; retaining safe fallback`);
+        } else if (descriptionResolution.status === 'untrusted_url') {
+          console.warn(`Ignored an untrusted description URL for contract ${contractDetails.noticeId}`);
+        }
         if (existingContract) {
           await rfpProductionService.detectAmendment(existingContract, contractDetails);
         }

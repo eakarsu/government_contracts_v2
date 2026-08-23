@@ -7,10 +7,15 @@ const rfpService = require('../services/rfpService');
 const { requirePermission } = require('../middleware/auth');
 const { RfpProductionService } = require('../services/rfpProductionService');
 const { SubmissionPackageService } = require('../services/submissionPackageService');
+const { FINGERPRINT_VERSION, RfpGenerationCoordinator } = require('../services/rfpGenerationCoordinator');
 
 const router = express.Router();
 const productionService = new RfpProductionService(prisma);
 const submissionPackages = new SubmissionPackageService(prisma, config);
+const generationCoordinator = new RfpGenerationCoordinator({
+  prisma,
+  generate: input => generateAndSaveApplication(input),
+});
 
 function rfpPermission(req) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return 'rfp:read';
@@ -241,7 +246,47 @@ async function ensureStandardTemplate() {
   });
 }
 
-async function generateAndSaveApplication({ contractId, templateId, companyProfileId, customInstructions, focusAreas, user }) {
+async function resolveGenerationReferences({ contractId, templateId, companyProfileId }) {
+  const contract = await prisma.contract.findUnique({
+    where: { noticeId: contractId },
+    select: { noticeId: true, updatedAt: true },
+  });
+  if (!contract) {
+    const error = new Error('Selected contract opportunity was not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const template = templateId
+    ? await prisma.rfpTemplate.findUnique({ where: { id: templateId }, select: { id: true, updatedAt: true } })
+    : await ensureStandardTemplate();
+  if (!template) {
+    const error = new Error('Selected RFP template was not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const companyProfile = companyProfileId
+    ? await prisma.companyProfile.findUnique({ where: { id: companyProfileId }, select: { id: true, updatedAt: true } })
+    : null;
+  if (!companyProfile) {
+    const error = new Error('Create and select a company profile before generating an application');
+    error.statusCode = 409;
+    error.code = 'COMPANY_PROFILE_REQUIRED';
+    throw error;
+  }
+
+  return {
+    contractId: contract.noticeId,
+    contractRevision: contract.updatedAt,
+    templateId: template.id,
+    templateRevision: template.updatedAt,
+    companyProfileId: companyProfile.id,
+    companyProfileRevision: companyProfile.updatedAt,
+  };
+}
+
+async function generateAndSaveApplication({ contractId, templateId, companyProfileId, customInstructions, focusAreas, generationFingerprint, user }) {
   const contract = await prisma.contract.findUnique({ where: { noticeId: contractId } });
   if (!contract) {
     const error = new Error('Selected contract opportunity was not found');
@@ -314,6 +359,8 @@ async function generateAndSaveApplication({ contractId, templateId, companyProfi
       focusAreas: Array.isArray(focusAreas) ? focusAreas : [],
       sourceContractNoticeId: contract.noticeId,
       sourceContractUpdatedAt: contract.updatedAt.toISOString(),
+      generationFingerprint,
+      generationFingerprintVersion: FINGERPRINT_VERSION,
       reviewRequired: true,
       releaseStatus: 'draft_only'
     }
@@ -526,16 +573,17 @@ router.post('/generate', async (req, res) => {
     const companyProfileId = req.body.companyProfileId ? positiveInteger(req.body.companyProfileId, null) : null;
     if (!contractId) return res.status(400).json({ success: false, error: 'contractId is required' });
 
-    const response = await generateAndSaveApplication({
-      contractId,
-      templateId,
-      companyProfileId,
+    const references = await resolveGenerationReferences({ contractId, templateId, companyProfileId });
+    const coordinated = await generationCoordinator.run({
+      tenantId: req.tenantId || req.user?.tenantId || config.defaultTenantId,
+      ...references,
       customInstructions: req.body.customInstructions,
       focusAreas: req.body.focusAreas,
       user: req.user,
-    });
+    }, { forceRegenerate: req.body.forceRegenerate === true });
+    const response = coordinated.response;
     const serialized = serializeResponse(response);
-    return res.status(201).json({
+    return res.status(coordinated.reused ? 200 : 201).json({
       success: true,
       rfpResponseId: response.id,
       generationTime: (Date.now() - startedAt) / 1000,
@@ -546,7 +594,15 @@ router.post('/generate', async (req, res) => {
         : typeof serialized.predictedScore === 'object'
         ? serialized.predictedScore.overall || 0
         : serialized.predictedScore || 0,
-      message: 'Proposal application draft generated. Human review is required before submission.'
+      reused: coordinated.reused,
+      reuseReason: coordinated.reuseReason,
+      message: coordinated.reuseReason === 'in_flight'
+        ? 'Matching proposal generation is already running, so this request joined the existing work instead of creating a duplicate.'
+        : coordinated.reuseReason === 'recently_completed_legacy'
+        ? 'A matching proposal draft completed recently before retry fingerprints were enabled, so that governed draft was returned instead of creating a duplicate.'
+        : coordinated.reuseReason === 'recently_completed'
+        ? 'A matching proposal draft completed recently, so that governed draft was returned instead of creating a duplicate.'
+        : 'Proposal application draft generated. Human review is required before submission.'
     });
   } catch (error) {
     console.error(`RFP generation failed: ${error.message}`);

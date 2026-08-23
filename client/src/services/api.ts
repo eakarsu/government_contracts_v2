@@ -41,6 +41,8 @@ import type {
   RFPAmendment,
 } from '../types';
 
+export const RFP_GATEWAY_TIMEOUT_MESSAGE = 'The gateway stopped waiting, but proposal generation may still be running on the server. Refresh the RFP dashboard before retrying; an identical retry will reuse the completed draft instead of creating a duplicate.';
+
 // Create axios instance with default config
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
@@ -81,9 +83,12 @@ api.interceptors.response.use(
   },
   (error) => {
     let message = 'An error occurred';
-    
+
+    // A reverse proxy can stop waiting before the server-side AI workflow ends.
+    if (error.response?.status === 504 && error.config?.url?.includes('/rfp/generate')) {
+      message = RFP_GATEWAY_TIMEOUT_MESSAGE;
     // Handle different error response formats
-    if (error.response?.data) {
+    } else if (error.response?.data) {
       if (typeof error.response.data === 'string') {
         // Check if it's HTML error page
         if (error.response.data.includes('<!DOCTYPE html>')) {
@@ -541,6 +546,9 @@ class ApiService {
       } else if (error.response?.status === 502) {
         console.error('❌ [DEBUG] AI provider error during RFP generation:', error.response.data);
         throw new Error(error.response?.data?.error || 'The AI provider could not complete a proposal section. Please try generation again.');
+      } else if (error.response?.status === 504) {
+        console.error('❌ [DEBUG] Gateway stopped waiting for RFP generation');
+        throw new Error(RFP_GATEWAY_TIMEOUT_MESSAGE);
       } else if (error.response?.status === 500) {
         console.error('❌ [DEBUG] Server error during RFP generation:', error.response.data);
         throw new Error('Server error during RFP generation. Please check the server logs for details.');

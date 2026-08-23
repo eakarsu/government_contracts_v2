@@ -27,8 +27,14 @@ server {
 
 
     location / {
-        proxy_pass http://localhost:5000;
+        # Proposal generation performs several governed AI batches and can take
+        # several minutes. Keep this aligned with the client's 20-minute limit.
+        proxy_pass http://127.0.0.1:5013;
         proxy_http_version 1.1;
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 1200s;
+        proxy_read_timeout 1200s;
+        send_timeout 1200s;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
@@ -164,6 +170,5 @@ server {
 
 
 }
-
 
 

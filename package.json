@@ -17,6 +17,7 @@
     "seed:lifecycle": "node scripts/seed-contract-lifecycle.js",
     "seed:contract-suite": "node scripts/seed-contract-suite.js",
     "seed:ai-opportunities": "node scripts/seed-ai-opportunities.js",
+    "backfill:sam-description": "node scripts/backfill-sam-description.js",
     "create-admin": "node scripts/provision-admin.js",
     "provision:tenant-admin": "node scripts/provision-tenant-admin.js",
     "backup:production": "bash scripts/backup-production.sh",

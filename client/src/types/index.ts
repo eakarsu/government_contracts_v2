@@ -698,6 +698,7 @@ export interface RFPGenerationRequest {
   companyProfileId: number;
   customInstructions?: string;
   focusAreas?: string[];
+  forceRegenerate?: boolean;
 }
 
 export interface RFPGenerationResponse {
@@ -707,6 +708,8 @@ export interface RFPGenerationResponse {
   sectionsGenerated: number;
   complianceScore: number;
   predictedScore: number | null;
+  reused?: boolean;
+  reuseReason?: 'in_flight' | 'recently_completed' | 'recently_completed_legacy' | null;
   message: string;
 }
 
