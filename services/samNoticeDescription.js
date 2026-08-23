@@ -164,7 +164,10 @@ async function resolveSamNoticeDescription(rawDescription, {
 
   try {
     const response = await httpClient.get(trustedUrl.toString(), {
-      headers: { Accept: 'text/html, text/plain, application/json' },
+      // SAM's noticedesc endpoint currently returns HTTP 500 when HTML/text
+      // media types are advertised, even though the response body contains
+      // JSON. Request JSON explicitly and sanitize the embedded HTML below.
+      headers: { Accept: 'application/json' },
       maxBodyLength: boundedMaxBytes,
       maxContentLength: boundedMaxBytes,
       maxRedirects: 0,

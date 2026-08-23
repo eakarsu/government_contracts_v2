@@ -30,6 +30,7 @@ test('resolves a trusted SAM notice description with bounded, credentialed HTTP 
   expect(requestedUrl).toBe(sourceUrl);
   expect(requestedUrl).not.toContain('provider-supplied');
   expect(options).toMatchObject({
+    headers: { Accept: 'application/json' },
     maxBodyLength: DEFAULT_MAX_BYTES,
     maxContentLength: DEFAULT_MAX_BYTES,
     maxRedirects: 0,
