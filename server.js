@@ -46,7 +46,7 @@ const operationsRoutes = require('./routes/operations');
 const { PipelineReliabilityService } = require('./services/pipelineReliabilityService');
 
 // Import middleware
-const { rateLimiter, statusRateLimiter, aiRateLimiter } = require('./middleware/rateLimiter');
+const { rateLimiter, authRateLimiter, statusRateLimiter, aiRateLimiter } = require('./middleware/rateLimiter');
 const { errorHandler } = require('./middleware/errorHandler');
 const { authMiddleware, requirePermission } = require('./middleware/auth');
 
@@ -82,7 +82,21 @@ app.use(
   })
 );
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(rateLimiter);
+
+// Keep static application assets out of API rate-limit buckets. Dashboard
+// polling has a separate, short-window allowance, while login and generative
+// AI routes retain stricter protection.
+app.use('/api/status', statusRateLimiter);
+app.use('/api/config', statusRateLimiter);
+app.use('/api/health', statusRateLimiter);
+app.use('/api/documents/queue/status', statusRateLimiter);
+app.use('/api/jobs', statusRateLimiter);
+app.use('/api/ai/health', statusRateLimiter);
+app.use('/api/ai/opportunity-predictions', statusRateLimiter);
+app.use('/api/auth/login', authRateLimiter);
+app.use('/api/ai', aiRateLimiter);
+app.use('/api/rfp/generate', aiRateLimiter);
+app.use('/api', rateLimiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static('public'));
@@ -127,14 +141,6 @@ const upload = multer({
     }
   }
 });
-
-// Status endpoints with more permissive rate limiting
-app.use('/api/status', statusRateLimiter);
-app.use('/api/config', statusRateLimiter);
-app.use('/api/health', statusRateLimiter);
-app.use('/api/documents/queue/status', statusRateLimiter);
-app.use('/api/ai', aiRateLimiter);
-app.use('/api/rfp/generate', aiRateLimiter);
 
 // OIDC discovery and disabled legacy-login responses are public. Every other
 // API route is authenticated except GET /api/health.
