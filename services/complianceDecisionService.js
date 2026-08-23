@@ -29,6 +29,17 @@ function digest(value) {
   return crypto.createHash('sha256').update(JSON.stringify(stable(value))).digest('hex');
 }
 
+function governanceAuditRecord(value) {
+  return {
+    action: value.action,
+    actorId: value.actorId,
+    aggregateId: value.aggregateId,
+    aggregateType: value.aggregateType,
+    occurredAt: value.occurredAt,
+    payload: value.payload,
+  };
+}
+
 function isoDate(value, field) {
   const date = new Date(value);
   if (!value || Number.isNaN(date.getTime())) throw new GovernanceError('INVALID_DATE', `${field} must be an ISO date`);
@@ -117,7 +128,7 @@ class InMemoryGovernanceRepository {
     const previousHash = aggregateEvents.length ? aggregateEvents[aggregateEvents.length - 1].hash : 'GENESIS';
     const stored = {
       ...clone(record),
-      hash: digest({ previousHash, record }),
+      hash: digest({ previousHash, record: governanceAuditRecord(record) }),
       id: `audit-${++this.counters.audit}`,
       previousHash,
       sequence: aggregateEvents.length + 1,
@@ -427,8 +438,9 @@ class ComplianceDecisionService {
     const auditEvents = await this.repository.listAudit(id);
     const chainValid = auditEvents.every((event, index) => {
       const previousHash = index ? auditEvents[index - 1].hash : 'GENESIS';
-      const { hash, id, previousHash: storedPreviousHash, sequence, ...record } = event;
-      return storedPreviousHash === previousHash && sequence === index + 1 && hash === digest({ previousHash, record });
+      return event.previousHash === previousHash
+        && event.sequence === index + 1
+        && event.hash === digest({ previousHash, record: governanceAuditRecord(event) });
     });
     if (!chainValid) throw new GovernanceError('AUDIT_CHAIN_INVALID', 'Audit chain verification failed', 500);
     return {
@@ -446,4 +458,5 @@ module.exports = {
   GovernanceError,
   InMemoryGovernanceRepository,
   digest,
+  governanceAuditRecord,
 };

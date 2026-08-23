@@ -19,6 +19,8 @@ async function signIn(page) {
 test('authenticated capture workspace is reachable and has no serious accessibility violations', async ({ page }) => {
   await signIn(page);
   await expect(page.getByRole('link', { name: 'RFP Workspace' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Notifications' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Settings' })).toBeVisible();
   const accessibility = await new AxeBuilder({ page }).analyze();
   expect(accessibility.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
 });

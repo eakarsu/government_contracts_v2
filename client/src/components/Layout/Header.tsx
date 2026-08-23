@@ -17,7 +17,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, config }) => {
         {/* Left side */}
         <div className="flex items-center">
           <button
+            type="button"
             onClick={onMenuClick}
+            aria-label="Open navigation"
             className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 lg:hidden"
           >
             <Menu className="h-6 w-6" />
@@ -52,12 +54,20 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, config }) => {
           </div>
 
           {/* Notifications */}
-          <button className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
+          <button
+            type="button"
+            aria-label="Notifications"
+            className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
             <Bell className="h-6 w-6" />
           </button>
 
           {/* Settings */}
-          <button className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
+          <button
+            type="button"
+            aria-label="Settings"
+            className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
             <Settings className="h-6 w-6" />
           </button>
 

@@ -231,3 +231,22 @@ test('detects audit-chain tampering before export', async () => {
   event.payload.contractId = 'tampered';
   await expect(service.exportDecision(draft.id, recordsOfficer)).rejects.toMatchObject({ code: 'AUDIT_CHAIN_INVALID' });
 });
+
+test('verifies audit records after persistence adds tenant metadata and restores Date values', async () => {
+  const { repository, service } = setup();
+  const { policy, source } = await fixtures(service);
+  const draft = await service.createEvaluation(evaluationInput(policy, source), analyst);
+  await service.submitEvaluation(draft.id, analyst);
+
+  const listAudit = repository.listAudit.bind(repository);
+  repository.listAudit = async aggregateId => (await listAudit(aggregateId)).map(event => ({
+    ...event,
+    occurredAt: new Date(event.occurredAt),
+    tenantId: 'default',
+  }));
+
+  const exported = await service.exportDecision(draft.id, recordsOfficer);
+  expect(exported.auditEvents).toHaveLength(2);
+  expect(exported.auditEvents.every(event => event.tenantId === 'default')).toBe(true);
+  expect(exported.manifestHash).toMatch(/^[a-f0-9]{64}$/);
+});

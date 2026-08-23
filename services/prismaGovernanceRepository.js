@@ -1,4 +1,4 @@
-const { digest } = require('./complianceDecisionService');
+const { digest, governanceAuditRecord } = require('./complianceDecisionService');
 
 class PrismaGovernanceRepository {
   constructor(prisma) {
@@ -48,7 +48,7 @@ class PrismaGovernanceRepository {
       return transaction.governanceAuditEvent.create({
         data: {
           ...record,
-          hash: digest({ previousHash, record }),
+          hash: digest({ previousHash, record: governanceAuditRecord(record) }),
           previousHash,
           sequence,
         },
