@@ -1,5 +1,6 @@
 const axios = require('axios');
 const config = require('../config/env');
+const { assertCaptureActive } = require('./captureRequestCancellation');
 
 class NLPService {
   constructor() {
@@ -8,8 +9,9 @@ class NLPService {
     this.model = config.openRouterModel;
   }
 
-  async extractEntities(text) {
+  async extractEntities(text, { signal } = {}) {
     try {
+      assertCaptureActive(signal);
       // Handle empty or very short text
       if (!text || text.trim().length < 2) {
         return {
@@ -56,6 +58,7 @@ Return valid JSON with:
         temperature: 0.1,
         response_format: { "type": "json_object" }
       }, {
+        signal,
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
@@ -64,10 +67,12 @@ Return valid JSON with:
         },
         timeout: 15000
       });
-
+      assertCaptureActive(signal);
       console.log('✅ OpenRouter entity extraction successful');
       return this.parseEntityResponse(response.data.choices[0].message.content);
     } catch (error) {
+      assertCaptureActive(signal);
+      if (axios.isCancel(error) || error.code === 'ERR_CANCELED' || error.name === 'AbortError') throw error;
       console.error('❌ Entity extraction error:', error.message);
       console.error('❌ Using fallback extraction');
       return this.fallbackEntityExtraction(text);

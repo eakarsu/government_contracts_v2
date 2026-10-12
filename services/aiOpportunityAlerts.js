@@ -2,6 +2,7 @@ const { prisma } = require('../config/database');
 const winProbabilityPredictor = require('./mlWinProbability');
 const contractSimilarity = require('./contractSimilarity');
 const nlpService = require('./nlpService');
+const { assertCaptureActive } = require('./captureRequestCancellation');
 
 // Use shared Prisma client instance
 
@@ -12,22 +13,27 @@ class AIOpportunityAlerts {
   }
 
   // Main method to generate personalized alerts
-  async generateOpportunityAlerts(userId, userContext = {}) {
+  async generateOpportunityAlerts(userId, userContext = {}, { signal } = {}) {
     try {
+      assertCaptureActive(signal);
       // Get user preferences
       const preferences = await this.getUserPreferences(userId, userContext);
+      assertCaptureActive(signal);
       
       // Find matching opportunities
       const opportunities = await this.findMatchingOpportunities(preferences);
+      assertCaptureActive(signal);
       
       // Score and rank opportunities
       const scoredOpportunities = await this.scoreOpportunities(opportunities, preferences);
+      assertCaptureActive(signal);
       
       // Filter high-value alerts
       const alerts = this.filterHighValueAlerts(scoredOpportunities, preferences);
       
       // Generate personalized messages
-      const personalizedAlerts = await this.personalizeAlerts(alerts, preferences);
+      const personalizedAlerts = await this.personalizeAlerts(alerts, preferences, { signal });
+      assertCaptureActive(signal);
       
       return {
         alerts: personalizedAlerts,
@@ -35,6 +41,8 @@ class AIOpportunityAlerts {
         recommendations: this.generateAlertRecommendations(personalizedAlerts)
       };
     } catch (error) {
+      assertCaptureActive(signal);
+      if (error.code === 'ERR_CANCELED' || error.name === 'AbortError') throw error;
       console.error('Error generating opportunity alerts:', error);
       return { alerts: [], summary: {}, recommendations: [] };
     }
@@ -353,8 +361,9 @@ class AIOpportunityAlerts {
     });
   }
 
-  async personalizeAlerts(alerts, preferences) {
+  async personalizeAlerts(alerts, preferences, { signal } = {}) {
     return await Promise.all(alerts.map(async alert => {
+      assertCaptureActive(signal);
       const personalizedAlert = {
         ...alert,
         title: await this.generateAlertTitle(alert),
@@ -364,10 +373,11 @@ class AIOpportunityAlerts {
         metadata: {
           estimatedTimeline: this.estimateTimeline(alert.opportunity),
           similarWins: await this.findSimilarWins(alert.opportunity, preferences),
-          keyRequirements: await this.extractKeyRequirements(alert.opportunity)
+          keyRequirements: await this.extractKeyRequirements(alert.opportunity, { signal })
         }
       };
 
+      assertCaptureActive(signal);
       return personalizedAlert;
     }));
   }
@@ -512,11 +522,13 @@ class AIOpportunityAlerts {
     );
   }
 
-  async extractKeyRequirements(opportunity) {
+  async extractKeyRequirements(opportunity, { signal } = {}) {
+    assertCaptureActive(signal);
     // Use NLP to extract key requirements from description
     if (!opportunity.description) return [];
     
-    const entities = await nlpService.extractEntities(opportunity.description);
+    const entities = await nlpService.extractEntities(opportunity.description, { signal });
+    assertCaptureActive(signal);
     
     const requirements = [];
     

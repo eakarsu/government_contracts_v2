@@ -4,6 +4,14 @@ import { apiService } from '../services/api';
 import { QueueStatus, ApiResponse, DocumentSearchForm, DocumentSearchResponse, DocumentStats, FileTypesResponse } from '../types';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 import DocumentDownload from '../components/Dashboard/DocumentDownload';
+import ProfessionalAiReport from '../components/AI/ProfessionalAiReport';
+
+const DOCUMENT_ANALYSIS_PRESETS = [
+  { label: 'Requirements', prompt: 'Extract explicit requirements, deadlines, deliverables, and acceptance criteria. Cite page or section evidence and mark uncertainty.' },
+  { label: 'Compliance', prompt: 'Identify regulatory and solicitation compliance obligations, exceptions, missing evidence, and items requiring legal or acquisition review.' },
+  { label: 'Executive summary', prompt: 'Summarize the document purpose, key decisions, material risks, owners, and next actions with source citations.' },
+];
+const SERVICE_DEFAULT_MODEL = 'Configured service default';
 
 const Documents: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
@@ -83,7 +91,7 @@ const Documents: React.FC = () => {
 
   const handleUpload = () => {
     if (selectedFiles) {
-      uploadMutation.mutate({ files: selectedFiles, customPrompt, model });
+      uploadMutation.mutate({ files: selectedFiles, customPrompt, model: model === SERVICE_DEFAULT_MODEL ? undefined : model });
     }
   };
 
@@ -424,55 +432,7 @@ const Documents: React.FC = () => {
                             <summary className="text-sm font-medium text-purple-600 cursor-pointer hover:text-purple-800 mb-2">
                               📝 View AI Summarization
                             </summary>
-                            <div className="mt-2 space-y-3">
-                              {doc.summarization.summary && (
-                                <div>
-                                  <h5 className="text-sm font-medium text-gray-700 mb-1">Summary:</h5>
-                                  <div className="text-sm text-gray-600 bg-purple-50 p-3 rounded">
-                                    {doc.summarization.summary}
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {doc.summarization.keyPoints && doc.summarization.keyPoints.length > 0 && (
-                                <div>
-                                  <h5 className="text-sm font-medium text-gray-700 mb-1">Key Points:</h5>
-                                  <ul className="text-sm text-gray-600 bg-purple-50 p-3 rounded list-disc list-inside space-y-1">
-                                    {doc.summarization.keyPoints.map((point, idx) => (
-                                      <li key={idx}>{point}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-
-                              {doc.summarization.analysis && (
-                                <div>
-                                  <h5 className="text-sm font-medium text-gray-700 mb-1">Analysis:</h5>
-                                  <div className="text-sm text-gray-600 bg-purple-50 p-3 rounded">
-                                    {doc.summarization.analysis}
-                                  </div>
-                                </div>
-                              )}
-
-                              {doc.summarization.recommendations && doc.summarization.recommendations.length > 0 && (
-                                <div>
-                                  <h5 className="text-sm font-medium text-gray-700 mb-1">Recommendations:</h5>
-                                  <ul className="text-sm text-gray-600 bg-purple-50 p-3 rounded list-disc list-inside space-y-1">
-                                    {doc.summarization.recommendations.map((rec, idx) => (
-                                      <li key={idx}>{rec}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-
-                              {(doc.summarization.wordCount || doc.summarization.pageCount) && (
-                                <div className="text-xs text-gray-500 pt-2 border-t">
-                                  Document Stats: 
-                                  {doc.summarization.wordCount && ` ${doc.summarization.wordCount} words`}
-                                  {doc.summarization.pageCount && ` • ${doc.summarization.pageCount} pages`}
-                                </div>
-                              )}
-                            </div>
+                            <div className="mt-2"><ProfessionalAiReport value={doc.summarization} title="Document Analysis" subtitle="Saved document summary and findings" /></div>
                           </details>
                         </div>
                       )}
@@ -517,6 +477,10 @@ const Documents: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload Documents</h2>
           
           <div className="space-y-4">
+            <div className="flex flex-wrap gap-2" aria-label="Document analysis presets">
+              {DOCUMENT_ANALYSIS_PRESETS.map(preset => <button key={preset.label} type="button" onClick={() => { setCustomPrompt(preset.prompt); setModel(SERVICE_DEFAULT_MODEL); }} className="rounded-md border border-primary-300 px-3 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50">{preset.label}</button>)}
+              <p className="w-full text-xs text-gray-500">Presets use the document service’s configured default model and keep your selected files. Select files before uploading.</p>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Select Files

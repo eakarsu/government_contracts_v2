@@ -189,7 +189,7 @@ export interface UserContext {
 }
 
 class AIService {
-  async getOpportunityPredictions(userContext?: UserContext): Promise<{
+  async getOpportunityPredictions(userContext?: UserContext, signal?: AbortSignal): Promise<{
     predictions: OpportunityPrediction[];
     summary: {
       totalPredictions: number;
@@ -199,28 +199,28 @@ class AIService {
     };
     generatedAt: string;
   }> {
-    const response = await api.post('/ai/opportunity-predictions', { userContext });
+    const response = await api.post('/ai/opportunity-predictions', { userContext }, { signal });
     return response.data;
   }
 
-  async predictWinProbability(contractId: string, userContext?: UserContext): Promise<WinProbabilityResponse> {
+  async predictWinProbability(contractId: string, userContext?: UserContext, signal?: AbortSignal): Promise<WinProbabilityResponse> {
     const response = await api.post('/ai/win-probability', {
       contractId,
       userContext
-    });
+    }, { signal });
     return response.data;
   }
 
-  async findSimilarContracts(contractId: string, limit: number = 5, userContext?: UserContext): Promise<ContractSimilarityResponse> {
+  async findSimilarContracts(contractId: string, limit: number = 5, userContext?: UserContext, signal?: AbortSignal): Promise<ContractSimilarityResponse> {
     const response = await api.post('/ai/similar-contracts', {
       contractId,
       limit,
       userContext
-    });
+    }, { signal });
     return response.data;
   }
 
-  async getOpportunityAlerts(userId: string, userContext?: UserContext): Promise<{
+  async getOpportunityAlerts(userId: string, userContext?: UserContext, signal?: AbortSignal): Promise<{
     alerts: AIAlert[];
     summary: {
       totalAlerts: number;
@@ -241,34 +241,36 @@ class AIService {
     const response = await api.post('/ai/opportunity-alerts', {
       userId,
       userContext
-    });
+    }, { signal });
     return response.data;
   }
 
-  async optimizeBidStrategy(contractId: string, userContext?: UserContext): Promise<BidStrategyResponse> {
+  async optimizeBidStrategy(contractId: string, userContext?: UserContext, signal?: AbortSignal): Promise<BidStrategyResponse> {
     const response = await api.post('/ai/optimize-strategy', {
       contractId,
       userContext
-    });
+    }, { signal });
     return response.data;
   }
 
   async getComprehensiveAnalysis(
     contractId: string, 
     userId: string, 
-    userContext?: UserContext
+    userContext?: UserContext,
+    signal?: AbortSignal
   ): Promise<ComprehensiveAnalysis> {
     const response = await api.post('/ai/comprehensive-analysis', {
       contractId,
       userId,
       userContext
-    });
+    }, { signal });
     return response.data;
   }
 
   async batchAnalyzeContracts(
     contractIds: string[], 
-    userContext?: UserContext
+    userContext?: UserContext,
+    signal?: AbortSignal
   ): Promise<Array<{
     contractId: string;
     contract: {
@@ -284,7 +286,7 @@ class AIService {
     const response = await api.post('/ai/batch-analysis', {
       contractIds,
       userContext
-    });
+    }, { signal });
     return response.data.results;
   }
 

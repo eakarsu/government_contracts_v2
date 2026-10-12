@@ -1,3 +1,4 @@
+import { useRef as useDemoLoginRef, useState as useDemoLoginState } from 'react';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { LockKeyhole, Scale, ShieldCheck, Sparkles } from 'lucide-react';
@@ -5,6 +6,7 @@ import { LockKeyhole, Scale, ShieldCheck, Sparkles } from 'lucide-react';
 interface AuthContextValue {
   signOut: () => Promise<void>;
   signingOut: boolean;
+  user: { id: string; email?: string; roles?: string[]; permissions?: string[] } | null;
 }
 
 type AuthConfig = {
@@ -35,8 +37,12 @@ export function useAuth(): AuthContextValue {
 }
 
 const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const demoLoginLock = useDemoLoginRef(false);
+  const [demoLoginBusy, setDemoLoginBusy] = useDemoLoginState(false);
+
   const queryClient = useQueryClient();
   const [authenticated, setAuthenticated] = useState(false);
+  const [user, setUser] = useState<AuthContextValue['user']>(null);
   const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -74,6 +80,9 @@ const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         localStorage.setItem('auth_token', token); localStorage.setItem('token', token);
         const me = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
         if (!me.ok) throw new Error('Session expired');
+        const identity = await me.json();
+        if (!identity.user?.id) throw new Error('Authenticated identity is unavailable');
+        setUser(identity.user);
         setAuthenticated(true);
       } catch (initializationError: any) {
         localStorage.removeItem('auth_token'); localStorage.removeItem('token');
@@ -110,14 +119,18 @@ const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setPassword(credentials.password || '');
   }
 
-  async function signIn(event: React.FormEvent) {
+  async function signIn(event: React.FormEvent, demoLoginCredentials: { email: string; password: string } | undefined = undefined) {
     event.preventDefault(); setSubmitting(true); setError('');
     try {
-      const response = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+      const response = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: (demoLoginCredentials?.email ?? email), password: (demoLoginCredentials?.password ?? password) }) });
       const body = await response.json();
       if (!response.ok || !body.token) throw new Error(body.error || 'Login failed');
       localStorage.setItem('auth_token', body.token);
       localStorage.setItem('token', body.token);
+      const me = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${body.token}` } });
+      const identity = await me.json();
+      if (!me.ok || !identity.user?.id) throw new Error('Authenticated identity is unavailable');
+      setUser(identity.user);
       setAuthenticated(true);
     } catch (loginError: any) { setError(loginError.message || 'Login failed'); }
     finally { setSubmitting(false); }
@@ -146,12 +159,13 @@ const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       setEmail('');
       setPassword('');
       setAuthenticated(false);
+      setUser(null);
       setSigningOut(false);
     }
   }
 
   if (checking) return <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white"><div className="loading-spinner border-white" /></div>;
-  if (authenticated) return <AuthContext.Provider value={{ signOut, signingOut }}>{children}</AuthContext.Provider>;
+  if (authenticated) return <AuthContext.Provider value={{ signOut, signingOut, user }}>{children}</AuthContext.Provider>;
   return <main className="min-h-screen bg-slate-950 px-4 py-10 text-white">
     <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-2xl lg:grid-cols-[1.15fr_.85fr]">
       <section className="relative hidden overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950 to-blue-900 p-12 lg:block">
@@ -165,7 +179,24 @@ const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </section>
       <section className="flex items-center bg-white p-7 text-gray-950 sm:p-12"><div className="w-full"><div className="lg:hidden"><Scale className="h-9 w-9 text-indigo-700" /></div><div className="text-sm font-semibold uppercase tracking-widest text-indigo-700">Authorized access</div><h2 className="mt-2 text-3xl font-bold">Sign in to your workspace</h2><p className="mt-2 text-sm leading-6 text-gray-500">Use your configured identity provider or local development administrator.</p>
         {error && <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {authConfig.mode === 'oidc' ? <button type="button" onClick={startSso} className="btn-primary mt-8 w-full py-3">Continue with organization SSO</button> : <><form onSubmit={signIn} className="mt-8 space-y-5"><label className="block"><span className="label">Email address</span><input className="input py-3" type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} /></label><label className="block"><span className="label">Password</span><input className="input py-3" type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} /></label><button className="btn-primary w-full py-3" disabled={submitting}>{submitting ? 'Signing in…' : 'Sign in'}</button></form><button type="button" onClick={fillDemo} className="mt-3 w-full rounded-md border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Auto Fill Demo Credentials</button></>}
+        {authConfig.mode === 'oidc' ? <button type="button" onClick={startSso} className="btn-primary mt-8 w-full py-3">Continue with organization SSO</button> : <><form onSubmit={signIn} className="mt-8 space-y-5"><label className="block"><span className="label">Email address</span><input className="input py-3" type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} /></label><label className="block"><span className="label">Password</span><input className="input py-3" type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} /></label><button className="btn-primary w-full py-3" disabled={submitting}>{submitting ? 'Signing in…' : 'Sign in'}</button></form><button disabled={demoLoginBusy} type="button" onClick={async (event) => {
+ if (demoLoginLock.current) return;
+ demoLoginLock.current = true; setDemoLoginBusy(true);
+ const values: {email?: string; password?: string; error?: unknown} = {};
+ const captureDemoValue = (key: "email" | "password" | "error", value: any) => { values[key] = value; return value; };
+ try {
+  await (async () => {
+    setError(captureDemoValue("error", ''));
+    const response = await fetch('/api/auth/demo-credentials', { cache: 'no-store' });
+    if (!response.ok) { setError(captureDemoValue("error", 'Demo credentials are unavailable in this environment.')); return; }
+    const credentials = await response.json();
+    setEmail(captureDemoValue("email", credentials.email || ''));
+    setPassword(captureDemoValue("password", credentials.password || ''));
+  })();
+  if (values.error || typeof values.email !== 'string' || !values.email || typeof values.password !== 'string' || !values.password) { setError(typeof values.error === 'string' ? values.error : 'Demo credentials are unavailable.'); return; }
+  await signIn(event, { email: values.email, password: values.password });
+ } finally { demoLoginLock.current = false; setDemoLoginBusy(false); }
+}} className="mt-3 w-full rounded-md border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Log In as Demo</button></>}
         <p className="mt-6 text-xs leading-5 text-gray-400">AI output is advisory. Authorized acquisition, legal, compliance, and business reviewers remain accountable for every consequential decision.</p>
       </div></section>
     </div>

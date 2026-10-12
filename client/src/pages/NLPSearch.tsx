@@ -97,7 +97,7 @@ const NLPSearch: React.FC = () => {
 
   const handleSuggestionClick = (suggestion: string) => {
     setQuery(suggestion);
-    handleSearch(suggestion);
+    setFilters({ includeSemantic: true, minScore: 0.5, maxResults: 50 });
   };
 
   const handleViewDetails = (contract: SearchResult) => {

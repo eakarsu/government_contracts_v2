@@ -55,9 +55,15 @@ export class ContractsApiService {
         totalPages: number;
       };
     }>(`/contracts?${params.toString()}`);
+    // The contracts route returns `contracts`; some paginated API versions use
+    // `data`. Only an actual array is safe to hand to record views.
+    const contracts = Array.isArray(response.data.data)
+      ? response.data.data
+      : Array.isArray(response.data.contracts) ? response.data.contracts : null;
+    if (!contracts) throw new Error('The contracts API did not return a record list.');
     return {
       success: response.data.success,
-      data: response.data.data ?? response.data.contracts ?? [],
+      data: contracts,
       pagination: response.data.pagination,
     };
   }

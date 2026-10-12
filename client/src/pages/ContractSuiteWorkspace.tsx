@@ -8,6 +8,7 @@ import {
 import toast from 'react-hot-toast';
 import { contractSuiteApi, SuiteAiReviewInput, SuiteDomain, SuiteWorkItem } from '../services/contractSuiteApi';
 import { lifecycleApi } from '../services/lifecycleApi';
+import ProfessionalAiReport from '../components/AI/ProfessionalAiReport';
 import { formatLifecycleValue, titleCase } from '../utils/lifecyclePresentation';
 
 const icons: Record<string, React.ElementType> = {
@@ -95,18 +96,13 @@ function EvidenceView({ value }: { value: any }) {
   return <span>{String(value ?? '—')}</span>;
 }
 
-function AnalysisReport({ analysis }: { analysis: Record<string, any> }) {
-  const output = analysis.output || {};
-  return <section className="space-y-5 rounded-xl border border-indigo-200 bg-indigo-50/40 p-5">
-    <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="text-xs font-semibold uppercase tracking-widest text-indigo-700">Advisory AI evidence</div><h3 className="mt-1 font-semibold text-gray-950">{titleCase(analysis.analysisType || 'analysis')}</h3></div><Pill value={analysis.status || 'PENDING_HUMAN_REVIEW'} /></div>
-    <div><h4 className="text-sm font-semibold text-gray-900">Executive summary</h4><p className="mt-2 text-sm leading-6 text-gray-700">{output.summary}</p></div>
-    {output.executiveDecision && <div className="grid gap-3 rounded-xl border border-indigo-200 bg-white p-4 sm:grid-cols-3"><div><div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Recommendation</div><div className="mt-1 font-semibold text-gray-950">{output.executiveDecision.recommendation}</div></div><div><div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Confidence</div><div className="mt-1 font-semibold text-gray-950">{formatLifecycleValue('confidence', output.executiveDecision.confidence)}</div></div><div><div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Rationale</div><div className="mt-1 text-sm text-gray-700">{output.executiveDecision.rationale}</div></div></div>}
-    {Array.isArray(output.scenarioMetrics) && output.scenarioMetrics.length > 0 && <div><h4 className="text-sm font-semibold text-gray-900">Decision metrics</h4><div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{output.scenarioMetrics.map((metric: any, index: number) => <div key={index} className="rounded-lg border border-gray-200 bg-white p-3"><div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{metric.label || metric.metric}</div><div className="mt-1 text-lg font-bold text-gray-950">{metric.value}</div>{metric.interpretation && <p className="mt-1 text-xs leading-5 text-gray-500">{metric.interpretation}</p>}</div>)}</div></div>}
-    <div><h4 className="text-sm font-semibold text-gray-900">Risk assessment</h4><div className="mt-2 space-y-2">{(output.riskAssessment || []).map((risk: any, index: number) => <div key={index} className="rounded-lg border border-gray-200 bg-white p-3"><div className="flex items-center justify-between gap-3"><span className="font-medium text-gray-900">{risk.finding}</span><Pill value={risk.severity || 'MEDIUM'} /></div><p className="mt-2 text-xs text-gray-500">Evidence: {risk.evidence || 'Independent validation required'}</p></div>)}</div></div>
-    <div className="grid gap-4 lg:grid-cols-2"><div><h4 className="text-sm font-semibold text-gray-900">Evidence gaps</h4><ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-700">{(output.evidenceGaps || []).map((gap: string, index: number) => <li key={index}>{gap}</li>)}</ul></div><div><h4 className="text-sm font-semibold text-gray-900">Recommended actions</h4><div className="mt-2 space-y-2">{(output.recommendations || []).map((item: any, index: number) => <div key={index} className="rounded-lg bg-white p-3 text-sm"><div className="font-medium text-gray-900">{item.action}</div><div className="mt-1 text-xs text-gray-500">Owner: {item.owner} · {titleCase(item.priority || 'MEDIUM')}</div></div>)}</div></div></div>
-    {Array.isArray(output.controls) && output.controls.length > 0 && <div><h4 className="text-sm font-semibold text-gray-900">Control checks</h4><div className="mt-2 grid gap-2 sm:grid-cols-2">{output.controls.map((control: any, index: number) => <div key={index} className="rounded-lg border border-gray-200 bg-white p-3"><div className="flex items-center justify-between gap-2"><span className="text-sm font-medium text-gray-900">{control.control || control.name}</span><Pill value={control.status || 'REVIEW_REQUIRED'} /></div>{(control.evidence || control.owner) && <p className="mt-2 text-xs text-gray-500">{control.evidence || `Owner: ${control.owner}`}</p>}</div>)}</div></div>}
-    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><strong>Human decision:</strong> {output.humanDecision}</div>
-  </section>;
+export function AnalysisReport({ analysis }: { analysis: Record<string, any> }) {
+  return <ProfessionalAiReport
+    value={analysis.output}
+    title={`${titleCase(analysis.analysisType || 'analysis')} Report`}
+    model={analysis.model}
+    status={analysis.status || 'PENDING_HUMAN_REVIEW'}
+  />;
 }
 
 function workItemDraft(record: SuiteWorkItem) {

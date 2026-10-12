@@ -82,6 +82,7 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    if (axios.isCancel(error) || error.code === 'ERR_CANCELED') return Promise.reject(error);
     let message = 'An error occurred';
 
     // A reverse proxy can stop waiting before the server-side AI workflow ends.

@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Brain, Building2, CheckCircle2, ChevronDown, Loader2, Play, RotateCcw, Sparkles } from 'lucide-react';
 import { aiService } from '../services/aiService';
 import { contractsApi } from '../services/contractsApi';
 import type { Contract } from '../types';
+import { useAuth } from '../components/AuthGate';
 import {
   AI_REQUEST_PRESETS,
   AiQuickActionType,
@@ -20,10 +21,16 @@ const fieldClass = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2
 
 const AIQuickActionsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const pending = useRef<AbortController | null>(null);
+  useEffect(() => () => { pending.current?.abort(); pending.current = null; }, []);
   const [contractId, setContractId] = useState('');
   const initialPreset = AI_REQUEST_PRESETS.find(preset => preset.id === sessionStorage.getItem('aiQuickActionPreset')) ?? AI_REQUEST_PRESETS[0];
   const [activePreset, setActivePreset] = useState(initialPreset);
-  const [request, setRequest] = useState<AiRequestForm>(initialPreset.values);
+  const [request, setRequest] = useState<AiRequestForm>({ ...initialPreset.values, hasBonding: false });
 
   const contractsQuery = useQuery({
     queryKey: ['ai-quick-action-contracts'],
@@ -48,41 +55,40 @@ const AIQuickActionsPage: React.FC = () => {
     setRequest(current => applyOpportunityContext(current, activePreset.values, selectedContract));
   }, [selectedContract?.noticeId]);
 
-  const analysisMutation = useMutation({
-    mutationFn: async ({ type, id }: { type: AiQuickActionType; id: string }) => {
-      const context = toUserContext(request);
-      if (type === 'probability') return aiService.predictWinProbability(id, context);
-      if (type === 'similarity') return aiService.findSimilarContracts(id, 10, context);
-      if (type === 'strategy') return aiService.optimizeBidStrategy(id, context);
-      return aiService.getComprehensiveAnalysis(id, 'current-user', context);
-    },
-    onSuccess: (data, variables) => {
-      const paths: Record<AiQuickActionType, string> = {
-        comprehensive: 'analysis-results', probability: 'win-probability',
-        similarity: 'similar-contracts', strategy: 'bid-strategy',
-      };
-      sessionStorage.setItem(resultStorageKey(variables.type, variables.id), JSON.stringify(data));
-      navigate(`/ai/${paths[variables.type]}/${variables.id}`);
-    },
-  });
-
   const choosePreset = (preset: typeof AI_REQUEST_PRESETS[number]) => {
     setActivePreset(preset);
-    setRequest(applyOpportunityContext({ ...preset.values }, preset.values, selectedContract));
+    setRequest(current => applyOpportunityContext({ ...preset.values, hasBonding: current.hasBonding }, preset.values, selectedContract));
     sessionStorage.setItem('aiQuickActionPreset', preset.id);
   };
 
   const resetContext = () => {
-    setRequest(applyOpportunityContext({ ...activePreset.values }, activePreset.values, selectedContract));
+    setRequest(current => applyOpportunityContext({ ...activePreset.values, hasBonding: current.hasBonding }, activePreset.values, selectedContract));
   };
 
-  const runAnalysis = () => {
-    if (!contractId || !hasCompleteAiRequest(request)) return;
+  const runAnalysis = async () => {
+    if (pending.current || !user?.id || !contractId || !hasCompleteAiRequest(request)) return;
+    const controller = new AbortController(); pending.current = controller;
+    setBusy(true); setError(''); setNotice('');
+    const type = activePreset.action, id = contractId;
     const context = toUserContext(request);
-    localStorage.setItem('lastContractId', contractId);
-    sessionStorage.setItem(contextStorageKey(contractId), JSON.stringify(context));
-    analysisMutation.mutate({ type: activePreset.action, id: contractId });
+    localStorage.setItem('lastContractId', id);
+    sessionStorage.setItem(contextStorageKey(id), JSON.stringify(context));
+    try {
+      const data = type === 'probability' ? await aiService.predictWinProbability(id, context, controller.signal)
+        : type === 'similarity' ? await aiService.findSimilarContracts(id, 10, context, controller.signal)
+        : type === 'strategy' ? await aiService.optimizeBidStrategy(id, context, controller.signal)
+        : await aiService.getComprehensiveAnalysis(id, user.id, context, controller.signal);
+      if (pending.current !== controller || controller.signal.aborted) return;
+      const paths: Record<AiQuickActionType, string> = { comprehensive: 'analysis-results', probability: 'win-probability', similarity: 'similar-contracts', strategy: 'bid-strategy' };
+      sessionStorage.setItem(resultStorageKey(type, id), JSON.stringify(data));
+      navigate(`/ai/${paths[type]}/${id}`);
+    } catch (failure) {
+      if (pending.current === controller && !controller.signal.aborted) setError(failure instanceof Error ? failure.message : 'OpenRouter analysis failed.');
+    } finally {
+      if (pending.current === controller) { pending.current = null; setBusy(false); }
+    }
   };
+  const cancelAnalysis = () => { pending.current?.abort(); pending.current = null; setBusy(false); setNotice('Capture analysis cancelled.'); };
 
   const update = <K extends keyof AiRequestForm>(key: K, value: AiRequestForm[K]) =>
     setRequest(current => ({ ...current, [key]: value }));
@@ -111,7 +117,7 @@ const AIQuickActionsPage: React.FC = () => {
     { key: 'opportunityResponseDeadline', label: 'Response deadline', placeholder: 'Not provided by SAM.gov' },
   ];
 
-  const ready = Boolean(contractId) && hasCompleteAiRequest(request);
+  const ready = Boolean(user?.id && contractId) && hasCompleteAiRequest(request);
 
   return (
     <div className="mx-auto max-w-6xl pb-16">
@@ -125,6 +131,7 @@ const AIQuickActionsPage: React.FC = () => {
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-200 sm:text-base">Choose a real opportunity, fill every company and capture field with a professional preset, review the context, then run the analysis.</p>
       </div>
 
+      <fieldset disabled={busy} className="min-w-0 border-0 p-0">
       <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="mb-4 flex items-center gap-3"><Building2 className="h-5 w-5 text-purple-600" /><div><h2 className="font-semibold text-slate-950">1. Select an opportunity</h2><p className="text-sm text-slate-500">Only real contracts from your database are available.</p></div></div>
         {contractsQuery.isLoading ? <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Loading contracts…</div> : contractsQuery.isError ? (
@@ -156,6 +163,7 @@ const AIQuickActionsPage: React.FC = () => {
           </button>
         </div>
         {selectedContract && <div className="mb-5 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-900"><strong>Context synchronized:</strong> {activePreset.name} is using {selectedContract.title || selectedContract.noticeId}. The opportunity fields below were replaced with this opportunity's SAM.gov data.</div>}
+        <p className="mb-5 text-sm leading-6 text-amber-800">Company values from presets are example assumptions. Replace them with verified company evidence before generating. Bonding confirmation stays manual when selecting or resetting a preset.</p>
         <div className="mb-4 text-xs font-semibold uppercase tracking-widest text-purple-700">Selected opportunity context</div>
         <div className="grid gap-4 sm:grid-cols-2">
           {opportunityFields.map(field => <label key={field.key} className="text-sm font-medium text-slate-700">{field.label}<input value={String(request[field.key])} onChange={e => update(field.key, e.target.value as never)} placeholder={field.placeholder} className={`${fieldClass} mt-1.5`} /></label>)}
@@ -169,13 +177,16 @@ const AIQuickActionsPage: React.FC = () => {
         </div><div className="mb-4 mt-7 text-xs font-semibold uppercase tracking-widest text-purple-700">Opportunity-driven capture preferences</div><div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium text-slate-700">Minimum contract value ($)<input type="number" min="0" value={request.minContractValue} onChange={e => update('minContractValue', Number(e.target.value))} className={`${fieldClass} mt-1.5`} /></label>{captureFields.map(field => <label key={field.key} className="text-sm font-medium text-slate-700">{field.label}<input value={String(request[field.key])} onChange={e => update(field.key, e.target.value as never)} placeholder={field.placeholder} className={`${fieldClass} mt-1.5`} /></label>)}<label className="text-sm font-medium text-slate-700">Maximum opportunity age (days)<input type="number" min="1" value={request.maxAgeDays} onChange={e => update('maxAgeDays', Number(e.target.value))} className={`${fieldClass} mt-1.5`} /></label></div>
       </section>
 
+      </fieldset>
       <section className="rounded-2xl border border-purple-200 bg-purple-50 p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-5 sm:p-6">
         <div><div className="flex items-center gap-2 font-semibold text-slate-950"><Brain className="h-5 w-5 text-purple-700" /> Ready: {activePreset.name}</div><p className="mt-1 text-sm text-slate-600">Runs {activePreset.action.replace('-', ' ')} analysis with the complete context above.</p></div>
-        <button onClick={runAnalysis} disabled={!ready || analysisMutation.isPending} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-purple-700 px-6 py-3.5 font-semibold text-white shadow-lg transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-50 sm:mt-0 sm:w-auto">
-          {analysisMutation.isPending ? <><Loader2 className="h-5 w-5 animate-spin" /> Connecting to OpenRouter…</> : <><Play className="h-5 w-5" /> Run AI analysis</>}
+        <button onClick={() => void runAnalysis()} disabled={!ready || busy} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-purple-700 px-6 py-3.5 font-semibold text-white shadow-lg transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-50 sm:mt-0 sm:w-auto">
+          {busy ? <><Loader2 className="h-5 w-5 animate-spin" /> Connecting to OpenRouter…</> : <><Play className="h-5 w-5" /> Generate with OpenRouter</>}
         </button>
+        {busy && <button type="button" onClick={cancelAnalysis} className="mt-3 rounded-xl border border-purple-300 bg-white px-5 py-3 font-semibold text-purple-800 sm:mt-0">Cancel</button>}
       </section>
-      {analysisMutation.isError && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{analysisMutation.error instanceof Error ? analysisMutation.error.message : 'AI analysis failed. Please try again.'}</div>}
+      {notice && <p role="status" className="mt-4 text-sm text-slate-600">{notice}</p>}
+      {error && <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
     </div>
   );
 };

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { AI_PRESETS, buildReviewInput } from './ContractSuiteWorkspace';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { AI_PRESETS, AnalysisReport, buildReviewInput } from './ContractSuiteWorkspace';
 
 const record: any = {
   id: 'smart-1', domain: 'SMART_CONTRACT', capability: 'source-audit', title: 'Source audit', summary: 'Review source',
@@ -21,5 +23,15 @@ describe('contract suite AI presets', () => {
         }
       }
     }
+  });
+
+  it('renders saved analysis output as a complete labeled report', () => {
+    const html = renderToStaticMarkup(React.createElement(AnalysisReport, { analysis: { analysisType: 'risk-review', output: { summary: 'Review clauses', approved: false, confidence: 0, reviewerNote: '', nested: { owner: 'Counsel' } } } }));
+    expect(html).toContain('Review clauses');
+    expect(html).toContain('Approved');
+    expect(html).toContain('No');
+    expect(html).toContain('Reviewer Note');
+    expect(html).toContain('(empty string)');
+    expect(html).toContain('Counsel');
   });
 });

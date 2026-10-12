@@ -4,6 +4,12 @@ import { apiService } from '../services/api';
 import { Contract, RFPTemplate, CompanyProfile, RFPGenerationRequest } from '../types';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 
+const RFP_PROMPT_PRESETS = [
+  { label: 'Compliance review', instructions: 'Map each response to the solicitation requirements, identify unsupported claims, and flag any missing evidence for human review.', focusAreas: ['Requirement traceability', 'Eligibility and certifications', 'Evidence gaps'] },
+  { label: 'Technical response', instructions: 'Explain the proposed approach with measurable deliverables, staffing assumptions, transition steps, and risks grounded in the selected company profile.', focusAreas: ['Technical approach', 'Staffing and transition', 'Delivery risk'] },
+  { label: 'Executive proposal', instructions: 'Write for acquisition reviewers with concise value statements, verified past performance, and clear differentiators. Mark assumptions for review.', focusAreas: ['Executive summary', 'Past performance', 'Evaluation criteria'] },
+] as const;
+
 const RFPGenerator: React.FC = () => {
   const navigate = useNavigate();
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -410,6 +416,10 @@ const RFPGenerator: React.FC = () => {
           </div>
 
           {/* Custom Instructions */}
+          <div className="flex flex-wrap gap-2" aria-label="RFP prompt presets">
+            {RFP_PROMPT_PRESETS.map(preset => <button key={preset.label} type="button" onClick={() => { setCustomInstructions(preset.instructions); setFocusAreas([...preset.focusAreas]); }} className="rounded-md border border-blue-300 px-3 py-2 text-sm font-medium text-blue-800 hover:bg-blue-50">{preset.label}</button>)}
+          </div>
+          {(!selectedContract || !selectedTemplate || !selectedProfile) && <p className="text-sm text-amber-800">Choose a real contract, template, and company profile before generating. Presets keep your current selections.</p>}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Custom Instructions (Optional)

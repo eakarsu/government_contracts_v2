@@ -2,8 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, Target, Clock, DollarSign, AlertTriangle } from 'lucide-react';
 import api from '../services/api';
-import { contextStorageKey } from '../features/aiQuickActionPresets';
-import type { UserContext } from '../services/aiService';
 import ProfessionalAiReport from '../components/AI/ProfessionalAiReport';
 import { resultStorageKey, type AiQuickActionType } from '../features/aiQuickActionPresets';
 
@@ -99,6 +97,8 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true); setError(null); setAnalysis(null);
     const fetchAnalysis = async () => {
       if (!contractId) {
         setError('No contract ID provided');
@@ -109,61 +109,15 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
       const currentAnalysisType = type || 'comprehensive';
       
       try {
-        console.log(`Fetching ${currentAnalysisType} analysis for contract:`, contractId);
-        
-        let endpoint, data;
-        const fallbackContext: UserContext = {
-          companyProfile: {
-            annualRevenue: 5000000,
-            certifications: ['8(a)', 'HUBZone'],
-            experienceInNaics: ['541511', '541512'],
-            agencyRelationships: ['DoD', 'DHS'],
-            hasBonding: true
-          },
-          preferences: {
-            minContractValue: 50000,
-            maxAgeDays: 30,
-            keywords: ['cybersecurity', 'IT services', 'software development']
-          }
-        };
-        let userContext = fallbackContext;
-        const savedContext = sessionStorage.getItem(contextStorageKey(contractId));
-        if (savedContext) {
-          try {
-            userContext = JSON.parse(savedContext) as UserContext;
-          } catch {
-            sessionStorage.removeItem(contextStorageKey(contractId));
-          }
-        }
-
-        switch (currentAnalysisType) {
-          case 'probability':
-            endpoint = '/ai/win-probability';
-            data = { contractId, userContext };
-            break;
-          case 'similarity':
-            endpoint = '/ai/similar-contracts';
-            data = { contractId, limit: 10, userContext };
-            break;
-          case 'strategy':
-            endpoint = '/ai/optimize-strategy';
-            data = { contractId, userContext };
-            break;
-          case 'comprehensive':
-          default:
-            endpoint = '/ai/comprehensive-analysis';
-            data = { contractId, userId: 'current-user', userContext };
-            break;
-        }
-
         const cacheKey = resultStorageKey(currentAnalysisType as AiQuickActionType, contractId);
         const cached = sessionStorage.getItem(cacheKey);
         let responseData: any;
         if (cached) {
           responseData = JSON.parse(cached);
-          sessionStorage.removeItem(cacheKey);
+
         } else {
-          responseData = (await api.post(endpoint, data)).data;
+          setError('No generated report is available. Open AI Capture Studio, review the actual opportunity context, and select Generate with OpenRouter.');
+          return;
         }
         
         // Handle different response structures
@@ -172,7 +126,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
           analysisData = (responseData.analysis || responseData.data || responseData) as ComprehensiveAnalysis;
         } else {
           // For specific analysis types, build a comprehensive structure
-          const contract = responseData.contract || await api.get(`/contracts/${contractId}`).then(r => r.data);
+          const contract = responseData.contract || await api.get(`/contracts/${contractId}`, { signal: controller.signal }).then(r => r.data);
           
           analysisData = {
             contract: {
@@ -243,6 +197,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
           analysisData.aiMetadata = responseData.aiMetadata;
         }
 
+        if (controller.signal.aborted) return;
         if (analysisData && analysisData.contract) {
           setAnalysis(analysisData);
         } else if (responseData.success === false) {
@@ -252,6 +207,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
           setError('Invalid analysis data format received');
         }
       } catch (error: any) {
+        if (controller.signal.aborted) return;
         console.error('Error fetching analysis:', error);
         console.error('Error response:', error.response?.data);
         console.error('Error status:', error.response?.status);
@@ -266,11 +222,12 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
           setError(`Failed to load analysis: ${error.message || 'Unknown error'}`);
         }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
-    fetchAnalysis();
+    void fetchAnalysis();
+    return () => controller.abort();
   }, [contractId, type]);
 
   const getActionColor = (action: string) => {
@@ -326,7 +283,7 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Connecting to OpenRouter and preparing your report…</p>
+          <p className="mt-4 text-gray-600">Loading the generated report…</p>
         </div>
       </div>
     );
@@ -337,9 +294,9 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <CustomButton onClick={() => navigate('/')}>
+          <CustomButton onClick={() => navigate('/ai/quick-actions')}>
             <ArrowLeft className="w-4 h-4 mr-2 inline" />
-            Back to Dashboard
+            Open AI Capture Studio
           </CustomButton>
         </div>
       </div>
@@ -351,9 +308,9 @@ const AIAnalysisResults: React.FC<AIAnalysisResultsProps> = ({ type = 'comprehen
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">No analysis data found.</p>
-          <CustomButton onClick={() => navigate('/')}>
+          <CustomButton onClick={() => navigate('/ai/quick-actions')}>
             <ArrowLeft className="w-4 h-4 mr-2 inline" />
-            Back to Dashboard
+            Open AI Capture Studio
           </CustomButton>
         </div>
       </div>

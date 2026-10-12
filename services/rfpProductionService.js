@@ -5,6 +5,7 @@ const { currentTenantId } = require('./tenantContext');
 const config = require('../config/env');
 const { SubmissionPackageService } = require('./submissionPackageService');
 const { NotificationService } = require('./notificationService');
+const { assertCaptureActive } = require('./captureRequestCancellation');
 
 const APPROVAL_GATES = ['CONTENT', 'COMPLIANCE', 'EXECUTIVE', 'SUBMISSION'];
 const CHECKLIST = [
@@ -352,9 +353,16 @@ class RfpProductionService {
     return { outcomes: counts, won: counts.WON || 0, lost: counts.LOST || 0, withdrawn: counts.WITHDRAWN || 0, noBid: counts.NO_BID || 0, winRate: decisions ? Math.round(((counts.WON || 0) / decisions) * 1000) / 10 : null, awardedValue: grouped.find(item => item.outcome === 'WON')?._sum.awardValue || 0 };
   }
 
-  async recordBidScore({ rfpResponseId, contractId, prediction, features, user }) {
-    const model = await this.prisma.rfpBidScoringModel.findFirst({ where: { status: 'VALIDATED' }, orderBy: { validatedAt: 'desc' } });
-    return this.prisma.rfpBidScore.create({ data: { rfpResponseId: rfpResponseId || null, contractId, modelId: model?.id || null, probability: Number(prediction.probability), confidence: Number(prediction.confidence), advisoryOnly: !model, features: features || {}, factors: { factors: prediction.factors || [], recommendations: prediction.recommendations || [] }, createdBy: actorId(user) }, include: { model: true } });
+  async recordBidScore({ rfpResponseId, contractId, prediction, features, user, signal }) {
+    const write = async prisma => {
+      assertCaptureActive(signal);
+      const model = await prisma.rfpBidScoringModel.findFirst({ where: { status: 'VALIDATED' }, orderBy: { validatedAt: 'desc' } });
+      assertCaptureActive(signal);
+      const score = await prisma.rfpBidScore.create({ data: { rfpResponseId: rfpResponseId || null, contractId, modelId: model?.id || null, probability: Number(prediction.probability), confidence: Number(prediction.confidence), advisoryOnly: !model, features: features || {}, factors: { factors: prediction.factors || [], recommendations: prediction.recommendations || [] }, createdBy: actorId(user) }, include: { model: true } });
+      assertCaptureActive(signal);
+      return score;
+    };
+    return signal ? this.prisma.$transaction(write) : write(this.prisma);
   }
 
   async validateScoringModel(user) {
